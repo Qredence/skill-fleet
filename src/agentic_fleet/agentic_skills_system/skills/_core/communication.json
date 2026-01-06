@@ -1,0 +1,19 @@
+{
+  "skill_id": "_core/communication",
+  "version": "1.0.0",
+  "type": "cognitive",
+  "weight": "lightweight",
+  "load_priority": "always",
+  "always_loaded": true,
+  "dependencies": [],
+  "capabilities": [
+    "natural_language_understanding",
+    "intent_extraction",
+    "response_generation",
+    "context_tracking"
+  ],
+  "description": "Core communication and language understanding",
+  "created_at": "2026-01-06T00:00:00Z",
+  "last_modified": "2026-01-06T00:00:00Z"
+}
+

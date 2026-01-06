@@ -1,0 +1,19 @@
+{
+  "skill_id": "_core/state_management",
+  "version": "1.0.0",
+  "type": "mcp",
+  "weight": "lightweight",
+  "load_priority": "always",
+  "always_loaded": true,
+  "dependencies": [],
+  "capabilities": [
+    "session_persistence",
+    "context_serialization",
+    "state_recovery",
+    "history_tracking"
+  ],
+  "description": "Core stateful interaction management",
+  "created_at": "2026-01-06T00:00:00Z",
+  "last_modified": "2026-01-06T00:00:00Z"
+}
+

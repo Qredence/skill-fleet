@@ -1,0 +1,20 @@
+{
+  "skill_id": "mcp_capabilities/state_management",
+  "version": "1.0.0",
+  "type": "mcp",
+  "weight": "lightweight",
+  "load_priority": "always",
+  "always_loaded": true,
+  "dependencies": [
+    "_core/state_management"
+  ],
+  "capabilities": [
+    "session_state",
+    "workflow_state",
+    "knowledge_state"
+  ],
+  "description": "State management for MCP-driven workflows",
+  "created_at": "2026-01-06T00:00:00Z",
+  "last_modified": "2026-01-06T00:00:00Z"
+}
+

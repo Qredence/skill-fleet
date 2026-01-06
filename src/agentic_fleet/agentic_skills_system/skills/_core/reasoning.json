@@ -1,0 +1,19 @@
+{
+  "skill_id": "_core/reasoning",
+  "version": "1.0.0",
+  "type": "cognitive",
+  "weight": "lightweight",
+  "load_priority": "always",
+  "always_loaded": true,
+  "dependencies": [],
+  "capabilities": [
+    "logical_inference",
+    "problem_decomposition",
+    "constraint_satisfaction",
+    "causal_reasoning"
+  ],
+  "description": "Core reasoning capabilities always available to agents",
+  "created_at": "2026-01-06T00:00:00Z",
+  "last_modified": "2026-01-06T00:00:00Z"
+}
+

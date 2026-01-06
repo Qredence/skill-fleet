@@ -1,0 +1,18 @@
+{
+  "skill_id": "mcp_capabilities/context_management",
+  "version": "1.0.0",
+  "type": "mcp",
+  "weight": "lightweight",
+  "load_priority": "always",
+  "always_loaded": true,
+  "dependencies": [],
+  "capabilities": [
+    "context_switching",
+    "context_persistence",
+    "context_retrieval"
+  ],
+  "description": "Essential context management capabilities for stateful operations",
+  "created_at": "2026-01-06T00:00:00Z",
+  "last_modified": "2026-01-06T00:00:00Z"
+}
+

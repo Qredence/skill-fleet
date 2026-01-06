@@ -1,0 +1,17 @@
+{
+  "skill_id": "memory_blocks/interaction_history",
+  "version": "1.0.0",
+  "type": "memory",
+  "weight": "lightweight",
+  "load_priority": "always",
+  "always_loaded": true,
+  "dependencies": [],
+  "capabilities": [
+    "interaction_history_capture",
+    "interaction_history_retrieval"
+  ],
+  "description": "Memory block for interaction history continuity",
+  "created_at": "2026-01-06T00:00:00Z",
+  "last_modified": "2026-01-06T00:00:00Z"
+}
+

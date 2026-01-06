@@ -1,0 +1,18 @@
+{
+  "skill_id": "mcp_capabilities/tool_integration",
+  "version": "1.0.0",
+  "type": "mcp",
+  "weight": "lightweight",
+  "load_priority": "always",
+  "always_loaded": true,
+  "dependencies": [],
+  "capabilities": [
+    "tool_discovery",
+    "tool_invocation",
+    "tool_composition"
+  ],
+  "description": "Essential tool integration capabilities for MCP toolchains",
+  "created_at": "2026-01-06T00:00:00Z",
+  "last_modified": "2026-01-06T00:00:00Z"
+}
+

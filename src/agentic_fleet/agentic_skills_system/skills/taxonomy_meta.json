@@ -1,0 +1,21 @@
+{
+  "version": "0.1.0",
+  "created_at": "2026-01-06T00:00:00Z",
+  "last_updated": "2026-01-06T00:00:00Z",
+  "schema_version": "1.0.0",
+  "total_skills": 0,
+  "generation_count": 0,
+  "statistics": {
+    "by_type": {},
+    "by_weight": {},
+    "by_priority": {}
+  },
+  "bootstrap_profiles": [
+    "web_developer",
+    "data_scientist",
+    "devops_engineer",
+    "ml_engineer",
+    "general_purpose"
+  ]
+}
+

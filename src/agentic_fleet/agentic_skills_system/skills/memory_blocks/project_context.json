@@ -1,0 +1,17 @@
+{
+  "skill_id": "memory_blocks/project_context",
+  "version": "1.0.0",
+  "type": "memory",
+  "weight": "lightweight",
+  "load_priority": "always",
+  "always_loaded": true,
+  "dependencies": [],
+  "capabilities": [
+    "project_context_capture",
+    "project_context_retrieval"
+  ],
+  "description": "Memory block for project-level context continuity",
+  "created_at": "2026-01-06T00:00:00Z",
+  "last_modified": "2026-01-06T00:00:00Z"
+}
+

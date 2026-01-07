@@ -1,0 +1,171 @@
+[
+  {
+    "task_description": "Create a Python async programming skill covering asyncio, event loops, coroutines, and concurrent execution patterns",
+    "expected_taxonomy_path": "technical_skills/programming/languages/python/asynchronous_programming",
+    "expected_name": "python-async",
+    "expected_type": "technical",
+    "expected_weight": "medium",
+    "expected_capabilities": [
+      "async_await_syntax",
+      "event_loop_management",
+      "concurrent_execution",
+      "task_creation",
+      "exception_handling"
+    ],
+    "expected_dependencies": [
+      "technical_skills/programming/languages/python"
+    ]
+  },
+  {
+    "task_description": "Create a skill for building REST APIs with FastAPI framework including routing, validation, and dependency injection",
+    "expected_taxonomy_path": "technical_skills/programming/web_frameworks/python/fastapi",
+    "expected_name": "python-fastapi",
+    "expected_type": "technical",
+    "expected_weight": "medium",
+    "expected_capabilities": [
+      "route_definition",
+      "request_validation",
+      "response_models",
+      "dependency_injection",
+      "async_endpoints",
+      "openapi_documentation"
+    ],
+    "expected_dependencies": [
+      "technical_skills/programming/languages/python",
+      "technical_skills/programming/languages/python/asynchronous_programming"
+    ]
+  },
+  {
+    "task_description": "Create a skill for Python decorator patterns and metaprogramming techniques",
+    "expected_taxonomy_path": "technical_skills/programming/languages/python/decorators",
+    "expected_name": "python-decorators",
+    "expected_type": "technical",
+    "expected_weight": "lightweight",
+    "expected_capabilities": [
+      "basic_decorators",
+      "parameterized_decorators",
+      "class_decorators",
+      "functools_wraps",
+      "decorator_stacking"
+    ],
+    "expected_dependencies": [
+      "technical_skills/programming/languages/python"
+    ]
+  },
+  {
+    "task_description": "Create a skill for Git version control workflows including branching, merging, and rebasing strategies",
+    "expected_taxonomy_path": "tool_proficiency/version_control/git",
+    "expected_name": "git-workflows",
+    "expected_type": "tool",
+    "expected_weight": "medium",
+    "expected_capabilities": [
+      "branching_strategies",
+      "merge_workflows",
+      "rebase_techniques",
+      "conflict_resolution",
+      "history_management",
+      "git_hooks"
+    ],
+    "expected_dependencies": []
+  },
+  {
+    "task_description": "Create a skill for debugging Python applications using pdb, logging, and profiling tools",
+    "expected_taxonomy_path": "task_focus_areas/debug_fix/python_debugging",
+    "expected_name": "python-debugging",
+    "expected_type": "task_focus",
+    "expected_weight": "medium",
+    "expected_capabilities": [
+      "pdb_debugging",
+      "logging_configuration",
+      "stack_trace_analysis",
+      "profiling",
+      "memory_debugging"
+    ],
+    "expected_dependencies": [
+      "technical_skills/programming/languages/python"
+    ]
+  },
+  {
+    "task_description": "Create a skill for writing effective unit tests with pytest including fixtures, mocking, and parametrization",
+    "expected_taxonomy_path": "technical_skills/programming/testing/python/pytest",
+    "expected_name": "python-pytest",
+    "expected_type": "technical",
+    "expected_weight": "medium",
+    "expected_capabilities": [
+      "test_organization",
+      "fixtures",
+      "parametrization",
+      "mocking",
+      "assertions",
+      "test_coverage"
+    ],
+    "expected_dependencies": [
+      "technical_skills/programming/languages/python"
+    ]
+  },
+  {
+    "task_description": "Create a skill for Docker containerization including Dockerfile writing, image optimization, and multi-stage builds",
+    "expected_taxonomy_path": "tool_proficiency/containerization/docker",
+    "expected_name": "docker-basics",
+    "expected_type": "tool",
+    "expected_weight": "medium",
+    "expected_capabilities": [
+      "dockerfile_creation",
+      "image_optimization",
+      "multi_stage_builds",
+      "volume_management",
+      "network_configuration",
+      "docker_compose"
+    ],
+    "expected_dependencies": []
+  },
+  {
+    "task_description": "Create a skill for SQL database design and query optimization",
+    "expected_taxonomy_path": "technical_skills/data_engineering/databases/sql",
+    "expected_name": "sql-fundamentals",
+    "expected_type": "technical",
+    "expected_weight": "medium",
+    "expected_capabilities": [
+      "schema_design",
+      "query_writing",
+      "joins",
+      "indexing",
+      "query_optimization",
+      "transactions"
+    ],
+    "expected_dependencies": []
+  },
+  {
+    "task_description": "Create a skill for TypeScript type system including generics, utility types, and type guards",
+    "expected_taxonomy_path": "technical_skills/programming/languages/typescript/type_system",
+    "expected_name": "typescript-types",
+    "expected_type": "technical",
+    "expected_weight": "medium",
+    "expected_capabilities": [
+      "basic_types",
+      "interfaces",
+      "generics",
+      "utility_types",
+      "type_guards",
+      "conditional_types"
+    ],
+    "expected_dependencies": [
+      "technical_skills/programming/languages/javascript"
+    ]
+  },
+  {
+    "task_description": "Create a skill for code review best practices including review checklists, feedback patterns, and common issues",
+    "expected_taxonomy_path": "task_focus_areas/code_quality/code_review",
+    "expected_name": "code-review",
+    "expected_type": "task_focus",
+    "expected_weight": "lightweight",
+    "expected_capabilities": [
+      "review_checklists",
+      "feedback_patterns",
+      "common_issues",
+      "security_review",
+      "performance_review"
+    ],
+    "expected_dependencies": []
+  }
+]

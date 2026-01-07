@@ -14,15 +14,7 @@ node_modules/
 .bun-cache/
 .bun-install/
 .bun-tmp/
-.context/cache/0aa7ba04830775afe0745a56f1b94421.pkl
-.context/cache/9d5ae2bea4e6ed03c7e288ddcc05a7c4.pkl
-.context/cache/9f27e5d72dfda264f7276f70ac0d59bf.pkl
-.context/cache/190ec6543a223968c9603a534ff79e5c.pkl
-.context/cache/965519dab7597dea23dbe7174c03823c.pkl
-.context/cache/ae82d10b4ef87dd7cb4c64012a95c81f.pkl
-.context/cache/c3241cc0485980f77283d1612d91e06a.pkl
-.context/cache/e4d82d041a2f0606336f46fa0dd10de6.pkl
-.context/cache/e6b5cd0a72eba067cb73bee6f3cfe8fc.pkl
+.context/
 .idea/.gitignore
 .idea/copilot.data.migration.ask2agent.xml
 .idea/misc.xml

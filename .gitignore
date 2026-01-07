@@ -1,5 +1,8 @@
 .venv/
 .uv-cache/
+.env
+.env.*
+!.env.example
 __pycache__/
 *.pyc
 .pytest_cache/
@@ -27,3 +30,7 @@ node_modules/
 .idea/vcs.xml
 .idea/inspectionProfiles/profiles_settings.xml
 .idea/inspectionProfiles/Project_Default.xml
+.letta/settings.json
+.letta/settings.local.json
+.letta/
+.idea/

@@ -2667,6 +2667,8 @@ dependencies = [
     { name = "google-genai" },
     { name = "litellm", extra = ["proxy"] },
     { name = "openai" },
+    { name = "pydantic" },
+    { name = "python-dotenv" },
     { name = "pyyaml" },
     { name = "typer" },
 ]
@@ -2684,6 +2686,8 @@ requires-dist = [
     { name = "google-genai", specifier = ">=1.56.0" },
     { name = "litellm", extras = ["proxy"], specifier = ">=1.80.11" },
     { name = "openai", specifier = ">=2.14.0" },
+    { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "python-dotenv", specifier = ">=1.2.1" },
     { name = "pyyaml", specifier = ">=6.0.0" },
     { name = "typer", specifier = ">=0.21.1" },
 ]

@@ -1,0 +1,6 @@
+{
+  "test_id": "TEST_BLOCKING_BRIDGE",
+  "description": "Verify that a blocking time.sleep() call wrapped in run_in_executor does not block the main event loop's other tasks.",
+  "input_capability": "blocking_bridge",
+  "expected_behavior": "Main loop remains responsive; periodic heartbeat tasks continue to log during blocking execution."
+}

@@ -1,0 +1,1 @@
+{'title': 'Basic Logging Decorator', 'code': "from functools import wraps\n\ndef logger(func):\n    @wraps(func)\n    def wrapper(*args, **kwargs):\n        print(f'Calling {func.__name__} with {args}')\n        return func(*args, **kwargs)\n    return wrapper\n\n@logger\ndef add(a, b):\n    return a + b\n\nadd(5, 3)"}

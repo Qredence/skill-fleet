@@ -1,0 +1,6 @@
+{
+  "python_environment": "Python 3.7+",
+  "libraries": ["fastapi", "uvicorn", "pydantic"],
+  "tools": ["Postman or Insomnia for testing", "Web Browser for Swagger UI access"],
+  "apis": []
+}

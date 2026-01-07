@@ -1,0 +1,1 @@
+{'title': 'Parameterized Repeat Decorator', 'code': "def repeat(n):\n    def decorator(func):\n        def wrapper(*args, **kwargs):\n            for _ in range(n):\n                result = func(*args, **kwargs)\n            return result\n        return wrapper\n    return decorator\n\n@repeat(3)\ndef greet():\n    print('Hello!')\n\ngreet()"}

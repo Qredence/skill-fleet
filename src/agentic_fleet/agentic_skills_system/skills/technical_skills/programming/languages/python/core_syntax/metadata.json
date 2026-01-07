@@ -1,0 +1,35 @@
+{
+  "skill_id": "technical_skills/programming/languages/python/core_syntax",
+  "skill_name": "Python Core Syntax and Fundamentals",
+  "version": "1.0.0",
+  "description": "Foundational mastery of Python programming including PEP 8 standards, data structures, control flow, and function definition.",
+  "category": "Technical Skills",
+  "sub_category": "Programming",
+  "tags": [
+    "python",
+    "coding",
+    "syntax",
+    "fundamentals"
+  ],
+  "created_at": "2026-01-07T02:19:37.125290+00:00",
+  "last_modified": "2026-01-07T02:19:37.125290+00:00",
+  "evolution": {
+    "skill_id": "pkg-py-core-v1",
+    "version": "1.0.0",
+    "evolution_path": "initial_packaging",
+    "parent_version": null,
+    "change_log": [
+      {
+        "event": "package_creation",
+        "timestamp": "2023-10-27T10:00:00Z",
+        "description": "Initial build of Python core capability package."
+      },
+      {
+        "event": "system_approval",
+        "timestamp": "2026-01-07T03:19:34.566249",
+        "description": "Automated approval based on 100% validation success."
+      }
+    ]
+  },
+  "name": "python-core-syntax"
+}

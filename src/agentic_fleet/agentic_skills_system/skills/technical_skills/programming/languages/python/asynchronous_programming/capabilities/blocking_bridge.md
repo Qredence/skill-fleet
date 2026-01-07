@@ -1,0 +1,1 @@
+Techniques to wrap synchronous libraries (like 'requests' or 'sqlite3') using Loop.run_in_executor to prevent event loop starvation.

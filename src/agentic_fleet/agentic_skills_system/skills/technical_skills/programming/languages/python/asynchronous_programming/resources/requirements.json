@@ -1,0 +1,5 @@
+{
+  "python_version": ">=3.7",
+  "libraries": ["asyncio"],
+  "tools": ["Python Interpreter", "Static analysis tools like mypy (for Type Hinting Coroutines)"]
+}

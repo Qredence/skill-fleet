@@ -1,0 +1,1 @@
+Configure `openapi_config.py` to customize the generated Swagger (/docs) and ReDoc (/redoc) interfaces with metadata and security schemes.

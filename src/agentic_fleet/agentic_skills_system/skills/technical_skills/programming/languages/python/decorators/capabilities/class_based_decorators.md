@@ -1,0 +1,1 @@
+Building decorators as classes to leverage OOP principles, providing a structured way to handle complex state and initialization logic.

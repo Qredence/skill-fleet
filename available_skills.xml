@@ -1,0 +1,98 @@
+<available_skills>
+  <skill>
+    <name>core-communication</name>
+    <description>Core communication and language understanding</description>
+    <location>/Volumes/Samsung-SSD-T7/Workspaces/Github/qredence/agent-framework/v0.5/_WORLD/skills-fleet/src/agentic_fleet/agentic_skills_system/skills/_core/communication.json</location>
+  </skill>
+  <skill>
+    <name>core-reasoning</name>
+    <description>Core reasoning capabilities always available to agents</description>
+    <location>/Volumes/Samsung-SSD-T7/Workspaces/Github/qredence/agent-framework/v0.5/_WORLD/skills-fleet/src/agentic_fleet/agentic_skills_system/skills/_core/reasoning.json</location>
+  </skill>
+  <skill>
+    <name>core-state-management</name>
+    <description>Core stateful interaction management</description>
+    <location>/Volumes/Samsung-SSD-T7/Workspaces/Github/qredence/agent-framework/v0.5/_WORLD/skills-fleet/src/agentic_fleet/agentic_skills_system/skills/_core/state_management.json</location>
+  </skill>
+  <skill>
+    <name>knowledge-retrieval</name>
+    <description>Retrieves relevant documents or passages from a pre-indexed knowledge base in response to a user query.</description>
+    <location>/Volumes/Samsung-SSD-T7/Workspaces/Github/qredence/agent-framework/v0.5/_WORLD/skills-fleet/src/agentic_fleet/agentic_skills_system/skills/domain_knowledge/knowledge_retrieval/SKILL.md</location>
+  </skill>
+  <skill>
+    <name>general-testing</name>
+    <description>Generic test task that exercises communication, reasoning, and state‑management, optionally integrating external tools.</description>
+    <location>/Volumes/Samsung-SSD-T7/Workspaces/Github/qredence/agent-framework/v0.5/_WORLD/skills-fleet/src/agentic_fleet/agentic_skills_system/skills/general/testing/SKILL.md</location>
+  </skill>
+  <skill>
+    <name>mcp-capabilities-context-management</name>
+    <description>Essential context management capabilities for stateful operations</description>
+    <location>/Volumes/Samsung-SSD-T7/Workspaces/Github/qredence/agent-framework/v0.5/_WORLD/skills-fleet/src/agentic_fleet/agentic_skills_system/skills/mcp_capabilities/context_management.json</location>
+  </skill>
+  <skill>
+    <name>mcp-capabilities-state-management</name>
+    <description>State management for MCP-driven workflows</description>
+    <location>/Volumes/Samsung-SSD-T7/Workspaces/Github/qredence/agent-framework/v0.5/_WORLD/skills-fleet/src/agentic_fleet/agentic_skills_system/skills/mcp_capabilities/state_management.json</location>
+  </skill>
+  <skill>
+    <name>mcp-capabilities-tool-integration</name>
+    <description>Essential tool integration capabilities for MCP toolchains</description>
+    <location>/Volumes/Samsung-SSD-T7/Workspaces/Github/qredence/agent-framework/v0.5/_WORLD/skills-fleet/src/agentic_fleet/agentic_skills_system/skills/mcp_capabilities/tool_integration.json</location>
+  </skill>
+  <skill>
+    <name>memory-blocks-custom-memory</name>
+    <description>Custom memory block for storing and retrieving arbitrary contextual information.</description>
+    <location>/Volumes/Samsung-SSD-T7/Workspaces/Github/qredence/agent-framework/v0.5/_WORLD/skills-fleet/src/agentic_fleet/agentic_skills_system/skills/memory_blocks/custom_memory/SKILL.md</location>
+  </skill>
+  <skill>
+    <name>memory-blocks-interaction-history</name>
+    <description>Memory block for interaction history continuity</description>
+    <location>/Volumes/Samsung-SSD-T7/Workspaces/Github/qredence/agent-framework/v0.5/_WORLD/skills-fleet/src/agentic_fleet/agentic_skills_system/skills/memory_blocks/interaction_history.json</location>
+  </skill>
+  <skill>
+    <name>memory-blocks-project-context</name>
+    <description>Memory block for project-level context continuity</description>
+    <location>/Volumes/Samsung-SSD-T7/Workspaces/Github/qredence/agent-framework/v0.5/_WORLD/skills-fleet/src/agentic_fleet/agentic_skills_system/skills/memory_blocks/project_context.json</location>
+  </skill>
+  <skill>
+    <name>miscellaneous-unclassified</name>
+    <description>Classifies inputs that do not match any defined functional skill in the taxonomy.</description>
+    <location>/Volumes/Samsung-SSD-T7/Workspaces/Github/qredence/agent-framework/v0.5/_WORLD/skills-fleet/src/agentic_fleet/agentic_skills_system/skills/miscellaneous/unclassified/SKILL.md</location>
+  </skill>
+  <skill>
+    <name>design-patterns-python</name>
+    <description>&gt; Skill Overview  
+&gt; This skill teaches how to recognize, implement, and combine classic software design patterns using modern Python features (type hints, `abc`, `contextlib`, `asyncio`).  It is organized as a reusable package that can be dropped into any Python project.</description>
+    <location>/Volumes/Samsung-SSD-T7/Workspaces/Github/qredence/agent-framework/v0.5/_WORLD/skills-fleet/src/agentic_fleet/agentic_skills_system/skills/technical_skills/design_patterns/python/SKILL.md</location>
+  </skill>
+  <skill>
+    <name>python-asynchronous-programming</name>
+    <description>Implementation and management of non-blocking code using asyncio, event loops, and concurrent execution patterns in Python.</description>
+    <location>/Volumes/Samsung-SSD-T7/Workspaces/Github/qredence/agent-framework/v0.5/_WORLD/skills-fleet/src/agentic_fleet/agentic_skills_system/skills/technical_skills/programming/languages/python/asynchronous_programming/SKILL.md</location>
+  </skill>
+  <skill>
+    <name>python-core-syntax</name>
+    <description>Foundational mastery of Python programming including PEP 8 standards, data structures, control flow, and function definition.</description>
+    <location>/Volumes/Samsung-SSD-T7/Workspaces/Github/qredence/agent-framework/v0.5/_WORLD/skills-fleet/src/agentic_fleet/agentic_skills_system/skills/technical_skills/programming/languages/python/core_syntax/SKILL.md</location>
+  </skill>
+  <skill>
+    <name>python-decorators</name>
+    <description>Ability to design, implement, and apply higher-order functions to extend or modify the behavior of functions and classes in Python.</description>
+    <location>/Volumes/Samsung-SSD-T7/Workspaces/Github/qredence/agent-framework/v0.5/_WORLD/skills-fleet/src/agentic_fleet/agentic_skills_system/skills/technical_skills/programming/languages/python/decorators/SKILL.md</location>
+  </skill>
+  <skill>
+    <name>practices-code-quality-analysis</name>
+    <description>Analyzes Python source code to evaluate overall quality by combining static analysis, code review insights, testing outcomes, code metrics, and style checking.</description>
+    <location>/Volumes/Samsung-SSD-T7/Workspaces/Github/qredence/agent-framework/v0.5/_WORLD/skills-fleet/src/agentic_fleet/agentic_skills_system/skills/technical_skills/programming/practices/code_quality_analysis/SKILL.md</location>
+  </skill>
+  <skill>
+    <name>python-fastapi</name>
+    <description>The ability to design, develop, and deploy high-performance web APIs using the FastAPI framework, leveraging Python type hints, Pydantic models, and asynchronous concurrency.</description>
+    <location>/Volumes/Samsung-SSD-T7/Workspaces/Github/qredence/agent-framework/v0.5/_WORLD/skills-fleet/src/agentic_fleet/agentic_skills_system/skills/technical_skills/programming/web_frameworks/python/fastapi/SKILL.md</location>
+  </skill>
+  <skill>
+    <name>software-architecture-concurrency</name>
+    <description>Expertise in designing software systems that execute multiple sequences of operations simultaneously, involving synchronization patterns, deadlock avoidance, and parallel execution strategies.</description>
+    <location>/Volumes/Samsung-SSD-T7/Workspaces/Github/qredence/agent-framework/v0.5/_WORLD/skills-fleet/src/agentic_fleet/agentic_skills_system/skills/technical_skills/software_architecture/concurrency/SKILL.md</location>
+  </skill>
+</available_skills>

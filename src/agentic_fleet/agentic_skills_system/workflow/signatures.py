@@ -28,7 +28,7 @@ class UnderstandTaskForSkill(dspy.Signature):
 
 
 class PlanSkillStructure(dspy.Signature):
-    """Design skill structure with taxonomy integration."""
+    """Design skill structure with taxonomy integration and agentskills.io compliance."""
 
     task_intent: str = dspy.InputField()
     taxonomy_path: str = dspy.InputField()
@@ -36,7 +36,16 @@ class PlanSkillStructure(dspy.Signature):
     dependency_analysis: str = dspy.InputField()
 
     skill_metadata: str = dspy.OutputField(
-        desc="JSON metadata conforming to taxonomy schema (skill_id should equal taxonomy_path)"
+        desc="""JSON metadata with required fields:
+        - skill_id: taxonomy path (e.g., 'technical_skills/programming/languages/python/decorators')
+        - name: kebab-case name for agentskills.io (e.g., 'python-decorators'), max 64 chars, lowercase
+        - description: 1-2 sentence description (max 1024 chars) of what skill does and when to use it
+        - version: semver format '1.0.0'
+        - type: one of 'cognitive|technical|domain|tool|mcp|specialization|task_focus|memory'
+        - weight: one of 'lightweight|medium|heavyweight'
+        - load_priority: one of 'always|task_specific|on_demand|dormant'
+        - dependencies: list of skill_ids
+        - capabilities: list of capability names"""
     )
     dependencies: str = dspy.OutputField(
         desc="JSON array of dependency skill_ids with justification for each"
@@ -65,13 +74,26 @@ class InitializeSkillSkeleton(dspy.Signature):
 
 
 class EditSkillContent(dspy.Signature):
-    """Generate comprehensive skill content with composition support."""
+    """Generate comprehensive skill content with composition support.
+
+    Note: YAML frontmatter will be added automatically during registration.
+    Generate only the markdown body content.
+    """
 
     skill_skeleton: str = dspy.InputField()
     parent_skills: str = dspy.InputField(desc="Content/metadata from parent/sibling skills")
     composition_strategy: str = dspy.InputField()
 
-    skill_content: str = dspy.OutputField(desc="Full SKILL.md content")
+    skill_content: str = dspy.OutputField(
+        desc="""Full SKILL.md markdown body content (frontmatter will be added automatically).
+        Must include these sections:
+        - # Title (skill name as heading)
+        - ## Overview (what the skill does)
+        - ## Capabilities (list of discrete capabilities)
+        - ## Dependencies (required skills or 'No dependencies')
+        - ## Usage Examples (code examples with expected output)
+        Include code blocks with syntax highlighting where appropriate."""
+    )
     capability_implementations: str = dspy.OutputField(
         desc="JSON object mapping capabilities to documentation content"
     )

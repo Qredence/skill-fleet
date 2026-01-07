@@ -1,58 +1,26 @@
-# config.yaml - Single source of truth for agentic_fleet LLM configuration
-# 
-# Model keys follow the format: provider:model-name
-# Parameters are model-specific and documented per entry
+# config.yaml - Single source of truth for `skills-fleet` LLM configuration
 #
-# Override hierarchy (highest to lowest priority):
-#   1. Runtime kwargs passed to get_lm()
-#   2. Environment variables (DSPY_TEMPERATURE, FLEET_MODEL_*, etc.)
-#   3. Task-specific parameters (tasks.<task>.parameters)
-#   4. Role-specific parameter_overrides (roles.<role>.parameter_overrides)
-#   5. Model defaults (models.registry.<model>.parameters)
+# Default model: gemini-3-flash-preview
+#
+# Required env:
+#   - GOOGLE_API_KEY
+#
+# Optional env:
+#   - DSPY_TEMPERATURE (override temperature globally)
 
-# ============================================================================
-# MODELS - Registry of all available LLM models
-# ============================================================================
 models:
-  # Default model when no role/team/task override is specified
-  default: deepinfra:Nemotron-3-Nano-30B-A3B
+  default: gemini:gemini-3-flash-preview
 
-  # Model registry - all available models with their configurations
   registry:
-    # --------------------------------------------------------------------------
-    # DeepInfra Models (OpenAI-compatible API)
-    # --------------------------------------------------------------------------
-    
-    deepinfra:DeepSeek-V3.2:
-      # DeepSeek-V3.2: Large MoE model with strong reasoning and agentic tool-use
-      # Context: 163,840 tokens | Pricing: $0.26/M in, $0.39/M out
-      model: deepseek-ai/DeepSeek-V3.2
-      model_type: chat
-      env: DEEPINFRA_API_KEY
-      base_url_env: DEEPINFRA_BASE_URL
-      base_url_default: https://api.deepinfra.com/v1/openai
-      timeout: 900
-      # Parameters - DeepSeek recommends temperature=1.0, top_p=0.95 for best results
-      parameters:
-        temperature: 1.0
-        top_p: 0.95
-        max_tokens: 8192
-        frequency_penalty: 0.0
-        presence_penalty: 0.0
-        stop: null
-
     deepinfra:Nemotron-3-Nano-30B-A3B:
-      # NVIDIA Nemotron 3 Nano: Fast hybrid MoE+Mamba reasoning model
-      # Context: 262,144 tokens | Pricing: $0.06/M in, $0.24/M out
       model: nvidia/Nemotron-3-Nano-30B-A3B
       model_type: chat
       env: DEEPINFRA_API_KEY
       base_url_env: DEEPINFRA_BASE_URL
       base_url_default: https://api.deepinfra.com/v1/openai
       timeout: 900
-      # Parameters - Nemotron supports standard OpenAI-compatible params
       parameters:
-        temperature: 0.6
+        temperature: 0.1
         top_p: 0.95
         max_tokens: 8192
         frequency_penalty: 0.0
@@ -60,352 +28,78 @@ models:
         repetition_penalty: 1.0
         stop: null
 
-    # --------------------------------------------------------------------------
-    # Google Gemini Models (google-genai SDK)
-    # --------------------------------------------------------------------------
-    
     gemini:gemini-3-flash-preview:
-      # Gemini 3 Flash: Fast, efficient multimodal model
-      # Optimized for speed and cost-effectiveness
       model: gemini-3-flash-preview
       model_type: chat
       env: GOOGLE_API_KEY
-      env_fallback: GEMINI_API_KEY
-      timeout: 900
-      # Parameters - Gemini uses slightly different param names
+      timeout: 60
       parameters:
         temperature: 1.0
-        top_p: 0.95
-        top_k: 40
-        max_output_tokens: 8192
-        stop_sequences: null
+        max_tokens: 8192
+        thinking_level: high
 
-    gemini:gemini-3-pro-preview:
-      # Gemini 3 Pro: Advanced reasoning and analysis
-      # Higher capability, slightly slower than Flash
-      model: gemini-3-pro-preview
-      model_type: chat
-      env: GOOGLE_API_KEY
-      env_fallback: GEMINI_API_KEY
-      timeout: 900
-      # Parameters
-      parameters:
-        temperature: 0.7
-        top_p: 0.9
-        top_k: 40
-        max_output_tokens: 8192
-        stop_sequences: null
-
-    # --------------------------------------------------------------------------
-    # ZAI Models (Anthropic-compatible API)
-    # --------------------------------------------------------------------------
-    
-    zai:glm-4.7:
-      # GLM-4.7: ZhipuAI's advanced language model via ZAI
-      model: glm-4.7
-      model_name_env: ZAI_MODEL_NAME
-      model_type: chat
-      env: ZAI_API_KEY
-      base_url_env: ZAI_ANTHROPIC_BASE_URL
-      timeout: 900
-      # Parameters - Anthropic-style API
-      parameters:
-        temperature: 0.7
-        top_p: 0.9
-        max_tokens: 4096
-        stop_sequences: null
-
-    # --------------------------------------------------------------------------
-    # Vertex AI Models (requires GOOGLE_CLOUD_PROJECT + VERTEX_LOCATION)
-    # --------------------------------------------------------------------------
-    
-    vertex:kimi-k2-thinking:
-      # Moonshot Kimi K2: Thinking/reasoning model via Vertex AI Model Garden
-      # Requires: GOOGLE_CLOUD_PROJECT, VERTEX_LOCATION env vars
-      model: vertex_ai/moonshotai/kimi-k2-thinking-maas
-      model_type: chat
-      env: GOOGLE_CLOUD_PROJECT
-      vertex_location_env: VERTEX_LOCATION
-      timeout: 900
-      # Parameters - Vertex AI style
-      parameters:
-        temperature: 0.7
-        top_p: 0.95
-        max_output_tokens: 8192
-
-# ============================================================================
-# ROLES - Core workflow role definitions
-# Can be overridden by env vars: FLEET_MODEL_{ROLE}
-# ============================================================================
 roles:
   router:
-    model: deepinfra:DeepSeek-V3.2
-    description: "Analyzes incoming requests and routes to appropriate execution pattern"
-    capabilities:
-      - pattern_detection
-      - team_selection
-      - complexity_assessment
-      - skill_requirement_analysis
-    # No parameter_overrides - uses model defaults
+    model: gemini:gemini-3-flash-preview
+    description: "Routes requests and selects workflow patterns"
+    capabilities: [pattern_detection, team_selection, complexity_assessment]
+    parameter_overrides:
+      thinking_level: medium
 
   planner:
-    model: deepinfra:DeepSeek-V3.2
-    description: "Creates detailed execution plans and orchestrates skill selection"
-    capabilities:
-      - task_decomposition
-      - skill_orchestration
-      - plan_synthesis
-      - dependency_analysis
-    parameter_overrides:
-      temperature: 0.8  # Slightly more creative for planning
+    model: gemini:gemini-3-flash-preview
+    description: "Creates detailed plans and orchestrates skill selection"
+    capabilities: [task_decomposition, skill_orchestration, dependency_analysis]
+    parameter_overrides: {}
 
   worker:
     model: gemini:gemini-3-flash-preview
-    description: "Executes individual work steps quickly and efficiently"
-    capabilities:
-      - code_execution
-      - api_calls
-      - file_operations
-      - skill_execution
-      - content_generation
-    # Uses fast model for execution
+    description: "Executes work steps"
+    capabilities: [file_operations, skill_execution, content_generation]
+    parameter_overrides: {}
 
   judge:
-    model: deepinfra:DeepSeek-V3.2
-    description: "Evaluates results and validates task completion quality"
-    capabilities:
-      - quality_assessment
-      - validation
-      - critique_generation
-      - success_verification
-    parameter_overrides:
-      temperature: 0.3  # More deterministic for evaluation
+    model: gemini:gemini-3-flash-preview
+    description: "Evaluates results and validates completion quality"
+    capabilities: [quality_assessment, validation, critique_generation]
+    parameter_overrides: {}
 
-# ============================================================================
-# TASKS - Specialized operations with dedicated model assignments
-# These map specific operations to optimal models
-# ============================================================================
 tasks:
-  # --------------------------------------------------------------------------
   # Skill Creation Workflow (6-step process)
-  # --------------------------------------------------------------------------
   skill_understand:
-    model: deepinfra:DeepSeek-V3.2
-    description: "Extract task context and requirements for skill creation"
+    model: gemini:gemini-3-flash-preview
     role: planner
     parameters:
-      temperature: 0.5  # Analytical extraction
+      thinking_level: medium
 
   skill_plan:
-    model: deepinfra:DeepSeek-V3.2
-    description: "Identify resources and plan skill structure"
+    model: gemini:gemini-3-flash-preview
     role: planner
     parameters:
-      temperature: 0.7  # Creative planning
+      thinking_level: high
 
   skill_initialize:
     model: gemini:gemini-3-flash-preview
-    description: "Create skill skeleton and file structure"
     role: worker
     parameters:
-      temperature: 0.3  # Deterministic structure
+      thinking_level: minimal
 
   skill_edit:
-    model: deepinfra:DeepSeek-V3.2
-    description: "Generate full skill content and documentation"
+    model: gemini:gemini-3-flash-preview
     role: worker
     parameters:
-      temperature: 0.8  # Creative content generation
       top_p: 0.95
-
-  skill_validate:
-    model: gemini:gemini-3-pro-preview
-    description: "Validate skill structure, quality, and compliance"
-    role: judge
-    parameters:
-      temperature: 0.3  # Strict validation
+      thinking_level: high
 
   skill_package:
-    model: deepinfra:DeepSeek-V3.2
-    description: "Package skill for approval and deployment"
+    model: gemini:gemini-3-flash-preview
     role: worker
     parameters:
-      temperature: 0.4
+      thinking_level: medium
 
-  # --------------------------------------------------------------------------
-  # Code Operations
-  # --------------------------------------------------------------------------
-  code_review:
-    model: gemini:gemini-3-pro-preview
-    description: "Review code for quality, security, and best practices"
+  skill_validate:
+    model: gemini:gemini-3-flash-preview
     role: judge
     parameters:
-      temperature: 0.3  # Deterministic analysis
+      thinking_level: high
 
-  code_generation:
-    model: deepinfra:DeepSeek-V3.2
-    description: "Generate code implementations"
-    role: worker
-    parameters:
-      temperature: 0.6
-      top_p: 0.95
-
-  code_refactor:
-    model: deepinfra:DeepSeek-V3.2
-    description: "Refactor and improve existing code"
-    role: worker
-    parameters:
-      temperature: 0.5
-      top_p: 0.9
-
-  # --------------------------------------------------------------------------
-  # Research Operations
-  # --------------------------------------------------------------------------
-  web_research:
-    model: gemini:gemini-3-flash-preview
-    description: "Gather and synthesize web information"
-    role: worker
-    parameters:
-      temperature: 0.5
-
-  deep_analysis:
-    model: deepinfra:DeepSeek-V3.2
-    description: "Deep analytical reasoning and evaluation"
-    role: judge
-    parameters:
-      temperature: 0.4
-
-  documentation:
-    model: deepinfra:Nemotron-3-Nano-30B-A3B
-    description: "Generate clear and concise documentation"
-    role: worker
-    parameters:
-      temperature: 0.5
-      max_tokens: 4096
-
-  # --------------------------------------------------------------------------
-  # Taxonomy & Validation
-  # --------------------------------------------------------------------------
-  taxonomy_analysis:
-    model: deepinfra:DeepSeek-V3.2
-    description: "Analyze optimal taxonomy placement for skills"
-    role: planner
-    parameters:
-      temperature: 0.5
-
-  quality_judgment:
-    model: gemini:gemini-3-pro-preview
-    description: "Holistic quality evaluation"
-    role: judge
-    parameters:
-      temperature: 0.3
-
-  # --------------------------------------------------------------------------
-  # General Operations
-  # --------------------------------------------------------------------------
-  summarization:
-    model: gemini:gemini-3-flash-preview
-    description: "Summarize content quickly"
-    role: worker
-    parameters:
-      temperature: 0.4
-      max_output_tokens: 2048
-
-  translation:
-    model: gemini:gemini-3-flash-preview
-    description: "Translate between languages"
-    role: worker
-    parameters:
-      temperature: 0.3
-
-# ============================================================================
-# TEAMS - Team configurations with capabilities and overrides
-# Can be overridden by env vars: FLEET_MODEL_{TEAM}_{ROLE}
-# ============================================================================
-teams:
-  research:
-    description: "Web research and synthesis"
-    tools:
-      - browser
-      - search
-    primary_tasks:
-      - web_research
-      - deep_analysis
-      - documentation
-      - summarization
-    role_overrides:
-      planner: gemini:gemini-3-pro-preview  # Pro for research planning
-
-  coding:
-    description: "Code changes and validation"
-    tools:
-      - repo_read
-      - repo_write
-      - tests
-    primary_tasks:
-      - code_generation
-      - code_review
-      - code_refactor
-    role_overrides:
-      worker: deepinfra:Nemotron-3-Nano-30B-A3B  # Fast for code execution
-      judge: gemini:gemini-3-pro-preview  # Thorough for code review
-
-  skill_design:
-    description: "Skill design, creation, and validation"
-    tools:
-      - repo_read
-      - repo_write
-      - skill_manager
-    primary_tasks:
-      - skill_understand
-      - skill_plan
-      - skill_initialize
-      - skill_edit
-      - skill_validate
-      - skill_package
-      - taxonomy_analysis
-    role_overrides:
-      worker: deepinfra:DeepSeek-V3.2  # Use DeepSeek for skill editing
-      judge: gemini:gemini-3-pro-preview  # Pro for validation
-
-  default:
-    description: "Fallback generalist team"
-    tools: []
-    primary_tasks: []
-    # No role_overrides - uses global role defaults
-
-# ============================================================================
-# LEGACY ALIASES - Backward compatibility mappings
-# Maps old-style model names to new provider:model format
-# ============================================================================
-legacy_aliases:
-  # DeepInfra models
-  deepseek-v3.2: deepinfra:DeepSeek-V3.2
-  nemotron-30b: deepinfra:Nemotron-3-Nano-30B-A3B
-  nemotron-3-nano-30b-a3b: deepinfra:Nemotron-3-Nano-30B-A3B
-  
-  # Gemini models
-  gemini-3-flash: gemini:gemini-3-flash-preview
-  gemini-3-pro: gemini:gemini-3-pro-preview
-  gemini-3-flash-preview: gemini:gemini-3-flash-preview
-  gemini-3-pro-preview: gemini:gemini-3-pro-preview
-  
-  # ZAI models
-  glm-4.7: zai:glm-4.7
-  
-  # Vertex models
-  kimi-k2: vertex:kimi-k2-thinking
-  kimi-k2-thinking: vertex:kimi-k2-thinking
-
-# ============================================================================
-# SETTINGS - Global configuration
-# ============================================================================
-settings:
-  routing_enabled: true
-  default_timeout: 900
-  
-  # Enable task-based model routing (uses tasks section)
-  task_routing_enabled: true
-  
-  # Enable team role overrides (uses teams.*.role_overrides)
-  team_overrides_enabled: true

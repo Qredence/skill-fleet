@@ -1,0 +1,1 @@
+Leverage `async def` for I/O bound tasks and `BackgroundTasks` for non-blocking post-response processing.

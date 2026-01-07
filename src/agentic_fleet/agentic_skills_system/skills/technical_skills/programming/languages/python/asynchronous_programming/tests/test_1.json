@@ -1,0 +1,6 @@
+{
+  "test_id": "TEST_ASYNC_CONCURRENCY",
+  "description": "Verify ability to execute 5 concurrent I/O operations and aggregate results within 1.1s (simulating network latency).",
+  "input_capability": "concurrency_orchestration",
+  "expected_behavior": "Uses asyncio.gather() to execute sleepers concurrently rather than sequentially."
+}

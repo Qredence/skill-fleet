@@ -1,9 +1,14 @@
-# {{skill_name}}
+---
+name: {{skill_name_kebab}}
+description: {{description}}
+metadata:
+  skill_id: {{skill_id}}
+  version: {{version}}
+  type: {{type}}
+  weight: {{weight}}
+---
 
-**Skill ID**: `{{skill_id}}`  
-**Version**: {{version}}  
-**Type**: {{type}}  
-**Weight**: {{weight}}
+# {{skill_name}}
 
 ## Overview
 
@@ -83,11 +88,4 @@ Additional resources required:
 
 ## Version History
 
-- **1.0.0** ({{created_at}}): Initial generation - {{generation_reason}}
-
-## Metadata
-
-```json
-{{metadata_json}}
-```
-
+- **{{version}}** ({{created_at}}): Initial generation - {{generation_reason}}

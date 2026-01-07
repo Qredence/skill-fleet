@@ -1,0 +1,1 @@
+Pattern for firing multiple requests simultaneously using gather(), handling partial failures, and utilizing wait_for() to enforce strict latency requirements.

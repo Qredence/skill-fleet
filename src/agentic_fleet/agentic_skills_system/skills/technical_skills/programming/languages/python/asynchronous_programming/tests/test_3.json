@@ -1,0 +1,6 @@
+{
+  "test_id": "TEST_RESOURCE_MANAGEMENT",
+  "description": "Test the implementation of an 'async with' context manager for a mock database connection.",
+  "input_capability": "async_resource_management",
+  "expected_behavior": "__aenter__ and __aexit__ are correctly invoked and awaited."
+}

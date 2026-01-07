@@ -1,0 +1,419 @@
+"""Skill validation utilities for taxonomy and agentskills.io compliance."""
+
+from __future__ import annotations
+
+import json
+import re
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+import yaml
+
+
+@dataclass(frozen=True, slots=True)
+# add docstring
+#
+class ValidationResult:
+    passed: bool
+    errors: list[str]
+    warnings: list[str]
+
+
+class SkillValidator:
+    """Validates skill metadata, directory structure, and agentskills.io compliance."""
+
+    _TYPE_ENUM = {
+        "cognitive",
+        "technical",
+        "domain",
+        "tool",
+        "mcp",
+        "specialization",
+        "task_focus",
+        "memory",
+    }
+    _WEIGHT_ENUM = {"lightweight", "medium", "heavyweight"}
+    _PRIORITY_ENUM = {"always", "task_specific", "on_demand", "dormant"}
+
+    def __init__(self, skills_root: Path) -> None:
+        self.skills_root = Path(skills_root)
+        self.required_files = ["metadata.json", "SKILL.md"]
+        self.required_dirs = ["capabilities", "examples", "tests", "resources"]
+        self._load_template_overrides()
+
+    def _load_template_overrides(self) -> None:
+        template_path = self.skills_root / "_templates" / "skill_template.json"
+        if not template_path.exists():
+            return
+        try:
+            template = json.loads(template_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            return
+
+        directory_structure = template.get("directory_structure")
+        if isinstance(directory_structure, list):
+            self.required_dirs = [d.rstrip("/") for d in directory_structure if isinstance(d, str)]
+
+        required_files = template.get("required_files")
+        if isinstance(required_files, list):
+            self.required_files = [f for f in required_files if isinstance(f, str)]
+
+    def validate_metadata(self, metadata: dict[str, Any]) -> ValidationResult:
+        errors: list[str] = []
+        warnings: list[str] = []
+
+        required_fields = [
+            "skill_id",
+            "version",
+            "type",
+            "weight",
+            "load_priority",
+            "dependencies",
+            "capabilities",
+        ]
+
+        for field in required_fields:
+            if field not in metadata:
+                errors.append(f"Missing required metadata field: {field}")
+
+        if errors:
+            return ValidationResult(False, errors, warnings)
+
+        skill_id = str(metadata.get("skill_id", ""))
+        if not self._validate_skill_id_format(skill_id):
+            errors.append(f"Invalid skill_id format: {skill_id}")
+
+        version = str(metadata.get("version", ""))
+        if not self._validate_semver(version):
+            errors.append(f"Invalid version format: {version}")
+
+        skill_type = str(metadata.get("type", ""))
+        if skill_type not in self._TYPE_ENUM:
+            errors.append(f"Invalid type: {skill_type}")
+
+        weight = str(metadata.get("weight", ""))
+        if weight not in self._WEIGHT_ENUM:
+            errors.append(f"Invalid weight: {weight}")
+
+        load_priority = str(metadata.get("load_priority", ""))
+        if load_priority not in self._PRIORITY_ENUM:
+            errors.append(f"Invalid load_priority: {load_priority}")
+
+        dependencies = metadata.get("dependencies")
+        if not isinstance(dependencies, list):
+            errors.append("dependencies must be a list")
+
+        capabilities = metadata.get("capabilities")
+        if not isinstance(capabilities, list):
+            errors.append("capabilities must be a list")
+        elif len(capabilities) == 0:
+            warnings.append("capabilities list is empty")
+
+        if isinstance(capabilities, list) and weight in self._WEIGHT_ENUM:
+            if not self._validate_weight_capabilities(weight, capabilities):
+                warnings.append(
+                    f"Weight '{weight}' may not match capability count ({len(capabilities)})"
+                )
+
+        return ValidationResult(len(errors) == 0, errors, warnings)
+
+    def validate_structure(self, skill_dir: Path) -> ValidationResult:
+        errors: list[str] = []
+        warnings: list[str] = []
+
+        for filename in self.required_files:
+            if not (skill_dir / filename).exists():
+                errors.append(f"Missing required file: {filename}")
+
+        for dirname in self.required_dirs:
+            if not (skill_dir / dirname).is_dir():
+                errors.append(f"Missing required directory: {dirname}")
+
+        metadata_path = skill_dir / "metadata.json"
+        if metadata_path.exists():
+            try:
+                json.loads(metadata_path.read_text(encoding="utf-8"))
+            except json.JSONDecodeError as exc:
+                errors.append(f"Invalid JSON in metadata.json: {exc}")
+
+        return ValidationResult(len(errors) == 0, errors, warnings)
+
+    def validate_documentation(self, skill_md_path: Path) -> ValidationResult:
+        errors: list[str] = []
+        warnings: list[str] = []
+
+        if not skill_md_path.exists():
+            return ValidationResult(False, ["SKILL.md not found"], [])
+
+        content = skill_md_path.read_text(encoding="utf-8")
+
+        # Check for agentskills.io compliant frontmatter
+        if not content.startswith("---"):
+            warnings.append("Missing YAML frontmatter (agentskills.io compliance)")
+
+        # Get body content (after frontmatter)
+        body_content = content
+        if content.startswith("---"):
+            end_marker = content.find("---", 3)
+            if end_marker != -1:
+                body_content = content[end_marker + 3 :]
+
+        required_sections = [
+            "## Overview",
+            "## Capabilities",
+            "## Dependencies",
+            "## Usage Examples",
+        ]
+
+        for section in required_sections:
+            if section not in body_content:
+                warnings.append(f"Missing section: {section}")
+
+        if "```" not in body_content:
+            warnings.append("No code blocks found")
+
+        if len(body_content.strip()) < 200:
+            warnings.append("Documentation is very brief")
+
+        return ValidationResult(len(errors) == 0, errors, warnings)
+
+    def validate_frontmatter(self, skill_md_path: Path) -> ValidationResult:
+        """Validate SKILL.md has valid agentskills.io compliant YAML frontmatter.
+
+        Per agentskills.io spec:
+        - name: required, 1-64 chars, lowercase alphanumeric + hyphens
+        - description: required, 1-1024 chars
+        - license: optional
+        - compatibility: optional, max 500 chars
+        - metadata: optional, key-value pairs
+        - allowed-tools: optional, space-delimited list
+        """
+        errors: list[str] = []
+        warnings: list[str] = []
+
+        if not skill_md_path.exists():
+            return ValidationResult(False, ["SKILL.md not found"], [])
+
+        content = skill_md_path.read_text(encoding="utf-8")
+
+        # Check for frontmatter
+        if not content.startswith("---"):
+            return ValidationResult(False, ["Missing YAML frontmatter"], [])
+
+        # Find closing ---
+        end_marker = content.find("---", 3)
+        if end_marker == -1:
+            return ValidationResult(False, ["Invalid YAML frontmatter (no closing ---)"], [])
+
+        yaml_content = content[3:end_marker].strip()
+
+        try:
+            frontmatter = yaml.safe_load(yaml_content)
+        except yaml.YAMLError as e:
+            return ValidationResult(False, [f"Invalid YAML in frontmatter: {e}"], [])
+
+        if not isinstance(frontmatter, dict):
+            return ValidationResult(False, ["Frontmatter must be a YAML mapping"], [])
+
+        # Validate required fields
+        if "name" not in frontmatter:
+            errors.append("Missing required field: name")
+        else:
+            name = str(frontmatter["name"])
+            name_valid, name_error = self._validate_skill_name(name)
+            if not name_valid:
+                errors.append(f"Invalid name: {name_error}")
+
+        if "description" not in frontmatter:
+            errors.append("Missing required field: description")
+        else:
+            description = str(frontmatter["description"])
+            if len(description) < 1:
+                errors.append("Description cannot be empty")
+            elif len(description) > 1024:
+                errors.append(f"Description exceeds 1024 characters ({len(description)})")
+
+        # Validate optional fields
+        if "compatibility" in frontmatter:
+            compat = str(frontmatter["compatibility"])
+            if len(compat) > 500:
+                warnings.append(f"Compatibility field exceeds 500 characters ({len(compat)})")
+
+        if "metadata" in frontmatter:
+            if not isinstance(frontmatter["metadata"], dict):
+                warnings.append("metadata field should be a key-value mapping")
+
+        return ValidationResult(len(errors) == 0, errors, warnings)
+
+    def _validate_skill_name(self, name: str) -> tuple[bool, str | None]:
+        """Validate skill name per agentskills.io spec.
+
+        Requirements:
+        - 1-64 characters
+        - Lowercase letters, numbers, and hyphens only
+        - Must not start or end with hyphen
+        - No consecutive hyphens
+        """
+        if not name:
+            return False, "Name cannot be empty"
+
+        if len(name) > 64:
+            return False, f"Name exceeds 64 characters (got {len(name)})"
+
+        if not re.match(r"^[a-z0-9]+(-[a-z0-9]+)*$", name):
+            return False, "Name must be lowercase alphanumeric with single hyphens between segments"
+
+        return True, None
+
+    def validate_examples(self, examples_path: Path) -> ValidationResult:
+        errors: list[str] = []
+        warnings: list[str] = []
+
+        if not examples_path.is_dir():
+            return ValidationResult(False, ["Examples directory not found"], [])
+
+        example_files = list(examples_path.glob("*.md"))
+        if len(example_files) == 0:
+            warnings.append("No example markdown files found")
+        else:
+            for example_file in example_files:
+                content = example_file.read_text(encoding="utf-8")
+                if "```" not in content:
+                    warnings.append(f"Example {example_file.name} contains no code blocks")
+
+        return ValidationResult(len(errors) == 0, errors, warnings)
+
+    def validate_naming_conventions(self, skill_id: str, path: str) -> ValidationResult:
+        errors: list[str] = []
+        warnings: list[str] = []
+
+        if skill_id != path:
+            warnings.append(f"skill_id '{skill_id}' does not match path '{path}'")
+
+        if not self._validate_skill_id_format(skill_id):
+            errors.append(f"skill_id '{skill_id}' should use lowercase/underscore path segments")
+
+        return ValidationResult(len(errors) == 0, errors, warnings)
+
+    def validate_complete(self, skill_path: Path) -> dict[str, Any]:
+        results = {"passed": True, "checks": [], "warnings": [], "errors": []}
+
+        skill_path = skill_path.resolve()
+
+        if skill_path.is_file() and skill_path.suffix == ".json":
+            metadata = json.loads(skill_path.read_text(encoding="utf-8"))
+            meta_result = self.validate_metadata(metadata)
+            results["checks"].append(
+                {
+                    "name": "metadata",
+                    "status": "pass" if meta_result.passed else "fail",
+                    "messages": meta_result.errors,
+                }
+            )
+            results["warnings"].extend(meta_result.warnings)
+            results["errors"].extend(meta_result.errors)
+            results["passed"] = meta_result.passed
+            return results
+
+        if not skill_path.is_dir():
+            results["passed"] = False
+            results["errors"].append("Skill path not found")
+            return results
+
+        metadata_path = skill_path / "metadata.json"
+        if not metadata_path.exists():
+            results["passed"] = False
+            results["errors"].append("metadata.json not found")
+            return results
+
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        meta_result = self.validate_metadata(metadata)
+        results["checks"].append(
+            {
+                "name": "metadata",
+                "status": "pass" if meta_result.passed else "fail",
+                "messages": meta_result.errors,
+            }
+        )
+        results["warnings"].extend(meta_result.warnings)
+        results["errors"].extend(meta_result.errors)
+
+        structure_result = self.validate_structure(skill_path)
+        results["checks"].append(
+            {
+                "name": "structure",
+                "status": "pass" if structure_result.passed else "fail",
+                "messages": structure_result.errors,
+            }
+        )
+        results["warnings"].extend(structure_result.warnings)
+        results["errors"].extend(structure_result.errors)
+
+        doc_result = self.validate_documentation(skill_path / "SKILL.md")
+        results["checks"].append(
+            {
+                "name": "documentation",
+                "status": "pass" if doc_result.passed else "warn",
+                "messages": doc_result.errors,
+            }
+        )
+        results["warnings"].extend(doc_result.warnings)
+        results["errors"].extend(doc_result.errors)
+
+        # agentskills.io frontmatter validation
+        frontmatter_result = self.validate_frontmatter(skill_path / "SKILL.md")
+        results["checks"].append(
+            {
+                "name": "frontmatter",
+                "status": "pass" if frontmatter_result.passed else "warn",
+                "messages": frontmatter_result.errors,
+            }
+        )
+        # Frontmatter issues are warnings (for backward compatibility with existing skills)
+        results["warnings"].extend(frontmatter_result.errors)
+        results["warnings"].extend(frontmatter_result.warnings)
+
+        examples_result = self.validate_examples(skill_path / "examples")
+        results["checks"].append(
+            {
+                "name": "examples",
+                "status": "pass" if examples_result.passed else "warn",
+                "messages": examples_result.errors,
+            }
+        )
+        results["warnings"].extend(examples_result.warnings)
+        results["errors"].extend(examples_result.errors)
+
+        rel_path = str(skill_path.relative_to(self.skills_root))
+        naming_result = self.validate_naming_conventions(metadata.get("skill_id", ""), rel_path)
+        results["checks"].append(
+            {
+                "name": "naming",
+                "status": "pass" if naming_result.passed else "warn",
+                "messages": naming_result.errors,
+            }
+        )
+        results["warnings"].extend(naming_result.warnings)
+        results["errors"].extend(naming_result.errors)
+
+        results["passed"] = len(results["errors"]) == 0
+        return results
+
+    def _validate_skill_id_format(self, skill_id: str) -> bool:
+        pattern = r"^[a-z0-9_]+(?:/[a-z0-9_]+)*$"
+        return bool(re.match(pattern, skill_id))
+
+    def _validate_semver(self, version: str) -> bool:
+        pattern = r"^\d+\.\d+\.\d+$"
+        return bool(re.match(pattern, version))
+
+    def _validate_weight_capabilities(self, weight: str, capabilities: list[str]) -> bool:
+        cap_count = len(capabilities)
+        if weight == "lightweight" and cap_count > 5:
+            return False
+        if weight == "medium" and (cap_count < 3 or cap_count > 10):
+            return False
+        if weight == "heavyweight" and cap_count < 8:
+            return False
+        return True

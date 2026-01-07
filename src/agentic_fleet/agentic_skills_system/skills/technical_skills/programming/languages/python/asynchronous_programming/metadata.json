@@ -1,0 +1,31 @@
+{
+  "skill_id": "technical_skills/programming/languages/python/asynchronous_programming",
+  "skill_name": "Python Asynchronous Programming",
+  "version": "1.0.0",
+  "description": "Implementation and management of non-blocking code using asyncio, event loops, and concurrent execution patterns in Python.",
+  "category": "Programming",
+  "tags": [
+    "python",
+    "asyncio",
+    "concurrency",
+    "asynchronous",
+    "event-loop"
+  ],
+  "created_at": "2026-01-07T02:26:00.089751+00:00",
+  "last_modified": "2026-01-07T02:26:00.089751+00:00",
+  "evolution": {
+    "version": "1.0.0",
+    "parent_version": null,
+    "change_type": "initial_release",
+    "evolution_triggers": [
+      "manual_creation"
+    ],
+    "lineage": "root",
+    "tags": [
+      "python",
+      "asyncio",
+      "concurrency"
+    ]
+  },
+  "name": "python-asynchronous-programming"
+}

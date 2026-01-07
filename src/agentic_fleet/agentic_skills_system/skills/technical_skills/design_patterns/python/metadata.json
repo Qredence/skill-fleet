@@ -1,0 +1,18 @@
+{
+  "skill_id": "technical_skills/design_patterns/python",
+  "version": "1.0.0",
+  "type": "technical",
+  "weight": "medium",
+  "load_priority": "task_specific",
+  "dependencies": [],
+  "capabilities": [],
+  "created_at": "2026-01-06T22:05:33.109673+00:00",
+  "last_modified": "2026-01-06T22:05:33.109673+00:00",
+  "evolution": {
+    "version": "1.0.0",
+    "last_updated": "2025-11-03",
+    "status": "approved"
+  },
+  "name": "design-patterns-python",
+  "description": "> Skill Overview  \n> This skill teaches how to recognize, implement, and combine classic software design patterns using modern Python features (type hints, `abc`, `contextlib`, `asyncio`).  It is organized as a reusable package that can be dropped into any Python project."
+}

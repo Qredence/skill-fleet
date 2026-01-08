@@ -78,7 +78,7 @@ export function AppShell({ children, artifactPane, statusProps }: AppShellProps)
         }}
       >
         <text 
-            content={`Mode: Standard • deepinfra • ${statusProps.settings?.model || 'Gemini'} • Theme: dark`} 
+            content={`Mode: ${statusProps.mode} • ${statusProps.settings?.provider || 'default'} • ${statusProps.settings?.model || 'default'} • Theme: ${statusProps.settings?.theme}`} 
             style={{ fg: colors.text.dim }} 
         />
         <text content="/help for tips" style={{ fg: colors.text.dim }} />

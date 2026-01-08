@@ -10,18 +10,22 @@ dependencies = [
   "google-genai>=1.56.0",
   "litellm[proxy]>=1.80.11",
   "openai>=2.14.0",
+  "pydantic>=2.12.5",
+  "python-dotenv>=1.2.1",
   "pyyaml>=6.0.0",
   "typer>=0.21.1",
+  "click>=8.3.1",
+  "pydantic>=2.0",
+  "pyyaml>=6.0.3",
+  "tomli>=2.0",
+  "typing-extensions>=4.0",
 ]
 
 [project.scripts]
 skills-fleet = "agentic_fleet.agentic_skills_system.cli:cli_entrypoint"
 
 [dependency-groups]
-dev = [
-  "pytest>=8.0.0",
-  "ruff>=0.8.0",
-]
+dev = ["pytest>=8.0.0", "ruff>=0.8.0"]
 
 [build-system]
 requires = ["hatchling>=1.26.0"]
@@ -38,20 +42,10 @@ testpaths = ["tests"]
 src = ["src"]
 target-version = "py312"
 line-length = 100
+exclude = ["src/agentic_fleet/agentic_skills_system/skills/**"]
 
 [tool.ruff.lint]
-select = [
-  "E",
-  "F",
-  "I",
-  "UP",
-  "B",
-  "D100",
-  "D101",
-  "D102",
-  "D103",
-  "D104",
-]
+select = ["E", "F", "I", "UP", "B", "D100", "D101", "D102", "D103", "D104"]
 ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]

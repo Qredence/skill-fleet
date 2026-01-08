@@ -2,10 +2,23 @@
 
 Each module encapsulates one step of the workflow with its own
 logic, validation, and error handling.
+
+This module provides two types of modules:
+1. Standard modules (ChainOfThought) - faster, single-shot generation
+2. Quality-assured modules (with Refine/BestOfN) - higher quality, multiple attempts
+
+Approved LLM Models:
+- gemini-3-flash-preview: Primary model for all steps
+- gemini-3-pro-preview: For GEPA reflection
+- deepseek-v3.2: Cost-effective alternative
+- Nemotron-3-Nano-30B-A3B: Lightweight operations
 """
+
+from __future__ import annotations
 
 import json
 import logging
+from typing import Any
 
 import dspy
 
@@ -21,6 +34,85 @@ from .signatures import (
 logger = logging.getLogger(__name__)
 
 
+# =============================================================================
+# Safe JSON Parsing Utilities
+# =============================================================================
+
+
+def safe_json_loads(
+    value: str | Any,
+    default: dict | list | None = None,
+    field_name: str = "unknown",
+) -> dict | list:
+    """Safely parse JSON string with fallback to default.
+
+    Handles:
+    - Already parsed objects (returns as-is)
+    - Valid JSON strings (parses and returns)
+    - Invalid JSON (returns default with warning)
+
+    Args:
+        value: String to parse or already-parsed object
+        default: Default value if parsing fails (dict or list)
+        field_name: Field name for logging
+
+    Returns:
+        Parsed JSON or default value (never None)
+    """
+    if default is None:
+        default = {}
+
+    # Already parsed (dict, list, or Pydantic model)
+    if isinstance(value, (dict, list)):
+        return value
+    if hasattr(value, "model_dump"):  # Pydantic model
+        return value.model_dump()
+
+    # Empty or None
+    if not value:
+        return default
+
+    # Try to parse JSON string
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except json.JSONDecodeError as e:
+            logger.warning(
+                f"Failed to parse JSON for field '{field_name}': {e}. "
+                f"Value preview: {value[:100]}..."
+            )
+            return default
+
+    # Unknown type
+    logger.warning(f"Unexpected type for field '{field_name}': {type(value)}")
+    return default
+
+
+def safe_float(value: Any, default: float = 0.0) -> float:
+    """Safely convert value to float.
+
+    Args:
+        value: Value to convert
+        default: Default if conversion fails
+
+    Returns:
+        Float value
+    """
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str):
+        try:
+            return float(value)
+        except ValueError:
+            return default
+    return default
+
+
+# =============================================================================
+# Standard Modules
+# =============================================================================
+
+
 class UnderstandModule(dspy.Module):
     """Module for Step 1: Understanding task and mapping to taxonomy."""
 
@@ -29,7 +121,10 @@ class UnderstandModule(dspy.Module):
         self.understand = dspy.ChainOfThought(UnderstandTaskForSkill)
 
     def forward(
-        self, task_description: str, existing_skills: list[str], taxonomy_structure: dict
+        self,
+        task_description: str,
+        existing_skills: list[str],
+        taxonomy_structure: dict,
     ) -> dict:
         """Analyze task and determine taxonomy placement.
 
@@ -46,9 +141,13 @@ class UnderstandModule(dspy.Module):
         return {
             "task_intent": result.task_intent,
             "taxonomy_path": result.taxonomy_path.strip(),
-            "parent_skills": result.parent_skills,
-            "dependency_analysis": result.dependency_analysis,
-            "confidence_score": float(result.confidence_score),
+            "parent_skills": safe_json_loads(
+                result.parent_skills, default=[], field_name="parent_skills"
+            ),
+            "dependency_analysis": safe_json_loads(
+                result.dependency_analysis, default={}, field_name="dependency_analysis"
+            ),
+            "confidence_score": safe_float(result.confidence_score, default=0.5),
         }
 
 
@@ -81,11 +180,23 @@ class PlanModule(dspy.Module):
         )
 
         return {
-            "skill_metadata": json.loads(result.skill_metadata),
-            "dependencies": json.loads(result.dependencies),
-            "capabilities": json.loads(result.capabilities),
-            "resource_requirements": result.resource_requirements,
-            "compatibility_constraints": result.compatibility_constraints,
+            "skill_metadata": safe_json_loads(
+                result.skill_metadata, default={}, field_name="skill_metadata"
+            ),
+            "dependencies": safe_json_loads(
+                result.dependencies, default=[], field_name="dependencies"
+            ),
+            "capabilities": safe_json_loads(
+                result.capabilities, default=[], field_name="capabilities"
+            ),
+            "resource_requirements": safe_json_loads(
+                result.resource_requirements, default={}, field_name="resource_requirements"
+            ),
+            "compatibility_constraints": safe_json_loads(
+                result.compatibility_constraints,
+                default={},
+                field_name="compatibility_constraints",
+            ),
             "composition_strategy": result.composition_strategy,
         }
 
@@ -97,7 +208,12 @@ class InitializeModule(dspy.Module):
         super().__init__()
         self.initialize = dspy.ChainOfThought(InitializeSkillSkeleton)
 
-    def forward(self, skill_metadata: dict, capabilities: list[str], taxonomy_path: str) -> dict:
+    def forward(
+        self,
+        skill_metadata: dict,
+        capabilities: list[str],
+        taxonomy_path: str,
+    ) -> dict:
         """Create a skill file structure.
 
         Returns:
@@ -110,8 +226,12 @@ class InitializeModule(dspy.Module):
         )
 
         return {
-            "skill_skeleton": json.loads(result.skill_skeleton),
-            "validation_checklist": result.validation_checklist,
+            "skill_skeleton": safe_json_loads(
+                result.skill_skeleton, default={}, field_name="skill_skeleton"
+            ),
+            "validation_checklist": safe_json_loads(
+                result.validation_checklist, default=[], field_name="validation_checklist"
+            ),
         }
 
 
@@ -150,9 +270,17 @@ class EditModule(dspy.Module):
 
         return {
             "skill_content": result.skill_content,
-            "capability_implementations": result.capability_implementations,
-            "usage_examples": result.usage_examples,
-            "best_practices": result.best_practices,
+            "capability_implementations": safe_json_loads(
+                result.capability_implementations,
+                default={},
+                field_name="capability_implementations",
+            ),
+            "usage_examples": safe_json_loads(
+                result.usage_examples, default=[], field_name="usage_examples"
+            ),
+            "best_practices": safe_json_loads(
+                result.best_practices, default=[], field_name="best_practices"
+            ),
             "integration_guide": result.integration_guide,
         }
 
@@ -184,13 +312,20 @@ class PackageModule(dspy.Module):
             capability_implementations=capability_implementations,
         )
 
-        report = json.loads(result.validation_report)
+        default_report = {"passed": False, "status": "unknown", "errors": []}
+        report = safe_json_loads(
+            result.validation_report, default=default_report, field_name="validation_report"
+        )
 
         return {
             "validation_report": report,
-            "integration_tests": result.integration_tests,
-            "packaging_manifest": result.packaging_manifest,
-            "quality_score": float(result.quality_score),
+            "integration_tests": safe_json_loads(
+                result.integration_tests, default=[], field_name="integration_tests"
+            ),
+            "packaging_manifest": safe_json_loads(
+                result.packaging_manifest, default={}, field_name="packaging_manifest"
+            ),
+            "quality_score": safe_float(result.quality_score, default=0.0),
         }
 
 
@@ -223,7 +358,296 @@ class IterateModule(dspy.Module):
 
         return {
             "approval_status": result.approval_status.strip().lower(),
-            "revision_plan": result.revision_plan,
-            "evolution_metadata": json.loads(result.evolution_metadata),
+            "revision_plan": safe_json_loads(
+                result.revision_plan, default={}, field_name="revision_plan"
+            ),
+            "evolution_metadata": safe_json_loads(
+                result.evolution_metadata, default={}, field_name="evolution_metadata"
+            ),
             "next_steps": result.next_steps,
+        }
+
+
+# =============================================================================
+# Quality-Assured Modules (with Refine/BestOfN)
+# =============================================================================
+# These modules wrap the base modules with quality assurance:
+# - Refine: Automatic feedback loop to improve outputs
+# - BestOfN: Generate multiple candidates and select the best
+
+
+class UnderstandModuleQA(dspy.Module):
+    """Quality-assured UnderstandModule with Refine wrapper.
+
+    Uses dspy.Refine to automatically retry and improve taxonomy
+    path selection based on the taxonomy_path_reward function.
+    """
+
+    def __init__(self, n_refinements: int = 3, threshold: float = 0.8):
+        """Initialize with refinement parameters.
+
+        Args:
+            n_refinements: Maximum attempts before accepting best result
+            threshold: Score threshold to accept result early (0.0-1.0)
+        """
+        super().__init__()
+        from .rewards import taxonomy_path_reward
+
+        # Wrap ChainOfThought with Refine for automatic feedback
+        self.understand = dspy.Refine(
+            module=dspy.ChainOfThought(UnderstandTaskForSkill),
+            N=n_refinements,
+            reward_fn=taxonomy_path_reward,
+            threshold=threshold,
+        )
+        self._n_refinements = n_refinements
+        self._threshold = threshold
+
+    def forward(
+        self,
+        task_description: str,
+        existing_skills: list[str],
+        taxonomy_structure: dict,
+    ) -> dict:
+        """Analyze task with quality assurance.
+
+        Returns:
+            Dict with task_intent, taxonomy_path, parent_skills,
+            dependency_analysis, and confidence_score
+        """
+        result = self.understand(
+            task_description=task_description,
+            existing_skills=json.dumps(existing_skills, indent=2),
+            taxonomy_structure=json.dumps(taxonomy_structure, indent=2),
+        )
+
+        return {
+            "task_intent": result.task_intent,
+            "taxonomy_path": result.taxonomy_path.strip(),
+            "parent_skills": safe_json_loads(
+                result.parent_skills, default=[], field_name="parent_skills"
+            ),
+            "dependency_analysis": safe_json_loads(
+                result.dependency_analysis, default={}, field_name="dependency_analysis"
+            ),
+            "confidence_score": safe_float(result.confidence_score, default=0.5),
+        }
+
+
+class PlanModuleQA(dspy.Module):
+    """Quality-assured PlanModule with Refine wrapper.
+
+    Uses dspy.Refine to ensure metadata completeness and validity.
+    """
+
+    def __init__(self, n_refinements: int = 3, threshold: float = 0.8):
+        super().__init__()
+        from .rewards import combined_plan_reward
+
+        self.plan = dspy.Refine(
+            module=dspy.ChainOfThought(PlanSkillStructure),
+            N=n_refinements,
+            reward_fn=combined_plan_reward,
+            threshold=threshold,
+        )
+
+    def forward(
+        self,
+        task_intent: str,
+        taxonomy_path: str,
+        parent_skills: list[dict],
+        dependency_analysis: str,
+    ) -> dict:
+        """Design skill structure with quality assurance."""
+        result = self.plan(
+            task_intent=task_intent,
+            taxonomy_path=taxonomy_path,
+            parent_skills=json.dumps(parent_skills, indent=2),
+            dependency_analysis=dependency_analysis,
+        )
+
+        return {
+            "skill_metadata": safe_json_loads(
+                result.skill_metadata, default={}, field_name="skill_metadata"
+            ),
+            "dependencies": safe_json_loads(
+                result.dependencies, default=[], field_name="dependencies"
+            ),
+            "capabilities": safe_json_loads(
+                result.capabilities, default=[], field_name="capabilities"
+            ),
+            "resource_requirements": safe_json_loads(
+                result.resource_requirements, default={}, field_name="resource_requirements"
+            ),
+            "compatibility_constraints": safe_json_loads(
+                result.compatibility_constraints,
+                default={},
+                field_name="compatibility_constraints",
+            ),
+            "composition_strategy": result.composition_strategy,
+        }
+
+
+class EditModuleQA(dspy.Module):
+    """Quality-assured EditModule with BestOfN wrapper.
+
+    Uses dspy.BestOfN to generate multiple content candidates
+    and select the best based on content quality scoring.
+    """
+
+    def __init__(self, n_candidates: int = 3, threshold: float = 0.85):
+        """Initialize with BestOfN parameters.
+
+        Args:
+            n_candidates: Number of content candidates to generate
+            threshold: Score threshold to accept result early (0.0-1.0)
+        """
+        super().__init__()
+        from .rewards import combined_edit_reward
+
+        # Use BestOfN for content generation - pick best of N attempts
+        self.edit = dspy.BestOfN(
+            module=dspy.ChainOfThought(EditSkillContent),
+            N=n_candidates,
+            reward_fn=combined_edit_reward,
+            threshold=threshold,
+        )
+        self._n_candidates = n_candidates
+        self._threshold = threshold
+
+    def forward(
+        self,
+        skill_skeleton: dict,
+        parent_skills: str,
+        composition_strategy: str,
+        revision_feedback: str | None = None,
+    ) -> dict:
+        """Generate skill content with quality assurance.
+
+        Args:
+            skill_skeleton: Directory structure
+            parent_skills: Context from related skills
+            composition_strategy: How skill composes with others
+            revision_feedback: Optional feedback for regeneration
+
+        Returns:
+            Dict with skill_content, capability_implementations,
+            usage_examples, best_practices, and integration_guide
+        """
+        # TODO: Incorporate revision_feedback into prompt
+        result = self.edit(
+            skill_skeleton=json.dumps(skill_skeleton, indent=2),
+            parent_skills=parent_skills,
+            composition_strategy=composition_strategy,
+        )
+
+        return {
+            "skill_content": result.skill_content,
+            "capability_implementations": safe_json_loads(
+                result.capability_implementations,
+                default={},
+                field_name="capability_implementations",
+            ),
+            "usage_examples": safe_json_loads(
+                result.usage_examples, default=[], field_name="usage_examples"
+            ),
+            "best_practices": safe_json_loads(
+                result.best_practices, default=[], field_name="best_practices"
+            ),
+            "integration_guide": result.integration_guide,
+        }
+
+
+class PackageModuleQA(dspy.Module):
+    """Quality-assured PackageModule with Refine wrapper.
+
+    Uses dspy.Refine to ensure validation report completeness.
+    """
+
+    def __init__(self, n_refinements: int = 2, threshold: float = 0.9):
+        super().__init__()
+        from .rewards import combined_package_reward
+
+        self.package = dspy.Refine(
+            module=dspy.ChainOfThought(PackageSkillForApproval),
+            N=n_refinements,
+            reward_fn=combined_package_reward,
+            threshold=threshold,
+        )
+
+    def forward(
+        self,
+        skill_content: str,
+        skill_metadata: dict,
+        taxonomy_path: str,
+        capability_implementations: str,
+    ) -> dict:
+        """Validate and package skill with quality assurance."""
+        result = self.package(
+            skill_content=skill_content,
+            skill_metadata=json.dumps(skill_metadata, indent=2),
+            taxonomy_path=taxonomy_path,
+            capability_implementations=capability_implementations,
+        )
+
+        default_report = {"passed": False, "status": "unknown", "errors": []}
+        report = safe_json_loads(
+            result.validation_report,
+            default=default_report,
+            field_name="validation_report",
+        )
+
+        return {
+            "validation_report": report,
+            "integration_tests": safe_json_loads(
+                result.integration_tests, default=[], field_name="integration_tests"
+            ),
+            "packaging_manifest": safe_json_loads(
+                result.packaging_manifest, default={}, field_name="packaging_manifest"
+            ),
+            "quality_score": safe_float(result.quality_score, default=0.0),
+        }
+
+
+# =============================================================================
+# Module Factory
+# =============================================================================
+
+
+def create_modules(
+    quality_assured: bool = False,
+    understand_refinements: int = 3,
+    plan_refinements: int = 3,
+    edit_candidates: int = 3,
+    package_refinements: int = 2,
+) -> dict[str, dspy.Module]:
+    """Create a set of workflow modules.
+
+    Args:
+        quality_assured: If True, use Refine/BestOfN wrappers
+        understand_refinements: Max refinements for UnderstandModule
+        plan_refinements: Max refinements for PlanModule
+        edit_candidates: Number of candidates for EditModule
+        package_refinements: Max refinements for PackageModule
+
+    Returns:
+        Dict mapping step names to modules
+    """
+    if quality_assured:
+        return {
+            "understand": UnderstandModuleQA(n_refinements=understand_refinements),
+            "plan": PlanModuleQA(n_refinements=plan_refinements),
+            "initialize": InitializeModule(),  # No QA needed for skeleton
+            "edit": EditModuleQA(n_candidates=edit_candidates),
+            "package": PackageModuleQA(n_refinements=package_refinements),
+            "iterate": IterateModule(),  # No QA needed for feedback processing
+        }
+    else:
+        return {
+            "understand": UnderstandModule(),
+            "plan": PlanModule(),
+            "initialize": InitializeModule(),
+            "edit": EditModule(),
+            "package": PackageModule(),
+            "iterate": IterateModule(),
         }

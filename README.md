@@ -44,7 +44,7 @@ The **Agentic Skills System (ASS)** addresses capability bloat in AI agents by o
 
 ### 1. Clone the repository
 ```bash
-git clone <repo-url>
+git clone 
 cd skills-fleet
 ```
 

@@ -190,6 +190,93 @@ def generate_xml_cli(args: argparse.Namespace) -> int:
     return 0
 
 
+def optimize_workflow_cli(args: argparse.Namespace) -> int:
+    """Optimize the skill creation workflow using MIPROv2 or GEPA.
+
+    Approved LLM Models:
+    - gemini-3-flash-preview: Primary model for all steps
+    - gemini-3-pro-preview: For GEPA reflection
+    - deepseek-v3.2: Cost-effective alternative
+    - Nemotron-3-Nano-30B-A3B: Lightweight operations
+    """
+    from .workflow.optimize import (
+        APPROVED_MODELS,
+        optimize_with_gepa,
+        optimize_with_miprov2,
+        optimize_with_tracking,
+        quick_evaluate,
+    )
+    from .workflow.programs import SkillCreationProgram
+
+    # Validate model
+    if args.model not in APPROVED_MODELS:
+        print(f"Error: Model '{args.model}' is not approved.", file=sys.stderr)
+        print(f"Approved models: {list(APPROVED_MODELS.keys())}", file=sys.stderr)
+        return 2
+
+    print(f"\n{'=' * 60}")
+    print("DSPy Workflow Optimization")
+    print(f"{'=' * 60}")
+    print(f"Optimizer: {args.optimizer}")
+    print(f"Model: {args.model}")
+    print(f"Trainset: {args.trainset}")
+    print(f"Output: {args.output}")
+    print(f"Intensity: {args.auto}")
+
+    if args.evaluate_only:
+        print("\n[EVALUATE ONLY MODE]\n")
+        program = SkillCreationProgram()
+        quick_evaluate(program, args.trainset, args.model, n_examples=args.n_examples)
+        return 0
+
+    if args.track:
+        print("MLflow tracking: ENABLED")
+
+    print(f"{'=' * 60}\n")
+
+    # Create program
+    program = SkillCreationProgram()
+
+    # Run optimization
+    try:
+        if args.track:
+            _optimized = optimize_with_tracking(
+                program,
+                trainset_path=args.trainset,
+                output_path=args.output,
+                optimizer_type=args.optimizer,
+                model=args.model,
+                auto=args.auto,
+            )
+        elif args.optimizer == "miprov2":
+            _optimized = optimize_with_miprov2(
+                program,
+                trainset_path=args.trainset,
+                output_path=args.output,
+                model=args.model,
+                auto=args.auto,
+            )
+        else:
+            _optimized = optimize_with_gepa(
+                program,
+                trainset_path=args.trainset,
+                output_path=args.output,
+                model=args.model,
+                auto=args.auto,
+            )
+
+        print(f"\n[SUCCESS] Optimized program saved to: {args.output}")
+        return 0
+
+    except FileNotFoundError as e:
+        print(f"\nError: {e}", file=sys.stderr)
+        print("Make sure the trainset file exists.", file=sys.stderr)
+        return 2
+    except Exception as e:
+        print(f"\nError during optimization: {e}", file=sys.stderr)
+        return 1
+
+
 def show_analytics(args: argparse.Namespace) -> int:
     """Show skill usage analytics and recommendations."""
     skills_root = Path(args.skills_root)
@@ -324,6 +411,71 @@ def build_parser() -> argparse.ArgumentParser:
     )
     generate_xml.add_argument("--output", "-o", help="Output file (default: stdout)")
     generate_xml.set_defaults(func=generate_xml_cli)
+
+    # Workflow optimization with MIPROv2/GEPA
+    optimize = subparsers.add_parser(
+        "optimize",
+        help="Optimize skill creation workflow with MIPROv2 or GEPA",
+        description="""
+Optimize the DSPy skill creation workflow using prompt optimization.
+
+Approved LLM Models:
+- gemini-3-flash-preview: Primary model for all steps (default)
+- gemini-3-pro-preview: For GEPA reflection (stronger reasoning)
+- deepseek-v3.2: Cost-effective alternative
+- Nemotron-3-Nano-30B-A3B: Lightweight/fast operations
+        """,
+    )
+    optimize.add_argument(
+        "--optimizer",
+        choices=["miprov2", "gepa"],
+        default="miprov2",
+        help="Optimizer algorithm (default: miprov2)",
+    )
+    optimize.add_argument(
+        "--model",
+        choices=[
+            "gemini-3-flash-preview",
+            "gemini-3-pro-preview",
+            "deepseek-v3.2",
+            "Nemotron-3-Nano-30B-A3B",
+        ],
+        default="gemini-3-flash-preview",
+        help="LLM model to use (default: gemini-3-flash-preview)",
+    )
+    optimize.add_argument(
+        "--trainset",
+        default=str(Path(__file__).parent / "workflow" / "data" / "trainset.json"),
+        help="Path to training data JSON",
+    )
+    optimize.add_argument(
+        "--output",
+        default=str(Path(__file__).parent / "workflow" / "optimized"),
+        help="Output directory for optimized program",
+    )
+    optimize.add_argument(
+        "--auto",
+        choices=["light", "medium", "heavy"],
+        default="medium",
+        help="Optimization intensity (default: medium)",
+    )
+    optimize.add_argument(
+        "--track",
+        action="store_true",
+        help="Enable MLflow tracking (requires mlflow>=2.21.1)",
+    )
+    optimize.add_argument(
+        "--evaluate-only",
+        action="store_true",
+        help="Only run evaluation, don't optimize",
+    )
+    optimize.add_argument(
+        "--n-examples",
+        type=int,
+        default=None,
+        help="Number of examples to evaluate (for --evaluate-only)",
+    )
+    optimize.set_defaults(func=optimize_workflow_cli)
 
     return parser
 

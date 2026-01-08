@@ -24,6 +24,23 @@ node_modules/
 .idea/inspectionProfiles/Project_Default.xml
 .letta/settings.json
 .letta/settings.local.json
-.letta/
+
 .idea/
+
+./!/.letta/Nameless Agent.af
+
+!/.letta/Nameless Agent (1).af
+
+!/.letta/Nameless Agent (2).af
+
+!/.letta/settings.json
+
+!/.letta/settings.local.json
+
+!/.letta/skills-agent-system.af
+.letta/Nameless Agent (1).af
+.gitignore
+.gitignore
+.gitignore
+.letta/settings.json
 .letta/settings.local.json

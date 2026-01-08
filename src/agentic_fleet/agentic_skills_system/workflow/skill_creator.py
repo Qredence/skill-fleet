@@ -186,7 +186,15 @@ class TaxonomySkillCreator(dspy.Module):
         """Validate skill plan (dependencies, circular refs)."""
 
         dependencies = plan.get("dependencies", [])
-        dep_ids = [d if isinstance(d, str) else d.get("skill_id") for d in dependencies]
+        dep_ids = []
+        for d in dependencies:
+            if isinstance(d, str):
+                dep_ids.append(d)
+            elif hasattr(d, "skill_id"):
+                dep_ids.append(d.skill_id)
+            elif isinstance(d, dict):
+                dep_ids.append(d.get("skill_id"))
+        
         dep_ids = [d for d in dep_ids if d]  # filter out None
 
         # Check dependencies exist

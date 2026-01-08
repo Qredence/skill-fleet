@@ -22,6 +22,7 @@ from typing import Any
 
 import dspy
 
+from .models import Capability
 from .signatures import (
     EditSkillContent,
     InitializeSkillSkeleton,
@@ -63,8 +64,11 @@ def safe_json_loads(
         default = {}
 
     # Already parsed (dict, list, or Pydantic model)
-    if isinstance(value, (dict, list)):
+    if isinstance(value, dict):
         return value
+    if isinstance(value, list):
+        # Handle list of Pydantic models
+        return [item.model_dump() if hasattr(item, "model_dump") else item for item in value]
     if hasattr(value, "model_dump"):  # Pydantic model
         return value.model_dump()
 
@@ -150,6 +154,31 @@ class UnderstandModule(dspy.Module):
             "confidence_score": safe_float(result.confidence_score, default=0.5),
         }
 
+    async def aforward(
+        self,
+        task_description: str,
+        existing_skills: list[str],
+        taxonomy_structure: dict,
+    ) -> dict:
+        """Analyze task asynchronously."""
+        result = await self.understand.acall(
+            task_description=task_description,
+            existing_skills=json.dumps(existing_skills, indent=2),
+            taxonomy_structure=json.dumps(taxonomy_structure, indent=2),
+        )
+
+        return {
+            "task_intent": result.task_intent,
+            "taxonomy_path": result.taxonomy_path.strip(),
+            "parent_skills": safe_json_loads(
+                result.parent_skills, default=[], field_name="parent_skills"
+            ),
+            "dependency_analysis": safe_json_loads(
+                result.dependency_analysis, default={}, field_name="dependency_analysis"
+            ),
+            "confidence_score": safe_float(result.confidence_score, default=0.5),
+        }
+
 
 class PlanModule(dspy.Module):
     """Module for Step 2: Planning skill structure."""
@@ -200,6 +229,42 @@ class PlanModule(dspy.Module):
             "composition_strategy": result.composition_strategy,
         }
 
+    async def aforward(
+        self,
+        task_intent: str,
+        taxonomy_path: str,
+        parent_skills: list[dict],
+        dependency_analysis: str,
+    ) -> dict:
+        """Design skill structure asynchronously."""
+        result = await self.plan.acall(
+            task_intent=task_intent,
+            taxonomy_path=taxonomy_path,
+            parent_skills=json.dumps(parent_skills, indent=2),
+            dependency_analysis=dependency_analysis,
+        )
+
+        return {
+            "skill_metadata": safe_json_loads(
+                result.skill_metadata, default={}, field_name="skill_metadata"
+            ),
+            "dependencies": safe_json_loads(
+                result.dependencies, default=[], field_name="dependencies"
+            ),
+            "capabilities": safe_json_loads(
+                result.capabilities, default=[], field_name="capabilities"
+            ),
+            "resource_requirements": safe_json_loads(
+                result.resource_requirements, default={}, field_name="resource_requirements"
+            ),
+            "compatibility_constraints": safe_json_loads(
+                result.compatibility_constraints,
+                default={},
+                field_name="compatibility_constraints",
+            ),
+            "composition_strategy": result.composition_strategy,
+        }
+
 
 class InitializeModule(dspy.Module):
     """Module for Step 3: Initializing skill skeleton."""
@@ -211,7 +276,7 @@ class InitializeModule(dspy.Module):
     def forward(
         self,
         skill_metadata: dict,
-        capabilities: list[str],
+        capabilities: list[Capability] | list[dict],
         taxonomy_path: str,
     ) -> dict:
         """Create a skill file structure.
@@ -219,9 +284,41 @@ class InitializeModule(dspy.Module):
         Returns:
             Dict with skill_skeleton and validation_checklist
         """
+        # Note: capabilities can be either Pydantic Capability objects (from PlanModule)
+        # or plain dicts (from tests). We need to serialize them to JSON for the LLM.
+        # Use .model_dump() for Pydantic objects to convert to dict, then json.dumps()
+        # to create the JSON string expected by the LLM.
         result = self.initialize(
             skill_metadata=json.dumps(skill_metadata, indent=2),
-            capabilities=json.dumps(capabilities, indent=2),
+            capabilities=json.dumps(
+                [c.model_dump() if hasattr(c, 'model_dump') else c for c in capabilities],
+                indent=2
+            ),
+            taxonomy_path=taxonomy_path,
+        )
+
+        return {
+            "skill_skeleton": safe_json_loads(
+                result.skill_skeleton, default={}, field_name="skill_skeleton"
+            ),
+            "validation_checklist": safe_json_loads(
+                result.validation_checklist, default=[], field_name="validation_checklist"
+            ),
+        }
+
+    async def aforward(
+        self,
+        skill_metadata: dict,
+        capabilities: list[Capability] | list[dict],
+        taxonomy_path: str,
+    ) -> dict:
+        """Create a skill file structure asynchronously."""
+        result = await self.initialize.acall(
+            skill_metadata=json.dumps(skill_metadata, indent=2),
+            capabilities=json.dumps(
+                [c.model_dump() if hasattr(c, 'model_dump') else c for c in capabilities],
+                indent=2
+            ),
             taxonomy_path=taxonomy_path,
         )
 
@@ -263,6 +360,36 @@ class EditModule(dspy.Module):
         """
         # TODO: Incorporate revision_feedback into prompt
         result = self.edit(
+            skill_skeleton=json.dumps(skill_skeleton, indent=2),
+            parent_skills=parent_skills,
+            composition_strategy=composition_strategy,
+        )
+
+        return {
+            "skill_content": result.skill_content,
+            "capability_implementations": safe_json_loads(
+                result.capability_implementations,
+                default={},
+                field_name="capability_implementations",
+            ),
+            "usage_examples": safe_json_loads(
+                result.usage_examples, default=[], field_name="usage_examples"
+            ),
+            "best_practices": safe_json_loads(
+                result.best_practices, default=[], field_name="best_practices"
+            ),
+            "integration_guide": result.integration_guide,
+        }
+
+    async def aforward(
+        self,
+        skill_skeleton: dict,
+        parent_skills: str,
+        composition_strategy: str,
+        revision_feedback: str | None = None,
+    ) -> dict:
+        """Generate comprehensive skill content asynchronously."""
+        result = await self.edit.acall(
             skill_skeleton=json.dumps(skill_skeleton, indent=2),
             parent_skills=parent_skills,
             composition_strategy=composition_strategy,
@@ -328,6 +455,37 @@ class PackageModule(dspy.Module):
             "quality_score": safe_float(result.quality_score, default=0.0),
         }
 
+    async def aforward(
+        self,
+        skill_content: str,
+        skill_metadata: dict,
+        taxonomy_path: str,
+        capability_implementations: str,
+    ) -> dict:
+        """Validate and package skill for approval asynchronously."""
+        result = await self.package.acall(
+            skill_content=skill_content,
+            skill_metadata=json.dumps(skill_metadata, indent=2),
+            taxonomy_path=taxonomy_path,
+            capability_implementations=capability_implementations,
+        )
+
+        default_report = {"passed": False, "status": "unknown", "errors": []}
+        report = safe_json_loads(
+            result.validation_report, default=default_report, field_name="validation_report"
+        )
+
+        return {
+            "validation_report": report,
+            "integration_tests": safe_json_loads(
+                result.integration_tests, default=[], field_name="integration_tests"
+            ),
+            "packaging_manifest": safe_json_loads(
+                result.packaging_manifest, default={}, field_name="packaging_manifest"
+            ),
+            "quality_score": safe_float(result.quality_score, default=0.0),
+        }
+
 
 class IterateModule(dspy.Module):
     """Module for Step 6: Iteration with human feedback."""
@@ -350,6 +508,32 @@ class IterateModule(dspy.Module):
             evolution_metadata, and next_steps
         """
         result = self.iterate(
+            packaged_skill=packaged_skill,
+            validation_report=json.dumps(validation_report, indent=2),
+            human_feedback=human_feedback,
+            usage_analytics=json.dumps(usage_analytics or {}),
+        )
+
+        return {
+            "approval_status": result.approval_status.strip().lower(),
+            "revision_plan": safe_json_loads(
+                result.revision_plan, default={}, field_name="revision_plan"
+            ),
+            "evolution_metadata": safe_json_loads(
+                result.evolution_metadata, default={}, field_name="evolution_metadata"
+            ),
+            "next_steps": result.next_steps,
+        }
+
+    async def aforward(
+        self,
+        packaged_skill: str,
+        validation_report: dict,
+        human_feedback: str,
+        usage_analytics: dict | None = None,
+    ) -> dict:
+        """Process human feedback and determine next steps asynchronously."""
+        result = await self.iterate.acall(
             packaged_skill=packaged_skill,
             validation_report=json.dumps(validation_report, indent=2),
             human_feedback=human_feedback,
@@ -433,6 +617,31 @@ class UnderstandModuleQA(dspy.Module):
             "confidence_score": safe_float(result.confidence_score, default=0.5),
         }
 
+    async def aforward(
+        self,
+        task_description: str,
+        existing_skills: list[str],
+        taxonomy_structure: dict,
+    ) -> dict:
+        """Analyze task with quality assurance asynchronously."""
+        result = await self.understand.acall(
+            task_description=task_description,
+            existing_skills=json.dumps(existing_skills, indent=2),
+            taxonomy_structure=json.dumps(taxonomy_structure, indent=2),
+        )
+
+        return {
+            "task_intent": result.task_intent,
+            "taxonomy_path": result.taxonomy_path.strip(),
+            "parent_skills": safe_json_loads(
+                result.parent_skills, default=[], field_name="parent_skills"
+            ),
+            "dependency_analysis": safe_json_loads(
+                result.dependency_analysis, default={}, field_name="dependency_analysis"
+            ),
+            "confidence_score": safe_float(result.confidence_score, default=0.5),
+        }
+
 
 class PlanModuleQA(dspy.Module):
     """Quality-assured PlanModule with Refine wrapper.
@@ -460,6 +669,42 @@ class PlanModuleQA(dspy.Module):
     ) -> dict:
         """Design skill structure with quality assurance."""
         result = self.plan(
+            task_intent=task_intent,
+            taxonomy_path=taxonomy_path,
+            parent_skills=json.dumps(parent_skills, indent=2),
+            dependency_analysis=dependency_analysis,
+        )
+
+        return {
+            "skill_metadata": safe_json_loads(
+                result.skill_metadata, default={}, field_name="skill_metadata"
+            ),
+            "dependencies": safe_json_loads(
+                result.dependencies, default=[], field_name="dependencies"
+            ),
+            "capabilities": safe_json_loads(
+                result.capabilities, default=[], field_name="capabilities"
+            ),
+            "resource_requirements": safe_json_loads(
+                result.resource_requirements, default={}, field_name="resource_requirements"
+            ),
+            "compatibility_constraints": safe_json_loads(
+                result.compatibility_constraints,
+                default={},
+                field_name="compatibility_constraints",
+            ),
+            "composition_strategy": result.composition_strategy,
+        }
+
+    async def aforward(
+        self,
+        task_intent: str,
+        taxonomy_path: str,
+        parent_skills: list[dict],
+        dependency_analysis: str,
+    ) -> dict:
+        """Design skill structure with quality assurance asynchronously."""
+        result = await self.plan.acall(
             task_intent=task_intent,
             taxonomy_path=taxonomy_path,
             parent_skills=json.dumps(parent_skills, indent=2),
@@ -557,6 +802,36 @@ class EditModuleQA(dspy.Module):
             "integration_guide": result.integration_guide,
         }
 
+    async def aforward(
+        self,
+        skill_skeleton: dict,
+        parent_skills: str,
+        composition_strategy: str,
+        revision_feedback: str | None = None,
+    ) -> dict:
+        """Generate skill content with quality assurance asynchronously."""
+        result = await self.edit.acall(
+            skill_skeleton=json.dumps(skill_skeleton, indent=2),
+            parent_skills=parent_skills,
+            composition_strategy=composition_strategy,
+        )
+
+        return {
+            "skill_content": result.skill_content,
+            "capability_implementations": safe_json_loads(
+                result.capability_implementations,
+                default={},
+                field_name="capability_implementations",
+            ),
+            "usage_examples": safe_json_loads(
+                result.usage_examples, default=[], field_name="usage_examples"
+            ),
+            "best_practices": safe_json_loads(
+                result.best_practices, default=[], field_name="best_practices"
+            ),
+            "integration_guide": result.integration_guide,
+        }
+
 
 class PackageModuleQA(dspy.Module):
     """Quality-assured PackageModule with Refine wrapper.
@@ -584,6 +859,39 @@ class PackageModuleQA(dspy.Module):
     ) -> dict:
         """Validate and package skill with quality assurance."""
         result = self.package(
+            skill_content=skill_content,
+            skill_metadata=json.dumps(skill_metadata, indent=2),
+            taxonomy_path=taxonomy_path,
+            capability_implementations=capability_implementations,
+        )
+
+        default_report = {"passed": False, "status": "unknown", "errors": []}
+        report = safe_json_loads(
+            result.validation_report,
+            default=default_report,
+            field_name="validation_report",
+        )
+
+        return {
+            "validation_report": report,
+            "integration_tests": safe_json_loads(
+                result.integration_tests, default=[], field_name="integration_tests"
+            ),
+            "packaging_manifest": safe_json_loads(
+                result.packaging_manifest, default={}, field_name="packaging_manifest"
+            ),
+            "quality_score": safe_float(result.quality_score, default=0.0),
+        }
+
+    async def aforward(
+        self,
+        skill_content: str,
+        skill_metadata: dict,
+        taxonomy_path: str,
+        capability_implementations: str,
+    ) -> dict:
+        """Validate and package skill with quality assurance asynchronously."""
+        result = await self.package.acall(
             skill_content=skill_content,
             skill_metadata=json.dumps(skill_metadata, indent=2),
             taxonomy_path=taxonomy_path,

@@ -101,7 +101,7 @@ class SkillCreationProgram(dspy.Module):
         """
 
         # Step 1: UNDERSTAND
-        lm = task_lms.get("skill_understand") if task_lms else None
+        lm = task_lms.get("skill_understand") if task_lms else dspy.settings.lm
         with dspy.context(lm=lm):
             understanding = self.understand(
                 task_description=task_description,
@@ -110,7 +110,7 @@ class SkillCreationProgram(dspy.Module):
             )
 
         # Step 2: PLAN
-        lm = task_lms.get("skill_plan") if task_lms else None
+        lm = task_lms.get("skill_plan") if task_lms else dspy.settings.lm
         parent_skills = parent_skills_getter(understanding["taxonomy_path"])
         with dspy.context(lm=lm):
             plan = self.plan(
@@ -121,7 +121,7 @@ class SkillCreationProgram(dspy.Module):
             )
 
         # Step 3: INITIALIZE
-        lm = task_lms.get("skill_initialize") if task_lms else None
+        lm = task_lms.get("skill_initialize") if task_lms else dspy.settings.lm
         with dspy.context(lm=lm):
             skeleton = self.initialize(
                 skill_metadata=plan["skill_metadata"],
@@ -130,7 +130,7 @@ class SkillCreationProgram(dspy.Module):
             )
 
         # Step 4: EDIT
-        lm = task_lms.get("skill_edit") if task_lms else None
+        lm = task_lms.get("skill_edit") if task_lms else dspy.settings.lm
         with dspy.context(lm=lm):
             content = self.edit(
                 skill_skeleton=skeleton["skill_skeleton"],
@@ -139,7 +139,7 @@ class SkillCreationProgram(dspy.Module):
             )
 
         # Step 5: PACKAGE
-        lm = task_lms.get("skill_package") if task_lms else None
+        lm = task_lms.get("skill_package") if task_lms else dspy.settings.lm
         with dspy.context(lm=lm):
             package = self.package(
                 skill_content=content["skill_content"],
@@ -169,7 +169,7 @@ class SkillCreationProgram(dspy.Module):
         Same as forward() but using async LM calls for better throughput.
         """
         # Step 1: UNDERSTAND
-        lm = task_lms.get("skill_understand") if task_lms else None
+        lm = task_lms.get("skill_understand") if task_lms else dspy.settings.lm
         with dspy.context(lm=lm):
             understanding = await self.understand.acall(
                 task_description=task_description,
@@ -178,7 +178,7 @@ class SkillCreationProgram(dspy.Module):
             )
 
         # Step 2: PLAN
-        lm = task_lms.get("skill_plan") if task_lms else None
+        lm = task_lms.get("skill_plan") if task_lms else dspy.settings.lm
         parent_skills = parent_skills_getter(understanding["taxonomy_path"])
         with dspy.context(lm=lm):
             plan = await self.plan.acall(
@@ -189,7 +189,7 @@ class SkillCreationProgram(dspy.Module):
             )
 
         # Step 3: INITIALIZE
-        lm = task_lms.get("skill_initialize") if task_lms else None
+        lm = task_lms.get("skill_initialize") if task_lms else dspy.settings.lm
         with dspy.context(lm=lm):
             skeleton = await self.initialize.acall(
                 skill_metadata=plan["skill_metadata"],
@@ -198,7 +198,7 @@ class SkillCreationProgram(dspy.Module):
             )
 
         # Step 4: EDIT
-        lm = task_lms.get("skill_edit") if task_lms else None
+        lm = task_lms.get("skill_edit") if task_lms else dspy.settings.lm
         with dspy.context(lm=lm):
             content = await self.edit.acall(
                 skill_skeleton=skeleton["skill_skeleton"],
@@ -207,7 +207,7 @@ class SkillCreationProgram(dspy.Module):
             )
 
         # Step 5: PACKAGE
-        lm = task_lms.get("skill_package") if task_lms else None
+        lm = task_lms.get("skill_package") if task_lms else dspy.settings.lm
         with dspy.context(lm=lm):
             package = await self.package.acall(
                 skill_content=content["skill_content"],
@@ -278,7 +278,7 @@ class SkillRevisionProgram(dspy.Module):
         """
 
         # Step 4: EDIT (with feedback)
-        lm = task_lms.get("skill_edit") if task_lms else None
+        lm = task_lms.get("skill_edit") if task_lms else dspy.settings.lm
         with dspy.context(lm=lm):
             content = self.edit(
                 skill_skeleton=skeleton["skill_skeleton"],
@@ -288,7 +288,7 @@ class SkillRevisionProgram(dspy.Module):
             )
 
         # Step 5: PACKAGE
-        lm = task_lms.get("skill_package") if task_lms else None
+        lm = task_lms.get("skill_package") if task_lms else dspy.settings.lm
         with dspy.context(lm=lm):
             package = self.package(
                 skill_content=content["skill_content"],
@@ -312,7 +312,7 @@ class SkillRevisionProgram(dspy.Module):
         """Async regeneration and repackaging."""
 
         # Step 4: EDIT (with feedback)
-        lm = task_lms.get("skill_edit") if task_lms else None
+        lm = task_lms.get("skill_edit") if task_lms else dspy.settings.lm
         with dspy.context(lm=lm):
             content = await self.edit.acall(
                 skill_skeleton=skeleton["skill_skeleton"],
@@ -322,7 +322,7 @@ class SkillRevisionProgram(dspy.Module):
             )
 
         # Step 5: PACKAGE
-        lm = task_lms.get("skill_package") if task_lms else None
+        lm = task_lms.get("skill_package") if task_lms else dspy.settings.lm
         with dspy.context(lm=lm):
             package = await self.package.acall(
                 skill_content=content["skill_content"],
@@ -371,7 +371,7 @@ class QuickSkillProgram(dspy.Module):
         """
 
         # Step 1: UNDERSTAND
-        lm = task_lms.get("skill_understand") if task_lms else None
+        lm = task_lms.get("skill_understand") if task_lms else dspy.settings.lm
         with dspy.context(lm=lm):
             understanding = self.understand(
                 task_description=task_description,
@@ -380,7 +380,7 @@ class QuickSkillProgram(dspy.Module):
             )
 
         # Step 2: PLAN
-        lm = task_lms.get("skill_plan") if task_lms else None
+        lm = task_lms.get("skill_plan") if task_lms else dspy.settings.lm
         parent_skills = parent_skills_getter(understanding["taxonomy_path"])
         with dspy.context(lm=lm):
             plan = self.plan(
@@ -399,7 +399,7 @@ class QuickSkillProgram(dspy.Module):
             }
         }
 
-        lm = task_lms.get("skill_edit") if task_lms else None
+        lm = task_lms.get("skill_edit") if task_lms else dspy.settings.lm
         with dspy.context(lm=lm):
             content = self.edit(
                 skill_skeleton=skeleton["skill_skeleton"],
@@ -420,7 +420,7 @@ class QuickSkillProgram(dspy.Module):
         """Async quick skill generation."""
 
         # Step 1: UNDERSTAND
-        lm = task_lms.get("skill_understand") if task_lms else None
+        lm = task_lms.get("skill_understand") if task_lms else dspy.settings.lm
         with dspy.context(lm=lm):
             understanding = await self.understand.acall(
                 task_description=task_description,
@@ -429,7 +429,7 @@ class QuickSkillProgram(dspy.Module):
             )
 
         # Step 2: PLAN
-        lm = task_lms.get("skill_plan") if task_lms else None
+        lm = task_lms.get("skill_plan") if task_lms else dspy.settings.lm
         parent_skills = parent_skills_getter(understanding["taxonomy_path"])
         with dspy.context(lm=lm):
             plan = await self.plan.acall(
@@ -448,7 +448,7 @@ class QuickSkillProgram(dspy.Module):
             }
         }
 
-        lm = task_lms.get("skill_edit") if task_lms else None
+        lm = task_lms.get("skill_edit") if task_lms else dspy.settings.lm
         with dspy.context(lm=lm):
             content = await self.edit.acall(
                 skill_skeleton=skeleton["skill_skeleton"],

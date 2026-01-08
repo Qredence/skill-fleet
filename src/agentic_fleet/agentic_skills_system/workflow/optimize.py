@@ -76,7 +76,7 @@ def get_lm(
 
 
 def optimize_with_miprov2(
-    program: "SkillCreationProgram",
+    program: SkillCreationProgram,
     trainset_path: str | Path = "workflow/data/trainset.json",
     output_path: str | Path = "workflow/optimized/miprov2/",
     model: str = DEFAULT_MODEL,
@@ -84,7 +84,7 @@ def optimize_with_miprov2(
     max_bootstrapped_demos: int = 4,
     max_labeled_demos: int = 4,
     num_threads: int = 8,
-) -> "SkillCreationProgram":
+) -> SkillCreationProgram:
     """Optimize skill creation workflow with MIPROv2.
 
     MIPROv2 (Multi-stage Instruction Proposal Optimizer v2) tunes:
@@ -152,14 +152,14 @@ def optimize_with_miprov2(
 
 
 def optimize_with_gepa(
-    program: "SkillCreationProgram",
+    program: SkillCreationProgram,
     trainset_path: str | Path = "workflow/data/trainset.json",
     output_path: str | Path = "workflow/optimized/gepa/",
     model: str = DEFAULT_MODEL,
     reflection_model: str = REFLECTION_MODEL,
     auto: Literal["light", "medium", "heavy"] = "medium",
     track_stats: bool = True,
-) -> "SkillCreationProgram":
+) -> SkillCreationProgram:
     """Optimize skill creation workflow with GEPA.
 
     GEPA (Genetic-Pareto Reflective Prompt Optimizer) uses:
@@ -228,7 +228,7 @@ def optimize_with_gepa(
 
 def load_optimized_program(
     path: str | Path = "workflow/optimized/miprov2/",
-) -> "SkillCreationProgram":
+) -> SkillCreationProgram:
     """Load a previously optimized program.
 
     Args:
@@ -247,7 +247,7 @@ def load_optimized_program(
 
 
 def save_program_state(
-    program: "SkillCreationProgram",
+    program: SkillCreationProgram,
     path: str | Path,
     save_program: bool = False,
 ) -> None:
@@ -276,14 +276,14 @@ def save_program_state(
 
 
 def optimize_with_tracking(
-    program: "SkillCreationProgram",
+    program: SkillCreationProgram,
     trainset_path: str | Path = "workflow/data/trainset.json",
     output_path: str | Path = "workflow/optimized/tracked/",
     optimizer_type: Literal["miprov2", "gepa"] = "miprov2",
     model: str = DEFAULT_MODEL,
     experiment_name: str = "skills-fleet-optimization",
     **optimizer_kwargs,
-) -> "SkillCreationProgram":
+) -> SkillCreationProgram:
     """Optimize with MLflow tracking enabled.
 
     Requires: pip install mlflow>=2.21.1
@@ -353,7 +353,7 @@ def optimize_with_tracking(
 
 
 def quick_evaluate(
-    program: "SkillCreationProgram",
+    program: SkillCreationProgram,
     trainset_path: str | Path = "workflow/data/trainset.json",
     model: str = DEFAULT_MODEL,
     n_examples: int | None = None,

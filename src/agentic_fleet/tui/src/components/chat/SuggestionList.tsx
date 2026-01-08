@@ -1,4 +1,6 @@
-import { TextAttributes } from "@opentui/core";
+/// <reference path="../../declarations.d.ts" />
+// @ts-nocheck
+import { TextAttributes, Box, Text } from "@opentui/core";
 import React, { useMemo } from "react";
 import type { ThemeTokens } from "../../themes";
 import type { InputMode, UISuggestion } from "../../types";

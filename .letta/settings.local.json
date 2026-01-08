@@ -1,6 +1,7 @@
 {
-  "lastAgent": "agent-3c269eb8-a702-4b06-97ce-549cd7260c06",
+  "lastAgent": "agent-b8ba4eae-0736-4c37-9cc3-810a5c2253de",
   "pinnedAgents": [
     "agent-b8ba4eae-0736-4c37-9cc3-810a5c2253de"
-  ]
+  ],
+  "memoryReminderInterval": 5
 }

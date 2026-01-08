@@ -1,3 +1,9 @@
+/**
+ * CLIBridge service for spawning Python CLI commands.
+ * 
+ * IMPORTANT: This module requires the Bun runtime and will not work with Node.js.
+ * The `spawn` function is imported from "bun" which is Bun-specific.
+ */
 import { spawn } from "bun";
 import path from "node:path";
 import process from "node:process";
@@ -77,9 +83,10 @@ export class CLIBridge {
       onEvent({ type: "exit", code: exitCode });
       return exitCode;
 
-    } catch (error) {
+    } catch (error: any) {
       onEvent({ type: "error", data: String(error) });
-      return 1;
+      // Propagate actual exit code if available
+      return error.exitCode ?? error.code ?? 1;
     }
   }
 

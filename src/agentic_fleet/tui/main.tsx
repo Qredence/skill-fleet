@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { createCliRenderer, ConsolePosition, type KeyEvent, TextAttributes } from "@opentui/core"
+import { createCliRenderer, ConsolePosition, type KeyEvent } from "@opentui/core"
 import { createRoot, useKeyboard, useRenderer } from "@opentui/react"
 import { readFileSync } from "node:fs"
 import path from "node:path"

@@ -24,8 +24,7 @@
 
     /* Type declaration files */
     "typeRoots": ["./node_modules/@types"],
-    "types": ["node", "react"],
-    "typeCheck": true
+    "types": ["node", "react"]
   },
   "files": ["src/declarations.d.ts"],
   "include": ["src", "src/**/*.tsx", "src/**/*.ts"],

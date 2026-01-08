@@ -1,3 +1,9 @@
+/**
+ * CLIBridge - Interface to the skills-fleet Python CLI
+ * 
+ * @requires Bun runtime - This module requires the Bun runtime to be available.
+ * The spawn function from "bun" is used for process management.
+ */
 import { spawn } from "bun";
 import path from "node:path";
 import process from "node:process";
@@ -29,6 +35,9 @@ export class CLIBridge {
   /**
    * Spawns the skills-fleet CLI command.
    * Returns a promise that resolves when the process exits.
+   * 
+   * @requires Bun runtime - spawn() is a Bun-specific API
+   * @throws Error if Bun runtime is not available or if spawn fails
    */
   async run(args: string[], onEvent: (event: CLIEvent) => void): Promise<number> {
     const fullArgs = [
@@ -41,6 +50,7 @@ export class CLIBridge {
     ];
 
     try {
+      // Note: spawn() requires Bun runtime. If running in Node.js, this will fail.
       const proc = spawn(fullArgs, {
         cwd: this.repoRoot,
         env: {
@@ -78,7 +88,16 @@ export class CLIBridge {
       return exitCode;
 
     } catch (error) {
-      onEvent({ type: "error", data: String(error) });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      // Check if error is related to missing Bun runtime
+      if (errorMessage.includes("spawn") || errorMessage.includes("bun")) {
+        onEvent({ 
+          type: "error", 
+          data: `Failed to spawn process. Ensure Bun runtime is installed and available. Error: ${errorMessage}` 
+        });
+      } else {
+        onEvent({ type: "error", data: errorMessage });
+      }
       return 1;
     }
   }

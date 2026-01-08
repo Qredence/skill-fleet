@@ -122,7 +122,10 @@ def test_composite_rewards_return_in_unit_interval() -> None:
             "type": "technical",
             "weight": "lightweight",
         },
-        capabilities=[{"name": "cap_one", "description": "desc"}, {"name": "cap_two", "description": "desc"}],
+        capabilities=[
+            {"name": "cap_one", "description": "desc"},
+            {"name": "cap_two", "description": "desc"},
+        ],
     )
     edit_pred = SimpleNamespace(
         skill_content="# Title\n\n## Overview\n\n## Capabilities\n\n## Dependencies\n\n## Usage Examples\n\n```python\npass\n```\n",

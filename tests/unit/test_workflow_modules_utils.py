@@ -39,7 +39,9 @@ def test_safe_json_loads_invalid_json_falls_back_and_logs(caplog: pytest.LogCapt
     assert "Failed to parse JSON for field 'x'" in messages
 
 
-def test_safe_json_loads_empty_and_unknown_types_fall_back(caplog: pytest.LogCaptureFixture) -> None:
+def test_safe_json_loads_empty_and_unknown_types_fall_back(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     caplog.set_level(logging.WARNING)
 
     assert safe_json_loads("", default={"d": 1}) == {"d": 1}

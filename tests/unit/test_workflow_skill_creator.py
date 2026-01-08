@@ -63,7 +63,11 @@ def _base_creation_result(passed: bool = True):
             "integration_guide": "",
         },
         "package": {
-            "validation_report": {"passed": passed, "status": "passed" if passed else "failed", "errors": ["e"] if not passed else []},
+            "validation_report": {
+                "passed": passed,
+                "status": "passed" if passed else "failed",
+                "errors": ["e"] if not passed else [],
+            },
             "packaging_manifest": {},
             "quality_score": 0.9,
         },
@@ -101,7 +105,9 @@ def test_create_skill_returns_validation_failed(tmp_path, monkeypatch: pytest.Mo
     assert result["errors"]
 
 
-def test_create_skill_rejects_circular_dependency(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_create_skill_rejects_circular_dependency(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     pytest.importorskip("dspy")
     monkeypatch.setattr(skill_creator.dspy, "context", lambda **kwargs: contextlib.nullcontext())
 
@@ -121,7 +127,9 @@ def test_create_skill_rejects_circular_dependency(tmp_path, monkeypatch: pytest.
     assert "Invalid dependencies" in result["message"]
 
 
-def test_create_skill_approved_tracks_usage_and_updates_stats(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_create_skill_approved_tracks_usage_and_updates_stats(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     pytest.importorskip("dspy")
     monkeypatch.setattr(skill_creator.dspy, "context", lambda **kwargs: contextlib.nullcontext())
 
@@ -145,7 +153,9 @@ def test_create_skill_approved_tracks_usage_and_updates_stats(tmp_path, monkeypa
     assert taxonomy.register_calls
 
 
-def test_create_skill_max_iterations_when_needs_revision_repeats(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_create_skill_max_iterations_when_needs_revision_repeats(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     pytest.importorskip("dspy")
     monkeypatch.setattr(skill_creator.dspy, "context", lambda **kwargs: contextlib.nullcontext())
 

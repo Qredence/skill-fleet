@@ -25,9 +25,7 @@ class DependencyAnalysis(BaseModel):
     optional_skills: list[str] = Field(
         default_factory=list, description="Skills that would enhance but aren't required"
     )
-    integration_notes: str = Field(
-        default="", description="Notes on how dependencies integrate"
-    )
+    integration_notes: str = Field(default="", description="Notes on how dependencies integrate")
 
 
 class ParentSkillInfo(BaseModel):
@@ -53,9 +51,7 @@ class UnderstandingResult(BaseModel):
     dependency_analysis: DependencyAnalysis = Field(
         default_factory=DependencyAnalysis, description="Analysis of required dependencies"
     )
-    confidence_score: float = Field(
-        ge=0.0, le=1.0, description="Confidence in taxonomy placement"
-    )
+    confidence_score: float = Field(ge=0.0, le=1.0, description="Confidence in taxonomy placement")
 
 
 # =============================================================================
@@ -80,9 +76,7 @@ class SkillMetadata(BaseModel):
         pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$",
         description="Kebab-case name per agentskills.io spec",
     )
-    description: str = Field(
-        max_length=1024, description="What the skill does and when to use it"
-    )
+    description: str = Field(max_length=1024, description="What the skill does and when to use it")
     version: str = Field(
         default="1.0.0",
         pattern=r"^\d+\.\d+\.\d+$",
@@ -97,12 +91,8 @@ class SkillMetadata(BaseModel):
     load_priority: Literal["always", "task_specific", "on_demand", "dormant"] = Field(
         default="task_specific", description="When to load the skill"
     )
-    dependencies: list[str] = Field(
-        default_factory=list, description="Required skill_ids"
-    )
-    capabilities: list[str] = Field(
-        default_factory=list, description="Discrete capability names"
-    )
+    dependencies: list[str] = Field(default_factory=list, description="Required skill_ids")
+    capabilities: list[str] = Field(default_factory=list, description="Discrete capability names")
 
 
 class Capability(BaseModel):
@@ -110,9 +100,7 @@ class Capability(BaseModel):
 
     name: str = Field(description="Capability name (snake_case)")
     description: str = Field(description="What this capability provides")
-    test_criteria: str = Field(
-        default="", description="How to verify this capability works"
-    )
+    test_criteria: str = Field(default="", description="How to verify this capability works")
 
 
 class DependencyRef(BaseModel):
@@ -142,9 +130,7 @@ class CompatibilityConstraints(BaseModel):
         default_factory=lambda: ["linux", "macos", "windows"],
         description="Supported platforms",
     )
-    conflicts: list[str] = Field(
-        default_factory=list, description="Conflicting skill_ids"
-    )
+    conflicts: list[str] = Field(default_factory=list, description="Conflicting skill_ids")
     notes: str = Field(default="", description="Additional compatibility notes")
 
 
@@ -158,9 +144,7 @@ class PlanResult(BaseModel):
     compatibility_constraints: CompatibilityConstraints = Field(
         default_factory=CompatibilityConstraints
     )
-    composition_strategy: str = Field(
-        description="How this skill composes with other skills"
-    )
+    composition_strategy: str = Field(description="How this skill composes with other skills")
 
 
 # =============================================================================
@@ -172,9 +156,7 @@ class FileSpec(BaseModel):
     """Specification for a file to create."""
 
     path: str = Field(description="Relative path from skill root")
-    content_type: Literal["markdown", "json", "python", "yaml", "text"] = Field(
-        default="text"
-    )
+    content_type: Literal["markdown", "json", "python", "yaml", "text"] = Field(default="text")
     description: str = Field(default="", description="Purpose of this file")
 
 
@@ -254,9 +236,7 @@ class ValidationReport(BaseModel):
     """Validation results for a skill package."""
 
     passed: bool = Field(description="Whether all required checks passed")
-    status: Literal["passed", "failed", "warnings"] = Field(
-        description="Overall validation status"
-    )
+    status: Literal["passed", "failed", "warnings"] = Field(description="Overall validation status")
     errors: list[str] = Field(default_factory=list, description="Critical errors")
     warnings: list[str] = Field(default_factory=list, description="Non-critical issues")
     checks_performed: list[str] = Field(
@@ -325,9 +305,7 @@ class IterateResult(BaseModel):
     """Result from the Iterate step (Step 6)."""
 
     approval_status: Literal["approved", "needs_revision", "rejected"]
-    revision_plan: RevisionPlan | None = Field(
-        default=None, description="Plan if needs_revision"
-    )
+    revision_plan: RevisionPlan | None = Field(default=None, description="Plan if needs_revision")
     evolution_metadata: EvolutionMetadata
     next_steps: str = Field(description="Concrete next steps based on approval status")
 

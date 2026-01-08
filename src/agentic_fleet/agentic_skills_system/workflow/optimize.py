@@ -62,8 +62,7 @@ def get_lm(
     """
     if model_name not in APPROVED_MODELS:
         raise ValueError(
-            f"Model '{model_name}' is not approved. "
-            f"Use one of: {list(APPROVED_MODELS.keys())}"
+            f"Model '{model_name}' is not approved. Use one of: {list(APPROVED_MODELS.keys())}"
         )
 
     model_path = APPROVED_MODELS[model_name]
@@ -325,11 +324,13 @@ def optimize_with_tracking(
 
     with mlflow.start_run():
         # Log configuration
-        mlflow.log_params({
-            "optimizer": optimizer_type,
-            "model": model,
-            "trainset": str(trainset_path),
-        })
+        mlflow.log_params(
+            {
+                "optimizer": optimizer_type,
+                "model": model,
+                "trainset": str(trainset_path),
+            }
+        )
 
         # Run optimization
         if optimizer_type == "miprov2":

@@ -294,9 +294,7 @@ def skill_content_reward(args, pred: dspy.Prediction) -> float:
             r"\d+\. ",  # Numbered lists
             r"###",  # Subsections
         ]
-        format_count = sum(
-            1 for pattern in formatting_elements if re.search(pattern, content)
-        )
+        format_count = sum(1 for pattern in formatting_elements if re.search(pattern, content))
         score += (format_count / len(formatting_elements)) * 0.2
 
     except Exception as e:

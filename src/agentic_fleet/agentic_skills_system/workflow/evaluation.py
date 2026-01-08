@@ -377,20 +377,24 @@ def evaluate_program(
             )
             score = metric(example, pred)
             scores.append(score)
-            results.append({
-                "example": example.task_description[:50],
-                "score": score,
-                "success": True,
-            })
+            results.append(
+                {
+                    "example": example.task_description[:50],
+                    "score": score,
+                    "success": True,
+                }
+            )
         except Exception as e:
             logger.warning(f"Evaluation error: {e}")
             scores.append(0.0)
-            results.append({
-                "example": example.task_description[:50],
-                "score": 0.0,
-                "success": False,
-                "error": str(e),
-            })
+            results.append(
+                {
+                    "example": example.task_description[:50],
+                    "score": 0.0,
+                    "success": False,
+                    "error": str(e),
+                }
+            )
 
     return {
         "scores": scores,

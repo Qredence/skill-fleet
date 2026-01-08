@@ -1,2 +1,1 @@
 """Skill usage analytics package."""
-

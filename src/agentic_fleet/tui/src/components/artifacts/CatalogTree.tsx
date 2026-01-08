@@ -126,6 +126,7 @@ export function CatalogTree({ repoRoot, onSelect }: CatalogTreeProps) {
         node.children = children;
       } catch (e) {
         // If we cannot read the directory, do not mark it as expanded
+        console.error(`Failed to read directory ${node.path}:`, e);
         return;
       }
     }

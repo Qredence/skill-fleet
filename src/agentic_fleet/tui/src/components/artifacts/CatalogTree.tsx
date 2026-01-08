@@ -123,14 +123,24 @@ export function CatalogTree({ repoRoot, onSelect }: CatalogTreeProps) {
     // Expanding node: ensure children are loaded before marking as expanded
     if (!node.children) {
       try {
+      // Collapse already expanded node
+      newExpanded.delete(node.path);
+      setExpandedPaths(newExpanded);
+      return;
+    }
+
+    // Expanding node: ensure children are loaded before marking as expanded
+    if (!node.children) {
+      try {
         const children = await fsService.readDir(node.path);
         node.children = children;
       } catch (e) {
         // If we cannot read the directory, do not mark it as expanded
-        console.error(`Failed to read directory ${node.path}:`, e);
         return;
       }
     }
+
+    newExpanded.add(node.path);
 
     newExpanded.add(node.path);
     setExpandedPaths(newExpanded);

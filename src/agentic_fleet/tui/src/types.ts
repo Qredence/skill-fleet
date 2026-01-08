@@ -84,7 +84,28 @@ export interface CustomCommand {
   command: string;
 }
 
+export type WorkflowStep = "understand" | "plan" | "initialize" | "edit" | "package" | "validate";
+export type StepStatus = "pending" | "running" | "completed" | "failed";
+
+export interface WorkflowState {
+  steps: Record<WorkflowStep, StepStatus>;
+  activeStep: WorkflowStep | null;
+  currentIteration: number;
+  maxIterations: number;
+  qualityScore?: number;
+}
+
 export type InputMode = "chat" | "command" | "mention" | "settings-menu";
+
+export type PaneType = "chat" | "artifact";
+export type ArtifactMode = "none" | "catalog" | "preview" | "report" | "log";
+
+export interface UIState {
+  activePane: PaneType;
+  artifactMode: ArtifactMode;
+  showArtifact: boolean;
+  leftPaneWidth: number | string; // e.g. "50%"
+}
 
 export type UISuggestion = {
   label: string;

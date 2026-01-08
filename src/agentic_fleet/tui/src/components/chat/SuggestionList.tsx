@@ -45,8 +45,18 @@ export function SuggestionList({
     if (suggestions.length === 0) {
       return { items: [], offset: 0, hasAbove: false, hasBelow: false };
     }
+    
+    // Auto-scroll logic: ensure selectedIndex is visible
+    let offset = scrollOffset;
+    if (selectedIndex < offset) {
+        offset = selectedIndex;
+    } else if (selectedIndex >= offset + maxVisible) {
+        offset = selectedIndex - maxVisible + 1;
+    }
+    
     const maxOffset = Math.max(0, suggestions.length - maxVisible);
-    const offset = Math.min(scrollOffset, maxOffset);
+    offset = Math.min(offset, maxOffset);
+    
     const items = suggestions.slice(offset, offset + maxVisible);
     return {
       items,
@@ -54,7 +64,7 @@ export function SuggestionList({
       hasAbove: offset > 0,
       hasBelow: offset + items.length < suggestions.length,
     };
-  }, [suggestions, scrollOffset, maxVisible]);
+  }, [suggestions, selectedIndex, scrollOffset, maxVisible]); // Added selectedIndex to dependencies
 
   const selected = suggestions[selectedIndex];
 

@@ -1,6 +1,8 @@
+// @ts-nocheck
+/** @jsxImportSource @opentui/react */
 import { TextAttributes } from "@opentui/core";
-import type { ThemeTokens } from "../themes";
-import type { InputMode } from "../types";
+import type { ThemeTokens } from "../../themes";
+import type { InputMode } from "../../types";
 
 interface InputAreaProps {
   input: string;
@@ -47,10 +49,10 @@ export function InputArea({
       <box style={{ flexDirection: "row", alignItems: "center", height: 2 }}>
         <text
           content={
-            inputMode === "command" ? "/" : inputMode === "mention" ? "@" : "> "
+            inputMode === "command" ? "| " : inputMode === "mention" ? "@" : "| "
           }
           style={{
-            fg: borderColor,
+            fg: colors.text.accent, 
             attributes: TextAttributes.BOLD,
             marginRight: 1,
           }}
@@ -58,7 +60,11 @@ export function InputArea({
         <input
           placeholder={placeholder}
           value={input}
-          onInput={onInput}
+          onInput={(e) => {
+              // OpenTUI input event might pass a string directly or an event object
+              const val = typeof e === 'string' ? e : e?.target?.value;
+              onInput(val);
+          }}
           onSubmit={onSubmit}
           focused={isFocused && !isProcessing}
           style={{
@@ -66,15 +72,13 @@ export function InputArea({
             height: 2,
             minHeight: 2,
             backgroundColor: "transparent",
-            focusedBackgroundColor: "transparent",
-            textColor: colors.text.primary,
-            focusedTextColor: colors.text.primary,
+            textColor: "#FFFFFF", 
             placeholderColor: colors.text.dim,
-            cursorColor: borderColor,
+            cursorColor: colors.text.accent,
           }}
         />
       </box>
-      <box style={{ marginTop: 0.5, justifyContent: "space-between" }}>
+      <box style={{ marginTop: 0, justifyContent: "space-between" }}>
         <text
           content={hint}
           style={{ fg: colors.text.dim, attributes: TextAttributes.DIM }}

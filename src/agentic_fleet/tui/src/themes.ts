@@ -19,23 +19,42 @@ export interface ThemeTokens {
   error: string;
 }
 
-export const DARK: ThemeTokens = {
+export const SKILLS_FLEET_THEME: ThemeTokens = {
   bg: {
-    primary: "#1A1A1A",
-    secondary: "#232323",
-    panel: "#2A2A2A",
-    hover: "#333333",
+    primary: "#1E1E1E", // Main background (Dark Gray like VS Code)
+    secondary: "#252526", // Sidebar/Panel background
+    panel: "#252526", // Popups/Command Palette
+    hover: "#2A2D2E", // List item hover
   },
   text: {
-    primary: "#FFFFFF",
-    secondary: "#B8B8B8",
-    tertiary: "#888888",
-    dim: "#666666",
-    accent: "#D4A574",
+    primary: "#CCCCCC", // Main text
+    secondary: "#C586C0", // Secondary text (used for some headers/labels) - using Purple for contrast
+    tertiary: "#858585", // Meta text
+    dim: "#606060", // Dim text
+    accent: "#D7BA7D", // Gold/Orange accent
   },
-  border: "#3A3A3A",
-  success: "#7AC47A",
-  error: "#E57373",
+  border: "#454545",
+  success: "#89D185", // Green
+  error: "#F48771", // Red
+};
+
+export const DARK: ThemeTokens = {
+  bg: {
+    primary: "#1E1E1E",
+    secondary: "#252526",
+    panel: "#252526",
+    hover: "#2A2D2E",
+  },
+  text: {
+    primary: "#CCCCCC",
+    secondary: "#9CDCFE", // Light Blue
+    tertiary: "#858585",
+    dim: "#606060",
+    accent: "#D7BA7D",
+  },
+  border: "#454545",
+  success: "#89D185",
+  error: "#F48771",
 };
 
 export const LIGHT: ThemeTokens = {

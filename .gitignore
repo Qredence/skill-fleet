@@ -26,3 +26,4 @@ node_modules/
 .letta/settings.local.json
 .letta/
 .idea/
+.letta/settings.local.json

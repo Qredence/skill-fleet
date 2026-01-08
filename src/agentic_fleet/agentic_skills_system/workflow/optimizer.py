@@ -18,11 +18,13 @@ class WorkflowOptimizer:
         self.hit_rate = {"hits": 0, "misses": 0}
 
     def cache_key(self, step: str, inputs: dict[str, Any]) -> str:
+        """Generate a cache key from step name and inputs."""
         payload = json.dumps(inputs, sort_keys=True, default=str)
         digest = hashlib.md5(f"{step}::{payload}".encode()).hexdigest()
         return digest
 
     def get_cached(self, step: str, inputs: dict[str, Any]) -> Any | None:
+        """Retrieve cached result if available, otherwise return None."""
         key = self.cache_key(step, inputs)
         cache_file = self.cache_dir / f"{key}.pkl"
         if not cache_file.exists():
@@ -37,6 +39,7 @@ class WorkflowOptimizer:
             return None
 
     def cache_result(self, step: str, inputs: dict[str, Any], result: Any) -> None:
+        """Cache a result for a given step and inputs."""
         key = self.cache_key(step, inputs)
         cache_file = self.cache_dir / f"{key}.pkl"
         try:
@@ -47,10 +50,12 @@ class WorkflowOptimizer:
             return
 
     def clear_cache(self) -> None:
+        """Remove all cached files from the cache directory."""
         for cache_file in self.cache_dir.glob("*.pkl"):
             cache_file.unlink()
 
     def get_cache_stats(self) -> dict[str, Any]:
+        """Return basic cache hit/miss stats and current cache file count."""
         total = self.hit_rate["hits"] + self.hit_rate["misses"]
         hit_rate = self.hit_rate["hits"] / total if total else 0
         return {

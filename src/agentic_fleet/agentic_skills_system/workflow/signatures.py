@@ -56,9 +56,7 @@ class UnderstandTaskForSkill(dspy.Signature):
     task_description: str = dspy.InputField(
         desc="User task or capability requirement to create a skill for"
     )
-    existing_skills: str = dspy.InputField(
-        desc="JSON list of currently mounted skill_ids"
-    )
+    existing_skills: str = dspy.InputField(desc="JSON list of currently mounted skill_ids")
     taxonomy_structure: str = dspy.InputField(
         desc="JSON object with relevant portions of the hierarchical taxonomy"
     )
@@ -76,9 +74,7 @@ class UnderstandTaskForSkill(dspy.Signature):
     dependency_analysis: DependencyAnalysis = dspy.OutputField(
         desc="Analysis of required dependency skills not yet mounted"
     )
-    confidence_score: float = dspy.OutputField(
-        desc="Confidence in taxonomy placement (0.0-1.0)"
-    )
+    confidence_score: float = dspy.OutputField(desc="Confidence in taxonomy placement (0.0-1.0)")
 
 
 # =============================================================================
@@ -178,9 +174,7 @@ class EditSkillContent(dspy.Signature):
     parent_skills: str = dspy.InputField(
         desc="Content/metadata from parent/sibling skills for context"
     )
-    composition_strategy: str = dspy.InputField(
-        desc="How this skill composes with others"
-    )
+    composition_strategy: str = dspy.InputField(desc="How this skill composes with others")
 
     # Outputs - skill_content stays as string for long-form markdown
     skill_content: str = dspy.OutputField(
@@ -221,9 +215,7 @@ class PackageSkillForApproval(dspy.Signature):
     skill_content: str = dspy.InputField(desc="Generated SKILL.md content")
     skill_metadata: str = dspy.InputField(desc="JSON skill metadata")
     taxonomy_path: str = dspy.InputField(desc="Taxonomy path")
-    capability_implementations: str = dspy.InputField(
-        desc="JSON capability documentation"
-    )
+    capability_implementations: str = dspy.InputField(desc="JSON capability documentation")
 
     # Outputs - typed for structured validation
     validation_report: ValidationReport = dspy.OutputField(
@@ -235,9 +227,7 @@ class PackageSkillForApproval(dspy.Signature):
     packaging_manifest: PackagingManifest = dspy.OutputField(
         desc="Manifest describing the packaged skill"
     )
-    quality_score: float = dspy.OutputField(
-        desc="Overall quality score (0.0-1.0)"
-    )
+    quality_score: float = dspy.OutputField(desc="Overall quality score (0.0-1.0)")
 
 
 # =============================================================================

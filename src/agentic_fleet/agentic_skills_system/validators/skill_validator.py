@@ -12,9 +12,9 @@ import yaml
 
 
 @dataclass(frozen=True, slots=True)
-# add docstring
-#
 class ValidationResult:
+    """Result of a validation step."""
+
     passed: bool
     errors: list[str]
     warnings: list[str]
@@ -60,6 +60,7 @@ class SkillValidator:
             self.required_files = [f for f in required_files if isinstance(f, str)]
 
     def validate_metadata(self, metadata: dict[str, Any]) -> ValidationResult:
+        """Validate required metadata fields and their basic formats."""
         errors: list[str] = []
         warnings: list[str] = []
 
@@ -119,6 +120,7 @@ class SkillValidator:
         return ValidationResult(len(errors) == 0, errors, warnings)
 
     def validate_structure(self, skill_dir: Path) -> ValidationResult:
+        """Validate that a directory skill has the expected files and folders."""
         errors: list[str] = []
         warnings: list[str] = []
 
@@ -140,6 +142,7 @@ class SkillValidator:
         return ValidationResult(len(errors) == 0, errors, warnings)
 
     def validate_documentation(self, skill_md_path: Path) -> ValidationResult:
+        """Validate expected documentation sections and basic markdown structure."""
         errors: list[str] = []
         warnings: list[str] = []
 
@@ -267,6 +270,7 @@ class SkillValidator:
         return True, None
 
     def validate_examples(self, examples_path: Path) -> ValidationResult:
+        """Validate example markdown files under a skill's examples directory."""
         errors: list[str] = []
         warnings: list[str] = []
 
@@ -285,6 +289,7 @@ class SkillValidator:
         return ValidationResult(len(errors) == 0, errors, warnings)
 
     def validate_naming_conventions(self, skill_id: str, path: str) -> ValidationResult:
+        """Validate that skill_id matches its on-disk taxonomy path and naming rules."""
         errors: list[str] = []
         warnings: list[str] = []
 
@@ -297,6 +302,7 @@ class SkillValidator:
         return ValidationResult(len(errors) == 0, errors, warnings)
 
     def validate_complete(self, skill_path: Path) -> dict[str, Any]:
+        """Run the full validation suite for either a directory-skill or file-skill."""
         results = {"passed": True, "checks": [], "warnings": [], "errors": []}
 
         skill_path = skill_path.resolve()

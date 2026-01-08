@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 def load_trainset(
     path: str | Path = "workflow/data/trainset.json",
-) -> list["dspy.Example"]:
+) -> list[dspy.Example]:
     """Load training examples from JSON file.
 
     Args:
@@ -60,9 +60,9 @@ def load_trainset(
 
 
 def split_dataset(
-    examples: list["dspy.Example"],
+    examples: list[dspy.Example],
     train_ratio: float = 0.8,
-) -> tuple[list["dspy.Example"], list["dspy.Example"]]:
+) -> tuple[list[dspy.Example], list[dspy.Example]]:
     """Split examples into train and validation sets.
 
     Args:
@@ -82,8 +82,8 @@ def split_dataset(
 
 
 def taxonomy_path_metric(
-    gold: "dspy.Example",
-    pred: "dspy.Prediction",
+    gold: dspy.Example,
+    pred: dspy.Prediction,
     trace: Any = None,
 ) -> float:
     """Evaluate taxonomy path accuracy.
@@ -133,7 +133,7 @@ def taxonomy_path_metric(
     if expected_parts[0] == pred_parts[0]:
         # Check depth of match
         matching_parts = 0
-        for e, p in zip(expected_parts, pred_parts):
+        for e, p in zip(expected_parts, pred_parts, strict=False):
             if e == p:
                 matching_parts += 1
             else:
@@ -151,8 +151,8 @@ def taxonomy_path_metric(
 
 
 def metadata_metric(
-    gold: "dspy.Example",
-    pred: "dspy.Prediction",
+    gold: dspy.Example,
+    pred: dspy.Prediction,
     trace: Any = None,
 ) -> float:
     """Evaluate metadata completeness and accuracy.
@@ -243,8 +243,8 @@ def metadata_metric(
 
 
 def content_quality_metric(
-    gold: "dspy.Example",
-    pred: "dspy.Prediction",
+    gold: dspy.Example,
+    pred: dspy.Prediction,
     trace: Any = None,
 ) -> float:
     """Evaluate content generation quality.
@@ -307,8 +307,8 @@ def content_quality_metric(
 
 
 def skill_creation_metric(
-    gold: "dspy.Example",
-    pred: "dspy.Prediction",
+    gold: dspy.Example,
+    pred: dspy.Prediction,
     trace: Any = None,
 ) -> float:
     """Composite metric for full skill creation workflow.
@@ -348,8 +348,8 @@ def skill_creation_metric(
 
 
 def evaluate_program(
-    program: "dspy.Module",
-    examples: list["dspy.Example"],
+    program: dspy.Module,
+    examples: list[dspy.Example],
     metric: callable = skill_creation_metric,
     **program_kwargs: Any,
 ) -> dict[str, Any]:

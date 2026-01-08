@@ -40,6 +40,7 @@ testpaths = ["tests"]
 src = ["src"]
 target-version = "py312"
 line-length = 100
+exclude = ["src/agentic_fleet/agentic_skills_system/skills/**"]
 
 [tool.ruff.lint]
 select = [

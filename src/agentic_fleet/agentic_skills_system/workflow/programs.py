@@ -85,7 +85,7 @@ class SkillCreationProgram(dspy.Module):
         task_description: str,
         existing_skills: list,
         taxonomy_structure: dict,
-        parent_skills_getter: "Callable[[str], Any]",
+        parent_skills_getter: Callable[[str], Any],
         task_lms: dict[str, dspy.LM] | None = None,
     ) -> dict:
         """Execute Steps 1-5 of skill creation.
@@ -162,7 +162,7 @@ class SkillCreationProgram(dspy.Module):
         task_description: str,
         existing_skills: list,
         taxonomy_structure: dict,
-        parent_skills_getter: "Callable[[str], Any]",
+        parent_skills_getter: Callable[[str], Any],
         task_lms: dict[str, dspy.LM] | None = None,
     ) -> dict:
         """Async execution of Steps 1-5.
@@ -363,7 +363,7 @@ class QuickSkillProgram(dspy.Module):
         task_description: str,
         existing_skills: list,
         taxonomy_structure: dict,
-        parent_skills_getter: "Callable[[str], Any]",
+        parent_skills_getter: Callable[[str], Any],
         task_lms: dict[str, dspy.LM] | None = None,
     ) -> dict:
         """Quick skill generation (Steps 1-2-4 only).
@@ -415,7 +415,7 @@ class QuickSkillProgram(dspy.Module):
         task_description: str,
         existing_skills: list,
         taxonomy_structure: dict,
-        parent_skills_getter: "Callable[[str], Any]",
+        parent_skills_getter: Callable[[str], Any],
         task_lms: dict[str, dspy.LM] | None = None,
     ) -> dict:
         """Async quick skill generation."""

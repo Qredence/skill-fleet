@@ -224,13 +224,13 @@ def optimize_workflow_cli(args: argparse.Namespace) -> int:
     print(f"Intensity: {args.auto}")
 
     if args.evaluate_only:
-        print(f"\n[EVALUATE ONLY MODE]\n")
+        print("\n[EVALUATE ONLY MODE]\n")
         program = SkillCreationProgram()
         quick_evaluate(program, args.trainset, args.model, n_examples=args.n_examples)
         return 0
 
     if args.track:
-        print(f"MLflow tracking: ENABLED")
+        print("MLflow tracking: ENABLED")
 
     print(f"{'=' * 60}\n")
 
@@ -240,7 +240,7 @@ def optimize_workflow_cli(args: argparse.Namespace) -> int:
     # Run optimization
     try:
         if args.track:
-            optimized = optimize_with_tracking(
+            _optimized = optimize_with_tracking(
                 program,
                 trainset_path=args.trainset,
                 output_path=args.output,
@@ -249,7 +249,7 @@ def optimize_workflow_cli(args: argparse.Namespace) -> int:
                 auto=args.auto,
             )
         elif args.optimizer == "miprov2":
-            optimized = optimize_with_miprov2(
+            _optimized = optimize_with_miprov2(
                 program,
                 trainset_path=args.trainset,
                 output_path=args.output,
@@ -257,7 +257,7 @@ def optimize_workflow_cli(args: argparse.Namespace) -> int:
                 auto=args.auto,
             )
         else:
-            optimized = optimize_with_gepa(
+            _optimized = optimize_with_gepa(
                 program,
                 trainset_path=args.trainset,
                 output_path=args.output,

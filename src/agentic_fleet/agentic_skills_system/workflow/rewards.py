@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 
-def taxonomy_path_reward(args, pred: "dspy.Prediction") -> float:
+def taxonomy_path_reward(args, pred: dspy.Prediction) -> float:
     """Score taxonomy path validity and confidence.
 
     Checks:
@@ -96,7 +96,7 @@ def taxonomy_path_reward(args, pred: "dspy.Prediction") -> float:
 # =============================================================================
 
 
-def metadata_completeness_reward(args, pred: "dspy.Prediction") -> float:
+def metadata_completeness_reward(args, pred: dspy.Prediction) -> float:
     """Score metadata completeness and agentskills.io compliance.
 
     Checks:
@@ -172,7 +172,7 @@ def metadata_completeness_reward(args, pred: "dspy.Prediction") -> float:
     return min(score, 1.0)
 
 
-def capabilities_reward(args, pred: "dspy.Prediction") -> float:
+def capabilities_reward(args, pred: dspy.Prediction) -> float:
     """Score capabilities list quality.
 
     Checks:
@@ -239,7 +239,7 @@ def capabilities_reward(args, pred: "dspy.Prediction") -> float:
 # =============================================================================
 
 
-def skill_content_reward(args, pred: "dspy.Prediction") -> float:
+def skill_content_reward(args, pred: dspy.Prediction) -> float:
     """Score skill content quality (SKILL.md generation).
 
     Checks:
@@ -306,7 +306,7 @@ def skill_content_reward(args, pred: "dspy.Prediction") -> float:
     return min(score, 1.0)
 
 
-def usage_examples_reward(args, pred: "dspy.Prediction") -> float:
+def usage_examples_reward(args, pred: dspy.Prediction) -> float:
     """Score usage examples quality.
 
     Checks:
@@ -369,7 +369,7 @@ def usage_examples_reward(args, pred: "dspy.Prediction") -> float:
 # =============================================================================
 
 
-def validation_report_reward(args, pred: "dspy.Prediction") -> float:
+def validation_report_reward(args, pred: dspy.Prediction) -> float:
     """Score validation report quality.
 
     Checks:
@@ -428,7 +428,7 @@ def validation_report_reward(args, pred: "dspy.Prediction") -> float:
     return min(score, 1.0)
 
 
-def quality_score_reward(args, pred: "dspy.Prediction") -> float:
+def quality_score_reward(args, pred: dspy.Prediction) -> float:
     """Score the quality_score field validity.
 
     Returns:
@@ -461,7 +461,7 @@ def quality_score_reward(args, pred: "dspy.Prediction") -> float:
 # =============================================================================
 
 
-def combined_plan_reward(args, pred: "dspy.Prediction") -> float:
+def combined_plan_reward(args, pred: dspy.Prediction) -> float:
     """Combined reward for Plan step (metadata + capabilities).
 
     Returns:
@@ -474,7 +474,7 @@ def combined_plan_reward(args, pred: "dspy.Prediction") -> float:
     return metadata_score * 0.6 + capabilities_score * 0.4
 
 
-def combined_edit_reward(args, pred: "dspy.Prediction") -> float:
+def combined_edit_reward(args, pred: dspy.Prediction) -> float:
     """Combined reward for Edit step (content + examples).
 
     Returns:
@@ -487,7 +487,7 @@ def combined_edit_reward(args, pred: "dspy.Prediction") -> float:
     return content_score * 0.7 + examples_score * 0.3
 
 
-def combined_package_reward(args, pred: "dspy.Prediction") -> float:
+def combined_package_reward(args, pred: dspy.Prediction) -> float:
     """Combined reward for Package step (validation + quality).
 
     Returns:

@@ -1,7 +1,7 @@
 import { TextAttributes } from "@opentui/core";
 import React, { useMemo } from "react";
-import type { ThemeTokens } from "../themes";
-import type { InputMode, UISuggestion } from "../types";
+import type { ThemeTokens } from "../../themes";
+import type { InputMode, UISuggestion } from "../../types";
 
 interface SuggestionListProps {
   suggestions: UISuggestion[];
@@ -45,18 +45,18 @@ export function SuggestionList({
     if (suggestions.length === 0) {
       return { items: [], offset: 0, hasAbove: false, hasBelow: false };
     }
-    
+
     // Auto-scroll logic: ensure selectedIndex is visible
     let offset = scrollOffset;
     if (selectedIndex < offset) {
-        offset = selectedIndex;
+      offset = selectedIndex;
     } else if (selectedIndex >= offset + maxVisible) {
-        offset = selectedIndex - maxVisible + 1;
+      offset = selectedIndex - maxVisible + 1;
     }
-    
+
     const maxOffset = Math.max(0, suggestions.length - maxVisible);
     offset = Math.min(offset, maxOffset);
-    
+
     const items = suggestions.slice(offset, offset + maxVisible);
     return {
       items,
@@ -70,10 +70,12 @@ export function SuggestionList({
 
   const actionHint = useMemo(() => {
     if (inputMode === "command") {
-      if (selected?.requiresValue) return "enter edit • tab autocomplete • esc cancel";
+      if (selected?.requiresValue)
+        return "enter edit • tab autocomplete • esc cancel";
       return "enter run • tab autocomplete • esc cancel";
     }
-    if (inputMode === "mention") return "enter insert • tab autocomplete • esc cancel";
+    if (inputMode === "mention")
+      return "enter insert • tab autocomplete • esc cancel";
     return "";
   }, [inputMode, selected?.requiresValue]);
 
@@ -83,7 +85,11 @@ export function SuggestionList({
     const q = match.toLowerCase();
     const idx = lower.indexOf(q);
     if (idx === -1) return [label, "", ""];
-    return [label.slice(0, idx), label.slice(idx, idx + match.length), label.slice(idx + match.length)];
+    return [
+      label.slice(0, idx),
+      label.slice(idx, idx + match.length),
+      label.slice(idx + match.length),
+    ];
   }
 
   if (suggestions.length === 0) {
@@ -230,7 +236,11 @@ export function SuggestionList({
               <box style={{ flexDirection: "row" }}>
                 <text
                   content={kindLabel}
-                  style={{ fg: colors.text.tertiary, attributes: TextAttributes.DIM, marginLeft: 2 }}
+                  style={{
+                    fg: colors.text.tertiary,
+                    attributes: TextAttributes.DIM,
+                    marginLeft: 2,
+                  }}
                 />
               </box>
             </box>
@@ -252,8 +262,13 @@ export function SuggestionList({
         {selected && (
           <>
             <text
-              content={`${inputMode === "command" ? "/" : "@"}${selected.label}`}
-              style={{ fg: colors.text.secondary, attributes: TextAttributes.BOLD }}
+              content={`${inputMode === "command" ? "/" : "@"}${
+                selected.label
+              }`}
+              style={{
+                fg: colors.text.secondary,
+                attributes: TextAttributes.BOLD,
+              }}
             />
             {selected.description && (
               <text
@@ -264,7 +279,10 @@ export function SuggestionList({
             {selected.keywords && selected.keywords.length > 0 && (
               <text
                 content={`keywords: ${selected.keywords.join(", ")}`}
-                style={{ fg: colors.text.tertiary, attributes: TextAttributes.DIM }}
+                style={{
+                  fg: colors.text.tertiary,
+                  attributes: TextAttributes.DIM,
+                }}
               />
             )}
           </>
@@ -272,7 +290,11 @@ export function SuggestionList({
         {actionHint && (
           <text
             content={actionHint}
-            style={{ fg: colors.text.dim, attributes: TextAttributes.DIM, marginTop: 1 }}
+            style={{
+              fg: colors.text.dim,
+              attributes: TextAttributes.DIM,
+              marginTop: 1,
+            }}
           />
         )}
       </box>

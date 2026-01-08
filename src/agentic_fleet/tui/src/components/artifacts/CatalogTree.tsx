@@ -41,7 +41,26 @@ function TreeNode({ node, depth, selectedPath, expandedPaths, onSelect, onToggle
           paddingLeft: indent,
           backgroundColor: isSelected ? colors.bg.hover : "transparent",
         }}
-        // In a real TUI with mouse support, onClick would go here
+        selectable
+        onMouseDown={() => {
+          onSelect(node);
+          if (node.isDirectory) onToggle(node);
+        }}
+        onKeyDown={(key) => {
+          if (key.name === "return" || key.name === "space") {
+            key.preventDefault();
+            onSelect(node);
+            if (node.isDirectory) onToggle(node);
+          } else if (key.name === "right" && node.isDirectory && !isExpanded) {
+            key.preventDefault();
+            onSelect(node);
+            onToggle(node);
+          } else if (key.name === "left" && node.isDirectory && isExpanded) {
+            key.preventDefault();
+            onSelect(node);
+            onToggle(node);
+          }
+        }}
       >
         <text
           content={`${expandIcon}${typeIcon} ${node.name}`}

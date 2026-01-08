@@ -262,23 +262,29 @@ function App() {
           }
       }
 
-      setRunning(true)
-      setStatus({ label: "running", color: "#f59e0b" })
-      setCacheStats("")
-
-      const assistantMsgId = (Date.now() + 1).toString()
-      setMessages(prev => [...prev, {
-        id: assistantMsgId,
-        role: "assistant",
-        content: "", 
-        timestamp: new Date()
-      }])
-
-      let outputBuffer = ""
       const isCreate = input.startsWith("/create") || !input.startsWith("/");
       const taskDescription = input.startsWith("/create") ? input.slice(7).trim() : input;
+      let outputBuffer = ""
+      let assistantMsgId: string | null = null
 
       try {
+        if (!isCreate) {
+          setStatus({ label: "idle", color: "#22c55e" })
+          return
+        }
+
+        setRunning(true)
+        setStatus({ label: "running", color: "#f59e0b" })
+        setCacheStats("")
+
+        assistantMsgId = (Date.now() + 1).toString()
+        setMessages(prev => [...prev, {
+          id: assistantMsgId,
+          role: "assistant",
+          content: "", 
+          timestamp: new Date()
+        }])
+
         if (isCreate) {
             const exitCode = await cli.createSkill(taskDescription, (event) => {
                 if (event.type === "stdout" || event.type === "stderr") {
@@ -298,12 +304,14 @@ function App() {
         } 
       } catch (error) {
         setStatus({ label: "error", color: "#ef4444" })
-        outputBuffer += `\nError: ${String(error)}`
-        setMessages(prev => prev.map(m => 
-            m.id === assistantMsgId 
-              ? { ...m, content: outputBuffer }
-              : m
-        ))
+        if (assistantMsgId) {
+          outputBuffer += `\nError: ${String(error)}`
+          setMessages(prev => prev.map(m => 
+              m.id === assistantMsgId 
+                ? { ...m, content: outputBuffer }
+                : m
+          ))
+        }
       } finally {
         setRunning(false)
         setFocused(true)

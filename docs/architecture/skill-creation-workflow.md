@@ -52,5 +52,5 @@ Each workflow step is executed under a task-specific LM context with optimized `
 
 ```bash
 # from repo root
-uv run skills-fleet create-skill --task "Create a Python async programming skill"
+uv run skill-fleet create-skill --task "Create a Python async programming skill"
 ```

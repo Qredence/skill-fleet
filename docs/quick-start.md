@@ -1,6 +1,6 @@
 # Quick Start Guide
 
-Get up and running with the skills-fleet system in minutes.
+Get up and running with the skill-fleet system in minutes.
 
 ## Prerequisites
 
@@ -15,7 +15,7 @@ Get up and running with the skills-fleet system in minutes.
 
 ```bash
 git clone <repo-url>
-cd skills-fleet
+cd skill-fleets
 ```
 
 ### 2. Install Python Dependencies
@@ -41,7 +41,7 @@ LANGFUSE_SECRET_KEY="your_langfuse_key"
 ### 4. Verify Installation
 
 ```bash
-uv run skills-fleet --help
+uv run skill-fleet --help
 ```
 
 You should see the CLI help output.
@@ -53,7 +53,7 @@ Let's create a simple skill to get familiar with the workflow.
 ### Create a Skill
 
 ```bash
-uv run skills-fleet create-skill --task "Create a Python logging utilities skill"
+uv run skill-fleet create-skill --task "Create a Python logging utilities skill"
 ```
 
 The system will:
@@ -89,7 +89,7 @@ Type `approve` to continue.
 ### Validate the Skill
 
 ```bash
-uv run skills-fleet validate-skill src/agentic_fleet/agentic_skills_system/skills/technical_skills/programming/languages/python/logging
+uv run skill-fleet validate-skill src/agentic_fleet/agentic_skills_system/skills/technical_skills/programming/languages/python/logging
 ```
 
 You should see validation pass with checks for:
@@ -106,10 +106,10 @@ If you have existing skills without YAML frontmatter:
 
 ```bash
 # Preview what will change
-uv run skills-fleet migrate --dry-run
+uv run skill-fleet migrate --dry-run
 
 # Apply migration
-uv run skills-fleet migrate
+uv run skill-fleet migrate
 ```
 
 ### Generate Skill Catalog
@@ -117,7 +117,7 @@ uv run skills-fleet migrate
 Create an XML catalog of available skills:
 
 ```bash
-uv run skills-fleet generate-xml -o available_skills.xml
+uv run skill-fleet generate-xml -o available_skills.xml
 ```
 
 This generates agentskills.io-compliant XML that can be injected into agent prompts.
@@ -127,7 +127,7 @@ This generates agentskills.io-compliant XML that can be injected into agent prom
 ```bash
 # Find all skills and validate them
 find src/agentic_fleet/agentic_skills_system/skills -name "metadata.json" | while read meta; do
-  uv run skills-fleet validate-skill "$(dirname "$meta")"
+  uv run skill-fleet validate-skill "$(dirname "$meta")"
 done
 ```
 
@@ -178,7 +178,7 @@ This skill provides comprehensive Python logging capabilities...
 ### Auto-Approve Skills (for CI/CD)
 
 ```bash
-uv run skills-fleet create-skill \
+uv run skill-fleet create-skill \
   --task "Create data validation utilities" \
   --auto-approve
 ```
@@ -187,7 +187,7 @@ uv run skills-fleet create-skill \
 
 ```bash
 # Create skill and capture result
-result=$(uv run skills-fleet create-skill \
+result=$(uv run skill-fleet create-skill \
   --task "Create API client utilities" \
   --auto-approve \
   --json)
@@ -199,7 +199,7 @@ echo "$result" | jq '.status'
 ### Custom User Context
 
 ```bash
-uv run skills-fleet create-skill \
+uv run skill-fleet create-skill \
   --task "Create team-specific conventions" \
   --user-id team_backend
 ```
@@ -217,14 +217,14 @@ uv run skills-fleet create-skill \
 
 #### User Onboarding
 ```bash
-uv run skills-fleet onboard --user-id developer_123
+uv run skill-fleet onboard --user-id developer_123
 ```
 
 Create a personalized skill profile based on your role and preferences.
 
 #### Analytics
 ```bash
-uv run skills-fleet analytics --user-id developer_123
+uv run skill-fleet analytics --user-id developer_123
 ```
 
 View usage patterns and skill recommendations.
@@ -250,7 +250,7 @@ echo "GOOGLE_API_KEY=your_key_here" >> .env
 ### Validation Failures
 
 Common issues:
-- **Missing frontmatter**: Run `uv run skills-fleet migrate`
+- **Missing frontmatter**: Run `uv run skill-fleet migrate`
 - **Invalid metadata**: Check `metadata.json` syntax
 - **Missing directories**: Ensure `capabilities/`, `examples/`, `tests/`, `resources/` exist
 
@@ -323,7 +323,7 @@ Don't blindly approve. Check that:
 ### 4. Validate Early and Often
 Run validation after any manual edits:
 ```bash
-uv run skills-fleet validate-skill path/to/skill
+uv run skill-fleet validate-skill path/to/skill
 ```
 
 ### 5. Keep Skills Focused
@@ -340,16 +340,16 @@ Reference other skills to avoid duplication:
 ### 7. Maintain Compliance
 After manual edits, ensure agentskills.io compliance:
 ```bash
-uv run skills-fleet migrate  # Re-run to fix frontmatter
-uv run skills-fleet validate-skill path/to/skill
+uv run skill-fleet migrate  # Re-run to fix frontmatter
+uv run skill-fleet validate-skill path/to/skill
 ```
 
 ## Getting Help
 
 ### CLI Help
 ```bash
-uv run skills-fleet --help
-uv run skills-fleet create-skill --help
+uv run skill-fleet --help
+uv run skill-fleet create-skill --help
 ```
 
 ### Documentation
@@ -366,20 +366,20 @@ Complete workflow from creation to validation:
 
 ```bash
 # 1. Create skill
-uv run skills-fleet create-skill --task "Create REST API client utilities"
+uv run skill-fleet create-skill --task "Create REST API client utilities"
 # ... follow HITL prompts, approve when satisfied ...
 
 # 2. Validate
-uv run skills-fleet validate-skill src/agentic_fleet/agentic_skills_system/skills/technical_skills/programming/api_clients/rest
+uv run skill-fleet validate-skill src/agentic_fleet/agentic_skills_system/skills/technical_skills/programming/api_clients/rest
 
 # 3. Generate XML catalog
-uv run skills-fleet generate-xml -o available_skills.xml
+uv run skill-fleet generate-xml -o available_skills.xml
 
 # 4. Verify XML contains new skill
 grep "rest-api-client" available_skills.xml
 
 # 5. (Optional) Create related skill with dependency
-uv run skills-fleet create-skill --task "Create GraphQL API client utilities"
+uv run skill-fleet create-skill --task "Create GraphQL API client utilities"
 ```
 
 ## Ready to Build?

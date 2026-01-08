@@ -1,6 +1,6 @@
 # Skills Fleet: System Overview
 
-This document introduces the **skills-fleet** system: a taxonomy-driven, on‑disk skills library with a DSPy workflow for generating and validating new skills on demand.
+This document introduces the **skill-fleet** system: a taxonomy-driven, on‑disk skills library with a DSPy workflow for generating and validating new skills on demand.
 
 ## Audience
 
@@ -274,13 +274,13 @@ uv sync --group dev
 bun install
 
 # Create a skill (CLI)
-uv run skills-fleet create-skill --task "Create a Python async programming skill"
+uv run skill-fleet create-skill --task "Create a Python async programming skill"
 
 # Create a skill with auto-approval (skips interactive review)
-uv run skills-fleet create-skill --task "Create a Python async programming skill" --auto-approve
+uv run skill-fleet create-skill --task "Create a Python async programming skill" --auto-approve
 
 # Validate a skill
-uv run skills-fleet validate-skill src/agentic_fleet/agentic_skills_system/skills/general/testing
+uv run skill-fleet validate-skill src/agentic_fleet/agentic_skills_system/skills/general/testing
 
 # Run the TUI
 bun run tui

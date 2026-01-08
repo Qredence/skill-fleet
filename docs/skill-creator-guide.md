@@ -1,13 +1,13 @@
 # Skill Creator: User Guide
 
-The **Skill Creator** is the core component of the `skills-fleet` system, responsible for generating new, taxonomy-compliant agent skills from simple task descriptions.
+The **Skill Creator** is the core component of the `skill-fleet` system, responsible for generating new, taxonomy-compliant agent skills from simple task descriptions.
 
 ## 🚀 Quick Start
 
 To create a new skill, use the CLI:
 
 ```bash
-uv run skills-fleet create-skill --task "Implement a Python FastAPI integration skill"
+uv run skill-fleet create-skill --task "Implement a Python FastAPI integration skill"
 ```
 
 ## 🧠 Workflow Steps

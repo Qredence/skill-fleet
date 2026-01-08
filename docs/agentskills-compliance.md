@@ -1,6 +1,6 @@
 # agentskills.io Compliance Guide
 
-This guide explains how the skills-fleet system implements the [agentskills.io](https://agentskills.io) specification for skill discoverability and standardization.
+This guide explains how the skill-fleet system implements the [agentskills.io](https://agentskills.io) specification for skill discoverability and standardization.
 
 ## Overview
 
@@ -86,16 +86,16 @@ If you have existing skills without YAML frontmatter, use the migration command 
 
 ```bash
 # Migrate all skills to agentskills.io format
-uv run skills-fleet migrate
+uv run skill-fleet migrate
 
 # Preview changes without writing (dry-run)
-uv run skills-fleet migrate --dry-run
+uv run skill-fleet migrate --dry-run
 
 # Specify custom skills directory
-uv run skills-fleet migrate --skills-root /path/to/skills
+uv run skill-fleet migrate --skills-root /path/to/skills
 
 # Output results as JSON
-uv run skills-fleet migrate --json
+uv run skill-fleet migrate --json
 ```
 
 ### What the Migration Does
@@ -120,7 +120,7 @@ The migration tool:
 ### Migration Output
 
 ```bash
-$ uv run skills-fleet migrate
+$ uv run skill-fleet migrate
 
 ============================================================
 Migrating skills to agentskills.io format
@@ -153,13 +153,13 @@ The system can generate an `<available_skills>` XML block that follows the agent
 
 ```bash
 # Print XML to stdout
-uv run skills-fleet generate-xml
+uv run skill-fleet generate-xml
 
 # Save to file
-uv run skills-fleet generate-xml -o available_skills.xml
+uv run skill-fleet generate-xml -o available_skills.xml
 
 # Specify custom skills directory
-uv run skills-fleet generate-xml --skills-root /path/to/skills
+uv run skill-fleet generate-xml --skills-root /path/to/skills
 ```
 
 ### XML Format
@@ -226,7 +226,7 @@ Validation is part of the standard `validate-skill` command:
 
 ```bash
 # Validate a single skill
-uv run skills-fleet validate-skill src/agentic_fleet/agentic_skills_system/skills/technical_skills/programming/languages/python/decorators
+uv run skill-fleet validate-skill src/agentic_fleet/agentic_skills_system/skills/technical_skills/programming/languages/python/decorators
 
 # The output includes frontmatter validation results
 ```
@@ -262,7 +262,7 @@ class ValidationResult:
 
 ## Extended Metadata
 
-While agentskills.io requires only `name` and `description`, skills-fleet stores extende, and apply higher-order functions...d metadata in the `metadata` field:
+While agentskills.io requires only `name` and `description`, skill-fleet stores extended metadata in the `metadata` field:
 
 ```yaml
 ---
@@ -279,7 +279,7 @@ metadata:
 
 ### Extended Fields
 
-These fields are specific to skills-fleet but don't violate the agentskills.io spec:
+These fields are specific to skill-fleet but don't violate the agentskills.io spec:
 
 - **`skill_id`**: Internal path-style identifier
 - **`version`**: Semantic version (e.g., `1.0.0`)
@@ -294,7 +294,7 @@ These fields are also maintained in `metadata.json` for backward compatibility a
 When using the skill creator workflow, skills are automatically created with compliant frontmatter:
 
 ```bash
-uv run skills-fleet create-skill --task "Create a Python async programming skill"
+uv run skill-fleet create-skill --task "Create a Python async programming skill"
 ```
 
 The generated SKILL.md will include:
@@ -364,13 +364,13 @@ The migration maintains backward compatibility:
 ### 1. Use Migration Tool
 Always migrate existing skills rather than manually editing:
 ```bash
-uv run skills-fleet migrate
+uv run skill-fleet migrate
 ```
 
 ### 2. Validate After Creation
 Check compliance after creating or modifying skills:
 ```bash
-uv run skills-fleet validate-skill path/to/skill
+uv run skill-fleet validate-skill path/to/skill
 ```
 
 ### 3. Keep Descriptions Concise

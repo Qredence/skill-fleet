@@ -1,6 +1,6 @@
 # API Reference
 
-Python API reference for programmatic interaction with the skills-fleet system.
+Python API reference for programmatic interaction with the skill-fleet system.
 
 ## Core Classes
 

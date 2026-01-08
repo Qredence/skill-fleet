@@ -1,6 +1,6 @@
-# skills-fleet – Agent Working Guide
+# skill-fleet – Agent Working Guide
 
-This guide is for AI agents working on the **skills-fleet** codebase. It covers project structure, key concepts, development workflows, and important gotchas.
+This guide is for AI agents working on the **skill-fleet** codebase. It covers project structure, key concepts, development workflows, and important gotchas.
 
 ---
 
@@ -81,7 +81,7 @@ description: Comprehensive guide to Python's asyncio framework, including corout
 
 ```bash
 # Clone and navigate to repo
-cd skills-fleet
+cd skill-fleet
 
 # Install Python dependencies
 uv sync --group dev
@@ -97,10 +97,10 @@ echo 'GOOGLE_API_KEY="your_key_here"' > .env
 
 ```bash
 # Interactive creation (recommended)
-uv run skills-fleet create-skill --task "Create a skill for Docker best practices"
+uv run skill-fleet create-skill --task "Create a skill for Docker best practices"
 
 # Auto-approve mode (skips HITL review)
-uv run skills-fleet create-skill --task "Create a skill for Docker best practices" --auto-approve
+uv run skill-fleet create-skill --task "Create a skill for Docker best practices" --auto-approve
 ```
 
 **The 6-step workflow:**
@@ -115,23 +115,23 @@ uv run skills-fleet create-skill --task "Create a skill for Docker best practice
 
 ```bash
 # Validate a specific skill directory
-uv run skills-fleet validate-skill src/agentic_fleet/agentic_skills_system/skills/general/testing
+uv run skill-fleet validate-skill src/agentic_fleet/agentic_skills_system/skills/general/testing
 
 # Migrate all skills to agentskills.io format
-uv run skills-fleet migrate
+uv run skill-fleet migrate
 
 # Preview migration without writing changes
-uv run skills-fleet migrate --dry-run
+uv run skill-fleet migrate --dry-run
 ```
 
 ### Generating XML for Agents
 
 ```bash
 # Print XML to console
-uv run skills-fleet generate-xml
+uv run skill-fleet generate-xml
 
 # Save to file for agent prompt injection
-uv run skills-fleet generate-xml -o available_skills.xml
+uv run skill-fleet generate-xml -o available_skills.xml
 ```
 
 The generated XML follows the agentskills.io format:
@@ -277,12 +277,12 @@ description: This skill teaches developers how to use Docker effectively.
 **ALWAYS** run with `--dry-run` first to preview changes:
 ```bash
 # Step 1: Preview
-uv run skills-fleet migrate --dry-run
+uv run skill-fleet migrate --dry-run
 
 # Step 2: Review output carefully
 
 # Step 3: Apply changes
-uv run skills-fleet migrate
+uv run skill-fleet migrate
 ```
 
 ### 5. Validation Before Committing
@@ -290,10 +290,10 @@ uv run skills-fleet migrate
 **ALWAYS** validate skills before creating a commit:
 ```bash
 # Validate a specific skill
-uv run skills-fleet validate-skill path/to/skill
+uv run skill-fleet validate-skill path/to/skill
 
 # Generate XML to ensure all skills are discoverable
-uv run skills-fleet generate-xml
+uv run skill-fleet generate-xml
 ```
 
 If validation fails, fix issues before committing.
@@ -353,7 +353,7 @@ DSPY_TEMPERATURE=0.7
 
 1. Update DSPy signatures in `workflow/signatures/`
 2. Modify workflow logic in `workflow/skill_creator.py`
-3. Test with `uv run skills-fleet create-skill --task "Test task"`
+3. Test with `uv run skill-fleet create-skill --task "Test task"`
 4. Validate output format and quality
 
 ### Adding a New Validator
@@ -378,17 +378,17 @@ DSPY_TEMPERATURE=0.7
 
 ```bash
 # Create skill
-uv run skills-fleet create-skill --task "Your task description"
+uv run skill-fleet create-skill --task "Your task description"
 
 # Validate skill
-uv run skills-fleet validate-skill path/to/skill
+uv run skill-fleet validate-skill path/to/skill
 
 # Migrate to agentskills.io format
-uv run skills-fleet migrate --dry-run
-uv run skills-fleet migrate
+uv run skill-fleet migrate --dry-run
+uv run skill-fleet migrate
 
 # Generate XML
-uv run skills-fleet generate-xml -o skills.xml
+uv run skill-fleet generate-xml -o skills.xml
 
 # Run tests
 uv run pytest
@@ -450,5 +450,5 @@ uv run ruff format .
 
 ---
 
-**Last Updated**: 2026-01-07
-**Maintainer**: skills-fleet team
+**Last Updated**: 2026-01-08
+**Maintainer**: skill-fleet team

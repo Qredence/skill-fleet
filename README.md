@@ -1,4 +1,4 @@
-# Agentic Skills System (skills-fleet)
+# Agentic Skills System (skill-fleet)
 
 A hierarchical, dynamic capability framework for AI agents. This system enables agents to load and generate skills on-demand, optimizing performance and reducing context bloat through a "just-in-time" capability model.
 
@@ -45,7 +45,7 @@ The **Agentic Skills System (ASS)** addresses capability bloat in AI agents by o
 ### 1. Clone the repository
 ```bash
 git clone 
-cd skills-fleet
+cd skill-fleet
 ```
 
 ### 2. Install Python Dependencies
@@ -78,28 +78,28 @@ The CLI is the primary way to interact with the skills system.
 
 ```bash
 # General help
-uv run skills-fleet --help
+uv run skill-fleet --help
 
 # Create a new skill (Full 6-step workflow with HITL)
-uv run skills-fleet create-skill --task "Create a Python async programming skill"
+uv run skill-fleet create-skill --task "Create a Python async programming skill"
 
 # Create a skill with auto-approval (skips interactive review)
-uv run skills-fleet create-skill --task "Create a Python async programming skill" --auto-approve
+uv run skill-fleet create-skill --task "Create a Python async programming skill" --auto-approve
 
 # Validate a skill directory
-uv run skills-fleet validate-skill src/agentic_fleet/agentic_skills_system/skills/general/testing
+uv run skill-fleet validate-skill src/agentic_fleet/agentic_skills_system/skills/general/testing
 
 # agentskills.io compliance tools
-uv run skills-fleet migrate                    # Migrate existing skills to agentskills.io format
-uv run skills-fleet migrate --dry-run          # Preview migration changes without writing
-uv run skills-fleet generate-xml               # Generate <available_skills> XML for agent prompts
-uv run skills-fleet generate-xml -o skills.xml # Save XML to file for context injection
+uv run skill-fleet migrate                    # Migrate existing skills to agentskills.io format
+uv run skill-fleet migrate --dry-run          # Preview migration changes without writing
+uv run skill-fleet generate-xml               # Generate <available_skills> XML for agent prompts
+uv run skill-fleet generate-xml -o skills.xml # Save XML to file for context injection
 
 # User onboarding
-uv run skills-fleet onboard --user-id my_user_123
+uv run skill-fleet onboard --user-id my_user_123
 
 # View analytics
-uv run skills-fleet analytics --user-id my_user_123
+uv run skill-fleet analytics --user-id my_user_123
 ```
 
 ### TUI (TypeScript)

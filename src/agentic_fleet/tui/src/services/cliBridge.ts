@@ -86,11 +86,14 @@ export class CLIBridge {
     } catch (error: unknown) {
       onEvent({ type: "error", data: String(error) });
       // Propagate actual exit code if available
-      const exitCode = error && typeof error === 'object' && 'exitCode' in error 
-        ? (error.exitCode as number) 
-        : error && typeof error === 'object' && 'code' in error
-        ? (error.code as number)
-        : 1;
+      let exitCode = 1;
+      if (error && typeof error === 'object') {
+        if ('exitCode' in error && typeof error.exitCode === 'number') {
+          exitCode = error.exitCode;
+        } else if ('code' in error && typeof error.code === 'number') {
+          exitCode = error.code;
+        }
+      }
       return exitCode;
     }
   }

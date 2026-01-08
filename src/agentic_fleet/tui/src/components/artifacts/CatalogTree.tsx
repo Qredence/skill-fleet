@@ -70,7 +70,8 @@ function TreeNode({ node, depth, selectedPath, expandedPaths, onSelect, onToggle
           }}
         />
       </box>
-      {isExpanded && node.children && (
+      {/* Only render children container if expanded and has non-empty children array */}
+      {isExpanded && node.children && node.children.length > 0 && (
         <box flexDirection="column">
           {node.children.map((child) => (
             <TreeNode
@@ -126,6 +127,7 @@ export function CatalogTree({ repoRoot, onSelect }: CatalogTreeProps) {
         node.children = children;
       } catch (e) {
         // If we cannot read the directory, do not mark it as expanded
+        console.error(`Failed to read directory ${node.path}:`, e);
         return;
       }
     }

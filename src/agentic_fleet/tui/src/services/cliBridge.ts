@@ -1,8 +1,8 @@
 /**
- * CLIBridge - Interface to the skills-fleet Python CLI
+ * CLIBridge service for spawning Python CLI commands.
  * 
- * @requires Bun runtime - This module requires the Bun runtime to be available.
- * The spawn function from "bun" is used for process management.
+ * IMPORTANT: This module requires the Bun runtime and will not work with Node.js.
+ * The `spawn` function is imported from "bun" which is Bun-specific.
  */
 import { spawn } from "bun";
 import path from "node:path";
@@ -87,18 +87,18 @@ export class CLIBridge {
       onEvent({ type: "exit", code: exitCode });
       return exitCode;
 
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      // Check if error is related to missing Bun runtime
-      if (errorMessage.includes("spawn") || errorMessage.includes("bun")) {
-        onEvent({ 
-          type: "error", 
-          data: `Failed to spawn process. Ensure Bun runtime is installed and available. Error: ${errorMessage}` 
-        });
-      } else {
-        onEvent({ type: "error", data: errorMessage });
+    } catch (error: unknown) {
+      onEvent({ type: "error", data: String(error) });
+      // Propagate actual exit code if available
+      let exitCode = 1;
+      if (error && typeof error === 'object') {
+        if ('exitCode' in error && typeof error.exitCode === 'number') {
+          exitCode = error.exitCode;
+        } else if ('code' in error && typeof error.code === 'number') {
+          exitCode = error.code;
+        }
       }
-      return 1;
+      return exitCode;
     }
   }
 

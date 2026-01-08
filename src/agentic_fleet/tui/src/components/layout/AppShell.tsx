@@ -35,9 +35,7 @@ export function AppShell({ children, artifactPane, statusProps }: AppShellProps)
         }}
       >
         <box flexDirection="row">
-           <text content="SK" style={{ fg: colors.text.accent, attributes: bold }} />
-           <text content="STANDARD" style={{ fg: colors.text.primary, attributes: bold }} />
-           <text content="ET" style={{ fg: colors.text.accent, attributes: bold }} />
+          <text content="SKILLS FLEET" style={{ fg: colors.text.accent, attributes: bold }} />
         </box>
       </box>
 

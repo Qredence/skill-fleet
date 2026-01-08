@@ -35,6 +35,9 @@ export class CLIBridge {
   /**
    * Spawns the skills-fleet CLI command.
    * Returns a promise that resolves when the process exits.
+   * 
+   * @requires Bun runtime - spawn() is a Bun-specific API
+   * @throws Error if Bun runtime is not available or if spawn fails
    */
   async run(args: string[], onEvent: (event: CLIEvent) => void): Promise<number> {
     const fullArgs = [
@@ -47,6 +50,7 @@ export class CLIBridge {
     ];
 
     try {
+      // Note: spawn() requires Bun runtime. If running in Node.js, this will fail.
       const proc = spawn(fullArgs, {
         cwd: this.repoRoot,
         env: {

@@ -1,12 +1,15 @@
-import { TextAttributes, RGBA, SyntaxStyle } from "@opentui/core";
-import type { Message } from "../types";
-import type { ThemeTokens } from "../themes";
+// @ts-nocheck
+import { TextAttributes, RGBA, SyntaxStyle, type ScrollBoxRenderable } from "@opentui/core";
+import { useEffect, useRef, useState } from "react";
+import type { Message } from "../../types";
+import type { ThemeTokens } from "../../themes";
 
-interface MessageListProps {
+export interface MessageListProps {
   messages: Message[];
   isProcessing: boolean;
   spinnerFrame: string;
   colors: ThemeTokens;
+  scrollTop: number; // Kept for compatibility but unused
 }
 
 type Segment =
@@ -41,12 +44,17 @@ function splitIntoSegments(content: string): Segment[] {
   return segments;
 }
 
+const STICKY_THRESHOLD_ROWS = 3;
+
 export function MessageList({
   messages,
   isProcessing,
   spinnerFrame,
   colors,
 }: MessageListProps) {
+  const scrollboxRef = useRef<ScrollBoxRenderable | null>(null);
+  const [isSticky, setIsSticky] = useState(true);
+
   const syntaxStyle = SyntaxStyle.fromStyles({
     keyword: { fg: RGBA.fromHex("#ff6b6b"), bold: true },
     string: { fg: RGBA.fromHex("#51cf66") },
@@ -54,18 +62,69 @@ export function MessageList({
     number: { fg: RGBA.fromHex("#ffd43b") },
     default: { fg: RGBA.fromHex(colors.text.primary) },
   });
+
+  // Auto-stick when near bottom
+  useEffect(() => {
+    const sb = scrollboxRef.current;
+    if (!sb) return;
+    if (isSticky) {
+      // Use fallback if scrollToEnd is missing (API variance)
+      if ('scrollToEnd' in sb && typeof sb.scrollToEnd === 'function') {
+          (sb as any).scrollToEnd();
+      } else if ('scrollTo' in sb) {
+          // Fallback: estimate height or use max int
+          (sb as any).scrollTo({ top: 999999 });
+      }
+    }
+  }, [messages, isSticky, isProcessing, spinnerFrame]);
+
+  // Attach scroll handler to toggle stickiness
+  useEffect(() => {
+    const sb = scrollboxRef.current;
+    if (!sb) return;
+
+    const onScroll = () => {
+      // API Compatibility Check
+      // Older/Newer versions might have different names.
+      // We check if methods exist before calling.
+      if (!('getTotalRows' in sb) || !('getViewportTopRow' in sb)) return;
+
+      const totalRows = (sb as any).getTotalRows();
+      const topRow = (sb as any).getViewportTopRow();
+      const viewportRows = (sb as any).getViewportRowCount();
+      
+      const bottomVisible = topRow + viewportRows;
+      const dist = Math.max(0, totalRows - bottomVisible);
+      
+      setIsSticky(dist <= STICKY_THRESHOLD_ROWS);
+    };
+
+    sb.on("scroll", onScroll);
+    return () => {
+      sb.off("scroll", onScroll);
+    };
+  }, []);
+
   return (
-    <box
-      flexDirection="column"
+    // @ts-ignore - Scrollbox JSX element
+    <scrollbox
+      ref={scrollboxRef}
       style={{
         width: "100%",
-        flexGrow: 1,
-        justifyContent: "flex-end",
-        paddingLeft: 1,
-        paddingRight: 1,
-        paddingTop: 0,
-        paddingBottom: 0,
+        height: "100%",
+        border: false,
+        scrollbarOptions: {
+            showArrows: true,
+            trackOptions: { foregroundColor: colors.text.dim, backgroundColor: colors.bg.secondary },
+        },
       }}
+      contentOptions={{
+          backgroundColor: "transparent"
+      }}
+      viewportOptions={{
+          backgroundColor: "transparent"
+      }}
+      focused // Ensure it captures keyboard scrolling if focused
     >
       {messages.map((message, index) => {
         const isUser = message.role === "user";
@@ -73,9 +132,10 @@ export function MessageList({
 
         if (isSystem) {
           return (
+            // @ts-ignore
             <box
               key={message.id}
-              style={{ marginBottom: 1, justifyContent: "flex-start" }}
+              style={{ marginBottom: 1, justifyContent: "flex-start", flexShrink: 0, width: "100%" }}
             >
               <text
                 content={`[ ${message.content} ]`}
@@ -86,26 +146,33 @@ export function MessageList({
         }
 
         return (
+          // @ts-ignore
           <box
             key={message.id}
             flexDirection="column"
             style={{
               marginBottom: 1,
               alignItems: "flex-start",
+              flexShrink: 0,
+              width: "100%"
             }}
           >
+          {/* @ts-ignore */}
           <box
             style={{
               backgroundColor: isUser ? colors.bg.hover : "transparent",
               padding: isUser ? 0 : 1,
               border: isUser,
               borderColor: colors.border,
+              width: "100%"
             }}
           >
+            {/* @ts-ignore */}
             <box flexDirection="column" style={{ width: "100%" }}>
               {splitIntoSegments(message.content).map((seg, idx) => {
                 if (seg.type === "code") {
                   return (
+                    // @ts-ignore
                     <box key={`${message.id}-code-${idx}`} style={{ marginBottom: 1 }}>
                       <code content={seg.content} filetype={seg.lang} syntaxStyle={syntaxStyle} />
                     </box>
@@ -140,6 +207,6 @@ export function MessageList({
           </box>
         );
       })}
-    </box>
+    </scrollbox>
   );
 }

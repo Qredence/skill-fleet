@@ -1,7 +1,7 @@
 """User onboarding and skill bootstrapping."""
 
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 from ..taxonomy.manager import TaxonomyManager
@@ -83,7 +83,7 @@ class SkillBootstrapper:
             "profile": profile,
             "mounted_skills": mounted_skills,
             "on_demand_skills": skill_plan["onDemand"],
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
             "ready_for_tasks": True,
         }
 

@@ -27,7 +27,7 @@ dependencies = [
 ]
 
 [project.scripts]
-skills-fleet = "skill_fleet.cli:cli_entrypoint"
+skills-fleet = "skill_fleet.cli_submodules:cli_entrypoint"
 
 [dependency-groups]
 dev = ["pytest>=8.0.0", "ruff>=0.8.0"]

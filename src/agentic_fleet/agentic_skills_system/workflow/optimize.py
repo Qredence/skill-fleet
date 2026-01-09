@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal
 
 import dspy
 
@@ -149,6 +149,10 @@ def optimize_with_miprov2(
         max_bootstrapped_demos: Max examples from successful rollouts
         max_labeled_demos: Max examples from training set
         num_threads: Number of parallel threads
+        **optimizer_kwargs: Additional keyword arguments forwarded to
+            :class:`dspy.teleprompt.MIPROv2`. See the DSPy MIPROv2
+            documentation for the full list of supported parameters
+            (for example, search budget and sampling options).
 
     Returns:
         Optimized SkillCreationProgram
@@ -251,10 +255,15 @@ def optimize_with_gepa(
     logger.info(f"Loaded {len(examples)} examples: {len(train)} train, {len(val)} val")
 
     # Configure GEPA optimizer
-    # GEPA expects a GEPAFeedbackMetric-compatible callable; cast to Any to
-    # satisfy stricter type-checkers while allowing our existing metric function
+    # GEPA expects a GEPAFeedbackMetric-compatible callable. We provide a small
+    # adapter instead of using a broad Any cast to keep type checking intact.
+    def _gepa_metric_adapter(*args: Any, **kwargs: Any) -> Any:
+        """Adapter to use `skill_creation_metric` with GEPA without disabling
+        type checking via a broad Any cast."""
+        return skill_creation_metric(*args, **kwargs)
+
     optimizer = dspy.GEPA(
-        metric=cast(Any, skill_creation_metric),
+        metric=_gepa_metric_adapter,
         reflection_lm=reflection_lm,
         auto=auto,
         track_stats=track_stats,
@@ -365,16 +374,34 @@ def optimize_with_tracking(
     Requires: pip install mlflow>=2.21.1
 
     Args:
-        program: Program to optimize
-        trainset_path: Path to training data
-        output_path: Output directory
-        optimizer_type: Which optimizer to use
-        model: Approved model name
-        experiment_name: MLflow experiment name
-        **optimizer_kwargs: Additional optimizer arguments
+        program: Program to optimize.
+        trainset_path: Path to training data.
+        output_path: Output directory.
+        optimizer_type: Which optimizer to use. Supported values:
+            - "miprov2": delegates to :func:`optimize_with_miprov2`.
+            - "gepa": delegates to :func:`optimize_with_gepa`.
+        model: Approved model name to use for optimization.
+        experiment_name: MLflow experiment name.
+        **optimizer_kwargs: Additional keyword arguments forwarded directly to
+            the underlying optimizer selected by ``optimizer_type``. Common
+            options include (but are not limited to):
+
+            For ``optimizer_type="miprov2"`` (see :func:`optimize_with_miprov2`):
+                - num_candidates (int): Number of candidate programs per round.
+                - num_iterations (int): Number of MIPROv2 optimization rounds.
+                - max_bootstrapped_demos (int): Max bootstrapped demos to use.
+                - max_labeled_demos (int): Max labeled demos to use.
+
+            For ``optimizer_type="gepa"`` (see :func:`optimize_with_gepa`):
+                - num_generations (int): Number of GEPA evolution generations.
+                - population_size (int): Number of programs per generation.
+                - reflection_model (str): Model used for reflective feedback.
+
+            Any unsupported keyword arguments will be passed through and may
+            raise a ``TypeError`` in the underlying optimizer.
 
     Returns:
-        Optimized program
+        Optimized program.
     """
     try:
         import mlflow
@@ -464,8 +491,8 @@ def quick_evaluate(
         examples = examples[:n_examples]
 
     # Create minimal parent_skills_getter for evaluation
-    def dummy_parent_getter(path: str) -> str:
-        return "[]"
+    def dummy_parent_getter(path: str) -> list:
+        return []
 
     # Run evaluation
     results = evaluate_program(

@@ -191,7 +191,7 @@ uv run skill-fleet generate-xml --skills-root /path/to/skills
 
 ```python
 from pathlib import Path
-from agentic_fleet.skill_fleet.taxonomy.manager import TaxonomyManager
+from skill_fleet.taxonomy.manager import TaxonomyManager
 
 # Initialize taxonomy manager
 taxonomy = TaxonomyManager(Path("skills"))
@@ -235,7 +235,7 @@ uv run skill-fleet validate-skill skills/technical_skills/programming/languages/
 
 ```python
 from pathlib import Path
-from agentic_fleet.skill_fleet.validators.skill_validator import SkillValidator
+from skill_fleet.validators.skill_validator import SkillValidator
 
 validator = SkillValidator(Path("skills"))
 result = validator.validate_frontmatter(
@@ -305,7 +305,7 @@ The generated SKILL.md will include:
 
 ### Template Updates
 
-The SKILL.md template (`src/agentic_fleet/skill_fleet/config/templates/SKILL_md_template.md`) now includes frontmatter placeholders:
+The SKILL.md template (`src/skill_fleet/config/templates/SKILL_md_template.md`) now includes frontmatter placeholders:
 
 ```markdown
 ---
@@ -454,10 +454,10 @@ class SkillValidator:
 ## References
 
 - **agentskills.io specification**: https://agentskills.io
-- **Migration module**: `src/agentic_fleet/skill_fleet/migration.py`
-- **Validator**: `src/agentic_fleet/skill_fleet/validators/skill_validator.py`
-- **Taxonomy manager**: `src/agentic_fleet/skill_fleet/taxonomy/manager.py`
-- **Template**: `src/agentic_fleet/skill_fleet/config/templates/SKILL_md_template.md`
+- **Migration module**: `src/skill_fleet/migration.py`
+- **Validator**: `src/skill_fleet/validators/skill_validator.py`
+- **Taxonomy manager**: `src/skill_fleet/taxonomy/manager.py`
+- **Template**: `src/skill_fleet/config/templates/SKILL_md_template.md`
 
 ## Future Enhancements
 

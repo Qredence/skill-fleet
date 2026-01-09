@@ -11,7 +11,7 @@ Central class for managing the skills taxonomy.
 **Import:**
 ```python
 from pathlib import Path
-from agentic_fleet.skill_fleet.taxonomy.manager import TaxonomyManager
+from skill_fleet.taxonomy.manager import TaxonomyManager
 ```
 
 **Constructor:**
@@ -25,7 +25,7 @@ TaxonomyManager(skills_root: Path)
 **Example:**
 ```python
 from pathlib import Path
-from agentic_fleet.skill_fleet.taxonomy.manager import TaxonomyManager
+from skill_fleet.taxonomy.manager import TaxonomyManager
 
 manager = TaxonomyManager(
     Path("skills")
@@ -157,7 +157,7 @@ Validates skills against taxonomy standards and agentskills.io compliance.
 **Import:**
 ```python
 from pathlib import Path
-from agentic_fleet.skill_fleet.validators.skill_validator import SkillValidator
+from skill_fleet.validators.skill_validator import SkillValidator
 ```
 
 **Constructor:**
@@ -266,7 +266,7 @@ Functions for migrating skills to agentskills.io format.
 **Import:**
 ```python
 from pathlib import Path
-from agentic_fleet.skill_fleet.migration import (
+from skill_fleet.migration import (
     migrate_skill_to_agentskills_format,
     migrate_all_skills,
     validate_migration,
@@ -403,7 +403,7 @@ Convert path-style skill_id to kebab-case name per agentskills.io spec.
 
 **Import:**
 ```python
-from agentic_fleet.skill_fleet.taxonomy.manager import skill_id_to_name
+from skill_fleet.taxonomy.manager import skill_id_to_name
 ```
 
 **Signature:**
@@ -513,9 +513,9 @@ Full workflow using the Python API:
 
 ```python
 from pathlib import Path
-from agentic_fleet.skill_fleet.taxonomy.manager import TaxonomyManager
-from agentic_fleet.skill_fleet.validators.skill_validator import SkillValidator
-from agentic_fleet.skill_fleet.migration import migrate_all_skills
+from skill_fleet.taxonomy.manager import TaxonomyManager
+from skill_fleet.validators.skill_validator import SkillValidator
+from skill_fleet.migration import migrate_all_skills
 
 # Initialize
 skills_root = Path("skills")
@@ -576,7 +576,7 @@ print(f"  ... and {len(all_skills) - 5} more")
 ```python
 import sys
 from pathlib import Path
-from agentic_fleet.skill_fleet.validators.skill_validator import SkillValidator
+from skill_fleet.validators.skill_validator import SkillValidator
 
 def validate_all_skills(skills_root: Path) -> int:
     """Validate all skills, return 0 if all pass, 1 otherwise."""
@@ -611,7 +611,7 @@ if __name__ == "__main__":
 
 ```python
 from pathlib import Path
-from agentic_fleet.skill_fleet.migration import migrate_skill_to_agentskills_format
+from skill_fleet.migration import migrate_skill_to_agentskills_format
 
 def migrate_with_custom_logic(skill_dir: Path):
     """Custom migration with additional processing."""
@@ -654,7 +654,7 @@ for skill_dir in skills_root.rglob("metadata.json"):
 
 ```python
 from pathlib import Path
-from agentic_fleet.skill_fleet.taxonomy.manager import TaxonomyManager
+from skill_fleet.taxonomy.manager import TaxonomyManager
 
 manager = TaxonomyManager(Path("skills"))
 
@@ -702,7 +702,7 @@ def generate_available_skills_xml(
 
 Use with mypy for static type checking:
 ```bash
-mypy src/agentic_fleet/skill_fleet/
+mypy src/skill_fleet/
 ```
 
 ---

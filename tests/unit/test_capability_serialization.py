@@ -5,8 +5,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from agentic_fleet.skill_fleet.workflow.models import Capability
-from agentic_fleet.skill_fleet.workflow.modules import InitializeModule
+from skill_fleet.workflow.models import Capability
+from skill_fleet.workflow.modules import InitializeModule
 
 
 def test_initialize_module_serializes_capabilities():

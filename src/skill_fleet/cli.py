@@ -13,7 +13,7 @@ from typing import Any
 # Ensure DSPy disk cache uses a writable location (avoids defaulting to `~/.dspy_cache`).
 os.environ.setdefault("DSPY_CACHEDIR", str(Path.cwd() / ".dspy_cache"))
 
-from agentic_fleet.llm import FleetConfigError, build_lm_for_task, load_fleet_config
+from skill_fleet.llm import FleetConfigError, build_lm_for_task, load_fleet_config
 
 from .analytics.engine import AnalyticsEngine, RecommendationEngine
 from .onboarding.bootstrap import SkillBootstrapper
@@ -33,8 +33,8 @@ def _repo_root() -> Path:
 
 
 def _default_config_path() -> Path:
-    # Config at: src/agentic_fleet/config.yaml
-    return _repo_root() / "src/agentic_fleet/config.yaml"
+    # Config at: src/skill_fleet/config.yaml
+    return _repo_root() / "src/skill_fleet/config.yaml"
 
 
 def _default_skills_root() -> Path:

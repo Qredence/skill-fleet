@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from agentic_fleet.skill_fleet.analytics.engine import (
+from skill_fleet.analytics.engine import (
     AnalyticsEngine,
     RecommendationEngine,
     UsageTracker,

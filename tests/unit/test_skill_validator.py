@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from agentic_fleet.skill_fleet.validators import SkillValidator
+from skill_fleet.validators import SkillValidator
 
 
 @pytest.fixture

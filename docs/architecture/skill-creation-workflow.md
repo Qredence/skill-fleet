@@ -8,12 +8,12 @@ The system uses a **6-step pipeline** orchestrated by DSPy to transform a high-l
 
 ### Implementation Locations
 
-- **Orchestrator**: `src/agentic_fleet/skill_fleet/workflow/skill_creator.py`
-- **Programs**: `src/agentic_fleet/skill_fleet/workflow/programs.py`
-- **Modules**: `src/agentic_fleet/skill_fleet/workflow/modules.py`
-- **Signatures**: `src/agentic_fleet/skill_fleet/workflow/signatures.py`
-- **Models**: `src/agentic_fleet/skill_fleet/workflow/models.py`
-- **Taxonomy Manager**: `src/agentic_fleet/skill_fleet/taxonomy/manager.py`
+- **Orchestrator**: `src/skill_fleet/workflow/skill_creator.py`
+- **Programs**: `src/skill_fleet/workflow/programs.py`
+- **Modules**: `src/skill_fleet/workflow/modules.py`
+- **Signatures**: `src/skill_fleet/workflow/signatures.py`
+- **Models**: `src/skill_fleet/workflow/models.py`
+- **Taxonomy Manager**: `src/skill_fleet/taxonomy/manager.py`
 
 ## Workflow Programs
 

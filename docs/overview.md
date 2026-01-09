@@ -255,7 +255,7 @@ skills/_core/reasoning.json
 5. **Package** — validate and produce a packaging manifest
 6. **Iterate** — human‑in‑the‑loop approval and evolution metadata
 
-These steps are implemented in `src/agentic_fleet/skill_fleet/workflow/` and use task‑scoped LLMs configured in `src/agentic_fleet/config.yaml`.
+These steps are implemented in `src/skill_fleet/workflow/` and use task‑scoped LLMs configured in `src/agentic_fleet/config.yaml`.
 
 ## Caching and Validation
 

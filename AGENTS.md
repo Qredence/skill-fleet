@@ -19,16 +19,16 @@ The **Agentic Skills System** is a hierarchical, dynamic capability framework th
    - Each skill is a directory containing a `SKILL.md` file with YAML frontmatter
    - Skills are organized by domain (e.g., `general/`, `development/`, `business/`)
 
-2. **Skill Creation Workflow** (`src/agentic_fleet/skill_fleet/workflow/`)
+2. **Skill Creation Workflow** (`src/skill_fleet/workflow/`)
    - 6-step DSPy-based pipeline for generating new skills
    - Includes research, drafting, validation, and refinement stages
    - Supports Human-in-the-Loop (HITL) review at each stage
 
-3. **CLI** (`src/agentic_fleet/skill_fleet/cli/`)
+3. **CLI** (`src/skill_fleet/cli/`)
    - Primary interface for skill creation, validation, and migration
    - Built with Typer for a clean, typed command-line interface
 
-4. **Validators** (`src/agentic_fleet/skill_fleet/validators/`)
+4. **Validators** (`src/skill_fleet/validators/`)
    - Ensures skills meet quality and compliance standards
    - Validates YAML frontmatter, content structure, and agentskills.io compliance
 
@@ -343,7 +343,7 @@ DSPY_TEMPERATURE=0.7
 
 ### Adding a New CLI Command
 
-1. Create command file in `src/agentic_fleet/skill_fleet/cli/`
+1. Create command file in `src/skill_fleet/cli/`
 2. Define command using Typer
 3. Register in `main.py`
 4. Add tests in `tests/cli/`
@@ -401,7 +401,7 @@ uv run ruff format .
 ### Useful Paths
 
 - Skills: `skills/`
-- CLI: `src/agentic_fleet/skill_fleet/cli/`
+- CLI: `src/skill_fleet/cli/`
 - Tests: `tests/`
 - Docs: `docs/`
 - Config: `src/agentic_fleet/config.yaml`

@@ -1,1 +1,1 @@
-pytest --cov=src/ tests/ --cov-report=term-missing
+# pytest --cov=src/ tests/ --cov-report=term-missing

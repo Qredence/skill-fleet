@@ -27,7 +27,7 @@ dependencies = [
 skills-fleet = "agentic_fleet.agentic_skills_system.cli:cli_entrypoint"
 
 [dependency-groups]
-dev = ["pytest>=8.0.0", "ruff>=0.8.0", "ty>=0.0.10"]
+dev = ["pytest>=8.0.0", "ruff>=0.8.0"]
 
 [build-system]
 requires = ["hatchling>=1.26.0"]

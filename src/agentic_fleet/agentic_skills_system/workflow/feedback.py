@@ -560,9 +560,11 @@ class InteractiveHITLHandler(FeedbackHandler):
 
         for question_id, answer in answers.items():
             if question_id in refinement_map:
-                answer_key = answer if isinstance(answer, str) else answer[0] if answer else None
-                if answer_key and answer_key in refinement_map[question_id]:
-                    refinements.append(refinement_map[question_id][answer_key])
+                # Handle both single (str) and multiple (list) answers
+                answer_keys = answer if isinstance(answer, list) else [answer]
+                for answer_key in answer_keys:
+                    if answer_key and answer_key in refinement_map[question_id]:
+                        refinements.append(refinement_map[question_id][answer_key])
 
         return refinements
 

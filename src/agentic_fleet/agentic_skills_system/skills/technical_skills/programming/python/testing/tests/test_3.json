@@ -1,0 +1,6 @@
+{
+  "name": "Coverage Report Generation",
+  "description": "Ensure the coverage analysis capability produces a valid JSON report.",
+  "input_data": "Run tests on a module with 50% line coverage.",
+  "expected_result": "A JSON report is generated showing 50% total coverage and listing missing lines."
+}

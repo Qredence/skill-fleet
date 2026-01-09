@@ -1,0 +1,42 @@
+{
+  "skill_id": "technical_skills/programming/python/testing",
+  "name": "python-testing",
+  "description": "Comprehensive testing skill for Python applications, supporting test discovery, execution, and reporting across major frameworks like pytest and unittest.",
+  "version": "1.0.0",
+  "type": "technical",
+  "weight": "medium",
+  "load_priority": "task_specific",
+  "dependencies": [],
+  "capabilities": [
+    "discover_tests",
+    "run_pytest",
+    "run_unittest",
+    "calculate_coverage",
+    "analyze_test_failures"
+  ],
+  "category": "technical_skills/programming/python",
+  "keywords": [
+    "python",
+    "pytest",
+    "unittest",
+    "testing",
+    "coverage",
+    "quality-assurance",
+    "tdd"
+  ],
+  "scope": "Covers Python-specific testing frameworks and runners. Does not cover UI automation (use Playwright/Selenium skills) or performance load testing.",
+  "see_also": [
+    "technical_skills/programming/python/execution_environment",
+    "technical_skills/programming/practices/test_driven_development"
+  ],
+  "created_at": "2026-01-09T13:38:53.142645+00:00",
+  "last_modified": "2026-01-09T13:38:53.142645+00:00",
+  "evolution": {
+    "skill_id": "technical_skills/programming/python/testing",
+    "version": "1.0.0",
+    "status": "approved",
+    "timestamp": "2026-01-09T14:40:00Z",
+    "previous_versions": [],
+    "change_summary": "Initial release of Python testing skill. Validated with minor metadata warnings regarding dependencies and naming consistency."
+  }
+}

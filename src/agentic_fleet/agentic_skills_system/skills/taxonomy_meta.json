@@ -1,22 +1,25 @@
 {
   "version": "0.1.0",
   "created_at": "2026-01-06T00:00:00Z",
-  "last_updated": "2026-01-07T02:34:11.405602+00:00",
+  "last_updated": "2026-01-09T13:39:41.223419+00:00",
   "schema_version": "1.0.0",
-  "total_skills": 11,
-  "generation_count": 11,
+  "total_skills": 16,
+  "generation_count": 16,
   "statistics": {
     "by_type": {
-      "technical": 2,
-      "unknown": 9
+      "technical": 6,
+      "unknown": 9,
+      "memory": 1
     },
     "by_weight": {
-      "medium": 2,
-      "unknown": 9
+      "medium": 6,
+      "unknown": 9,
+      "heavyweight": 1
     },
     "by_priority": {
-      "task_specific": 2,
-      "unknown": 9
+      "task_specific": 6,
+      "unknown": 9,
+      "always": 1
     }
   },
   "bootstrap_profiles": [
@@ -52,6 +55,26 @@
       "successes": 1
     },
     "technical_skills/programming/web_frameworks/python/fastapi": {
+      "count": 1,
+      "successes": 1
+    },
+    "technical_skills/programming/python/libraries/numpy/broadcasting": {
+      "count": 1,
+      "successes": 1
+    },
+    "memory_blocks/agent_memory_management": {
+      "count": 1,
+      "successes": 1
+    },
+    "technical_skills/devops/containerization/docker-best-practices": {
+      "count": 1,
+      "successes": 1
+    },
+    "technical_skills/programming/python/testing": {
+      "count": 1,
+      "successes": 1
+    },
+    "technical_skills/software_development/version_control/git_workflows": {
       "count": 1,
       "successes": 1
     }

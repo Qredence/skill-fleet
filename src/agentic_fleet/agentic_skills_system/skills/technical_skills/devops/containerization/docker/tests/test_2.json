@@ -1,0 +1,6 @@
+{
+  "name": "test_security_non_root_check",
+  "description": "Check if container_security_hardening flags a Dockerfile running as root.",
+  "input_data": "FROM alpine:latest\nRUN apk add --no-cache curl\nCMD [\"curl\", \"localhost\"]",
+  "expected_result": "A security warning regarding the absence of a non-root USER directive."
+}

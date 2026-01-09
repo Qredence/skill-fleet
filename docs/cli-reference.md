@@ -40,7 +40,7 @@ uv run skill-fleet create-skill --task "TASK_DESCRIPTION" [OPTIONS]
 - `--user-id TEXT` - ID of the user creating the skill (default: `default`)
 - `--max-iterations INT` - Maximum feedback loops (default: `3`)
 - `--auto-approve` - Skip HITL review and auto-approve if validation passes
-- `--config PATH` - Path to fleet configuration YAML (default: `src/agentic_fleet/config.yaml`)
+- `--config PATH` - Path to fleet configuration YAML (default: `src/skill_fleet/config.yaml`)
 - `--skills-root PATH` - Path to taxonomy root (default: `skills`)
 - `--json` - Output result as JSON
 

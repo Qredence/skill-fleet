@@ -273,7 +273,7 @@ chmod -R u+w skills
 
 ### Customize LLM Settings
 
-Edit `src/agentic_fleet/config.yaml`:
+Edit `src/skill_fleet/config.yaml`:
 
 ```yaml
 llm:

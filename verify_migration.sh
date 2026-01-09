@@ -25,7 +25,7 @@ fi
 echo "PASS: Tests pass"
 
 echo "[4/5] Checking CLI entrypoint..."
-if ! uv run python -c "from agentic_fleet.skill_fleet.cli import cli_entrypoint" 2>/dev/null; then
+if ! uv run python -c "from skill_fleet.cli_submodules import cli_entrypoint" 2>/dev/null; then
     echo "FAIL: CLI import broken"
     exit 1
 fi
@@ -36,7 +36,7 @@ if [ ! -d "skills" ]; then
     echo "FAIL: skills/ directory missing"
     exit 1
 fi
-if [ ! -d "src/agentic_fleet/skill_fleet" ]; then
+if [ ! -d "src/skill_fleet" ]; then
     echo "FAIL: skill_fleet/ directory missing"
     exit 1
 fi

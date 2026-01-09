@@ -47,7 +47,7 @@ flowchart LR
   Workflow --> LLM[LLM Provider]
 ```
 
-This system is local-first: the taxonomy lives on disk and is updated by the workflow. The only external dependency is the LLM provider (Google Gemini 3 by default) defined in `src/agentic_fleet/config.yaml`.
+This system is local-first: the taxonomy lives on disk and is updated by the workflow. The only external dependency is the LLM provider (Google Gemini 3 by default) defined in `src/skill_fleet/config.yaml`.
 
 ## Conceptual Components
 
@@ -255,7 +255,7 @@ skills/_core/reasoning.json
 5. **Package** — validate and produce a packaging manifest
 6. **Iterate** — human‑in‑the‑loop approval and evolution metadata
 
-These steps are implemented in `src/skill_fleet/workflow/` and use task‑scoped LLMs configured in `src/agentic_fleet/config.yaml`.
+These steps are implemented in `src/skill_fleet/workflow/` and use task‑scoped LLMs configured in `src/skill_fleet/config.yaml`.
 
 ## Caching and Validation
 
@@ -288,7 +288,7 @@ bun run tui
 
 ## Key Configurations
 
-- `src/agentic_fleet/config.yaml`: LLM configuration for workflow steps
+- `src/skill_fleet/config.yaml`: LLM configuration for workflow steps
 - `skills/_templates/skill_template.json`: structure template
 
 ## What This System Is Not

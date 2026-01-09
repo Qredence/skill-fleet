@@ -96,7 +96,7 @@ The workflow supports structured interaction via:
 
 ## Model Configuration
 
-This repo is configured to use **Gemini 3** models via `src/agentic_fleet/config.yaml`:
+This repo is configured to use **Gemini 3** models via `src/skill_fleet/config.yaml`:
 
 -   **`gemini-3-flash-preview`**: Primary model for all steps.
 -   **`gemini-3-pro-preview`**: Used for GEPA reflection and high-reasoning tasks.

@@ -45,7 +45,7 @@ export class CLIBridge {
       "run",
       "python",
       "-m",
-      "agentic_fleet.agentic_skills_system.cli",
+      "skill_fleet.cli_submodules.main",
       ...args
     ];
 

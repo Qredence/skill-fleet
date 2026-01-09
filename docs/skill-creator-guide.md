@@ -38,7 +38,7 @@ All generated skills are automatically compliant with the [agentskills.io](https
 | `--max-iterations` | Maximum number of feedback loops | `3` |
 | `--feedback-type` | Interaction mode (`interactive`, `cli`, `auto`, `webhook`) | `interactive` |
 | `--auto-approve` | Shortcut for `--feedback-type=auto` | `False` |
-| `--config` | Path to the fleet configuration YAML | `src/agentic_fleet/config.yaml` |
+| `--config` | Path to the fleet configuration YAML | `src/skill_fleet/config.yaml` |
 | `--skills-root` | Path to the taxonomy root directory | `skills` |
 | `--json` | Output the result as JSON | `False` |
 
@@ -53,7 +53,7 @@ The system supports flexible Human-in-the-Loop configurations:
 
 ## ⚙️ Configuration
 
-The Skill Creator behavior is controlled by `src/agentic_fleet/config.yaml`. 
+The Skill Creator behavior is controlled by `src/skill_fleet/config.yaml`. 
 
 ### Model & Parameters
 It uses `gemini-3-flash-preview` with specialized `thinking_level` settings for each task:

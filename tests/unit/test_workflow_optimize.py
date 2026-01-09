@@ -6,7 +6,7 @@ def test_get_lm_rejects_unapproved_models() -> None:
     from agentic_fleet.agentic_skills_system.workflow.optimize import get_lm
 
     with pytest.raises(ValueError):
-        get_lm("not-a-real-model")
+        get_lm("unapproved-test-model")
 
 
 def test_get_lm_constructs_dspy_lm_with_approved_model(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -21,8 +21,16 @@ def test_get_lm_constructs_dspy_lm_with_approved_model(monkeypatch: pytest.Monke
 
     monkeypatch.setattr(optimize.dspy, "LM", DummyLM)
 
-    lm = optimize.get_lm("gemini-3-flash-preview", temperature=0.12, max_tokens=123)
-    assert isinstance(lm, DummyLM)
-    assert lm.model == "gemini/gemini-3-flash-preview"
-    assert lm.temperature == 0.12
-    assert lm.kwargs["max_tokens"] == 123
+    # Arbitrary but fixed values to verify that get_lm forwards parameters correctly.
+    test_temperature = 0.12
+    test_max_tokens = 123
+
+    language_model = optimize.get_lm(
+        "gemini-3-flash-preview",
+        temperature=test_temperature,
+        max_tokens=test_max_tokens,
+    )
+    assert isinstance(language_model, DummyLM)
+    assert language_model.model == "gemini/gemini-3-flash-preview"
+    assert language_model.temperature == test_temperature
+    assert language_model.kwargs["max_tokens"] == test_max_tokens

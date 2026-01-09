@@ -70,37 +70,46 @@ async def upload_image(file: UploadFile):
 
 ### 2. Large File Streaming
 ```python
+from pathlib import Path
+
 @app.post("/upload-large")
 async def upload_large_file(file: UploadFile):
+    # Sanitize filename to prevent path traversal
+    safe_filename = Path(file.filename).name
+    
     # Stream in chunks
     chunk_size = 1024 * 1024  # 1MB chunks
     total_size = 0
 
-    async with aiofiles.open(f"/uploads/{file.filename}", "wb") as f:
+    async with aiofiles.open(f"/uploads/{safe_filename}", "wb") as f:
         while chunk := await file.read(chunk_size):
             await f.write(chunk)
             total_size += len(chunk)
 
-    return {"filename": file.filename, "size": total_size}
+    return {"filename": safe_filename, "size": total_size}
 ```
 
 ### 3. Multiple Files
 ```python
 from fastapi import UploadFile, File
 from typing import List
+from pathlib import Path
 
 @app.post("/upload-multiple")
 async def upload_multiple(files: List[UploadFile] = File(...)):
     results = []
 
     for file in files:
+        # Sanitize filename to prevent path traversal
+        safe_filename = Path(file.filename).name
+        
         # Process each file
-        file_path = f"/uploads/{file.filename}"
+        file_path = f"/uploads/{safe_filename}"
         async with aiofiles.open(file_path, "wb") as f:
             await f.write(await file.read())
 
         results.append({
-            "filename": file.filename,
+            "filename": safe_filename,
             "content_type": file.content_type
         })
 

@@ -154,7 +154,8 @@ All files in:
 ## Run It
 
 ```bash
-cd /Volumes/Samsung-SSD-T7/Workspaces/Github/qredence/agent-framework/v0.5/_WORLD/skills-fleet/src/agentic_fleet/agentic_skills_system/skills/technical_skills/programming/web_frameworks/python/fastapi/examples
+# Navigate to the examples directory from the repository root
+cd src/agentic_fleet/agentic_skills_system/skills/technical_skills/programming/web_frameworks/python/fastapi/examples
 
 # Run server
 uv run python patch_endpoint_example.py

@@ -14,7 +14,7 @@ A complete FastAPI application demonstrating a PATCH endpoint for partial user u
 ## 1. The Pydantic Model for Updates
 
 ### Location
-`/Volumes/Samsung-SSD-T7/Workspaces/Github/qredence/agent-framework/v0.5/_WORLD/skills-fleet/src/agentic_fleet/agentic_skills_system/skills/technical_skills/programming/web_frameworks/python/fastapi/examples/patch_endpoint_example.py`
+`src/agentic_fleet/agentic_skills_system/skills/technical_skills/programming/web_frameworks/python/fastapi/examples/patch_endpoint_example.py`
 
 ### Code
 ```python
@@ -168,7 +168,8 @@ curl -X PATCH http://localhost:8000/users/1 \\
 
 ### Run Tests
 ```bash
-cd /Volumes/Samsung-SSD-T7/Workspaces/Github/qredence/agent-framework/v0.5/_WORLD/skills-fleet/src/agentic_fleet/agentic_skills_system/skills/technical_skills/programming/web_frameworks/python/fastapi/examples
+# Navigate to the examples directory from the repository root
+cd src/agentic_fleet/agentic_skills_system/skills/technical_skills/programming/web_frameworks/python/fastapi/examples
 
 uv run python test_patch_endpoint.py
 ```
@@ -267,7 +268,8 @@ updated_user = existing_user.model_copy(update=update_data)
 
 ### Run the Server
 ```bash
-cd /Volumes/Samsung-SSD-T7/Workspaces/Github/qredence/agent-framework/v0.5/_WORLD/skills-fleet/src/agentic_fleet/agentic_skills_system/skills/technical_skills/programming/web_frameworks/python/fastapi/examples
+# Navigate to the examples directory from the repository root
+cd src/agentic_fleet/agentic_skills_system/skills/technical_skills/programming/web_frameworks/python/fastapi/examples
 
 uv run python patch_endpoint_example.py
 ```

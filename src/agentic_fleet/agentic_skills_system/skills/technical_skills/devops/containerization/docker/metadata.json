@@ -1,0 +1,43 @@
+{
+  "skill_id": "technical_skills/devops/containerization/docker-best-practices",
+  "name": "docker-best-practices",
+  "description": "Expert guidance and implementation of industry-standard Docker practices including multi-stage builds, security hardening, and resource optimization.",
+  "version": "1.0.0",
+  "type": "technical",
+  "weight": "medium",
+  "load_priority": "task_specific",
+  "dependencies": [
+    "technical_skills/linux_administration",
+    "technical_skills/shell_scripting"
+  ],
+  "capabilities": [
+    "multi_stage_build_optimization",
+    "container_security_hardening",
+    "docker_resource_management",
+    "image_layer_analysis"
+  ],
+  "category": "technical_skills/devops/containerization",
+  "keywords": [
+    "docker",
+    "containerization",
+    "devops",
+    "dockerfile",
+    "security",
+    "optimization"
+  ],
+  "scope": "Covers Dockerfile optimization, image security, and container resource limits. Does not cover Kubernetes orchestration or specific cloud-provider container services (ECS/EKS) except where they intersect with local image definitions.",
+  "see_also": [
+    "technical_skills/devops/kubernetes",
+    "technical_skills/security/cloud-security"
+  ],
+  "created_at": "2026-01-09T13:02:00.845730+00:00",
+  "last_modified": "2026-01-09T13:02:00.845730+00:00",
+  "evolution": {
+    "skill_id": "technical_skills/devops/containerization/docker-best-practices",
+    "version": "1.0.0",
+    "status": "approved",
+    "timestamp": "2026-01-09T14:05:00Z",
+    "previous_versions": [],
+    "change_summary": "Initial release of Docker Best Practices skill focusing on container optimization and security."
+  }
+}

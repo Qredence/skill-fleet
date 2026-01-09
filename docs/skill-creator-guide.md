@@ -10,6 +10,12 @@ To create a new skill, use the CLI:
 uv run skill-fleet create-skill --task "Implement a Python FastAPI integration skill"
 ```
 
+## 📚 Related Documentation
+
+- **[Skill Creation Guidelines](skill-creation-guidelines.md)**: Comprehensive guide with interrogations, format requirements, and process workflow
+- **[Overview](overview.md)**: System architecture and taxonomy design
+- **[Quick Start](quick-start.md)**: Basic CLI usage and examples
+
 ## 🧠 Workflow Steps
 
 The Skill Creator follows a modular 6-step workflow, powered by DSPy and Gemini 3:

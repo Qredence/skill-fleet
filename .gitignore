@@ -53,3 +53,5 @@ node_modules/
 .vscode/settings.json
 .letta/
 .vscode/
+.letta/settings.local.json
+.letta/settings.local.json

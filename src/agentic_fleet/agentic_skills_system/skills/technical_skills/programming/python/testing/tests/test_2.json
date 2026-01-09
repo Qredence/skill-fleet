@@ -1,0 +1,6 @@
+{
+  "name": "Pytest Execution and Failure Capture",
+  "description": "Run a suite with a known failure and ensure the failure analyzer extracts the correct traceback.",
+  "input_data": "A test file with 'assert 1 == 2'.",
+  "expected_result": "Process exits with non-zero code; failure analyzer identifies AssertionError and the specific line of code."
+}

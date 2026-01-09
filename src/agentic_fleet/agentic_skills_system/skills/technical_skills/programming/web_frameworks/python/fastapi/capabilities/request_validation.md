@@ -1,1 +1,0 @@
-Implement Pydantic models in `schemas.py` to define strict input/output contracts, ensuring type safety and automatic 422 error generation.

@@ -1,1 +1,0 @@
-Implement OAuth2 scopes and JWT verification within `auth_flow.py` to protect sensitive endpoints.

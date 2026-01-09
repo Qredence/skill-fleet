@@ -97,10 +97,10 @@ echo 'GOOGLE_API_KEY="your_key_here"' > .env
 
 ```bash
 # Interactive creation (recommended)
-uv run skill-fleet create-skill --task "Create a skill for Docker best practices"
+uv run skills-fleet create-skill --task "Create a skill for Docker best practices"
 
 # Auto-approve mode (skips HITL review)
-uv run skill-fleet create-skill --task "Create a skill for Docker best practices" --auto-approve
+uv run skills-fleet create-skill --task "Create a skill for Docker best practices" --auto-approve
 ```
 
 **The 6-step workflow:**
@@ -115,23 +115,23 @@ uv run skill-fleet create-skill --task "Create a skill for Docker best practices
 
 ```bash
 # Validate a specific skill directory
-uv run skill-fleet validate-skill src/agentic_fleet/agentic_skills_system/skills/general/testing
+uv run skills-fleet validate-skill src/agentic_fleet/agentic_skills_system/skills/general/testing
 
 # Migrate all skills to agentskills.io format
-uv run skill-fleet migrate
+uv run skills-fleet migrate
 
 # Preview migration without writing changes
-uv run skill-fleet migrate --dry-run
+uv run skills-fleet migrate --dry-run
 ```
 
 ### Generating XML for Agents
 
 ```bash
 # Print XML to console
-uv run skill-fleet generate-xml
+uv run skills-fleet generate-xml
 
 # Save to file for agent prompt injection
-uv run skill-fleet generate-xml -o available_skills.xml
+uv run skills-fleet generate-xml -o available_skills.xml
 ```
 
 The generated XML follows the agentskills.io format:

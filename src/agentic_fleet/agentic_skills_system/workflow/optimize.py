@@ -87,6 +87,16 @@ class OptimizationWrapper(dspy.Module):
         self.program = program
 
     def forward(self, task_description: str):
+        """Execute the wrapped program with dummy context for optimization.
+
+        Args:
+            task_description: Description of the skill creation task
+
+        Returns:
+            dspy.Prediction: Wrapped result containing understanding, plan,
+                skeleton, content, and package predictions
+        """
+
         # Create minimal/dummy context for optimization
         def dummy_parent_getter(path: str) -> list[dict]:
             return []

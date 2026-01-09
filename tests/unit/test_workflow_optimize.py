@@ -23,6 +23,6 @@ def test_get_lm_constructs_dspy_lm_with_approved_model(monkeypatch: pytest.Monke
 
     lm = optimize.get_lm("gemini-3-flash-preview", temperature=0.12, max_tokens=123)
     assert isinstance(lm, DummyLM)
-    assert lm.model == "google/gemini-3-flash-preview"
+    assert lm.model == "gemini/gemini-3-flash-preview"
     assert lm.temperature == 0.12
     assert lm.kwargs["max_tokens"] == 123

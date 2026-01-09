@@ -105,7 +105,11 @@ def taxonomy_path_metric(
     expected_path = getattr(gold, "expected_taxonomy_path", "")
 
     # Extract predicted path
-    understanding = getattr(pred, "understanding", None)
+    if isinstance(pred, dict):
+        understanding = pred.get("understanding")
+    else:
+        understanding = getattr(pred, "understanding", None)
+
     if understanding is None:
         return 0.0
 
@@ -171,7 +175,11 @@ def metadata_metric(
     Returns:
         Score between 0.0 and 1.0
     """
-    plan = getattr(pred, "plan", None)
+    if isinstance(pred, dict):
+        plan = pred.get("plan")
+    else:
+        plan = getattr(pred, "plan", None)
+
     if plan is None:
         return 0.0
 
@@ -263,7 +271,11 @@ def content_quality_metric(
     Returns:
         Score between 0.0 and 1.0
     """
-    content_data = getattr(pred, "content", None)
+    if isinstance(pred, dict):
+        content_data = pred.get("content")
+    else:
+        content_data = getattr(pred, "content", None)
+
     if content_data is None:
         return 0.0
 

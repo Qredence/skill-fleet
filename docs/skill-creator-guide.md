@@ -30,20 +30,20 @@ All generated skills are automatically compliant with the [agentskills.io](https
 | `--task` | Description of the skill to create (Required) | - |
 | `--user-id` | ID of the user creating the skill | `default` |
 | `--max-iterations` | Maximum number of feedback loops | `3` |
-| `--auto-approve` | Skip interactive review and auto-approve if validation passes | `False` |
+| `--feedback-type` | Interaction mode (`interactive`, `cli`, `auto`, `webhook`) | `interactive` |
+| `--auto-approve` | Shortcut for `--feedback-type=auto` | `False` |
 | `--config` | Path to the fleet configuration YAML | `src/agentic_fleet/config.yaml` |
 | `--skills-root` | Path to the taxonomy root directory | `src/agentic_fleet/agentic_skills_system/skills` |
 | `--json` | Output the result as JSON | `False` |
 
-## 👥 Human-in-the-Loop (HITL)
+## 👥 Feedback Modes (HITL)
 
-By default, the Skill Creator pauses after Step 5 to ask for human feedback. You can review the generated plan and content, then choose to:
+The system supports flexible Human-in-the-Loop configurations:
 
-*   **Approve**: The skill is registered in the taxonomy.
-*   **Request Revision**: Provide feedback for the model to improve the skill content.
-*   **Reject**: Discard the skill.
-
-To bypass this for automated workflows, use the `--auto-approve` flag.
+*   **`interactive`** (Default): A rich, multi-round QA session where the model may ask you clarifying questions (e.g., "Should this skill focus on async or sync implementations?") before finalizing the plan.
+*   **`cli`**: A simple Approve/Reject prompt at the end of the process.
+*   **`auto`**: Fully autonomous mode. The system validates the skill itself and approves it if checks pass.
+*   **`webhook`**: Sends the review request to an external URL (useful for CI/CD pipelines).
 
 ## ⚙️ Configuration
 
@@ -56,63 +56,31 @@ It uses `gemini-3-flash-preview` with specialized `thinking_level` settings for 
 *   `medium`: Understanding, Packaging (Balanced)
 *   `minimal`: Initialization (Fast skeleton generation)
 
-### Feedback Handlers
-The system supports multiple feedback handlers defined in `src/agentic_fleet/agentic_skills_system/workflow/feedback.py`:
+## 📝 Generated Skill Format & Metadata
 
-*   **CLI Handler**: (Default) Interactive prompts in your terminal.
-*   **Auto Handler**: Used when `--auto-approve` is passed.
-*   **Webhook Handler**: (Advanced) Can be configured to send review requests to external systems.
+All skills created by the Skill Creator automatically include agentskills.io-compliant YAML frontmatter with **Scalable Discovery** fields:
 
-## 🐍 Python API
-
-You can also use the Skill Creator directly in your Python code:
-
-```python
-from pathlib import Path
-from agentic_fleet.agentic_skills_system.taxonomy.manager import TaxonomyManager
-from agentic_fleet.agentic_skills_system.workflow.skill_creator import TaxonomySkillCreator
-
-# Initialize
-taxonomy = TaxonomyManager(Path("src/agentic_fleet/agentic_skills_system/skills"))
-creator = TaxonomySkillCreator(taxonomy_manager=taxonomy)
-
-# Create a skill
-result = creator.create_skill(
-    task_description="Create a data processing skill",
-    user_context={"user_id": "agent_01"},
-    max_iterations=2
-)
-
-if result["status"] == "approved":
-    print(f"Skill created at: {result['path']}")
+```yaml
+---
+name: python-decorators
+description: Ability to design, implement, and apply higher-order functions...
+metadata:
+  skill_id: technical_skills/programming/languages/python/decorators
+  version: 1.0.0
+  type: technical
+  weight: medium
+  # Scalable Discovery Fields
+  category: "technical/python/core"
+  keywords: ["functional-programming", "wrappers", "meta-programming"]
+  scope: "Covers function and class decorators. Does NOT cover metaclasses."
+  see_also: ["technical_skills/programming/python/context_managers"]
+---
 ```
+
+This extended metadata ensures that even as your fleet grows to 500+ skills, agents can efficiently find and distinguish between similar capabilities.
 
 ## 🔍 Troubleshooting
 
 *   **Missing API Key**: Ensure `GOOGLE_API_KEY` is set in your `.env` file.
 *   **Validation Failures**: Check the CLI output for specific errors in metadata or structure. The system enforces strict taxonomy standards.
 *   **Circular Dependencies**: The Skill Creator will prevent the creation of skills that create loops in the dependency graph.
-
-## 📝 Generated Skill Format
-
-All skills created by the Skill Creator automatically include agentskills.io-compliant YAML frontmatter:
-
-```yaml
----
-name: python-decorators
-description: Ability to design, implement, and apply higher-order functions to extend or modify the behavior of functions and classes in Python.
-metadata:
-  skill_id: technical_skills/programming/languages/python/decorators
-  version: 1.0.0
-  type: technical
-  weight: medium
----
-```
-
-This frontmatter enables:
-- **Discoverability**: Skills can be found via XML generation
-- **Validation**: Automated compliance checking
-- **Interoperability**: Skills work with other agentskills.io-compliant systems
-- **Standardization**: Consistent format across all skills
-
-For more details, see the [agentskills.io Compliance Guide](agentskills-compliance.md).

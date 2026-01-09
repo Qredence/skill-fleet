@@ -96,11 +96,24 @@ def create_skill(args: argparse.Namespace) -> int:
         optimizer = WorkflowOptimizer(Path(args.cache_dir))
     creator = TaxonomySkillCreator(taxonomy_manager=taxonomy, optimizer=optimizer)
 
+    # Determine feedback type: --auto-approve is a shortcut for --feedback-type=auto
+    feedback_type = args.feedback_type
+    if args.auto_approve:
+        feedback_type = "auto"
+
+    # Build feedback handler kwargs for interactive mode
+    feedback_kwargs = {}
+    if feedback_type == "interactive":
+        feedback_kwargs["min_rounds"] = max(1, min(args.min_rounds, 4))
+        feedback_kwargs["max_rounds"] = max(feedback_kwargs["min_rounds"], min(args.max_rounds, 4))
+
     result: dict[str, Any] = creator.forward(
         task_description=str(args.task),
         user_context={"user_id": str(args.user_id)},
         max_iterations=int(args.max_iterations),
-        auto_approve=bool(args.auto_approve),
+        auto_approve=(feedback_type == "auto"),
+        feedback_type=feedback_type,
+        feedback_kwargs=feedback_kwargs,
         task_lms=task_lms,
     )
 
@@ -350,9 +363,28 @@ def build_parser() -> argparse.ArgumentParser:
     )
     create.add_argument("--max-iterations", type=int, default=3, help="Max HITL iterations")
     create.add_argument(
+        "--feedback-type",
+        choices=["auto", "cli", "interactive", "webhook"],
+        default="interactive",
+        help="Feedback handler type: 'interactive' (recommended, multi-choice HITL), "
+        "'cli' (simple approve/reject), 'auto' (no HITL), 'webhook' (external review)",
+    )
+    create.add_argument(
         "--auto-approve",
         action="store_true",
-        help="Auto-approve (skip HITL); intended for testing only",
+        help="Auto-approve (skip HITL); shortcut for --feedback-type=auto",
+    )
+    create.add_argument(
+        "--min-rounds",
+        type=int,
+        default=1,
+        help="Minimum HITL rounds for interactive feedback (1-4, default: 1)",
+    )
+    create.add_argument(
+        "--max-rounds",
+        type=int,
+        default=4,
+        help="Maximum HITL rounds for interactive feedback (1-4, default: 4)",
     )
     create.add_argument(
         "--cache-dir",

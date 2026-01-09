@@ -77,12 +77,30 @@ class TaxonomySkillCreator(dspy.Module):
         user_context: dict[str, Any],
         max_iterations: int = 3,
         auto_approve: bool = False,
+        feedback_type: str = "interactive",
+        feedback_kwargs: dict[str, Any] | None = None,
         task_lms: dict[str, dspy.LM] | None = None,
     ) -> dict[str, Any]:
-        """Execute full skill creation workflow (DSPy compatibility)."""
-        # If auto_approve is set, override the feedback handler
+        """Execute full skill creation workflow (DSPy compatibility).
+
+        Args:
+            task_description: User's task or capability requirement
+            user_context: Dict with user_id and other context
+            max_iterations: Maximum HITL iterations
+            auto_approve: If True, use auto-approval (shortcut for feedback_type="auto")
+            feedback_type: Type of feedback handler ("auto", "cli", "interactive", "webhook")
+            feedback_kwargs: Additional kwargs for feedback handler (e.g., min_rounds, max_rounds)
+            task_lms: Dictionary of task-specific LMs
+
+        Returns:
+            Result dictionary with status and metadata
+        """
+        # Determine feedback handler based on parameters
         if auto_approve:
             self.feedback_handler = create_feedback_handler("auto")
+        else:
+            handler_kwargs = feedback_kwargs or {}
+            self.feedback_handler = create_feedback_handler(feedback_type, **handler_kwargs)
 
         return self.create_skill(
             task_description=task_description,
@@ -194,7 +212,7 @@ class TaxonomySkillCreator(dspy.Module):
                 dep_ids.append(d.skill_id)
             elif isinstance(d, dict):
                 dep_ids.append(d.get("skill_id"))
-        
+
         dep_ids = [d for d in dep_ids if d]  # filter out None
 
         # Check dependencies exist

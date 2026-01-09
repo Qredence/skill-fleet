@@ -49,3 +49,5 @@ node_modules/
 .letta/skills-agent-system.af
 .letta/settings.local.json
 .letta/
+.vscode/extensions.json
+.vscode/settings.json

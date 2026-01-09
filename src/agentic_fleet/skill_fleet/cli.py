@@ -23,16 +23,27 @@ from .workflow.optimizer import WorkflowOptimizer
 from .workflow.skill_creator import TaxonomySkillCreator
 
 
+def _repo_root() -> Path:
+    """Find repository root from .git or pyproject.toml."""
+    current = Path(__file__).resolve()
+    for parent in [current, *current.parents]:
+        if (parent / ".git").exists() or (parent / "pyproject.toml").exists():
+            return parent
+    raise FileNotFoundError("Cannot find repository root")
+
+
 def _default_config_path() -> Path:
-    # `src/agentic_fleet/config.yaml` relative to the repo root.
-    return Path(__file__).resolve().parents[1] / "config.yaml"
+    # Config at: src/agentic_fleet/config.yaml
+    return _repo_root() / "src/agentic_fleet/config.yaml"
 
 
 def _default_skills_root() -> Path:
-    return Path(__file__).resolve().parent / "skills"
+    # Skills now at repo root: skills/
+    return _repo_root() / "skills"
 
 
 def _default_profiles_path() -> Path:
+    # Still within skill-fleet package
     return Path(__file__).resolve().parent / "config" / "profiles" / "bootstrap_profiles.json"
 
 

@@ -255,7 +255,7 @@ find src/agentic_fleet/agentic_skills_system/skills -name "metadata.json" | xarg
 | Skill Characteristics | Best Type |
 |----------------------|-----------|
 | Implementation patterns, code examples | `technical` |
-- Subject matter, terminology, facts | `domain` |
+| Subject matter, terminology, facts | `domain` |
 - Thinking strategies, reasoning methods | `cognitive` |
 - Software/platform proficiency | `tool` |
 - MCP server/protocol related | `mcp` |

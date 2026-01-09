@@ -1,1 +1,0 @@
-Utilize the `Depends()` function in `dependencies.py` to inject database sessions and authenticated users into path operation functions.

@@ -306,4 +306,14 @@ bun run tui
 
 ---
 
+## Getting Started with Skill Creation
+
+For practical, hands-on guidance on creating skills, see **[Skill Creation Guidelines](skill-creation-guidelines.md)**, which provides:
+- Comprehensive skill creation interrogations (discovery questions)
+- Structure and format requirements
+- Content guidelines and best practices
+- Step-by-step process workflow
+- Validation checklist
+- Troubleshooting guide
+
 For workflow internals, see `docs/architecture/skill-creation-workflow.md`.

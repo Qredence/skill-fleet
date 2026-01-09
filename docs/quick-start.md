@@ -209,8 +209,9 @@ uv run skill-fleet create-skill \
 ### Explore the Documentation
 
 - **[Overview](overview.md)**: Understand the system architecture
+- **[Skill Creation Guidelines](skill-creation-guidelines.md)**: Comprehensive guide to creating skills (interrogations, format, process)
+- **[Skill Creator Guide](skill-creator-guide.md)**: Deep dive into the 6-step DSPy workflow
 - **[CLI Reference](cli-reference.md)**: Complete command reference
-- **[Skill Creator Guide](skill-creator-guide.md)**: Deep dive into skill creation
 - **[agentskills.io Compliance](agentskills-compliance.md)**: Learn about standardization
 
 ### Try Advanced Features

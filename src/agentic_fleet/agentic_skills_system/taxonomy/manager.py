@@ -392,11 +392,8 @@ class TaxonomyManager:
         )
         (skill_dir / "SKILL.md").write_text(skill_md_content, encoding="utf-8")
 
-        # Create subdirectories
-        (skill_dir / "capabilities").mkdir(exist_ok=True)
-        (skill_dir / "examples").mkdir(exist_ok=True)
-        (skill_dir / "tests").mkdir(exist_ok=True)
-        (skill_dir / "resources").mkdir(exist_ok=True)
+        # Create subdirectories with README.md files
+        self._create_skill_subdirectories(skill_dir, name)
 
         # Populate extra files if provided
         if extra_files:
@@ -452,6 +449,27 @@ class TaxonomyManager:
             "name": name,
             "description": description[:1024],  # Enforce max length
         }
+
+        # Add category for hierarchical discovery
+        if metadata.get("category"):
+            frontmatter["category"] = metadata["category"]
+        elif metadata.get("skill_id"):
+            # Derive category from skill_id path
+            skill_id = metadata["skill_id"]
+            if "/" in skill_id:
+                frontmatter["category"] = "/".join(skill_id.split("/")[:-1])
+
+        # Add keywords for search/discovery
+        if metadata.get("keywords"):
+            frontmatter["keywords"] = metadata["keywords"]
+
+        # Add scope for differentiation
+        if metadata.get("scope"):
+            frontmatter["scope"] = metadata["scope"]
+
+        # Add see_also for cross-referencing
+        if metadata.get("see_also"):
+            frontmatter["see_also"] = metadata["see_also"]
 
         # Add optional extended metadata
         extended_meta = {}
@@ -564,6 +582,173 @@ class TaxonomyManager:
 
         return skill_md_path.read_text(encoding="utf-8")
 
+    def _create_skill_subdirectories(self, skill_dir: Path, skill_name: str) -> None:
+        """Create standard skill subdirectories with README.md files.
+
+        Creates the following structure:
+        - capabilities/README.md
+        - examples/README.md
+        - tests/README.md
+        - resources/README.md
+        - references/README.md, quick-start.md, common-patterns.md, api-reference.md, troubleshooting.md
+        - scripts/README.md
+        - assets/README.md
+        """
+        # Define subdirectories and their README content
+        subdirs = {
+            "capabilities": f"# Capabilities\n\nCapability implementations for `{skill_name}`.\n\nEach file in this directory documents a specific capability provided by this skill.\n",
+            "examples": f"# Examples\n\nUsage examples for `{skill_name}`.\n\nEach file demonstrates a specific use case or pattern.\n",
+            "tests": f"# Tests\n\nIntegration tests for `{skill_name}`.\n\nThese tests verify the skill's capabilities work as expected.\n",
+            "resources": f"# Resources\n\nResource files for `{skill_name}`.\n\nIncludes configuration files, data files, and other resources needed by the skill.\n",
+            "references": f"# References\n\nReference documentation for `{skill_name}`.\n\n## Contents\n\n- [Quick Start](quick-start.md) - Get started quickly\n- [Common Patterns](common-patterns.md) - Frequently used patterns\n- [API Reference](api-reference.md) - Detailed API documentation\n- [Troubleshooting](troubleshooting.md) - Common issues and solutions\n",
+            "scripts": f"# Scripts\n\nUtility scripts for `{skill_name}`.\n\nThese scripts help with setup, maintenance, or automation tasks.\n",
+            "assets": f"# Assets\n\nStatic assets for `{skill_name}`.\n\nIncludes images, diagrams, and other static files.\n",
+        }
+
+        # Create each subdirectory with README.md
+        for subdir, readme_content in subdirs.items():
+            subdir_path = skill_dir / subdir
+            subdir_path.mkdir(exist_ok=True)
+            readme_path = subdir_path / "README.md"
+            if not readme_path.exists():
+                readme_path.write_text(readme_content, encoding="utf-8")
+
+        # Create reference documentation templates
+        references_dir = skill_dir / "references"
+
+        quick_start_content = f"""# Quick Start Guide
+
+Get started with `{skill_name}` in minutes.
+
+## Prerequisites
+
+- List prerequisites here
+
+## Installation
+
+```bash
+# Installation steps
+```
+
+## Basic Usage
+
+```python
+# Basic usage example
+```
+
+## Next Steps
+
+- See [Common Patterns](common-patterns.md) for more examples
+- Check [API Reference](api-reference.md) for detailed documentation
+"""
+
+        common_patterns_content = f"""# Common Patterns
+
+Frequently used patterns with `{skill_name}`.
+
+## Pattern 1: Basic Usage
+
+Description of the pattern.
+
+```python
+# Example code
+```
+
+## Pattern 2: Advanced Usage
+
+Description of the pattern.
+
+```python
+# Example code
+```
+
+## Anti-Patterns
+
+Things to avoid when using this skill.
+"""
+
+        api_reference_content = f"""# API Reference
+
+Detailed API documentation for `{skill_name}`.
+
+## Core Functions
+
+### function_name
+
+```python
+def function_name(param1: type, param2: type) -> return_type:
+    \"\"\"Description of the function.\"\"\"
+```
+
+**Parameters:**
+- `param1`: Description
+- `param2`: Description
+
+**Returns:** Description of return value
+
+**Example:**
+```python
+# Usage example
+```
+
+## Classes
+
+### ClassName
+
+Description of the class.
+
+#### Methods
+
+- `method_name()`: Description
+"""
+
+        troubleshooting_content = f"""# Troubleshooting
+
+Common issues and solutions for `{skill_name}`.
+
+## Common Issues
+
+### Issue 1: Description
+
+**Symptoms:** What you might see
+
+**Cause:** Why this happens
+
+**Solution:** How to fix it
+
+```python
+# Fix example
+```
+
+### Issue 2: Description
+
+**Symptoms:** What you might see
+
+**Cause:** Why this happens
+
+**Solution:** How to fix it
+
+## Getting Help
+
+If you encounter issues not covered here:
+1. Check the [API Reference](api-reference.md)
+2. Review [Common Patterns](common-patterns.md)
+3. Search existing issues
+"""
+
+        # Write reference documentation files if they don't exist
+        ref_files = {
+            "quick-start.md": quick_start_content,
+            "common-patterns.md": common_patterns_content,
+            "api-reference.md": api_reference_content,
+            "troubleshooting.md": troubleshooting_content,
+        }
+
+        for filename, content in ref_files.items():
+            file_path = references_dir / filename
+            if not file_path.exists():
+                file_path.write_text(content, encoding="utf-8")
+
     def _write_extra_files(self, skill_dir: Path, extra_files: dict[str, Any]) -> None:
         """Populate skill subdirectories with additional content."""
         # Handle capability implementations
@@ -666,6 +851,22 @@ class TaxonomyManager:
                 else "requirements.md"
             )
             (skill_dir / "resources" / filename).write_text(str(res), encoding="utf-8")
+
+        # Handle bundled resources (scripts, assets, resources)
+        for category in ["scripts", "assets", "resources"]:
+            if category in extra_files:
+                items = extra_files[category]
+                if isinstance(items, dict):
+                    target_dir = skill_dir / category
+                    target_dir.mkdir(parents=True, exist_ok=True)
+                    for filename, content in items.items():
+                        # Handle potential subdirectories in filename
+                        file_path = target_dir / filename
+                        file_path.parent.mkdir(parents=True, exist_ok=True)
+                        if isinstance(content, bytes):
+                            file_path.write_bytes(content)
+                        else:
+                            file_path.write_text(str(content), encoding="utf-8")
 
     def _update_taxonomy_stats(self, metadata: dict[str, Any]) -> None:
         """Update taxonomy statistics and persist taxonomy_meta.json."""

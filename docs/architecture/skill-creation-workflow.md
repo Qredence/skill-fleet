@@ -1,56 +1,107 @@
 # Skill Creation Workflow (Agentic Skills System)
 
-This document describes the Phase 1 skill creation workflow and how it integrates with the on-disk taxonomy.
+This document describes the Phase 1 skill creation workflow, its DSPy implementation, and how it integrates with the on-disk taxonomy.
 
-## Implementation Locations
+## Architecture Overview
 
-- Taxonomy manager: `src/agentic_fleet/agentic_skills_system/taxonomy/manager.py`
-- DSPy signatures: `src/agentic_fleet/agentic_skills_system/workflow/signatures.py`
-- DSPy modules: `src/agentic_fleet/agentic_skills_system/workflow/modules.py`
-- DSPy programs: `src/agentic_fleet/agentic_skills_system/workflow/programs.py`
-- Orchestrator: `src/agentic_fleet/agentic_skills_system/workflow/skill_creator.py`
-- CLI runner: `src/agentic_fleet/agentic_skills_system/cli.py`
-- OpenTUI entrypoint: `src/agentic_fleet/tui/main.tsx`
+The system uses a **6-step pipeline** orchestrated by DSPy to transform a high-level task description into a fully validated, standards-compliant agent skill.
 
-## Taxonomy Data
+### Implementation Locations
 
-The default taxonomy root (for development) lives under:
+- **Orchestrator**: `src/agentic_fleet/agentic_skills_system/workflow/skill_creator.py`
+- **Programs**: `src/agentic_fleet/agentic_skills_system/workflow/programs.py`
+- **Modules**: `src/agentic_fleet/agentic_skills_system/workflow/modules.py`
+- **Signatures**: `src/agentic_fleet/agentic_skills_system/workflow/signatures.py`
+- **Models**: `src/agentic_fleet/agentic_skills_system/workflow/models.py`
+- **Taxonomy Manager**: `src/agentic_fleet/agentic_skills_system/taxonomy/manager.py`
 
-- `src/agentic_fleet/agentic_skills_system/skills/`
+## Workflow Programs
 
-All `skill_id` values are **path-style** (e.g. `technical_skills/programming/languages/python`).
+The system provides different DSPy Programs for various use cases:
 
-## Model Selection
+1.  **`SkillCreationProgram` (Standard)**: The default end-to-end pipeline (Steps 1-5).
+2.  **`SkillCreationProgramQA` (Quality Assured)**: A high-fidelity version that uses `dspy.Refine` and `dspy.BestOfN` for critical steps (Understanding, Planning, Editing) to maximize quality at the cost of latency.
+3.  **`QuickSkillProgram`**: A "fast path" for rapid prototyping that skips Initialization and Packaging (Steps 1, 2, 4 only).
+4.  **`SkillRevisionProgram`**: Used during the Iterate phase to regenerate content based on feedback (Steps 4-5).
 
-The skill workflow uses the fleet model config:
+## Detailed Workflow Steps
 
-- `src/agentic_fleet/config.yaml`
+Each step is encapsulated in a DSPy Module that returns strict Pydantic models.
 
-This repo is configured to use Gemini 3 as the primary model:
+### 1. UNDERSTAND
+**Goal**: Map a user task to a specific taxonomy path.
+- **Input**: User task description.
+- **Module**: `UnderstandModule` / `UnderstandModuleQA` (uses `dspy.Refine`)
+- **Output**: `UnderstandingResult`
+    - `task_intent`: Distilled requirements.
+    - `taxonomy_path`: Proposed path (e.g., `technical_skills/programming/python/async`).
+    - `dependency_analysis`: Missing vs. optional skill dependencies.
 
-- `gemini/gemini-3-flash-preview` (requires `GOOGLE_API_KEY`)
+### 2. PLAN
+**Goal**: Define the skill's structure and capabilities.
+- **Input**: Taxonomy path, parent skills context.
+- **Module**: `PlanModule` / `PlanModuleQA` (uses `dspy.Refine`)
+- **Output**: `PlanResult`
+    - `skill_metadata`: Full `agentskills.io` metadata (see below).
+    - `capabilities`: List of discrete `Capability` objects.
+    - `dependencies`: `DependencyRef` objects with justification.
+    - `composition_strategy`: How this skill fits with others.
 
-Each workflow step is executed under a task-specific LM context with optimized `thinking_level`:
+### 3. INITIALIZE
+**Goal**: Create the file skeleton on disk.
+- **Input**: Skill metadata.
+- **Module**: `InitializeModule`
+- **Output**: `InitializeResult`
+    - `skill_skeleton`: Directory tree (`capabilities/`, `tests/`, etc.) and file paths.
 
-- `skill_understand`, `skill_plan`, `skill_initialize`, `skill_edit`, `skill_package`, `skill_validate`
+### 4. EDIT
+**Goal**: Generate the actual content.
+- **Input**: Skeleton, parent context.
+- **Module**: `EditModule` / `EditModuleQA` (uses `dspy.BestOfN` to pick the best of 3 drafts)
+- **Output**: `EditResult`
+    - `skill_content`: The Markdown body for `SKILL.md`.
+    - `capability_implementations`: Detailed docs for each capability.
+    - `usage_examples`: Runnable code snippets.
 
-## Workflow Steps (6-Step Pattern)
+### 5. PACKAGE
+**Goal**: Validate and manifest.
+- **Input**: Generated content.
+- **Module**: `PackageModule` / `PackageModuleQA`
+- **Output**: `PackageResult`
+    - `validation_report`: Errors, warnings, and compliance checks.
+    - `packaging_manifest`: Checksums and file lists.
 
-1. **UNDERSTAND** – Map a task to a taxonomy path
-2. **PLAN** – Define metadata, dependencies, and capabilities
-3. **INITIALIZE** – Produce a skeleton structure for the skill
-4. **EDIT** – Generate `SKILL.md` content + capability docs
-5. **PACKAGE** – Validate and create a packaging manifest
-6. **ITERATE** – Human-in-the-loop approval + evolution metadata
+### 6. ITERATE (HITL)
+**Goal**: Human-in-the-Loop refinement.
+- **Input**: Validation report, user feedback.
+- **Module**: `IterateModule`
+- **Output**: `IterateResult`
+    - `approval_status`: `approved`, `needs_revision`, or `rejected`.
+    - `revision_plan`: Specific instructions for the `SkillRevisionProgram`.
 
-## Notes
+## Data Structures
 
-- Phase 1 provides the workflow wiring and core taxonomy manager.
-- Unit tests avoid LLM calls; end-to-end workflow execution requires a configured DSPy LM.
+### Scalable Discovery Metadata
+To support large-scale taxonomies (500+ skills), the `SkillMetadata` model includes specialized fields:
 
-## Running
+-   **`category`**: Hierarchical path for grouping (e.g., `tools/web`).
+-   **`keywords`**: List of search terms (e.g., `["playwright", "e2e"]`).
+-   **`scope`**: Explicit definition of what the skill *does* and *does not* cover.
+-   **`see_also`**: Cross-references to related skills.
 
-```bash
-# from repo root
-uv run skill-fleet create-skill --task "Create a Python async programming skill"
-```
+### Human-in-the-Loop (HITL) Models
+The workflow supports structured interaction via:
+-   `ClarifyingQuestion`: Multi-choice or free-text questions.
+-   `HITLSession`: Tracks rounds of feedback (min 1, max 4).
+
+## Model Configuration
+
+This repo is configured to use **Gemini 3** models via `src/agentic_fleet/config.yaml`:
+
+-   **`gemini-3-flash-preview`**: Primary model for all steps.
+-   **`gemini-3-pro-preview`**: Used for GEPA reflection and high-reasoning tasks.
+
+## Optimization
+
+The workflow supports automatic optimization using DSPy's `MIPROv2` and `GEPA` optimizers.
+Run `skills-fleet optimize` to tune the prompts against the `workflow/data/trainset.json`.

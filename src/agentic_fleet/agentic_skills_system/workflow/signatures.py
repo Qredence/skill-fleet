@@ -20,6 +20,7 @@ from .models import (
     BestPractice,
     Capability,
     CapabilityImplementation,
+    ClarifyingQuestion,
     CompatibilityConstraints,
     DependencyAnalysis,
     DependencyRef,
@@ -32,9 +33,65 @@ from .models import (
     SkillSkeleton,
     TestCase,
     UsageExample,
+    UserExample,
     ValidationCheckItem,
     ValidationReport,
 )
+
+# =============================================================================
+# Step 0: Gather Examples - Understanding Before Creation
+# =============================================================================
+
+
+class GatherExamplesForSkill(dspy.Signature):
+    """Gather concrete usage examples from the user before skill creation.
+
+    This step runs BEFORE UnderstandTaskForSkill to ensure we build skills
+    grounded in real use cases, not assumptions. Skip only when usage
+    patterns are already clearly understood.
+
+    Key questions to explore:
+    - "What functionality should this skill support?"
+    - "Can you give examples of how this skill would be used?"
+    - "What would a user say that should trigger this skill?"
+    - "What are the edge cases or limitations?"
+
+    Conclude when readiness_score >= threshold (default 0.8) and
+    at least min_examples (default 3) concrete examples are collected.
+    """
+
+    # Inputs
+    task_description: str = dspy.InputField(desc="Initial task description from user")
+    user_responses: str = dspy.InputField(
+        desc="JSON list of user responses to previous clarifying questions (empty [] on first call)"
+    )
+    collected_examples: str = dspy.InputField(
+        desc="JSON list of UserExample objects collected so far (empty [] on first call)"
+    )
+    config: str = dspy.InputField(
+        desc="JSON ExampleGatheringConfig with min_examples, readiness_threshold, max_questions"
+    )
+
+    # Outputs
+    clarifying_questions: list[ClarifyingQuestion] = dspy.OutputField(
+        desc="1-3 focused questions to ask the user (fewer is better). Empty list if ready to proceed."
+    )
+    new_examples: list[UserExample] = dspy.OutputField(
+        desc="New examples extracted from user responses (add to collected_examples)"
+    )
+    terminology_updates: dict[str, str] = dspy.OutputField(
+        desc="Key terms and definitions learned from this round"
+    )
+    refined_task: str = dspy.OutputField(
+        desc="Updated task description incorporating insights from examples"
+    )
+    readiness_score: float = dspy.OutputField(
+        desc="0.0-1.0 score. >= threshold means ready to proceed. Based on example coverage, clarity, and edge cases."
+    )
+    readiness_reasoning: str = dspy.OutputField(
+        desc="Brief explanation of readiness score (why ready or what's missing)"
+    )
+
 
 # =============================================================================
 # Step 1: Understand - Task Analysis

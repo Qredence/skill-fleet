@@ -12,6 +12,172 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 # =============================================================================
+# HITL (Human-in-the-Loop) Models
+# =============================================================================
+
+
+class QuestionOption(BaseModel):
+    """A single option for a multi-choice clarifying question."""
+
+    id: str = Field(description="Option identifier (e.g., 'a', 'b', 'c')")
+    label: str = Field(description="Short label for the option")
+    description: str = Field(
+        default="", description="Detailed description of what this option means"
+    )
+
+
+class ClarifyingQuestion(BaseModel):
+    """A clarifying question to ask the user during skill creation."""
+
+    id: str = Field(description="Unique question identifier")
+    question: str = Field(description="The question text to display to the user")
+    context: str = Field(default="", description="Why this question is being asked")
+    options: list[QuestionOption] = Field(
+        default_factory=list,
+        description="Multi-choice options (if empty, expects free-form answer)",
+    )
+    allows_multiple: bool = Field(
+        default=False, description="Whether multiple options can be selected"
+    )
+    required: bool = Field(default=True, description="Whether an answer is required")
+
+
+class QuestionAnswer(BaseModel):
+    """User's answer to a clarifying question."""
+
+    question_id: str = Field(description="ID of the question being answered")
+    selected_options: list[str] = Field(
+        default_factory=list, description="IDs of selected options (for multi-choice)"
+    )
+    free_text: str = Field(default="", description="Free-form text answer")
+
+
+class HITLRound(BaseModel):
+    """A single round of HITL interaction."""
+
+    round_number: int = Field(ge=1, le=4, description="Round number (1-4)")
+    questions: list[ClarifyingQuestion] = Field(description="Questions asked in this round")
+    answers: list[QuestionAnswer] = Field(
+        default_factory=list, description="User's answers to the questions"
+    )
+    refinements_made: list[str] = Field(
+        default_factory=list, description="List of refinements made based on answers"
+    )
+
+
+class HITLSession(BaseModel):
+    """Complete HITL session tracking for skill creation."""
+
+    min_rounds: int = Field(default=1, ge=1, description="Minimum required rounds")
+    max_rounds: int = Field(default=4, le=4, description="Maximum allowed rounds")
+    completed_rounds: list[HITLRound] = Field(
+        default_factory=list, description="All completed HITL rounds"
+    )
+    is_complete: bool = Field(default=False, description="Whether HITL session is complete")
+    final_approval: bool = Field(default=False, description="Whether user gave final approval")
+
+
+# =============================================================================
+# Step 0: Example Gathering - Understanding Before Creation
+# =============================================================================
+
+
+class UserExample(BaseModel):
+    """A concrete example provided by the user showing desired skill behavior.
+
+    Used in Step 0 to collect real-world usage patterns before skill creation.
+    This ensures the skill is grounded in actual use cases, not assumptions.
+    """
+
+    input_description: str = Field(
+        description="What the user provides or does (e.g., 'User asks to rotate an image 90 degrees')"
+    )
+    expected_output: str = Field(
+        description="What should happen (e.g., 'Image is rotated clockwise, saved to same location')"
+    )
+    code_snippet: str = Field(
+        default="", description="Optional code showing desired behavior or API usage"
+    )
+    trigger_phrase: str = Field(
+        default="", description="What a user might say to invoke this (e.g., 'rotate this image')"
+    )
+    edge_case: bool = Field(
+        default=False, description="Whether this is an edge case or corner scenario"
+    )
+    notes: str = Field(default="", description="Additional context or constraints from user")
+
+
+class ExampleGatheringConfig(BaseModel):
+    """Configuration for the example gathering process."""
+
+    min_examples: int = Field(
+        default=3, ge=1, le=10, description="Minimum examples required before proceeding"
+    )
+    readiness_threshold: float = Field(
+        default=0.8,
+        ge=0.0,
+        le=1.0,
+        description="Readiness score threshold to proceed (0.8 = 80% confident)",
+    )
+    max_questions: int = Field(
+        default=5, ge=1, le=10, description="Maximum clarifying questions per round"
+    )
+    max_rounds: int = Field(
+        default=3, ge=1, le=5, description="Maximum rounds of Q&A before forcing proceed"
+    )
+
+
+class ExampleGatheringSession(BaseModel):
+    """Session state for collecting examples from user before skill creation.
+
+    This represents Step 0 of the workflow - understanding what the user
+    actually wants through concrete examples before jumping to implementation.
+    """
+
+    task_description: str = Field(description="Original task description from user")
+    config: ExampleGatheringConfig = Field(
+        default_factory=ExampleGatheringConfig,
+        description="Configuration for this gathering session",
+    )
+    questions_asked: list[ClarifyingQuestion] = Field(
+        default_factory=list, description="All questions asked across all rounds"
+    )
+    user_responses: list[QuestionAnswer] = Field(
+        default_factory=list, description="All user responses to questions"
+    )
+    collected_examples: list[UserExample] = Field(
+        default_factory=list, description="Concrete examples gathered from user"
+    )
+    terminology: dict[str, str] = Field(
+        default_factory=dict, description="Key terms and their definitions as understood from user"
+    )
+    refined_task: str = Field(
+        default="", description="Task description refined based on gathered examples"
+    )
+    readiness_score: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Score indicating if we have enough context to proceed",
+    )
+    is_ready: bool = Field(
+        default=False, description="Whether enough examples collected to proceed"
+    )
+    current_round: int = Field(default=0, ge=0, description="Current Q&A round number")
+    skip_reason: str = Field(default="", description="Reason if example gathering was skipped")
+
+
+class ExampleGatheringResult(BaseModel):
+    """Result from the example gathering step (Step 0)."""
+
+    session: ExampleGatheringSession
+    questions: list[ClarifyingQuestion] = Field(
+        default_factory=list, description="Questions to ask in this round (empty if ready)"
+    )
+    proceed: bool = Field(default=False, description="Whether to proceed to skill creation")
+
+
+# =============================================================================
 # Step 1: Understand - Task Analysis Models
 # =============================================================================
 
@@ -66,6 +232,12 @@ class SkillMetadata(BaseModel):
     - skill_id: Internal path-style identifier
     - name: Kebab-case name (1-64 chars, lowercase alphanumeric + hyphens)
     - description: 1-1024 character description
+
+    For scalable discovery (500+ skills):
+    - category: Hierarchical category path for domain grouping
+    - keywords: Search keywords for discovery
+    - scope: What the skill does AND doesn't cover (for differentiation)
+    - see_also: Related skills for cross-referencing
     """
 
     skill_id: str = Field(
@@ -93,6 +265,23 @@ class SkillMetadata(BaseModel):
     )
     dependencies: list[str] = Field(default_factory=list, description="Required skill_ids")
     capabilities: list[str] = Field(default_factory=list, description="Discrete capability names")
+
+    # Scalable discovery fields
+    category: str = Field(
+        default="", description="Hierarchical category path (e.g., 'tools/web' or 'memory_blocks')"
+    )
+    keywords: list[str] = Field(
+        default_factory=list,
+        description="Search keywords for discovery (e.g., ['playwright', 'browser', 'testing', 'ui', 'e2e'])",
+    )
+    scope: str = Field(
+        default="",
+        description="What this skill covers AND doesn't cover for differentiation from similar skills",
+    )
+    see_also: list[str] = Field(
+        default_factory=list,
+        description="Related skill_ids for cross-referencing (e.g., ['tools/puppeteer-testing'])",
+    )
 
 
 class Capability(BaseModel):
@@ -161,13 +350,45 @@ class FileSpec(BaseModel):
 
 
 class SkillSkeleton(BaseModel):
-    """Directory and file structure for a skill."""
+    """Directory and file structure for a skill.
+
+    Standard skill directory structure:
+    skill-name/
+    ├── SKILL.md                    # Main skill documentation
+    ├── metadata.json               # Extended metadata
+    ├── capabilities/               # Capability implementations
+    │   └── README.md
+    ├── examples/                   # Usage examples
+    │   └── README.md
+    ├── tests/                      # Integration tests
+    │   └── README.md
+    ├── resources/                  # Resource files
+    │   └── README.md
+    ├── references/                 # Reference documentation
+    │   ├── README.md
+    │   ├── quick-start.md
+    │   ├── common-patterns.md
+    │   ├── api-reference.md
+    │   └── troubleshooting.md
+    ├── scripts/                    # Utility scripts
+    │   └── README.md
+    └── assets/                     # Static assets
+        └── README.md
+    """
 
     root_path: str = Field(description="Path relative to skills root")
     files: list[FileSpec] = Field(default_factory=list, description="Files to create")
     directories: list[str] = Field(
-        default_factory=lambda: ["capabilities/", "examples/", "tests/", "resources/"],
-        description="Directories to create",
+        default_factory=lambda: [
+            "capabilities/",
+            "examples/",
+            "tests/",
+            "resources/",
+            "references/",
+            "scripts/",
+            "assets/",
+        ],
+        description="Directories to create following agentskills.io standard structure",
     )
 
 

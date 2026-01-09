@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import dspy
 
@@ -32,14 +32,15 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 APPROVED_MODELS = {
-    "gemini-3-flash-preview": "google/gemini-3-flash-preview",
-    "gemini-3-pro-preview": "google/gemini-3-pro-preview",
+    "gemini-3-flash-preview": "gemini/gemini-3-flash-preview",
+    "gemini-3-pro-preview": "gemini/gemini-3-pro-preview",
     "deepseek-v3.2": "deepinfra/deepseek-v3.2",
     "Nemotron-3-Nano-30B-A3B": "nvidia/Nemotron-3-Nano-30B-A3B",
 }
 
 DEFAULT_MODEL = "gemini-3-flash-preview"
 REFLECTION_MODEL = "gemini-3-pro-preview"  # For GEPA reflection
+STATE_FILENAME = "program_state.json"
 
 
 def get_lm(
@@ -67,6 +68,44 @@ def get_lm(
 
     model_path = APPROVED_MODELS[model_name]
     return dspy.LM(model_path, temperature=temperature, **kwargs)
+
+
+# =============================================================================
+# Optimization Wrapper
+# =============================================================================
+
+
+class OptimizationWrapper(dspy.Module):
+    """Wrapper for optimization that provides dummy context.
+
+    This is necessary because the training set only provides task_description,
+    but the program expects comprehensive context arguments.
+    """
+
+    def __init__(self, program: SkillCreationProgram):
+        super().__init__()
+        self.program = program
+
+    def forward(self, task_description: str):
+        # Create minimal/dummy context for optimization
+        def dummy_parent_getter(path: str) -> list[dict]:
+            return []
+
+        result = self.program(
+            task_description=task_description,
+            existing_skills=[],  # Dummy empty list
+            taxonomy_structure={},  # Dummy empty dict
+            parent_skills_getter=dummy_parent_getter,
+        )
+
+        # Wrap dict in dspy.Prediction to support dot access in metrics
+        return dspy.Prediction(
+            understanding=dspy.Prediction(**result["understanding"]),
+            plan=dspy.Prediction(**result["plan"]),
+            skeleton=dspy.Prediction(**result["skeleton"]),
+            content=dspy.Prediction(**result["content"]),
+            package=dspy.Prediction(**result["package"]),
+        )
 
 
 # =============================================================================
@@ -129,19 +168,26 @@ def optimize_with_miprov2(
 
     logger.info(f"Starting MIPROv2 optimization (auto={auto})...")
 
+    # Wrap program for optimization to handle missing context
+    wrapped_program = OptimizationWrapper(program)
+
     # Run optimization
-    optimized = optimizer.compile(
-        program,
+    optimized_wrapper = optimizer.compile(
+        wrapped_program,
         trainset=train,
         valset=val,
     )
 
-    # Save optimized program
+    # Extract optimized program
+    optimized = optimized_wrapper.program
+
+    # Save optimized program as JSON state (no cloudpickle) for safer loading
     output_path = Path(output_path)
     output_path.mkdir(parents=True, exist_ok=True)
-    optimized.save(str(output_path), save_program=True)
+    state_path = output_path / STATE_FILENAME
+    optimized.save(str(state_path), save_program=False)
 
-    logger.info(f"Optimized program saved to {output_path}")
+    logger.info(f"Optimized program state saved to {state_path}")
     return optimized
 
 
@@ -195,8 +241,10 @@ def optimize_with_gepa(
     logger.info(f"Loaded {len(examples)} examples: {len(train)} train, {len(val)} val")
 
     # Configure GEPA optimizer
+    # GEPA expects a GEPAFeedbackMetric-compatible callable; cast to Any to
+    # satisfy stricter type-checkers while allowing our existing metric function
     optimizer = dspy.GEPA(
-        metric=skill_creation_metric,
+        metric=cast(Any, skill_creation_metric),
         reflection_lm=reflection_lm,
         auto=auto,
         track_stats=track_stats,
@@ -204,19 +252,26 @@ def optimize_with_gepa(
 
     logger.info(f"Starting GEPA optimization (auto={auto})...")
 
+    # Wrap program for optimization to handle missing context
+    wrapped_program = OptimizationWrapper(program)
+
     # Run optimization
-    optimized = optimizer.compile(
-        program,
+    optimized_wrapper = optimizer.compile(
+        wrapped_program,
         trainset=train,
         valset=val,
     )
 
-    # Save optimized program
+    # Extract optimized program
+    optimized = optimized_wrapper.program
+
+    # Save optimized program as JSON state (no cloudpickle) for safer loading
     output_path = Path(output_path)
     output_path.mkdir(parents=True, exist_ok=True)
-    optimized.save(str(output_path), save_program=True)
+    state_path = output_path / STATE_FILENAME
+    optimized.save(str(state_path), save_program=False)
 
-    logger.info(f"Optimized program saved to {output_path}")
+    logger.info(f"Optimized program state saved to {state_path}")
     return optimized
 
 
@@ -227,21 +282,33 @@ def optimize_with_gepa(
 
 def load_optimized_program(
     path: str | Path = "workflow/optimized/miprov2/",
-) -> SkillCreationProgram:
+) -> dspy.Module:
     """Load a previously optimized program.
 
     Args:
-        path: Directory containing the saved program
+        path: Directory containing the saved program state file or a state file path
 
     Returns:
-        Loaded SkillCreationProgram with optimized state
+        Loaded dspy.Module (optimized program) with optimized state
     """
     path = Path(path)
     if not path.exists():
         raise FileNotFoundError(f"Optimized program not found at {path}")
 
+    if path.is_dir():
+        state_path = path / STATE_FILENAME
+        if state_path.exists():
+            program = dspy.load(str(state_path))
+            logger.info(f"Loaded optimized program state from {state_path}")
+            return program
+
+        # Fallback for older full-program saves.
+        program = dspy.load(str(path))
+        logger.info(f"Loaded optimized program from {path}")
+        return program
+
     program = dspy.load(str(path))
-    logger.info(f"Loaded optimized program from {path}")
+    logger.info(f"Loaded optimized program state from {path}")
     return program
 
 

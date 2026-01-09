@@ -22,9 +22,10 @@ from typing import Any
 
 import dspy
 
-from .models import Capability
+from .models import Capability, ExampleGatheringConfig
 from .signatures import (
     EditSkillContent,
+    GatherExamplesForSkill,
     InitializeSkillSkeleton,
     IterateSkillWithFeedback,
     PackageSkillForApproval,
@@ -117,6 +118,156 @@ def safe_float(value: Any, default: float = 0.0) -> float:
 # =============================================================================
 
 
+class GatherExamplesModule(dspy.Module):
+    """Module for Step 0: Gathering concrete examples before skill creation.
+
+    This module iteratively asks clarifying questions and collects usage
+    examples from the user until we have enough context to proceed with
+    skill creation. This ensures skills are grounded in real use cases.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.gather = dspy.ChainOfThought(GatherExamplesForSkill)
+
+    def forward(
+        self,
+        task_description: str,
+        user_responses: list[dict] | None = None,
+        collected_examples: list[dict] | None = None,
+        config: ExampleGatheringConfig | None = None,
+    ) -> dict:
+        """Gather examples and ask clarifying questions.
+
+        Args:
+            task_description: Original task description from user
+            user_responses: Previous answers to clarifying questions
+            collected_examples: Examples collected so far
+            config: Configuration for gathering process
+
+        Returns:
+            Dict with clarifying_questions, new_examples, terminology_updates,
+            refined_task, readiness_score, and readiness_reasoning
+        """
+        if user_responses is None:
+            user_responses = []
+        if collected_examples is None:
+            collected_examples = []
+        if config is None:
+            config = ExampleGatheringConfig()
+
+        result = self.gather(
+            task_description=task_description,
+            user_responses=json.dumps(user_responses, indent=2),
+            collected_examples=json.dumps(collected_examples, indent=2),
+            config=config.model_dump_json(indent=2),
+        )
+
+        # Parse new examples from result
+        new_examples = []
+        if hasattr(result, "new_examples") and result.new_examples:
+            for ex in result.new_examples:
+                if isinstance(ex, dict):
+                    new_examples.append(ex)
+                elif hasattr(ex, "model_dump"):
+                    new_examples.append(ex.model_dump())
+                else:
+                    new_examples.append({"input_description": str(ex), "expected_output": ""})
+
+        # Parse clarifying questions
+        questions = []
+        if hasattr(result, "clarifying_questions") and result.clarifying_questions:
+            for q in result.clarifying_questions:
+                if isinstance(q, dict):
+                    questions.append(q)
+                elif hasattr(q, "model_dump"):
+                    questions.append(q.model_dump())
+                else:
+                    questions.append({"id": "q1", "question": str(q)})
+
+        # Parse terminology updates
+        term_updates = {}
+        if hasattr(result, "terminology_updates") and result.terminology_updates:
+            if isinstance(result.terminology_updates, dict):
+                term_updates = result.terminology_updates
+            else:
+                term_updates = safe_json_loads(
+                    result.terminology_updates, default={}, field_name="terminology_updates"
+                )
+
+        return {
+            "clarifying_questions": questions,
+            "new_examples": new_examples,
+            "terminology_updates": term_updates,
+            "refined_task": getattr(result, "refined_task", task_description),
+            "readiness_score": safe_float(getattr(result, "readiness_score", 0.0), default=0.0),
+            "readiness_reasoning": getattr(result, "readiness_reasoning", ""),
+        }
+
+    async def aforward(
+        self,
+        task_description: str,
+        user_responses: list[dict] | None = None,
+        collected_examples: list[dict] | None = None,
+        config: ExampleGatheringConfig | None = None,
+    ) -> dict:
+        """Gather examples asynchronously."""
+        if user_responses is None:
+            user_responses = []
+        if collected_examples is None:
+            collected_examples = []
+        if config is None:
+            config = ExampleGatheringConfig()
+
+        result = await self.gather.acall(
+            task_description=task_description,
+            user_responses=json.dumps(user_responses, indent=2),
+            collected_examples=json.dumps(collected_examples, indent=2),
+            config=config.model_dump_json(indent=2),
+        )
+
+        # Parse new examples from result
+        new_examples = []
+        if hasattr(result, "new_examples") and result.new_examples:
+            for ex in result.new_examples:
+                if isinstance(ex, dict):
+                    new_examples.append(ex)
+                elif hasattr(ex, "model_dump"):
+                    new_examples.append(ex.model_dump())
+                else:
+                    new_examples.append({"input_description": str(ex), "expected_output": ""})
+
+        # Parse clarifying questions
+        questions = []
+        if hasattr(result, "clarifying_questions") and result.clarifying_questions:
+            for q in result.clarifying_questions:
+                if isinstance(q, dict):
+                    questions.append(q)
+                elif hasattr(q, "model_dump"):
+                    questions.append(q.model_dump())
+                else:
+                    questions.append({"id": "q1", "question": str(q)})
+
+        # Parse terminology updates
+        term_updates = {}
+        if hasattr(result, "terminology_updates") and result.terminology_updates:
+            if isinstance(result.terminology_updates, dict):
+                term_updates = result.terminology_updates
+            else:
+                term_updates = safe_json_loads(
+                    result.terminology_updates, default={}, field_name="terminology_updates"
+                )
+
+        return {
+            "clarifying_questions": questions,
+            "new_examples": new_examples,
+            "terminology_updates": term_updates,
+            "refined_task": getattr(result, "refined_task", task_description),
+            "readiness_score": safe_float(getattr(result, "readiness_score", 0.0), default=0.0),
+            "readiness_reasoning": getattr(result, "readiness_reasoning", ""),
+        }
+
+
 class UnderstandModule(dspy.Module):
     """Module for Step 1: Understanding task and mapping to taxonomy."""
 
@@ -192,7 +343,7 @@ class PlanModule(dspy.Module):
         task_intent: str,
         taxonomy_path: str,
         parent_skills: list[dict],
-        dependency_analysis: str,
+        dependency_analysis: dict | str,
     ) -> dict:
         """Design skill structure with dependencies.
 
@@ -201,11 +352,18 @@ class PlanModule(dspy.Module):
             resource_requirements, compatibility_constraints,
             and composition_strategy
         """
+        # Serialize dependency_analysis if it's a dict (from UnderstandModule)
+        dependency_analysis_str = (
+            json.dumps(dependency_analysis, indent=2)
+            if isinstance(dependency_analysis, dict)
+            else dependency_analysis
+        )
+
         result = self.plan(
             task_intent=task_intent,
             taxonomy_path=taxonomy_path,
             parent_skills=json.dumps(parent_skills, indent=2),
-            dependency_analysis=dependency_analysis,
+            dependency_analysis=dependency_analysis_str,
         )
 
         return {
@@ -234,14 +392,21 @@ class PlanModule(dspy.Module):
         task_intent: str,
         taxonomy_path: str,
         parent_skills: list[dict],
-        dependency_analysis: str,
+        dependency_analysis: dict | str,
     ) -> dict:
         """Design skill structure asynchronously."""
+        # Serialize dependency_analysis if it's a dict (from UnderstandModule)
+        dependency_analysis_str = (
+            json.dumps(dependency_analysis, indent=2)
+            if isinstance(dependency_analysis, dict)
+            else dependency_analysis
+        )
+
         result = await self.plan.acall(
             task_intent=task_intent,
             taxonomy_path=taxonomy_path,
             parent_skills=json.dumps(parent_skills, indent=2),
-            dependency_analysis=dependency_analysis,
+            dependency_analysis=dependency_analysis_str,
         )
 
         return {
@@ -291,8 +456,7 @@ class InitializeModule(dspy.Module):
         result = self.initialize(
             skill_metadata=json.dumps(skill_metadata, indent=2),
             capabilities=json.dumps(
-                [c.model_dump() if hasattr(c, 'model_dump') else c for c in capabilities],
-                indent=2
+                [c.model_dump() if hasattr(c, "model_dump") else c for c in capabilities], indent=2
             ),
             taxonomy_path=taxonomy_path,
         )
@@ -316,8 +480,7 @@ class InitializeModule(dspy.Module):
         result = await self.initialize.acall(
             skill_metadata=json.dumps(skill_metadata, indent=2),
             capabilities=json.dumps(
-                [c.model_dump() if hasattr(c, 'model_dump') else c for c in capabilities],
-                indent=2
+                [c.model_dump() if hasattr(c, "model_dump") else c for c in capabilities], indent=2
             ),
             taxonomy_path=taxonomy_path,
         )
@@ -665,14 +828,21 @@ class PlanModuleQA(dspy.Module):
         task_intent: str,
         taxonomy_path: str,
         parent_skills: list[dict],
-        dependency_analysis: str,
+        dependency_analysis: dict | str,
     ) -> dict:
         """Design skill structure with quality assurance."""
+        # Serialize dependency_analysis if it's a dict (from UnderstandModule)
+        dependency_analysis_str = (
+            json.dumps(dependency_analysis, indent=2)
+            if isinstance(dependency_analysis, dict)
+            else dependency_analysis
+        )
+
         result = self.plan(
             task_intent=task_intent,
             taxonomy_path=taxonomy_path,
             parent_skills=json.dumps(parent_skills, indent=2),
-            dependency_analysis=dependency_analysis,
+            dependency_analysis=dependency_analysis_str,
         )
 
         return {
@@ -701,14 +871,21 @@ class PlanModuleQA(dspy.Module):
         task_intent: str,
         taxonomy_path: str,
         parent_skills: list[dict],
-        dependency_analysis: str,
+        dependency_analysis: dict | str,
     ) -> dict:
         """Design skill structure with quality assurance asynchronously."""
+        # Serialize dependency_analysis if it's a dict (from UnderstandModule)
+        dependency_analysis_str = (
+            json.dumps(dependency_analysis, indent=2)
+            if isinstance(dependency_analysis, dict)
+            else dependency_analysis
+        )
+
         result = await self.plan.acall(
             task_intent=task_intent,
             taxonomy_path=taxonomy_path,
             parent_skills=json.dumps(parent_skills, indent=2),
-            dependency_analysis=dependency_analysis,
+            dependency_analysis=dependency_analysis_str,
         )
 
         return {

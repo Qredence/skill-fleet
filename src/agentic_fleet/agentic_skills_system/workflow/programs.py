@@ -29,6 +29,7 @@ import dspy
 from .modules import (
     EditModule,
     EditModuleQA,
+    GatherExamplesModule,  # ADD THIS
     InitializeModule,
     PackageModule,
     PackageModuleQA,
@@ -67,12 +68,14 @@ class SkillCreationProgram(dspy.Module):
         self._quality_assured = quality_assured
 
         if quality_assured:
+            self.gather = GatherExamplesModule()  # No QA needed for interaction
             self.understand = UnderstandModuleQA()
             self.plan = PlanModuleQA()
             self.initialize = InitializeModule()  # No QA needed
             self.edit = EditModuleQA()
             self.package = PackageModuleQA()
         else:
+            self.gather = GatherExamplesModule()
             self.understand = UnderstandModule()
             self.plan = PlanModule()
             self.initialize = InitializeModule()
@@ -86,6 +89,7 @@ class SkillCreationProgram(dspy.Module):
         taxonomy_structure: dict,
         parent_skills_getter: Callable[[str], Any],
         task_lms: dict[str, dspy.LM] | None = None,
+        gathered_examples: list[dict] | None = None,
     ) -> dict:
         """Execute Steps 1-5 of skill creation.
 
@@ -95,16 +99,26 @@ class SkillCreationProgram(dspy.Module):
             taxonomy_structure: Relevant taxonomy branches
             parent_skills_getter: Function to get parent skills for a path
             task_lms: Dictionary of task-specific LMs
+            gathered_examples: Optional examples collected from user (Step 0)
 
         Returns:
             Dict with all outputs from Steps 1-5
         """
+        # Append examples to task description if provided
+        final_task_description = task_description
+        if gathered_examples:
+            examples_text = "\n\nUser Provided Examples:\n"
+            for ex in gathered_examples:
+                examples_text += (
+                    f"- {ex.get('input_description', '')} -> {ex.get('expected_output', '')}\n"
+                )
+            final_task_description += examples_text
 
         # Step 1: UNDERSTAND
         lm = task_lms.get("skill_understand") if task_lms else dspy.settings.lm
         with dspy.context(lm=lm):
             understanding = self.understand(
-                task_description=task_description,
+                task_description=final_task_description,
                 existing_skills=existing_skills,
                 taxonomy_structure=taxonomy_structure,
             )
@@ -163,16 +177,27 @@ class SkillCreationProgram(dspy.Module):
         taxonomy_structure: dict,
         parent_skills_getter: Callable[[str], Any],
         task_lms: dict[str, dspy.LM] | None = None,
+        gathered_examples: list[dict] | None = None,
     ) -> dict:
         """Async execution of Steps 1-5.
 
         Same as forward() but using async LM calls for better throughput.
         """
+        # Append examples to task description if provided
+        final_task_description = task_description
+        if gathered_examples:
+            examples_text = "\n\nUser Provided Examples:\n"
+            for ex in gathered_examples:
+                examples_text += (
+                    f"- {ex.get('input_description', '')} -> {ex.get('expected_output', '')}\n"
+                )
+            final_task_description += examples_text
+
         # Step 1: UNDERSTAND
         lm = task_lms.get("skill_understand") if task_lms else dspy.settings.lm
         with dspy.context(lm=lm):
             understanding = await self.understand.acall(
-                task_description=task_description,
+                task_description=final_task_description,
                 existing_skills=existing_skills,
                 taxonomy_structure=taxonomy_structure,
             )

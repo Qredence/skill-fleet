@@ -51,7 +51,7 @@ def onboard_user_cli(args: argparse.Namespace) -> int:
     """Interactive onboarding workflow."""
     from rich.console import Console
 
-    from .cli.onboarding_cli import collect_onboarding_responses
+    from .cli_submodules.onboarding_cli import collect_onboarding_responses
 
     console = Console()
     console.print("\n[bold cyan]Welcome to the Agentic Skills System![/bold cyan]\n")

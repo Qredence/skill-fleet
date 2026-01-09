@@ -14,7 +14,7 @@ Make skills-fleet skills discoverable and usable by any Agent Skills-compatible 
 
 ### 1.1 Update SKILL.md Template with YAML Frontmatter
 
-**File**: `src/agentic_fleet/agentic_skills_system/config/templates/SKILL_md_template.md`
+**File**: `src/agentic_fleet/skill_fleet/config/templates/SKILL_md_template.md`
 
 **Changes**:
 - Add required YAML frontmatter (`name`, `description`)
@@ -44,7 +44,7 @@ metadata:
 
 ### 1.2 Add Name Conversion Utilities
 
-**File**: `src/agentic_fleet/agentic_skills_system/taxonomy/manager.py`
+**File**: `src/agentic_fleet/skill_fleet/taxonomy/manager.py`
 
 **New Functions**:
 ```python
@@ -60,7 +60,7 @@ def name_to_skill_id(name: str, taxonomy_path: str) -> str:
 
 ### 1.3 Update TaxonomyManager.register_skill()
 
-**File**: `src/agentic_fleet/agentic_skills_system/taxonomy/manager.py`
+**File**: `src/agentic_fleet/skill_fleet/taxonomy/manager.py`
 
 **Changes**:
 - Generate SKILL.md with YAML frontmatter
@@ -73,7 +73,7 @@ def name_to_skill_id(name: str, taxonomy_path: str) -> str:
 
 ### 2.1 Add XML Generation for Agent Prompts
 
-**File**: `src/agentic_fleet/agentic_skills_system/taxonomy/manager.py`
+**File**: `src/agentic_fleet/skill_fleet/taxonomy/manager.py`
 
 **New Method**:
 ```python
@@ -95,7 +95,7 @@ def generate_available_skills_xml(self, user_id: str | None = None) -> str:
 
 ### 2.2 Add Frontmatter Parsing
 
-**File**: `src/agentic_fleet/agentic_skills_system/taxonomy/manager.py`
+**File**: `src/agentic_fleet/skill_fleet/taxonomy/manager.py`
 
 **New Method**:
 ```python
@@ -119,7 +119,7 @@ def parse_skill_frontmatter(self, skill_path: Path) -> dict:
 
 ### 3.1 Update SkillValidator for agentskills.io Compliance
 
-**File**: `src/agentic_fleet/agentic_skills_system/validators/skill_validator.py`
+**File**: `src/agentic_fleet/skill_fleet/validators/skill_validator.py`
 
 **New Validations**:
 ```python
@@ -149,7 +149,7 @@ def validate_name_format(self, name: str) -> ValidationResult:
 
 ### 4.1 Update EditSkillContent Signature
 
-**File**: `src/agentic_fleet/agentic_skills_system/workflow/signatures.py`
+**File**: `src/agentic_fleet/skill_fleet/workflow/signatures.py`
 
 **Changes to `EditSkillContent`**:
 ```python
@@ -173,7 +173,7 @@ skill_content: str = dspy.OutputField(
 
 ### 4.2 Update PlanSkillStructure Signature
 
-**File**: `src/agentic_fleet/agentic_skills_system/workflow/signatures.py`
+**File**: `src/agentic_fleet/skill_fleet/workflow/signatures.py`
 
 **Add `skill_name` output**:
 ```python
@@ -188,7 +188,7 @@ skill_name: str = dspy.OutputField(
 
 ### 5.1 Create Migration Script
 
-**New File**: `src/agentic_fleet/agentic_skills_system/cli/migrate_skills.py`
+**New File**: `src/agentic_fleet/skill_fleet/cli/migrate_skills.py`
 
 **Functionality**:
 ```python
@@ -209,7 +209,7 @@ def migrate_all_skills(skills_root: Path) -> dict:
 
 ### 5.2 Add CLI Command
 
-**File**: `src/agentic_fleet/agentic_skills_system/cli.py`
+**File**: `src/agentic_fleet/skill_fleet/cli.py`
 
 **New Command**:
 ```bash

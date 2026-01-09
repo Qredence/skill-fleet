@@ -87,7 +87,7 @@ uv run skills-fleet create-skill --task "Create a Python async programming skill
 uv run skills-fleet create-skill --task "Create a Python async programming skill" --auto-approve
 
 # Validate a skill directory
-uv run skills-fleet validate-skill src/agentic_fleet/agentic_skills_system/skills/general/testing
+uv run skills-fleet validate-skill skills/general/testing
 
 # agentskills.io compliance tools
 uv run skills-fleet migrate                    # Migrate existing skills to agentskills.io format

@@ -22,7 +22,7 @@ This document provides **comprehensive, domain-agnostic guidelines** for creatin
 
 Skills are **first-class, versioned artifacts** stored in:
 ```
-src/agentic_fleet/agentic_skills_system/skills/
+skills/
 ```
 
 Each skill represents a discrete capability that can be:
@@ -201,10 +201,10 @@ Before creating a skill, ask these questions to ensure proper scoping and avoid 
 **Search existing taxonomy:**
 ```bash
 # Search for related terms
-find src/agentic_fleet/agentic_skills_system/skills -name "*.md" | xargs grep -l "database"
+find skills -name "*.md" | xargs grep -l "database"
 
 # Check for similar capabilities
-find src/agentic_fleet/agentic_skills_system/skills -name "metadata.json" | xargs grep -l "sql"
+find skills -name "metadata.json" | xargs grep -l "sql"
 ```
 
 **Determine appropriate branch:**
@@ -967,10 +967,10 @@ Follow this 5-step process to create a new skill from concept to validated artif
 2. **Search existing taxonomy:**
    ```bash
    # Search for related terms
-   find src/agentic_fleet/agentic_skills_system/skills -name "*.md" | xargs grep -l "search_term"
+   find skills -name "*.md" | xargs grep -l "search_term"
 
    # Check metadata for related skills
-   find src/agentic_fleet/agentic_skills_system/skills -name "metadata.json" | xargs grep -l "keyword"
+   find skills -name "metadata.json" | xargs grep -l "keyword"
    ```
 
 3. **Define scope and boundaries:**
@@ -1049,11 +1049,11 @@ Follow this 5-step process to create a new skill from concept to validated artif
 
 1. **Create directory structure:**
    ```bash
-   mkdir -p src/agentic_fleet/agentic_skills_system/skills/path/to/skill-name
-   mkdir -p src/agentic_fleet/agentic_skills_system/skills/path/to/skill-name/capabilities
-   mkdir -p src/agentic_fleet/agentic_skills_system/skills/path/to/skill-name/examples/01-first-example
-   mkdir -p src/agentic_fleet/agentic_skills_system/skills/path/to/skill-name/tests
-   mkdir -p src/agentic_fleet/agentic_skills_system/skills/path/to/skill-name/resources
+   mkdir -p skills/path/to/skill-name
+   mkdir -p skills/path/to/skill-name/capabilities
+   mkdir -p skills/path/to/skill-name/examples/01-first-example
+   mkdir -p skills/path/to/skill-name/tests
+   mkdir -p skills/path/to/skill-name/resources
    ```
 
 2. **Write metadata.json:**
@@ -1119,7 +1119,7 @@ Follow this 5-step process to create a new skill from concept to validated artif
 
 2. **Run validation CLI:**
    ```bash
-   uv run skill-fleet validate-skill src/agentic_fleet/agentic_skills_system/skills/path/to/skill-name
+   uv run skill-fleet validate-skill skills/path/to/skill-name
    ```
 
 3. **Test examples:**
@@ -1192,7 +1192,7 @@ Follow this 5-step process to create a new skill from concept to validated artif
 
 5. **Commit to version control:**
    ```bash
-   git add src/agentic_fleet/agentic_skills_system/skills/path/to/skill-name
+   git add skills/path/to/skill-name
    git commit -m "Add skill-name: description of capabilities"
    ```
 
@@ -1391,14 +1391,14 @@ python-decorators/
 #### Step 4: Validation
 
 ```bash
-uv run skill-fleet validate-skill src/agentic_fleet/agentic_skills_system/skills/technical/programming/languages/python/decorators
+uv run skill-fleet validate-skill skills/technical/programming/languages/python/decorators
 ```
 
 #### Step 5: Review
 
 Commit to version control:
 ```bash
-git add src/agentic_fleet/agentic_skills_system/skills/technical/programming/languages/python/decorators
+git add skills/technical/programming/languages/python/decorators
 git commit -m "Add python-decorators: basic and class decorators, decorators with arguments, property decorators, and composition patterns"
 ```
 
@@ -1490,14 +1490,14 @@ Update metadata.json:
 #### Step 4: Validation
 
 ```bash
-uv run skill-fleet validate-skill src/agentic_fleet/agentic_skills_system/skills/technical/programming/web-frameworks/python/fastapi
+uv run skill-fleet validate-skill skills/technical/programming/web-frameworks/python/fastapi
 ```
 
 #### Step 5: Review
 
 Commit:
 ```bash
-git add src/agentic_fleet/agentic_skills_system/skills/technical/programming/web-frameworks/python/fastapi
+git add skills/technical/programming/web-frameworks/python/fastapi
 git commit -m "Add rate-limiting capability to fastapi-production-patterns"
 ```
 
@@ -1688,7 +1688,7 @@ uv run skill-fleet create-skill --help
 uv run skill-fleet validate-skill path/to/skill
 
 # Validate all skills
-find src/agentic_fleet/agentic_skills_system/skills -name "metadata.json" | while read meta; do
+find skills -name "metadata.json" | while read meta; do
   uv run skill-fleet validate-skill "$(dirname "$meta")"
 done
 ```

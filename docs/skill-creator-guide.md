@@ -39,7 +39,7 @@ All generated skills are automatically compliant with the [agentskills.io](https
 | `--feedback-type` | Interaction mode (`interactive`, `cli`, `auto`, `webhook`) | `interactive` |
 | `--auto-approve` | Shortcut for `--feedback-type=auto` | `False` |
 | `--config` | Path to the fleet configuration YAML | `src/agentic_fleet/config.yaml` |
-| `--skills-root` | Path to the taxonomy root directory | `src/agentic_fleet/agentic_skills_system/skills` |
+| `--skills-root` | Path to the taxonomy root directory | `skills` |
 | `--json` | Output the result as JSON | `False` |
 
 ## 👥 Feedback Modes (HITL)

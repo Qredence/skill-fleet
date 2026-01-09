@@ -14,21 +14,21 @@ The **Agentic Skills System** is a hierarchical, dynamic capability framework th
 
 ### Core Components
 
-1. **Skills Taxonomy** (`src/agentic_fleet/agentic_skills_system/skills/`)
+1. **Skills Taxonomy** (`skills/`)
    - 8-level hierarchical structure organizing agent capabilities
    - Each skill is a directory containing a `SKILL.md` file with YAML frontmatter
    - Skills are organized by domain (e.g., `general/`, `development/`, `business/`)
 
-2. **Skill Creation Workflow** (`src/agentic_fleet/agentic_skills_system/workflow/`)
+2. **Skill Creation Workflow** (`src/agentic_fleet/skill_fleet/workflow/`)
    - 6-step DSPy-based pipeline for generating new skills
    - Includes research, drafting, validation, and refinement stages
    - Supports Human-in-the-Loop (HITL) review at each stage
 
-3. **CLI** (`src/agentic_fleet/agentic_skills_system/cli/`)
+3. **CLI** (`src/agentic_fleet/skill_fleet/cli/`)
    - Primary interface for skill creation, validation, and migration
    - Built with Typer for a clean, typed command-line interface
 
-4. **Validators** (`src/agentic_fleet/agentic_skills_system/validators/`)
+4. **Validators** (`src/agentic_fleet/skill_fleet/validators/`)
    - Ensures skills meet quality and compliance standards
    - Validates YAML frontmatter, content structure, and agentskills.io compliance
 
@@ -115,7 +115,7 @@ uv run skills-fleet create-skill --task "Create a skill for Docker best practice
 
 ```bash
 # Validate a specific skill directory
-uv run skills-fleet validate-skill src/agentic_fleet/agentic_skills_system/skills/general/testing
+uv run skills-fleet validate-skill skills/general/testing
 
 # Migrate all skills to agentskills.io format
 uv run skills-fleet migrate
@@ -343,7 +343,7 @@ DSPY_TEMPERATURE=0.7
 
 ### Adding a New CLI Command
 
-1. Create command file in `src/agentic_fleet/agentic_skills_system/cli/`
+1. Create command file in `src/agentic_fleet/skill_fleet/cli/`
 2. Define command using Typer
 3. Register in `main.py`
 4. Add tests in `tests/cli/`
@@ -400,8 +400,8 @@ uv run ruff format .
 
 ### Useful Paths
 
-- Skills: `src/agentic_fleet/agentic_skills_system/skills/`
-- CLI: `src/agentic_fleet/agentic_skills_system/cli/`
+- Skills: `skills/`
+- CLI: `src/agentic_fleet/skill_fleet/cli/`
 - Tests: `tests/`
 - Docs: `docs/`
 - Config: `src/agentic_fleet/config.yaml`

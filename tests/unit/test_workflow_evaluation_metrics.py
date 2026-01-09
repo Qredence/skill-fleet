@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from agentic_fleet.agentic_skills_system.workflow.evaluation import (
+from agentic_fleet.skill_fleet.workflow.evaluation import (
     content_quality_metric,
     metadata_metric,
     skill_creation_metric,

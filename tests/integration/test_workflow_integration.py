@@ -3,7 +3,7 @@
 import dspy
 import pytest
 
-from agentic_fleet.agentic_skills_system.workflow.programs import SkillCreationProgram
+from agentic_fleet.skill_fleet.workflow.programs import SkillCreationProgram
 
 
 @pytest.fixture(autouse=True)
@@ -54,8 +54,8 @@ async def test_workflow_with_real_llm():
 @pytest.mark.anyio
 async def test_capability_serialization():
     """Specifically test that Capability objects are properly serialized."""
-    from agentic_fleet.agentic_skills_system.workflow.models import Capability
-    from agentic_fleet.agentic_skills_system.workflow.modules import InitializeModule
+    from agentic_fleet.skill_fleet.workflow.models import Capability
+    from agentic_fleet.skill_fleet.workflow.modules import InitializeModule
 
     # Create module
     module = InitializeModule()

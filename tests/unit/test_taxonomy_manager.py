@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from agentic_fleet.agentic_skills_system.taxonomy.manager import TaxonomyManager
+from agentic_fleet.skill_fleet.taxonomy.manager import TaxonomyManager
 
 
 @pytest.fixture

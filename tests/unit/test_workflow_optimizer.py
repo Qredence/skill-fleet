@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from agentic_fleet.agentic_skills_system.workflow.optimizer import WorkflowOptimizer
+from agentic_fleet.skill_fleet.workflow.optimizer import WorkflowOptimizer
 
 
 def test_optimizer_cache_hits_and_misses(tmp_path: Path) -> None:

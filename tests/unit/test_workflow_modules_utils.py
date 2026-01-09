@@ -3,7 +3,7 @@ import logging
 import pytest
 from pydantic import BaseModel
 
-from agentic_fleet.agentic_skills_system.workflow.modules import safe_float, safe_json_loads
+from agentic_fleet.skill_fleet.workflow.modules import safe_float, safe_json_loads
 
 
 class _PydanticExample(BaseModel):

@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from agentic_fleet.agentic_skills_system.workflow.rewards import (
+from agentic_fleet.skill_fleet.workflow.rewards import (
     capabilities_reward,
     combined_edit_reward,
     combined_package_reward,

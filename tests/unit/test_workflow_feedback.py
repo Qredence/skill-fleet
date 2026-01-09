@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from agentic_fleet.agentic_skills_system.workflow.feedback import (
+from agentic_fleet.skill_fleet.workflow.feedback import (
     AutoApprovalHandler,
     create_feedback_handler,
 )

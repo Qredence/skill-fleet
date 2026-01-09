@@ -5,9 +5,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from agentic_fleet.agentic_skills_system.onboarding.bootstrap import SkillBootstrapper
-from agentic_fleet.agentic_skills_system.taxonomy.manager import TaxonomyManager
-from agentic_fleet.agentic_skills_system.workflow.skill_creator import TaxonomySkillCreator
+from agentic_fleet.skill_fleet.onboarding.bootstrap import SkillBootstrapper
+from agentic_fleet.skill_fleet.taxonomy.manager import TaxonomyManager
+from agentic_fleet.skill_fleet.workflow.skill_creator import TaxonomySkillCreator
 
 
 @pytest.fixture

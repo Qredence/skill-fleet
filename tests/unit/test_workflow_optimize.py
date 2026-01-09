@@ -3,7 +3,7 @@ import pytest
 
 def test_get_lm_rejects_unapproved_models() -> None:
     pytest.importorskip("dspy")
-    from agentic_fleet.agentic_skills_system.workflow.optimize import get_lm
+    from agentic_fleet.skill_fleet.workflow.optimize import get_lm
 
     with pytest.raises(ValueError):
         get_lm("unapproved-test-model")
@@ -11,7 +11,7 @@ def test_get_lm_rejects_unapproved_models() -> None:
 
 def test_get_lm_constructs_dspy_lm_with_approved_model(monkeypatch: pytest.MonkeyPatch) -> None:
     pytest.importorskip("dspy")
-    from agentic_fleet.agentic_skills_system.workflow import optimize
+    from agentic_fleet.skill_fleet.workflow import optimize
 
     class DummyLM:
         def __init__(self, model: str, temperature: float = 0.0, **kwargs):

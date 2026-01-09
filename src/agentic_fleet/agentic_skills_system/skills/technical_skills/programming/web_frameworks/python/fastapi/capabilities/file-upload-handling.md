@@ -70,7 +70,6 @@ async def upload_image(file: UploadFile):
 
 ### 2. Large File Streaming
 ```python
-import os
 from pathlib import Path
 
 @app.post("/upload-large")

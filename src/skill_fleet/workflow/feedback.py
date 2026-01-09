@@ -12,8 +12,20 @@ class FeedbackHandler(ABC):
     """Abstract base class for feedback handlers."""
 
     @abstractmethod
-    def get_feedback(self, packaging_manifest: str, validation_report: dict) -> str:
+    def get_feedback(
+        self,
+        packaging_manifest: str,
+        validation_report: dict,
+        skill_content: str = "",
+        task_description: str = "",
+    ) -> str:
         """Get human feedback on packaged skill.
+
+        Args:
+            packaging_manifest: JSON string with skill metadata and manifest
+            validation_report: Dict with validation results
+            skill_content: The generated SKILL.md content (for review display)
+            task_description: Original task description (for contextual questions)
 
         Returns:
             JSON string with feedback structure:
@@ -30,7 +42,13 @@ class FeedbackHandler(ABC):
 class AutoApprovalHandler(FeedbackHandler):
     """Automatic approval based on validation results."""
 
-    def get_feedback(self, packaging_manifest: str, validation_report: dict) -> str:
+    def get_feedback(
+        self,
+        packaging_manifest: str,
+        validation_report: dict,
+        skill_content: str = "",
+        task_description: str = "",
+    ) -> str:
         """Auto-approve if validation passed, otherwise request revision."""
 
         passed_statuses = ["passed", "validated", "approved", "success"]
@@ -64,7 +82,13 @@ class AutoApprovalHandler(FeedbackHandler):
 class CLIFeedbackHandler(FeedbackHandler):
     """Interactive CLI feedback collection."""
 
-    def get_feedback(self, packaging_manifest: str, validation_report: dict) -> str:
+    def get_feedback(
+        self,
+        packaging_manifest: str,
+        validation_report: dict,
+        skill_content: str = "",
+        task_description: str = "",
+    ) -> str:
         """Collect feedback via command-line prompts."""
 
         from rich.console import Console
@@ -121,6 +145,8 @@ class InteractiveHITLHandler(FeedbackHandler):
     - Maximum 4 rounds of interaction
     - Multi-choice questions for structured feedback
     - Progressive refinement based on user answers
+    - Skill content display for informed review
+    - Contextual questions based on task description
     """
 
     def __init__(self, min_rounds: int = 1, max_rounds: int = 4):
@@ -128,16 +154,27 @@ class InteractiveHITLHandler(FeedbackHandler):
         self.max_rounds = max(self.min_rounds, min(max_rounds, 4))
         self.current_round = 0
         self.session_history: list[dict] = []
+        self.task_description = ""
+        self.skill_content = ""
 
-    def get_feedback(self, packaging_manifest: str, validation_report: dict) -> str:
+    def get_feedback(
+        self,
+        packaging_manifest: str,
+        validation_report: dict,
+        skill_content: str = "",
+        task_description: str = "",
+    ) -> str:
         """Collect feedback via interactive multi-choice questions."""
         from rich.console import Console
+        from rich.markdown import Markdown
         from rich.panel import Panel
         from rich.prompt import Prompt
         from rich.table import Table
 
         console = Console()
         self.current_round += 1
+        self.task_description = task_description
+        self.skill_content = skill_content
 
         # Parse manifest if it's a string
         manifest = packaging_manifest
@@ -167,6 +204,11 @@ class InteractiveHITLHandler(FeedbackHandler):
         info_table.add_row("Name", skill_name)
         info_table.add_row("Skill ID", skill_id)
         info_table.add_row("Version", version)
+        if task_description:
+            info_table.add_row(
+                "Task",
+                task_description[:80] + "..." if len(task_description) > 80 else task_description,
+            )
         console.print(info_table)
 
         # Show validation status
@@ -184,6 +226,38 @@ class InteractiveHITLHandler(FeedbackHandler):
             console.print("\n[red]Errors:[/red]")
             for error in validation_report["errors"][:3]:
                 console.print(f"  ✗ {error}")
+
+        # Display generated skill content (the actual SKILL.md)
+        if skill_content:
+            console.print()
+            # Truncate if very long, but show meaningful preview
+            preview_lines = skill_content.split("\n")[:50]
+            preview_content = "\n".join(preview_lines)
+            if len(preview_lines) < len(skill_content.split("\n")):
+                preview_content += f"\n\n... ({len(skill_content.split(chr(10))) - 50} more lines)"
+
+            console.print(
+                Panel(
+                    Markdown(preview_content),
+                    title="[bold green]Generated Skill Content (SKILL.md)[/bold green]",
+                    border_style="green",
+                    expand=False,
+                )
+            )
+
+        # Show capabilities if available
+        capabilities = manifest.get("capabilities", [])
+        if capabilities:
+            console.print("\n[bold cyan]Capabilities:[/bold cyan]")
+            for cap in capabilities[:5]:
+                if isinstance(cap, dict):
+                    cap_name = cap.get("name", cap.get("id", "Unknown"))
+                    cap_desc = cap.get("description", "")[:60]
+                    console.print(f"  • [cyan]{cap_name}[/cyan]: {cap_desc}")
+                else:
+                    console.print(f"  • {cap}")
+            if len(capabilities) > 5:
+                console.print(f"  ... and {len(capabilities) - 5} more")
 
         # Generate clarifying questions based on current round
         questions = self._generate_questions(manifest, validation_report, self.current_round)
@@ -288,36 +362,56 @@ class InteractiveHITLHandler(FeedbackHandler):
     def _generate_questions(
         self, manifest: dict, validation_report: dict, round_num: int
     ) -> list[dict]:
-        """Generate clarifying questions based on the skill and current round."""
+        """Generate contextual clarifying questions based on the skill and current round.
+
+        Questions are tailored to the specific skill being reviewed, using:
+        - skill_name, skill_id from manifest
+        - task_description from the original request
+        - capabilities from the generated skill
+        """
         questions = []
 
+        # Extract skill context for contextual questions
+        skill_name = manifest.get("name", "this skill")
+        skill_id = manifest.get("skill_id", "")
+        capabilities = manifest.get("capabilities", [])
+        cap_names = []
+        for cap in capabilities[:3]:
+            if isinstance(cap, dict):
+                cap_names.append(cap.get("name", cap.get("id", "")))
+            else:
+                cap_names.append(str(cap))
+        cap_list = ", ".join(cap_names) if cap_names else "the listed capabilities"
+
+        task_context = self.task_description if self.task_description else "the requested task"
+
         if round_num == 1:
-            # First round: Basic skill definition questions
+            # First round: Skill scope and alignment questions (contextual)
             questions.append(
                 {
                     "id": "scope_clarity",
-                    "question": "Is the skill scope clearly defined?",
-                    "context": "A well-defined scope helps differentiate this skill from similar ones.",
+                    "question": f"Does '{skill_name}' clearly address '{task_context[:50]}...'?",
+                    "context": f"The skill should provide the capabilities needed for: {task_context}",
                     "options": [
                         {
                             "id": "a",
-                            "label": "Yes, scope is clear",
-                            "description": "The skill boundaries are well-defined",
+                            "label": "Yes, fully addresses the task",
+                            "description": f"'{skill_name}' covers all aspects of the requested task",
                         },
                         {
                             "id": "b",
-                            "label": "Needs more detail",
-                            "description": "Add more specifics about what's included",
+                            "label": "Partially addresses it",
+                            "description": "Some aspects of the task are missing",
                         },
                         {
                             "id": "c",
-                            "label": "Too broad",
-                            "description": "Consider splitting into multiple skills",
+                            "label": "Too broad for the task",
+                            "description": "Skill covers more than needed, consider splitting",
                         },
                         {
                             "id": "d",
-                            "label": "Too narrow",
-                            "description": "Consider expanding the scope",
+                            "label": "Too narrow for the task",
+                            "description": "Skill doesn't fully cover the requested capability",
                         },
                     ],
                 }
@@ -326,23 +420,23 @@ class InteractiveHITLHandler(FeedbackHandler):
             questions.append(
                 {
                     "id": "capabilities_complete",
-                    "question": "Are the listed capabilities complete?",
-                    "context": "Capabilities should cover all major functions of the skill.",
+                    "question": f"Are these capabilities sufficient: {cap_list}?",
+                    "context": f"These capabilities should enable: {task_context[:80]}",
                     "options": [
                         {
                             "id": "a",
-                            "label": "Yes, complete",
-                            "description": "All necessary capabilities are listed",
+                            "label": "Yes, capabilities are complete",
+                            "description": "All necessary capabilities for the task are listed",
                         },
                         {
                             "id": "b",
-                            "label": "Missing capabilities",
-                            "description": "Some capabilities should be added",
+                            "label": "Missing key capabilities",
+                            "description": "Important capabilities for the task are not included",
                         },
                         {
                             "id": "c",
-                            "label": "Too many capabilities",
-                            "description": "Some should be removed or split",
+                            "label": "Has unnecessary capabilities",
+                            "description": "Some capabilities are not relevant to the task",
                         },
                     ],
                 }
@@ -351,48 +445,56 @@ class InteractiveHITLHandler(FeedbackHandler):
             questions.append(
                 {
                     "id": "dependencies_correct",
-                    "question": "Are the dependencies correctly identified?",
-                    "context": "Dependencies should include all required skills without unnecessary ones.",
+                    "question": f"Are the dependencies for '{skill_name}' correctly identified?",
+                    "context": "Dependencies should include all required foundational skills.",
                     "options": [
                         {
                             "id": "a",
-                            "label": "Yes, correct",
-                            "description": "Dependencies are accurate",
+                            "label": "Yes, dependencies are correct",
+                            "description": "All required skills are listed as dependencies",
                         },
                         {
                             "id": "b",
                             "label": "Missing dependencies",
-                            "description": "Some required skills are not listed",
+                            "description": "Some foundational skills are not listed",
                         },
                         {
                             "id": "c",
                             "label": "Unnecessary dependencies",
-                            "description": "Some listed dependencies aren't needed",
+                            "description": "Some listed dependencies aren't actually needed",
                         },
                     ],
                 }
             )
 
         elif round_num == 2:
-            # Second round: Quality and documentation questions
+            # Second round: Content quality questions
             questions.append(
                 {
                     "id": "examples_quality",
-                    "question": "How would you rate the usage examples?",
-                    "context": "Good examples help users understand how to use the skill.",
+                    "question": f"Do the examples show how to use '{skill_name}' effectively?",
+                    "context": f"Examples should demonstrate practical usage for: {task_context[:60]}",
                     "options": [
                         {
                             "id": "a",
-                            "label": "Excellent",
-                            "description": "Clear, practical, and comprehensive",
+                            "label": "Excellent examples",
+                            "description": "Clear, practical examples that demonstrate the skill",
                         },
-                        {"id": "b", "label": "Good", "description": "Useful but could be improved"},
+                        {
+                            "id": "b",
+                            "label": "Good but could improve",
+                            "description": "Useful but need more detail or variety",
+                        },
                         {
                             "id": "c",
-                            "label": "Needs improvement",
-                            "description": "Examples are unclear or incomplete",
+                            "label": "Need better examples",
+                            "description": "Examples are unclear or don't match the task",
                         },
-                        {"id": "d", "label": "Missing", "description": "No examples provided"},
+                        {
+                            "id": "d",
+                            "label": "Examples missing",
+                            "description": "No practical examples provided",
+                        },
                     ],
                 }
             )
@@ -400,49 +502,49 @@ class InteractiveHITLHandler(FeedbackHandler):
             questions.append(
                 {
                     "id": "documentation_complete",
-                    "question": "Is the documentation sufficient?",
-                    "context": "Documentation should cover setup, usage, and troubleshooting.",
+                    "question": f"Is the documentation for '{skill_name}' sufficient?",
+                    "context": "Documentation should explain how to use this skill effectively.",
                     "options": [
                         {
                             "id": "a",
-                            "label": "Yes, comprehensive",
+                            "label": "Comprehensive documentation",
                             "description": "All aspects are well-documented",
                         },
                         {
                             "id": "b",
                             "label": "Needs more detail",
-                            "description": "Some areas need expansion",
+                            "description": "Some areas need better explanation",
                         },
                         {
                             "id": "c",
-                            "label": "Major gaps",
-                            "description": "Significant documentation missing",
+                            "label": "Major gaps in documentation",
+                            "description": "Important information is missing",
                         },
                     ],
                 }
             )
 
         elif round_num == 3:
-            # Third round: Integration and compatibility questions
+            # Third round: Integration and naming
             questions.append(
                 {
                     "id": "integration_ease",
-                    "question": "How easy is it to integrate this skill?",
+                    "question": f"How easy would it be to integrate '{skill_name}' into a workflow?",
                     "context": "Consider the learning curve and setup requirements.",
                     "options": [
                         {
                             "id": "a",
-                            "label": "Very easy",
+                            "label": "Very easy to integrate",
                             "description": "Minimal setup, clear integration path",
                         },
                         {
                             "id": "b",
-                            "label": "Moderate",
+                            "label": "Moderate complexity",
                             "description": "Some setup required, reasonable complexity",
                         },
                         {
                             "id": "c",
-                            "label": "Complex",
+                            "label": "Complex integration",
                             "description": "Significant setup or learning required",
                         },
                     ],
@@ -452,13 +554,13 @@ class InteractiveHITLHandler(FeedbackHandler):
             questions.append(
                 {
                     "id": "naming_appropriate",
-                    "question": "Is the skill naming appropriate?",
-                    "context": "Names should be descriptive and follow conventions.",
+                    "question": f"Is '{skill_name}' a good name for this skill?",
+                    "context": f"The name should clearly indicate it handles: {task_context[:50]}",
                     "options": [
                         {
                             "id": "a",
-                            "label": "Yes, appropriate",
-                            "description": "Name clearly describes the skill",
+                            "label": "Name is appropriate",
+                            "description": "Name clearly describes what the skill does",
                         },
                         {
                             "id": "b",
@@ -467,7 +569,7 @@ class InteractiveHITLHandler(FeedbackHandler):
                         },
                         {
                             "id": "c",
-                            "label": "Needs change",
+                            "label": "Needs different name",
                             "description": "Name is confusing or misleading",
                         },
                     ],
@@ -475,22 +577,22 @@ class InteractiveHITLHandler(FeedbackHandler):
             )
 
         else:
-            # Fourth round: Final review questions
+            # Fourth round: Final review
             questions.append(
                 {
                     "id": "overall_quality",
-                    "question": "What is your overall assessment of this skill?",
+                    "question": f"Overall, does '{skill_name}' meet the requirements for '{task_context[:40]}...'?",
                     "context": "Consider all aspects: functionality, documentation, and usability.",
                     "options": [
                         {
                             "id": "a",
                             "label": "Ready for production",
-                            "description": "Meets all quality standards",
+                            "description": "Skill meets all quality standards",
                         },
                         {
                             "id": "b",
                             "label": "Minor improvements needed",
-                            "description": "Small tweaks before approval",
+                            "description": "Small tweaks before final approval",
                         },
                         {
                             "id": "c",
@@ -499,8 +601,8 @@ class InteractiveHITLHandler(FeedbackHandler):
                         },
                         {
                             "id": "d",
-                            "label": "Not suitable",
-                            "description": "Does not meet requirements",
+                            "label": "Does not meet requirements",
+                            "description": "Skill fundamentally misses the mark",
                         },
                     ],
                 }
@@ -509,7 +611,7 @@ class InteractiveHITLHandler(FeedbackHandler):
             questions.append(
                 {
                     "id": "additional_feedback",
-                    "question": "Any additional feedback or suggestions?",
+                    "question": f"Any specific feedback for improving '{skill_name}'?",
                     "context": "Free-form feedback for anything not covered above.",
                     "options": [],  # Free-form
                 }
@@ -576,7 +678,13 @@ class WebhookFeedbackHandler(FeedbackHandler):
         self.webhook_url = webhook_url
         self.timeout = timeout
 
-    def get_feedback(self, packaging_manifest: str, validation_report: dict) -> str:
+    def get_feedback(
+        self,
+        packaging_manifest: str,
+        validation_report: dict,
+        skill_content: str = "",
+        task_description: str = "",
+    ) -> str:
         """Post to webhook and wait for approval response."""
 
         import time

@@ -15,12 +15,12 @@ os.environ.setdefault("DSPY_CACHEDIR", str(Path.cwd() / ".dspy_cache"))
 
 from skill_fleet.llm import FleetConfigError, build_lm_for_task, load_fleet_config
 
-from .analytics.engine import AnalyticsEngine, RecommendationEngine
-from .onboarding.bootstrap import SkillBootstrapper
-from .taxonomy.manager import TaxonomyManager
-from .validators import SkillValidator
-from .workflow.optimizer import WorkflowOptimizer
-from .workflow.skill_creator import TaxonomySkillCreator
+from ..analytics.engine import AnalyticsEngine, RecommendationEngine
+from ..onboarding.bootstrap import SkillBootstrapper
+from ..taxonomy.manager import TaxonomyManager
+from ..validators import SkillValidator
+from ..workflow.optimizer import WorkflowOptimizer
+from ..workflow.skill_creator import TaxonomySkillCreator
 
 
 def _repo_root() -> Path:
@@ -44,14 +44,14 @@ def _default_skills_root() -> Path:
 
 def _default_profiles_path() -> Path:
     # Still within skill-fleet package
-    return Path(__file__).resolve().parent / "config" / "profiles" / "bootstrap_profiles.json"
+    return Path(__file__).resolve().parent.parent / "config" / "profiles" / "bootstrap_profiles.json"
 
 
 def onboard_user_cli(args: argparse.Namespace) -> int:
     """Interactive onboarding workflow."""
     from rich.console import Console
 
-    from .cli_submodules.onboarding_cli import collect_onboarding_responses
+    from .onboarding_cli import collect_onboarding_responses
 
     console = Console()
     console.print("\n[bold cyan]Welcome to the Agentic Skills System![/bold cyan]\n")
@@ -118,7 +118,7 @@ def create_skill(args: argparse.Namespace) -> int:
         feedback_kwargs["min_rounds"] = max(1, min(args.min_rounds, 4))
         feedback_kwargs["max_rounds"] = max(feedback_kwargs["min_rounds"], min(args.max_rounds, 4))
 
-    result: dict[str, Any] = creator.forward(
+    result: dict[str, Any] = creator(
         task_description=str(args.task),
         user_context={"user_id": str(args.user_id)},
         max_iterations=int(args.max_iterations),
@@ -178,7 +178,7 @@ def validate_skill(args: argparse.Namespace) -> int:
 
 def migrate_skills_cli(args: argparse.Namespace) -> int:
     """Migrate existing skills to agentskills.io format."""
-    from .migration import migrate_all_skills
+    from ..migration import migrate_all_skills
 
     skills_root = Path(args.skills_root)
 
@@ -223,14 +223,14 @@ def optimize_workflow_cli(args: argparse.Namespace) -> int:
     - deepseek-v3.2: Cost-effective alternative
     - Nemotron-3-Nano-30B-A3B: Lightweight operations
     """
-    from .workflow.optimize import (
+    from ..workflow.optimize import (
         APPROVED_MODELS,
         optimize_with_gepa,
         optimize_with_miprov2,
         optimize_with_tracking,
         quick_evaluate,
     )
-    from .workflow.programs import SkillCreationProgram
+    from ..workflow.programs import SkillCreationProgram
 
     # Validate model
     if args.model not in APPROVED_MODELS:
@@ -488,12 +488,12 @@ Approved LLM Models:
     )
     optimize.add_argument(
         "--trainset",
-        default=str(Path(__file__).parent / "workflow" / "data" / "trainset.json"),
+        default=str(Path(__file__).parent.parent / "workflow" / "data" / "trainset.json"),
         help="Path to training data JSON",
     )
     optimize.add_argument(
         "--output",
-        default=str(Path(__file__).parent / "workflow" / "optimized"),
+        default=str(Path(__file__).parent.parent / "workflow" / "optimized"),
         help="Output directory for optimized program",
     )
     optimize.add_argument(

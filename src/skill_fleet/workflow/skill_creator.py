@@ -146,6 +146,9 @@ class TaxonomySkillCreator(dspy.Module):
                 task_lms=task_lms,
             )
 
+            # Preserve task_description in result for feedback handler
+            result["task_description"] = task_description
+
             understanding = result["understanding"]
             plan = result["plan"]
             package = result["package"]
@@ -255,8 +258,16 @@ class TaxonomySkillCreator(dspy.Module):
                 print(f"\n📋 Iteration {iteration}/{max_iterations}")
 
             # Get human feedback
+            # Merge quality_score into validation_report for display
+            validation_with_score = {
+                **package["validation_report"],
+                "quality_score": package.get("quality_score", 0.0),
+            }
             feedback = self.feedback_handler.get_feedback(
-                package["packaging_manifest"], package["validation_report"]
+                package["packaging_manifest"],
+                validation_with_score,
+                skill_content=content.get("skill_content", ""),
+                task_description=result.get("task_description", ""),
             )
 
             # Process feedback

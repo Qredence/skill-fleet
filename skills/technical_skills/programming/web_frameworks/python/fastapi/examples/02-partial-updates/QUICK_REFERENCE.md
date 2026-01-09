@@ -139,7 +139,7 @@ PATCH /users/1
 
 All files in:
 ```
-/Volumes/Samsung-SSD-T7/Workspaces/Github/qredence/agent-framework/v0.5/_WORLD/skills-fleet/src/agentic_fleet/agentic_skills_system/skills/technical_skills/programming/web_frameworks/python/fastapi/examples/
+/Volumes/Samsung-SSD-T7/Workspaces/Github/qredence/agent-framework/v0.5/_WORLD/skills-fleet/skills/technical_skills/programming/web_frameworks/python/fastapi/examples/
 ```
 
 - `patch_endpoint_example.py` - Complete working example
@@ -155,7 +155,7 @@ All files in:
 
 ```bash
 # Navigate to the examples directory from the repository root
-cd src/agentic_fleet/agentic_skills_system/skills/technical_skills/programming/web_frameworks/python/fastapi/examples
+cd skills/technical_skills/programming/web_frameworks/python/fastapi/examples
 
 # Run server
 uv run python patch_endpoint_example.py

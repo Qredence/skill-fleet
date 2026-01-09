@@ -47,7 +47,7 @@ flowchart LR
   Workflow --> LLM[LLM Provider]
 ```
 
-This system is local-first: the taxonomy lives on disk and is updated by the workflow. The only external dependency is the LLM provider (Google Gemini 3 by default) defined in `src/agentic_fleet/config.yaml`.
+This system is local-first: the taxonomy lives on disk and is updated by the workflow. The only external dependency is the LLM provider (Google Gemini 3 by default) defined in `src/skill_fleet/config.yaml`.
 
 ## Conceptual Components
 
@@ -74,7 +74,7 @@ flowchart TB
 
 Skills are stored under:
 
-- `src/agentic_fleet/agentic_skills_system/skills/`
+- `skills/`
 
 Each skill typically includes:
 
@@ -255,7 +255,7 @@ skills/_core/reasoning.json
 5. **Package** — validate and produce a packaging manifest
 6. **Iterate** — human‑in‑the‑loop approval and evolution metadata
 
-These steps are implemented in `src/agentic_fleet/agentic_skills_system/workflow/` and use task‑scoped LLMs configured in `src/agentic_fleet/config.yaml`.
+These steps are implemented in `src/skill_fleet/workflow/` and use task‑scoped LLMs configured in `src/skill_fleet/config.yaml`.
 
 ## Caching and Validation
 
@@ -280,7 +280,7 @@ uv run skill-fleet create-skill --task "Create a Python async programming skill"
 uv run skill-fleet create-skill --task "Create a Python async programming skill" --auto-approve
 
 # Validate a skill
-uv run skill-fleet validate-skill src/agentic_fleet/agentic_skills_system/skills/general/testing
+uv run skill-fleet validate-skill skills/general/testing
 
 # Run the TUI
 bun run tui
@@ -288,8 +288,8 @@ bun run tui
 
 ## Key Configurations
 
-- `src/agentic_fleet/config.yaml`: LLM configuration for workflow steps
-- `src/agentic_fleet/agentic_skills_system/skills/_templates/skill_template.json`: structure template
+- `src/skill_fleet/config.yaml`: LLM configuration for workflow steps
+- `skills/_templates/skill_template.json`: structure template
 
 ## What This System Is Not
 

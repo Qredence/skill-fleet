@@ -89,7 +89,7 @@ Type `approve` to continue.
 ### Validate the Skill
 
 ```bash
-uv run skill-fleet validate-skill src/agentic_fleet/agentic_skills_system/skills/technical_skills/programming/languages/python/logging
+uv run skill-fleet validate-skill skills/technical_skills/programming/languages/python/logging
 ```
 
 You should see validation pass with checks for:
@@ -126,7 +126,7 @@ This generates agentskills.io-compliant XML that can be injected into agent prom
 
 ```bash
 # Find all skills and validate them
-find src/agentic_fleet/agentic_skills_system/skills -name "metadata.json" | while read meta; do
+find skills -name "metadata.json" | while read meta; do
   uv run skill-fleet validate-skill "$(dirname "$meta")"
 done
 ```
@@ -266,14 +266,14 @@ The DSPy workflow may take 30-60 seconds for complex skills. Check:
 
 Ensure you have write permissions:
 ```bash
-chmod -R u+w src/agentic_fleet/agentic_skills_system/skills
+chmod -R u+w skills
 ```
 
 ## Configuration
 
 ### Customize LLM Settings
 
-Edit `src/agentic_fleet/config.yaml`:
+Edit `src/skill_fleet/config.yaml`:
 
 ```yaml
 llm:
@@ -371,7 +371,7 @@ uv run skill-fleet create-skill --task "Create REST API client utilities"
 # ... follow HITL prompts, approve when satisfied ...
 
 # 2. Validate
-uv run skill-fleet validate-skill src/agentic_fleet/agentic_skills_system/skills/technical_skills/programming/api_clients/rest
+uv run skill-fleet validate-skill skills/technical_skills/programming/api_clients/rest
 
 # 3. Generate XML catalog
 uv run skill-fleet generate-xml -o available_skills.xml

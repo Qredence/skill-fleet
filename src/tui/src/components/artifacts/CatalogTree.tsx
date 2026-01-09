@@ -95,7 +95,7 @@ export function CatalogTree({ repoRoot, onSelect }: CatalogTreeProps) {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
   const colors = SKILLS_FLEET_THEME;
-  const skillsRoot = path.join(repoRoot, "src/agentic_fleet/agentic_skills_system/skills");
+  const skillsRoot = path.join(repoRoot, "skills");
 
   useEffect(() => {
     async function load() {

@@ -11,13 +11,13 @@ import json
 
 import pytest
 
-from agentic_fleet.agentic_skills_system.workflow.models import (
+from skill_fleet.workflow.models import (
     ClarifyingQuestion,
     ExampleGatheringConfig,
     ExampleGatheringSession,
     UserExample,
 )
-from agentic_fleet.agentic_skills_system.workflow.modules import GatherExamplesModule
+from skill_fleet.workflow.modules import GatherExamplesModule
 
 # =============================================================================
 # UserExample Tests

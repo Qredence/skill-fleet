@@ -27,7 +27,7 @@ dependencies = [
 ]
 
 [project.scripts]
-skills-fleet = "agentic_fleet.agentic_skills_system.cli:cli_entrypoint"
+skills-fleet = "skill_fleet.cli_submodules:cli_entrypoint"
 
 [dependency-groups]
 dev = ["pytest>=8.0.0", "ruff>=0.8.0"]
@@ -37,17 +37,17 @@ requires = ["hatchling>=1.26.0"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/agentic_fleet"]
+packages = ["src/skill_fleet", "src/tui"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
 
 [tool.ruff]
-src = ["src"]
+src = ["src", "skills"]
 target-version = "py312"
 line-length = 100
-exclude = ["src/agentic_fleet/agentic_skills_system/skills/**"]
+exclude = ["skills/**"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "D100", "D101", "D102", "D103", "D104"]

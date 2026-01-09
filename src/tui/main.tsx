@@ -38,7 +38,7 @@ function loadFleetConfig(configPath: string): FleetConfig {
 }
 
 const repoRoot = process.cwd()
-const configPath = path.join(repoRoot, "src/agentic_fleet/config.yaml")
+const configPath = path.join(repoRoot, "src/skill_fleet/config.yaml")
 const config = loadFleetConfig(configPath)
 
 const COMMANDS: UISuggestion[] = [

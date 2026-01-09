@@ -40,8 +40,8 @@ uv run skill-fleet create-skill --task "TASK_DESCRIPTION" [OPTIONS]
 - `--user-id TEXT` - ID of the user creating the skill (default: `default`)
 - `--max-iterations INT` - Maximum feedback loops (default: `3`)
 - `--auto-approve` - Skip HITL review and auto-approve if validation passes
-- `--config PATH` - Path to fleet configuration YAML (default: `src/agentic_fleet/config.yaml`)
-- `--skills-root PATH` - Path to taxonomy root (default: `src/agentic_fleet/agentic_skills_system/skills`)
+- `--config PATH` - Path to fleet configuration YAML (default: `src/skill_fleet/config.yaml`)
+- `--skills-root PATH` - Path to taxonomy root (default: `skills`)
 - `--json` - Output result as JSON
 
 **Examples:**
@@ -89,7 +89,7 @@ uv run skill-fleet validate-skill PATH [OPTIONS]
 **Examples:**
 ```bash
 # Validate a single skill
-uv run skill-fleet validate-skill src/agentic_fleet/agentic_skills_system/skills/technical_skills/programming/languages/python/decorators
+uv run skill-fleet validate-skill skills/technical_skills/programming/languages/python/decorators
 
 # JSON output
 uv run skill-fleet validate-skill path/to/skill --json
@@ -114,7 +114,7 @@ uv run skill-fleet migrate [OPTIONS]
 ```
 
 **Optional Arguments:**
-- `--skills-root PATH` - Skills taxonomy root (default: `src/agentic_fleet/agentic_skills_system/skills`)
+- `--skills-root PATH` - Skills taxonomy root (default: `skills`)
 - `--dry-run` - Preview changes without writing to disk
 - `--json` - Output result as JSON
 
@@ -185,7 +185,7 @@ uv run skill-fleet generate-xml [OPTIONS]
 ```
 
 **Optional Arguments:**
-- `--skills-root PATH` - Skills taxonomy root (default: `src/agentic_fleet/agentic_skills_system/skills`)
+- `--skills-root PATH` - Skills taxonomy root (default: `skills`)
 - `--output, -o PATH` - Output file (default: stdout)
 
 **Output Format:**
@@ -303,7 +303,7 @@ uv run skill-fleet migrate --dry-run
 uv run skill-fleet migrate
 
 # 3. Validate all migrated skills
-for skill in $(find src/agentic_fleet/agentic_skills_system/skills -name "metadata.json" -type f); do
+for skill in $(find skills -name "metadata.json" -type f); do
   uv run skill-fleet validate-skill "$(dirname "$skill")"
 done
 
@@ -332,7 +332,7 @@ fi
 ### Bulk Validation
 ```bash
 # Validate all skills
-find src/agentic_fleet/agentic_skills_system/skills -name "metadata.json" -type f | while read metadata; do
+find skills -name "metadata.json" -type f | while read metadata; do
   skill_dir=$(dirname "$metadata")
   echo "Validating: $skill_dir"
   uv run skill-fleet validate-skill "$skill_dir" || echo "FAILED: $skill_dir"

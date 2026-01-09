@@ -1,6 +1,6 @@
 """Fleet LLM configuration loader and DSPy LM factory.
 
-This module interprets `src/agentic_fleet/config.yaml` and builds `dspy.LM`
+This module interprets `src/skill_fleet/config.yaml` and builds `dspy.LM`
 instances using LiteLLM-compatible model strings.
 """
 

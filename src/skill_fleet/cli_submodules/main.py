@@ -13,7 +13,7 @@ from typing import Any
 # Ensure DSPy disk cache uses a writable location (avoids defaulting to `~/.dspy_cache`).
 os.environ.setdefault("DSPY_CACHEDIR", str(Path.cwd() / ".dspy_cache"))
 
-from agentic_fleet.llm import FleetConfigError, build_lm_for_task, load_fleet_config
+from skill_fleet.llm import FleetConfigError, build_lm_for_task, load_fleet_config
 
 from ..analytics.engine import AnalyticsEngine, RecommendationEngine
 from ..onboarding.bootstrap import SkillBootstrapper
@@ -23,17 +23,28 @@ from ..workflow.optimizer import WorkflowOptimizer
 from ..workflow.skill_creator import TaxonomySkillCreator
 
 
+def _repo_root() -> Path:
+    """Find repository root from .git or pyproject.toml."""
+    current = Path(__file__).resolve()
+    for parent in [current, *current.parents]:
+        if (parent / ".git").exists() or (parent / "pyproject.toml").exists():
+            return parent
+    raise FileNotFoundError("Cannot find repository root")
+
+
 def _default_config_path() -> Path:
-    # `src/agentic_fleet/config.yaml` relative to the repo root.
-    return Path(__file__).resolve().parents[2] / "config.yaml"
+    # Config at: src/skill_fleet/config.yaml
+    return _repo_root() / "src/skill_fleet/config.yaml"
 
 
 def _default_skills_root() -> Path:
-    return Path(__file__).resolve().parents[1] / "skills"
+    # Skills now at repo root: skills/
+    return _repo_root() / "skills"
 
 
 def _default_profiles_path() -> Path:
-    return Path(__file__).resolve().parents[1] / "config" / "profiles" / "bootstrap_profiles.json"
+    # Still within skill-fleet package
+    return Path(__file__).resolve().parent.parent / "config" / "profiles" / "bootstrap_profiles.json"
 
 
 def onboard_user_cli(args: argparse.Namespace) -> int:

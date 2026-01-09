@@ -27,7 +27,7 @@ dependencies = [
 ]
 
 [project.scripts]
-skills-fleet = "agentic_fleet.agentic_skills_system.cli:cli_entrypoint"
+skills-fleet = "agentic_fleet.skill_fleet.cli:cli_entrypoint"
 
 [dependency-groups]
 dev = ["pytest>=8.0.0", "ruff>=0.8.0"]
@@ -44,10 +44,10 @@ pythonpath = ["src"]
 testpaths = ["tests"]
 
 [tool.ruff]
-src = ["src"]
+src = ["src", "skills"]
 target-version = "py312"
 line-length = 100
-exclude = ["src/agentic_fleet/agentic_skills_system/skills/**"]
+exclude = ["skills/**"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "D100", "D101", "D102", "D103", "D104"]

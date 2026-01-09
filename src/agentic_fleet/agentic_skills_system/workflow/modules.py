@@ -135,7 +135,6 @@ class GatherExamplesModule(dspy.Module):
         task_description: str,
         user_responses: list[dict] | None = None,
         collected_examples: list[dict] | None = None,
-        terminology: dict[str, str] | None = None,
         config: ExampleGatheringConfig | None = None,
     ) -> dict:
         """Gather examples and ask clarifying questions.
@@ -144,7 +143,6 @@ class GatherExamplesModule(dspy.Module):
             task_description: Original task description from user
             user_responses: Previous answers to clarifying questions
             collected_examples: Examples collected so far
-            terminology: Key terms learned so far
             config: Configuration for gathering process
 
         Returns:
@@ -155,8 +153,6 @@ class GatherExamplesModule(dspy.Module):
             user_responses = []
         if collected_examples is None:
             collected_examples = []
-        if terminology is None:
-            terminology = {}
         if config is None:
             config = ExampleGatheringConfig()
 
@@ -213,7 +209,6 @@ class GatherExamplesModule(dspy.Module):
         task_description: str,
         user_responses: list[dict] | None = None,
         collected_examples: list[dict] | None = None,
-        terminology: dict[str, str] | None = None,
         config: ExampleGatheringConfig | None = None,
     ) -> dict:
         """Gather examples asynchronously."""
@@ -221,8 +216,6 @@ class GatherExamplesModule(dspy.Module):
             user_responses = []
         if collected_examples is None:
             collected_examples = []
-        if terminology is None:
-            terminology = {}
         if config is None:
             config = ExampleGatheringConfig()
 
@@ -360,7 +353,7 @@ class PlanModule(dspy.Module):
             and composition_strategy
         """
         # Serialize dependency_analysis if it's a dict (from UnderstandModule)
-        dep_analysis_str = (
+        dependency_analysis_str = (
             json.dumps(dependency_analysis, indent=2)
             if isinstance(dependency_analysis, dict)
             else dependency_analysis
@@ -370,7 +363,7 @@ class PlanModule(dspy.Module):
             task_intent=task_intent,
             taxonomy_path=taxonomy_path,
             parent_skills=json.dumps(parent_skills, indent=2),
-            dependency_analysis=dep_analysis_str,
+            dependency_analysis=dependency_analysis_str,
         )
 
         return {
@@ -403,7 +396,7 @@ class PlanModule(dspy.Module):
     ) -> dict:
         """Design skill structure asynchronously."""
         # Serialize dependency_analysis if it's a dict (from UnderstandModule)
-        dep_analysis_str = (
+        dependency_analysis_str = (
             json.dumps(dependency_analysis, indent=2)
             if isinstance(dependency_analysis, dict)
             else dependency_analysis
@@ -413,7 +406,7 @@ class PlanModule(dspy.Module):
             task_intent=task_intent,
             taxonomy_path=taxonomy_path,
             parent_skills=json.dumps(parent_skills, indent=2),
-            dependency_analysis=dep_analysis_str,
+            dependency_analysis=dependency_analysis_str,
         )
 
         return {
@@ -839,7 +832,7 @@ class PlanModuleQA(dspy.Module):
     ) -> dict:
         """Design skill structure with quality assurance."""
         # Serialize dependency_analysis if it's a dict (from UnderstandModule)
-        dep_analysis_str = (
+        dependency_analysis_str = (
             json.dumps(dependency_analysis, indent=2)
             if isinstance(dependency_analysis, dict)
             else dependency_analysis
@@ -849,7 +842,7 @@ class PlanModuleQA(dspy.Module):
             task_intent=task_intent,
             taxonomy_path=taxonomy_path,
             parent_skills=json.dumps(parent_skills, indent=2),
-            dependency_analysis=dep_analysis_str,
+            dependency_analysis=dependency_analysis_str,
         )
 
         return {
@@ -882,7 +875,7 @@ class PlanModuleQA(dspy.Module):
     ) -> dict:
         """Design skill structure with quality assurance asynchronously."""
         # Serialize dependency_analysis if it's a dict (from UnderstandModule)
-        dep_analysis_str = (
+        dependency_analysis_str = (
             json.dumps(dependency_analysis, indent=2)
             if isinstance(dependency_analysis, dict)
             else dependency_analysis
@@ -892,7 +885,7 @@ class PlanModuleQA(dspy.Module):
             task_intent=task_intent,
             taxonomy_path=taxonomy_path,
             parent_skills=json.dumps(parent_skills, indent=2),
-            dependency_analysis=dep_analysis_str,
+            dependency_analysis=dependency_analysis_str,
         )
 
         return {

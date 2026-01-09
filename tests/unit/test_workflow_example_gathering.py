@@ -208,7 +208,6 @@ def test_gather_examples_module_forward_signature() -> None:
     assert "task_description" in params
     assert "user_responses" in params
     assert "collected_examples" in params
-    assert "terminology" in params
     assert "config" in params
 
 

@@ -1,23 +1,25 @@
 {
   "version": "0.1.0",
   "created_at": "2026-01-06T00:00:00Z",
-  "last_updated": "2026-01-09T13:39:41.223419+00:00",
+  "last_updated": "2026-01-10T16:04:25.382369+00:00",
   "schema_version": "1.0.0",
-  "total_skills": 16,
-  "generation_count": 16,
+  "total_skills": 18,
+  "generation_count": 18,
   "statistics": {
     "by_type": {
-      "technical": 6,
+      "technical": 7,
       "unknown": 9,
-      "memory": 1
+      "memory": 1,
+      "specialization": 1
     },
     "by_weight": {
-      "medium": 6,
+      "medium": 7,
       "unknown": 9,
-      "heavyweight": 1
+      "heavyweight": 1,
+      "lightweight": 1
     },
     "by_priority": {
-      "task_specific": 6,
+      "task_specific": 8,
       "unknown": 9,
       "always": 1
     }
@@ -75,6 +77,14 @@
       "successes": 1
     },
     "technical_skills/software_development/version_control/git_workflows": {
+      "count": 1,
+      "successes": 1
+    },
+    "software_development/programming/languages/python/asynchronous_programming": {
+      "count": 1,
+      "successes": 1
+    },
+    "technical_skills/programming/python/logging-utilities": {
       "count": 1,
       "successes": 1
     }

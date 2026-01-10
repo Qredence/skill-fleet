@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from ..taxonomy.manager import TaxonomyManager
-from ..workflow.skill_creator import TaxonomySkillCreator
+from ..workflow.creator import TaxonomySkillCreator
 
 
 class SkillBootstrapper:
@@ -148,8 +148,33 @@ class SkillBootstrapper:
 
     def register_on_demand_skills(self, user_id: str, on_demand_paths: list[str]):
         """Register skills for on-demand generation."""
-        # TODO: Implement on-demand skill registry
-        pass
+        if not on_demand_paths:
+            return
+
+        registry_dir = self.taxonomy.skills_root / "_analytics"
+        registry_dir.mkdir(parents=True, exist_ok=True)
+        registry_path = registry_dir / "on_demand_registry.json"
+        now = datetime.now(UTC).isoformat()
+
+        registry: dict = {"updated_at": now, "users": {}}
+        if registry_path.exists():
+            try:
+                registry = json.loads(registry_path.read_text(encoding="utf-8"))
+            except json.JSONDecodeError:
+                registry = {"updated_at": now, "users": {}}
+
+        users = registry.setdefault("users", {})
+        user_entry = users.get(user_id, {"registered_at": now, "skills": []})
+        existing = set(user_entry.get("skills", []))
+        existing.update(on_demand_paths)
+        user_entry["skills"] = list(existing)
+        user_entry["updated_at"] = now
+        users[user_id] = user_entry
+        registry["updated_at"] = now
+
+        registry_path.write_text(
+            json.dumps(registry, separators=(",", ":")) + "\n", encoding="utf-8"
+        )
 
     def _path_to_skill_id(self, path: str) -> str:
         """Convert taxonomy path to skill_id."""

@@ -273,7 +273,7 @@ chmod -R u+w skills
 
 ### Customize LLM Settings
 
-Edit `src/skill_fleet/config.yaml`:
+Edit `config/config.yaml`:
 
 ```yaml
 llm:

@@ -507,6 +507,190 @@ for warning in result.warnings:
 
 ---
 
+### Common Utilities
+
+Utility functions for safe type conversions used across the skill_fleet codebase.
+
+**Import:**
+```python
+from skill_fleet.common.utils import safe_json_loads, safe_float
+```
+
+#### `safe_json_loads()`
+
+Safely parse JSON string with fallback to default value.
+
+**Signature:**
+```python
+def safe_json_loads(
+    value: str | Any,
+    default: dict | list | None = None,
+    field_name: str = "unknown",
+) -> dict | list
+```
+
+**Parameters:**
+- `value` (str | Any): String to parse or already-parsed object
+- `default` (dict | list): Default value if parsing fails (defaults to `{}`)
+- `field_name` (str): Field name for logging purposes
+
+**Returns:**
+- `dict | list`: Parsed JSON or default value (never None)
+
+**Handles:**
+- Already parsed objects (dict, list) - returns as-is
+- Valid JSON strings - parses and returns
+- Invalid JSON - returns default with warning log
+- Pydantic models - extracts via `model_dump()`
+- Empty/None values - returns default
+- Unknown types - returns default with warning
+
+**Example:**
+```python
+from skill_fleet.common.utils import safe_json_loads
+
+# Parse JSON string
+data = safe_json_loads('{"key": "value"}')
+# Returns: {"key": "value"}
+
+# Handle invalid JSON with fallback
+data = safe_json_loads('invalid json', default={})
+# Returns: {} (with warning logged)
+
+# Handle already-parsed objects
+data = safe_json_loads({"already": "parsed"})
+# Returns: {"already": "parsed"}
+
+# Handle Pydantic models
+from pydantic import BaseModel
+class MyModel(BaseModel):
+    name: str
+model = MyModel(name="test")
+data = safe_json_loads(model)
+# Returns: {"name": "test"}
+```
+
+---
+
+#### `safe_float()`
+
+Safely convert value to float.
+
+**Signature:**
+```python
+def safe_float(value: Any, default: float = 0.0) -> float
+```
+
+**Parameters:**
+- `value` (Any): Value to convert
+- `default` (float): Default if conversion fails
+
+**Returns:**
+- `float`: Converted value or default
+
+**Example:**
+```python
+from skill_fleet.common.utils import safe_float
+
+# Convert numbers
+safe_float(42)      # Returns: 42.0
+safe_float(3.14)    # Returns: 3.14
+
+# Convert strings
+safe_float("2.5")   # Returns: 2.5
+
+# Handle invalid values
+safe_float("invalid", default=0.0)  # Returns: 0.0
+safe_float(None, default=1.0)       # Returns: 1.0
+```
+
+---
+
+### DSPy Configuration
+
+Centralized DSPy configuration for consistent LM settings across the application.
+
+**Import:**
+```python
+from skill_fleet.llm.dspy_config import configure_dspy, get_task_lm
+```
+
+#### `configure_dspy()`
+
+Configure DSPy with fleet config and return default LM. Call this once at application startup to set up DSPy's global settings.
+
+**Signature:**
+```python
+def configure_dspy(
+    config_path: Path | None = None,
+    default_task: str = "skill_understand",
+) -> dspy.LM
+```
+
+**Parameters:**
+- `config_path` (Path | None): Path to config/config.yaml (default: project root)
+- `default_task` (str): Default task to use for dspy.settings.lm (e.g., "skill_understand", "skill_edit")
+
+**Returns:**
+- `dspy.LM`: The configured LM instance (also set as dspy.settings.lm)
+
+**Environment Variables:**
+- `DSPY_CACHEDIR`: Override DSPy cache directory
+- `DSPY_TEMPERATURE`: Override LM temperature globally
+
+**Example:**
+```python
+from skill_fleet.llm.dspy_config import configure_dspy
+import dspy
+
+# Configure DSPy at startup
+lm = configure_dspy()
+
+# All DSPy modules now use this LM by default
+result = dspy.Predict(...)(prompt="...")
+
+# Or with custom config
+lm = configure_dspy(
+    config_path=Path("custom/config.yaml"),
+    default_task="skill_edit"
+)
+```
+
+---
+
+#### `get_task_lm()`
+
+Get an LM for a specific task without changing global settings.
+
+**Signature:**
+```python
+def get_task_lm(task_name: str, config_path: Path | None = None) -> dspy.LM
+```
+
+**Parameters:**
+- `task_name` (str): Task name from config (e.g., "skill_understand", "skill_edit", "skill_plan")
+- `config_path` (Path | None): Path to config/config.yaml (default: project root)
+
+**Returns:**
+- `dspy.LM`: Configured LM for the specified task
+
+**Example:**
+```python
+from skill_fleet.llm.dspy_config import get_task_lm
+import dspy
+
+# Get task-specific LM
+edit_lm = get_task_lm("skill_edit")
+
+# Use with dspy.context() for temporary override
+with dspy.context(lm=edit_lm):
+    result = my_module(**inputs)
+
+# Original LM restored after context
+```
+
+---
+
 ## Complete Example
 
 Full workflow using the Python API:
@@ -707,8 +891,15 @@ mypy src/skill_fleet/
 
 ---
 
+## See Also
+
+- [CLI Reference](cli-reference.md) - Command-line interface usage
+- [Overview](overview.md) - System architecture and concepts
+- [Quick Start](quick-start.md) - Getting started guide
+
+---
+
 ## Further Reading
 
-- [CLI Reference](cli-reference.md) - Command-line equivalents
 - [agentskills.io Compliance](agentskills-compliance.md) - Specification details
 - [Skill Creator Guide](skill-creator-guide.md) - Creating skills programmatically

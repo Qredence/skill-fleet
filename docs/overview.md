@@ -47,7 +47,7 @@ flowchart LR
   Workflow --> LLM[LLM Provider]
 ```
 
-This system is local-first: the taxonomy lives on disk and is updated by the workflow. The only external dependency is the LLM provider (Google Gemini 3 by default) defined in `src/skill_fleet/config.yaml`.
+This system is local-first: the taxonomy lives on disk and is updated by the workflow. The only external dependency is the LLM provider (Google Gemini 3 by default) defined in `config/config.yaml`.
 
 ## Conceptual Components
 
@@ -99,6 +99,59 @@ All skills follow the [agentskills.io](https://agentskills.io) specification for
 - **Validation**: Automated checks ensure compliance with the specification
 
 See [agentskills.io Compliance Guide](../docs/agentskills-compliance.md) for detailed information.
+
+## DSPy Integration
+
+### Centralized Configuration
+
+Skills Fleet provides centralized DSPy configuration through `src/skill_fleet/llm/dspy_config.py`. This module ensures consistent language model settings across all workflow steps:
+
+- **`configure_dspy()`** — One-time initialization that sets up DSPy's global LM from `config/config.yaml`
+- **`get_task_lm(task_name)`** — Returns task-specific LM instances without changing global settings
+- **Environment variables** — Supports `DSPY_CACHEDIR` and `DSPY_TEMPERATURE` for overrides
+- **Configuration priority** — Environment variables → config.yaml → defaults
+
+The CLI automatically calls `configure_dspy()` at startup, ensuring all commands use consistent LM settings.
+
+```python
+from skill_fleet.llm.dspy_config import configure_dspy, get_task_lm
+
+# Configure once at startup
+lm = configure_dspy(default_task="skill_understand")
+
+# Get task-specific LM when needed
+edit_lm = get_task_lm("skill_edit")
+```
+
+### Evolution Tracking
+
+Skills track their evolution through proper metadata in `metadata.json`:
+
+- **`timestamp`** — ISO 8601 UTC timestamp of creation/revision
+- **`change_summary`** — Human-readable description of changes
+- **`status`** — Current state (approved, needs_revision, etc.)
+- **`previous_versions`** — List of prior version references (future enhancement)
+
+This enables:
+- **Skill versioning** — Track changes over time
+- **Rollback support** — Revert to previous versions if needed
+- **Change history** — Audit trail for compliance and debugging
+- **Quality metrics** — Link revisions to feedback and validation results
+
+### Task-Specific LMs
+
+The system uses different LM configurations for different workflow phases:
+
+| Task | Purpose | Configuration |
+|------|---------|---------------|
+| `skill_understand` | Task analysis and understanding | High temperature for creativity |
+| `skill_plan` | Structure planning | Medium temperature |
+| `skill_initialize` | Directory and metadata initialization | Minimal temperature |
+| `skill_edit` | Content generation | Medium temperature |
+| `skill_package` | Validation and packaging | Low temperature for precision |
+| `skill_validate` | Compliance checking | Minimal temperature |
+
+These are configured in `config/config.yaml` under the `model_tasks` section.
 
 ## Hierarchical Skills Taxonomy for Agentic Systems
 
@@ -255,7 +308,7 @@ skills/_core/reasoning.json
 5. **Package** — validate and produce a packaging manifest
 6. **Iterate** — human‑in‑the‑loop approval and evolution metadata
 
-These steps are implemented in `src/skill_fleet/workflow/` and use task‑scoped LLMs configured in `src/skill_fleet/config.yaml`.
+These steps are implemented in `src/skill_fleet/workflow/` and use task‑scoped LLMs configured in `config/config.yaml`.
 
 ## Caching and Validation
 
@@ -288,7 +341,7 @@ bun run tui
 
 ## Key Configurations
 
-- `src/skill_fleet/config.yaml`: LLM configuration for workflow steps
+- `config/config.yaml`: LLM configuration for workflow steps
 - `skills/_templates/skill_template.json`: structure template
 
 ## What This System Is Not

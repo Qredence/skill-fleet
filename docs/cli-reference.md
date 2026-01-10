@@ -40,7 +40,7 @@ uv run skill-fleet create-skill --task "TASK_DESCRIPTION" [OPTIONS]
 - `--user-id TEXT` - ID of the user creating the skill (default: `default`)
 - `--max-iterations INT` - Maximum feedback loops (default: `3`)
 - `--auto-approve` - Skip HITL review and auto-approve if validation passes
-- `--config PATH` - Path to fleet configuration YAML (default: `src/skill_fleet/config.yaml`)
+- `--config PATH` - Path to fleet configuration YAML (default: `config/config.yaml`)
 - `--skills-root PATH` - Path to taxonomy root (default: `skills`)
 - `--json` - Output result as JSON
 
@@ -413,8 +413,63 @@ uv run skill-fleet migrate --help
 uv run skill-fleet generate-xml --help
 ```
 
+## DSPy Configuration
+
+The CLI now automatically configures DSPy settings on startup using the centralized `configure_dspy()` function. This ensures consistent LM configuration across all commands.
+
+### Environment Variables
+
+**DSPY_CACHEDIR**
+Override DSPy cache directory (default: `.dspy_cache` in current directory)
+
+```bash
+export DSPY_CACHEDIR=/var/cache/dspy
+uv run skill-fleet create-skill --task "..."
+```
+
+**DSPY_TEMPERATURE**
+Override LM temperature globally for all operations
+
+```bash
+export DSPY_TEMPERATURE=0.7
+uv run skill-fleet create-skill --task "..."
+```
+
+### Configuration Priority
+
+LM settings are resolved in the following order (highest to lowest priority):
+
+1. **Command-specific LM** - Individual commands may use task-specific LMs
+2. **Environment variables** - `DSPY_TEMPERATURE`, `DSPY_CACHEDIR`
+3. **config.yaml settings** - Task-specific and role-based model configuration
+4. **Defaults** - Fallback defaults when no other configuration is present
+
+### Task-Specific LMs
+
+The system uses different LMs for different phases of skill creation:
+
+| Task | Purpose |
+|------|---------|
+| `skill_understand` | Task analysis and understanding |
+| `skill_plan` | Structure planning |
+| `skill_initialize` | Directory and metadata initialization |
+| `skill_edit` | Content generation |
+| `skill_package` | Validation and packaging |
+| `skill_validate` | Compliance checking |
+
+These are configured in `config/config.yaml` under the `model_tasks` section.
+
+---
+
+## See Also
+
+- [API Reference](api-reference.md) - Python programmatic API
+- [Overview](overview.md) - System architecture
+- [Quick Start](quick-start.md) - Getting started guide
+
+---
+
 ## Additional Resources
 
 - [Skill Creator Guide](skill-creator-guide.md) - Detailed workflow explanation
 - [agentskills.io Compliance](agentskills-compliance.md) - Migration and validation details
-- [Overview](overview.md) - System architecture and concepts

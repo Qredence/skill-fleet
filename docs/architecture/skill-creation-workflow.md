@@ -8,7 +8,7 @@ The system uses a **6-step pipeline** orchestrated by DSPy to transform a high-l
 
 ### Implementation Locations
 
-- **Orchestrator**: `src/skill_fleet/workflow/skill_creator.py`
+- **Orchestrator**: `src/skill_fleet/workflow/creator.py`
 - **Programs**: `src/skill_fleet/workflow/programs.py`
 - **Modules**: `src/skill_fleet/workflow/modules.py`
 - **Signatures**: `src/skill_fleet/workflow/signatures.py`
@@ -96,7 +96,7 @@ The workflow supports structured interaction via:
 
 ## Model Configuration
 
-This repo is configured to use **Gemini 3** models via `src/skill_fleet/config.yaml`:
+This repo is configured to use **Gemini 3** models via `config/config.yaml`:
 
 -   **`gemini-3-flash-preview`**: Primary model for all steps.
 -   **`gemini-3-pro-preview`**: Used for GEPA reflection and high-reasoning tasks.

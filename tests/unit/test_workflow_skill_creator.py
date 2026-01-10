@@ -2,7 +2,7 @@ import contextlib
 
 import pytest
 
-from skill_fleet.workflow import skill_creator
+from skill_fleet.workflow import creator as skill_creator_module
 
 
 class _FakeTaxonomy:
@@ -76,12 +76,12 @@ def _base_creation_result(passed: bool = True):
 
 def test_create_skill_returns_exists(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
     pytest.importorskip("dspy")
-    monkeypatch.setattr(skill_creator.dspy, "context", lambda **kwargs: contextlib.nullcontext())
+    monkeypatch.setattr(skill_creator_module.dspy, "context", lambda **kwargs: contextlib.nullcontext())
 
     taxonomy = _FakeTaxonomy(tmp_path)
     taxonomy._exists = True
 
-    creator = skill_creator.TaxonomySkillCreator(
+    creator = skill_creator_module.TaxonomySkillCreator(
         taxonomy_manager=taxonomy, feedback_handler=None, validator=object(), verbose=False
     )
     creator.creation_program = lambda **kwargs: _base_creation_result(passed=True)
@@ -92,10 +92,10 @@ def test_create_skill_returns_exists(tmp_path, monkeypatch: pytest.MonkeyPatch) 
 
 def test_create_skill_returns_validation_failed(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
     pytest.importorskip("dspy")
-    monkeypatch.setattr(skill_creator.dspy, "context", lambda **kwargs: contextlib.nullcontext())
+    monkeypatch.setattr(skill_creator_module.dspy, "context", lambda **kwargs: contextlib.nullcontext())
 
     taxonomy = _FakeTaxonomy(tmp_path)
-    creator = skill_creator.TaxonomySkillCreator(
+    creator = skill_creator_module.TaxonomySkillCreator(
         taxonomy_manager=taxonomy, feedback_handler=None, validator=object(), verbose=False
     )
     creator.creation_program = lambda **kwargs: _base_creation_result(passed=False)
@@ -109,12 +109,12 @@ def test_create_skill_rejects_circular_dependency(
     tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     pytest.importorskip("dspy")
-    monkeypatch.setattr(skill_creator.dspy, "context", lambda **kwargs: contextlib.nullcontext())
+    monkeypatch.setattr(skill_creator_module.dspy, "context", lambda **kwargs: contextlib.nullcontext())
 
     taxonomy = _FakeTaxonomy(tmp_path)
     taxonomy._has_cycle = True
 
-    creator = skill_creator.TaxonomySkillCreator(
+    creator = skill_creator_module.TaxonomySkillCreator(
         taxonomy_manager=taxonomy, feedback_handler=None, validator=object(), verbose=False
     )
     creation = _base_creation_result(passed=True)
@@ -131,10 +131,10 @@ def test_create_skill_approved_tracks_usage_and_updates_stats(
     tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     pytest.importorskip("dspy")
-    monkeypatch.setattr(skill_creator.dspy, "context", lambda **kwargs: contextlib.nullcontext())
+    monkeypatch.setattr(skill_creator_module.dspy, "context", lambda **kwargs: contextlib.nullcontext())
 
     taxonomy = _FakeTaxonomy(tmp_path)
-    creator = skill_creator.TaxonomySkillCreator(
+    creator = skill_creator_module.TaxonomySkillCreator(
         taxonomy_manager=taxonomy, feedback_handler=None, validator=object(), verbose=False
     )
 
@@ -157,10 +157,10 @@ def test_create_skill_max_iterations_when_needs_revision_repeats(
     tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     pytest.importorskip("dspy")
-    monkeypatch.setattr(skill_creator.dspy, "context", lambda **kwargs: contextlib.nullcontext())
+    monkeypatch.setattr(skill_creator_module.dspy, "context", lambda **kwargs: contextlib.nullcontext())
 
     taxonomy = _FakeTaxonomy(tmp_path)
-    creator = skill_creator.TaxonomySkillCreator(
+    creator = skill_creator_module.TaxonomySkillCreator(
         taxonomy_manager=taxonomy, feedback_handler=None, validator=object(), verbose=False
     )
 

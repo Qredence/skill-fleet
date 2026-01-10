@@ -7,7 +7,7 @@ import pytest
 
 from skill_fleet.onboarding.bootstrap import SkillBootstrapper
 from skill_fleet.taxonomy.manager import TaxonomyManager
-from skill_fleet.workflow.skill_creator import TaxonomySkillCreator
+from skill_fleet.workflow.creator import TaxonomySkillCreator
 
 
 @pytest.fixture

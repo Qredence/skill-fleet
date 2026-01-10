@@ -1,1 +1,0 @@
-{"apis": [], "tools": ["python", "pytest", "coverage", "pytest-cov"], "files": ["pytest.ini", "tox.ini", "setup.cfg", ".coveragerc"], "environment": ["PYTHONPATH", "PYTEST_ADDOPTS"]}

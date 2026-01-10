@@ -1,6 +1,0 @@
-{
-  "name": "Test Discovery Verification",
-  "description": "Verify the skill can identify test cases in a standard project structure.",
-  "input_data": "Project with 3 files: main.py, test_main.py (2 tests), and utils_test.py (1 test).",
-  "expected_result": "Skill identifies 3 total test cases across two test files."
-}

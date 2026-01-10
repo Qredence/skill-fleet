@@ -1,0 +1,112 @@
+# config.yaml - Single source of truth for `skills-fleet` LLM configuration
+#
+# Default model: gemini-3-flash-preview
+#
+# Required env:
+#   - GOOGLE_API_KEY
+#
+# Optional env:
+#   - DSPY_TEMPERATURE (override temperature globally)
+
+models:
+  default: gemini:gemini-3-flash-preview
+
+  registry:
+    deepinfra:Nemotron-3-Nano-30B-A3B:
+      model: nvidia/Nemotron-3-Nano-30B-A3B
+      model_type: chat
+      env: LITELLM_API_KEY
+      base_url_env: LITELLM_BASE_URL
+      base_url_default: https://api.deepinfra.com/v1/openai
+      timeout: 900
+      parameters:
+        temperature: 0.1
+        top_p: 0.95
+        max_tokens: 8192
+        frequency_penalty: 0.0
+        presence_penalty: 0.0
+        repetition_penalty: 1.0
+        stop: null
+
+    gemini:gemini-3-flash-preview:
+      model: gemini-3-flash-preview
+      model_type: chat
+      env: GOOGLE_API_KEY
+      timeout: 60
+      parameters:
+        temperature: 1.0
+        max_tokens: 8192
+        thinking_level: high
+
+roles:
+  router:
+    model: gemini:gemini-3-flash-preview
+    description: "Routes requests and selects workflow patterns"
+    capabilities: [pattern_detection, team_selection, complexity_assessment]
+    parameter_overrides:
+      thinking_level: medium
+
+  planner:
+    model: gemini:gemini-3-flash-preview
+    description: "Creates detailed plans and orchestrates skill selection"
+    capabilities: [task_decomposition, skill_orchestration, dependency_analysis]
+    parameter_overrides: {}
+
+  worker:
+    model: gemini:gemini-3-flash-preview
+    description: "Executes work steps"
+    capabilities: [file_operations, skill_execution, content_generation]
+    parameter_overrides: {}
+
+  judge:
+    model: gemini:gemini-3-flash-preview
+    description: "Evaluates results and validates completion quality"
+    capabilities: [quality_assessment, validation, critique_generation]
+    parameter_overrides: {}
+
+tasks:
+  # Skill Creation Workflow (6-step process)
+  skill_understand:
+    model: gemini:gemini-3-flash-preview
+    role: planner
+    parameters:
+      thinking_level: medium
+
+  skill_plan:
+    model: gemini:gemini-3-flash-preview
+    role: planner
+    parameters:
+      thinking_level: high
+
+  skill_initialize:
+    model: gemini:gemini-3-flash-preview
+    role: worker
+    parameters:
+      thinking_level: minimal
+
+  skill_edit:
+    model: gemini:gemini-3-flash-preview
+    role: worker
+    parameters:
+      top_p: 0.95
+      thinking_level: high
+
+  skill_package:
+    model: gemini:gemini-3-flash-preview
+    role: worker
+    parameters:
+      thinking_level: medium
+
+  skill_validate:
+    model: gemini:gemini-3-flash-preview
+    role: judge
+    parameters:
+      thinking_level: high
+
+  # Conversational Agent (Interactive CLI)
+  conversational_agent:
+    model: gemini:gemini-3-flash-preview
+    role: planner
+    parameters:
+      thinking_level: high  # High thinking for complex reasoning in conversation
+

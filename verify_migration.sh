@@ -4,7 +4,7 @@ set -e
 echo "=== Verifying Migration ==="
 
 echo "[1/5] Checking for old imports..."
-if grep -r "agentic_fleet\.agentic_skills_system" --include="*.py" src/ tests/ 2>/dev/null; then
+if grep -r "agentic_fleet" --include="*.py" src/ tests/ 2>/dev/null; then
     echo "FAIL: Old imports still exist"
     exit 1
 fi
@@ -25,7 +25,7 @@ fi
 echo "PASS: Tests pass"
 
 echo "[4/5] Checking CLI entrypoint..."
-if ! uv run python -c "from skill_fleet.cli_submodules import cli_entrypoint" 2>/dev/null; then
+if ! uv run python -c "from skill_fleet.cli import cli_entrypoint" 2>/dev/null; then
     echo "FAIL: CLI import broken"
     exit 1
 fi

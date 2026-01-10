@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "tui": "bun run src/agentic_fleet/tui/main.tsx"
+    "tui": "bun run src/skill_fleet/ui/main.tsx"
   },
   "dependencies": {
     "@opentui/core": "^0.1.69",

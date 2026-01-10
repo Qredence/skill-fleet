@@ -111,6 +111,44 @@ uv run skills-fleet create-skill --task "Create a skill for Docker best practice
 5. **Review**: Human-in-the-Loop approval (unless `--auto-approve`)
 6. **Save**: Write to taxonomy
 
+### Creating a Revised Skill
+
+```bash
+# Create a revised version with specific feedback
+uv run skills-fleet create-skill \
+  --task "Improve Python async skill" \
+  --revision-feedback "Add more examples for error handling"
+```
+
+The `--revision-feedback` parameter allows you to provide specific guidance for improving existing skills.
+
+### DSPy Configuration
+
+The system uses centralized DSPy configuration for consistent LLM settings across all operations:
+
+```python
+from skill_fleet.llm.dspy_config import configure_dspy, get_task_lm
+
+# Configure once at startup (CLI does this automatically)
+lm = configure_dspy(default_task="skill_understand")
+
+# Get task-specific LM when needed
+edit_lm = get_task_lm("skill_edit")
+```
+
+**Environment Variables:**
+- `DSPY_CACHEDIR`: Override DSPy cache directory (default: `.dspy_cache`)
+- `DSPY_TEMPERATURE`: Global temperature override for all tasks
+
+**Task-Specific LMs:**
+Different workflow phases use different LM configurations:
+- `skill_understand`: Task analysis (high temperature for creativity)
+- `skill_plan`: Structure planning (medium temperature)
+- `skill_initialize`: Directory initialization (minimal temperature)
+- `skill_edit`: Content generation (medium temperature)
+- `skill_package`: Validation and packaging (low temperature)
+- `skill_validate`: Compliance checking (minimal temperature)
+
 ### Validating Skills
 
 ```bash
@@ -155,7 +193,7 @@ uv run pytest
 uv run pytest tests/test_validators.py
 
 # Run with coverage
-uv run pytest --cov=src/agentic_fleet
+uv run pytest --cov=src/skill_fleet
 
 # Linting and formatting
 uv run ruff check .
@@ -169,39 +207,39 @@ uv run ruff format .
 ### Python Source
 
 ```
-src/agentic_fleet/
-├── agentic_skills_system/
-│   ├── cli/
-│   │   ├── main.py              # CLI entry point
-│   │   ├── create_skill.py      # Skill creation command
-│   │   ├── migrate.py           # Migration command
-│   │   └── generate_xml.py      # XML generation command
-│   ├── skills/                  # Skills taxonomy storage
-│   │   ├── general/             # General-purpose skills
-│   │   ├── development/         # Development skills
-│   │   └── [other domains]/
-│   ├── taxonomy/
-│   │   ├── manager.py           # Taxonomy management
-│   │   └── schema.py            # Taxonomy schema definitions
-│   ├── workflow/
-│   │   ├── skill_creator.py     # Main workflow orchestrator
-│   │   └── signatures/          # DSPy signatures for each step
-│   └── validators/
-│       ├── skill_validator.py   # Core validation logic
-│       └── frontmatter.py       # YAML frontmatter validation
+src/skill_fleet/
+├── agent/
+│   └── agent.py                 # Conversational agent for skill creation
+├── cli/
+│   └── main.py                  # CLI entry point
+├── common/
+│   └── utils.py                 # Shared utility functions
 ├── llm/
-│   ├── config.yaml              # LLM provider configuration
-│   └── client.py                # LLM client wrapper
-└── config.yaml                  # Global configuration
+│   ├── dspy_config.py           # Centralized DSPy configuration
+│   └── fleet_config.py          # LLM provider configuration
+├── taxonomy/
+│   └── manager.py               # Taxonomy management
+├── validators/
+│   └── skill_validator.py       # Core validation logic
+└── workflow/
+    ├── creator.py               # Main workflow orchestrator
+    ├── modules.py               # DSPy modules
+    ├── programs.py              # DSPy programs
+    └── signatures.py            # DSPy signatures for each step
 ```
 
 ### Documentation
 
 ```
 docs/
-├── overview.md                  # System architecture
-├── skill-creator-guide.md       # Detailed skill creation guide
-├── agentskills-compliance.md    # agentskills.io specification guide
+├── overview.md                     # System architecture
+├── skill-creator-guide.md          # Detailed skill creation guide
+├── agentskills-compliance.md       # agentskills.io specification guide
+├── cli-reference.md                # Complete CLI reference
+├── api-reference.md                # Python API documentation
+├── development/
+│   ├── CONTRIBUTING.md             # Contributing guidelines
+│   └── ARCHITECTURE_DECISIONS.md   # Architecture decision records
 └── architecture/
     └── skill-creation-workflow.md
 ```
@@ -210,7 +248,8 @@ docs/
 
 - **`pyproject.toml`**: Python package metadata, dependencies, entry points
 - **`.env`**: Environment variables (API keys, configuration)
-- **`src/agentic_fleet/config.yaml`**: LLM configuration (model selection, parameters)
+- **`config/config.yaml`**: LLM configuration (model selection, parameters)
+- **`src/skill_fleet/config/`**: Packaged defaults for wheels (kept in sync with `config/`)
 
 ---
 
@@ -351,8 +390,8 @@ DSPY_TEMPERATURE=0.7
 
 ### Modifying the Skill Creation Workflow
 
-1. Update DSPy signatures in `workflow/signatures/`
-2. Modify workflow logic in `workflow/skill_creator.py`
+1. Update DSPy signatures in `workflow/signatures.py`
+2. Modify workflow logic in `workflow/creator.py`
 3. Test with `uv run skill-fleet create-skill --task "Test task"`
 4. Validate output format and quality
 
@@ -404,16 +443,22 @@ uv run ruff format .
 - CLI: `src/skill_fleet/cli/`
 - Tests: `tests/`
 - Docs: `docs/`
-- Config: `src/agentic_fleet/config.yaml`
+- Config: `config/config.yaml`
 
 ---
 
 ## 📚 Further Reading
 
+### User Documentation
 - [agentskills.io Compliance Guide](docs/agentskills-compliance.md) - Complete specification
 - [Skill Creator Guide](docs/skill-creator-guide.md) - Detailed creation workflow
 - [Architecture Overview](docs/overview.md) - System design and concepts
 - [CLI Reference](docs/cli-reference.md) - Full command documentation
+- [API Reference](docs/api-reference.md) - Python API documentation
+
+### Developer Documentation
+- [Contributing Guide](docs/development/CONTRIBUTING.md) - Development setup and workflows
+- [Architecture Decisions](docs/development/ARCHITECTURE_DECISIONS.md) - Key architectural decisions and their rationale
 
 ---
 
@@ -426,6 +471,8 @@ uv run ruff format .
 5. **Test your changes** - run pytest and validate-skill before considering work complete
 6. **Document assumptions** - if you make decisions, explain them in commit messages
 7. **Use dry-run mode** - preview changes before applying them to avoid mistakes
+8. **Use common utilities** - import from `skill_fleet.common.utils` for safe JSON/float conversion
+9. **Understand DSPy configuration** - CLI auto-configures DSPy, but library users must call `configure_dspy()`
 
 ---
 
@@ -443,6 +490,12 @@ uv run ruff format .
 - Clear cache: `rm -rf ~/.cache/dspy/`
 - Or set custom cache dir: `export DSPY_CACHEDIR=/path/to/cache`
 
+### "DSPy not configured"
+- CLI automatically configures DSPy on startup
+- For library use: call `configure_dspy()` before any DSPy operations
+- Check `config/config.yaml` for LM settings
+- Verify `GOOGLE_API_KEY` is set
+
 ### "Tests failing after changes"
 - Run `uv run pytest -v` for verbose output
 - Check if validators need updating
@@ -450,5 +503,5 @@ uv run ruff format .
 
 ---
 
-**Last Updated**: 2026-01-08
+**Last Updated**: 2026-01-10
 **Maintainer**: skill-fleet team

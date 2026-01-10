@@ -5,6 +5,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Centralized DSPy configuration via `skill_fleet.llm.dspy_config` module
+  - `configure_dspy()` function for one-time DSPy initialization
+  - `get_task_lm()` function for task-specific LM instances
+  - Environment variable support for `DSPY_CACHEDIR` and `DSPY_TEMPERATURE`
+- `revision_feedback` parameter to `EditSkillContent` signature for iterative refinement
+- Proper UTC timestamp generation for skill evolution metadata using `datetime.now(UTC).isoformat()`
+- Common utilities module `src/skill_fleet/common/utils.py`
+  - `safe_json_loads()` for robust JSON parsing with fallback
+  - `safe_float()` for safe float conversion
+- Documentation:
+  - API reference documentation for new modules
+  - DSPy configuration section in CLI reference
+  - Contributing guide (`docs/development/CONTRIBUTING.md`)
+  - Architecture Decision Records (`docs/development/ARCHITECTURE_DECISIONS.md`)
+
+### Changed
+
+- Evolution metadata now includes proper timestamps and change summaries
+  - `timestamp`: ISO 8601 UTC timestamp of creation/revision
+  - `change_summary`: Human-readable description of changes
+- CLI now calls `configure_dspy()` on startup for consistent DSPy settings
+- Improved revision feedback handling in skill editing workflow
+- Import ordering improvements for better code organization
+
+### Removed
+
+- Legacy signature classes `UnderstandTaskForSkillLegacy` and `PlanSkillStructureLegacy` from `workflow/signatures.py`
+- Legacy comment block from workflow/signatures.py
+- Duplicate utility functions from `workflow/modules.py` and `agent/modules.py` (now centralized in `common/utils.py`)
+- Unused imports: `gather_context` from agent/agent.py
+
+### Fixed
+
+- Hardcoded empty strings in evolution metadata replaced with proper values
+- TODO comments for `revision_feedback` incorporation addressed
+- Linting issues with import ordering in modified files
+
+---
+
 ## [0.1.1] - 2026-01-09
 
 ### Fixed

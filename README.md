@@ -86,6 +86,9 @@ uv run skills-fleet create-skill --task "Create a Python async programming skill
 # Create a skill with auto-approval (skips interactive review)
 uv run skills-fleet create-skill --task "Create a Python async programming skill" --auto-approve
 
+# Create a revised skill with feedback
+uv run skills-fleet create-skill --task "Improve Python async skill" --revision-feedback "Add more examples for error handling"
+
 # Validate a skill directory
 uv run skills-fleet validate-skill skills/general/testing
 
@@ -122,13 +125,20 @@ uv run ruff check .
 
 ## 📖 Documentation
 
+### User Documentation
 *   [Quick Start](docs/quick-start.md) - Get up and running in minutes.
 *   [Overview](docs/overview.md) - System architecture and core concepts.
 *   [Skill Creator Guide](docs/skill-creator-guide.md) - Detailed instructions for generating new skills.
 *   [CLI Reference](docs/cli-reference.md) - Complete command-line interface reference.
 *   [API Reference](docs/api-reference.md) - Python API documentation for programmatic use.
+
+### Technical Documentation
 *   [agentskills.io Compliance](docs/agentskills-compliance.md) - Guide to agentskills.io standard, YAML frontmatter, migration, and XML generation.
 *   [Workflow Internals](docs/architecture/skill-creation-workflow.md) - Technical breakdown of the 6-step generation process.
+
+### Developer Documentation
+*   [Contributing Guide](docs/development/CONTRIBUTING.md) - Guidelines for contributing to the project.
+*   [Architecture Decisions](docs/development/ARCHITECTURE_DECISIONS.md) - Records of significant architectural decisions.
 
 ---
 
@@ -136,19 +146,23 @@ uv run ruff check .
 
 ```text
 .
-├── src/agentic_fleet/
-│   ├── agentic_skills_system/  # Core Python logic
-│   │   ├── cli/                # CLI implementation
-│   │   ├── skills/             # Skills storage & taxonomy
-│   │   ├── taxonomy/           # Taxonomy management
-│   │   ├── workflow/           # DSPy skill generation workflows
-│   │   └── validators/         # Skill validation logic
-│   ├── llm/                    # LLM configuration and clients
-│   └── tui/                    # TypeScript/React TUI
-├── tests/                      # Pytest suite
-├── plans/                      # Architecture and roadmap docs
-├── pyproject.toml              # Python metadata & entry points
-└── package.json                # Node.js metadata & scripts
+├── src/skill_fleet/
+│   ├── agent/                   # Conversational agent for skill creation
+│   ├── analytics/               # Usage analytics and recommendations
+│   ├── cli/                     # CLI implementation
+│   ├── common/                  # Shared utilities
+│   ├── llm/                     # LLM configuration and DSPy setup
+│   ├── onboarding/              # User onboarding and bootstrap
+│   ├── taxonomy/                # Taxonomy management
+│   ├── ui/                      # TypeScript/React TUI
+│   ├── validators/              # Skill validation logic
+│   └── workflow/                # DSPy skill generation workflows
+├── skills/                      # Skills storage & taxonomy
+├── config/                      # Configuration files
+├── tests/                       # Pytest suite
+├── plans/                       # Architecture and roadmap docs
+├── pyproject.toml               # Python metadata & entry points
+└── package.json                 # Node.js metadata & scripts
 ```
 
 ---
@@ -162,8 +176,13 @@ uv run ruff check .
 | `LITELLM_API_KEY`   | API key for LiteLLM proxy | No |
 | `LANGFUSE_SECRET_KEY`| Telemetry via Langfuse | No |
 | `REDIS_HOST`        | Redis host for state management | No |
-| `DSPY_CACHEDIR`     | Custom directory for DSPy disk cache | No |
-| `DSPY_TEMPERATURE`  | Global temperature override for all tasks | No |
+
+### DSPy Configuration
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `DSPY_CACHEDIR`     | Custom directory for DSPy disk cache (default: `.dspy_cache`) | No |
+| `DSPY_TEMPERATURE`  | Global temperature override for all LLM tasks | No |
 
 *Note: See `.env` for a comprehensive list of supported integrations.*
 

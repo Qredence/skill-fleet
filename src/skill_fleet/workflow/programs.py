@@ -26,6 +26,7 @@ from typing import TYPE_CHECKING, Any
 
 import dspy
 
+from ..common.utils import json_serialize
 from .modules import (
     EditModule,
     EditModuleQA,
@@ -146,10 +147,14 @@ class SkillCreationProgram(dspy.Module):
         # Step 4: EDIT
         lm = task_lms.get("skill_edit") if task_lms else dspy.settings.lm
         with dspy.context(lm=lm):
+            # Serialize parent_skills to JSON string (EditModule expects str, not list)
+            parent_skills_str = json_serialize(understanding["parent_skills"])
+            # Serialize composition_strategy to JSON string if it's a dict
+            composition_strategy_str = json_serialize(plan.get("composition_strategy", ""))
             content = self.edit(
                 skill_skeleton=skeleton["skill_skeleton"],
-                parent_skills=understanding["parent_skills"],
-                composition_strategy=plan["composition_strategy"],
+                parent_skills=parent_skills_str,
+                composition_strategy=composition_strategy_str,
             )
 
         # Step 5: PACKAGE
@@ -225,10 +230,14 @@ class SkillCreationProgram(dspy.Module):
         # Step 4: EDIT
         lm = task_lms.get("skill_edit") if task_lms else dspy.settings.lm
         with dspy.context(lm=lm):
+            # Serialize parent_skills to JSON string (EditModule expects str, not list)
+            parent_skills_str = json_serialize(understanding["parent_skills"])
+            # Serialize composition_strategy to JSON string if it's a dict
+            composition_strategy_str = json_serialize(plan.get("composition_strategy", ""))
             content = await self.edit.acall(
                 skill_skeleton=skeleton["skill_skeleton"],
-                parent_skills=understanding["parent_skills"],
-                composition_strategy=plan["composition_strategy"],
+                parent_skills=parent_skills_str,
+                composition_strategy=composition_strategy_str,
             )
 
         # Step 5: PACKAGE
@@ -426,10 +435,14 @@ class QuickSkillProgram(dspy.Module):
 
         lm = task_lms.get("skill_edit") if task_lms else dspy.settings.lm
         with dspy.context(lm=lm):
+            # Serialize parent_skills to JSON string (EditModule expects str, not list)
+            parent_skills_str = json_serialize(understanding["parent_skills"])
+            # Serialize composition_strategy to JSON string if it's a dict
+            composition_strategy_str = json_serialize(plan.get("composition_strategy", ""))
             content = self.edit(
                 skill_skeleton=skeleton["skill_skeleton"],
-                parent_skills=understanding["parent_skills"],
-                composition_strategy=plan["composition_strategy"],
+                parent_skills=parent_skills_str,
+                composition_strategy=composition_strategy_str,
             )
 
         return {"understanding": understanding, "plan": plan, "content": content}
@@ -475,10 +488,14 @@ class QuickSkillProgram(dspy.Module):
 
         lm = task_lms.get("skill_edit") if task_lms else dspy.settings.lm
         with dspy.context(lm=lm):
+            # Serialize parent_skills to JSON string (EditModule expects str, not list)
+            parent_skills_str = json_serialize(understanding["parent_skills"])
+            # Serialize composition_strategy to JSON string if it's a dict
+            composition_strategy_str = json_serialize(plan.get("composition_strategy", ""))
             content = await self.edit.acall(
                 skill_skeleton=skeleton["skill_skeleton"],
-                parent_skills=understanding["parent_skills"],
-                composition_strategy=plan["composition_strategy"],
+                parent_skills=parent_skills_str,
+                composition_strategy=composition_strategy_str,
             )
 
         return {"understanding": understanding, "plan": plan, "content": content}

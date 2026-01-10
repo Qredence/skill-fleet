@@ -8,6 +8,50 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 
+# =============================================================================
+# Refinement Mapping Constants
+# =============================================================================
+
+#: Maps question IDs and answer choices to refinement suggestions.
+#: Used by InteractiveHITLHandler to convert user answers into actionable
+#: refinement suggestions for skill improvement.
+REFINEMENT_MAP: dict[str, dict[str, str]] = {
+    "scope_clarity": {
+        "b": "Add more detail to skill scope definition",
+        "c": "Consider splitting skill into smaller, focused skills",
+        "d": "Expand skill scope to cover more use cases",
+    },
+    "capabilities_complete": {
+        "b": "Add missing capabilities to the skill",
+        "c": "Remove or consolidate redundant capabilities",
+    },
+    "dependencies_correct": {
+        "b": "Add missing skill dependencies",
+        "c": "Remove unnecessary dependencies",
+    },
+    "examples_quality": {
+        "c": "Improve usage examples with clearer explanations",
+        "d": "Add practical usage examples",
+    },
+    "documentation_complete": {
+        "b": "Expand documentation with more details",
+        "c": "Add missing documentation sections",
+    },
+    "integration_ease": {
+        "c": "Simplify integration process or add setup guide",
+    },
+    "naming_appropriate": {
+        "b": "Consider improving skill name for clarity",
+        "c": "Rename skill to better reflect its purpose",
+    },
+    "overall_quality": {
+        "b": "Apply minor improvements before final approval",
+        "c": "Perform major revision based on feedback",
+        "d": "Reconsider skill design and requirements",
+    },
+}
+
+
 class FeedbackHandler(ABC):
     """Abstract base class for feedback handlers."""
 
@@ -147,6 +191,7 @@ class InteractiveHITLHandler(FeedbackHandler):
     - Progressive refinement based on user answers
     - Skill content display for informed review
     - Contextual questions based on task description
+    - Dynamic LLM-generated questions (domain-aware, task-specific)
     """
 
     def __init__(self, min_rounds: int = 1, max_rounds: int = 4):
@@ -156,6 +201,11 @@ class InteractiveHITLHandler(FeedbackHandler):
         self.session_history: list[dict] = []
         self.task_description = ""
         self.skill_content = ""
+
+        # Initialize dynamic question generator
+        from .modules import DynamicQuestionGeneratorModule
+
+        self.question_generator = DynamicQuestionGeneratorModule()
 
     def get_feedback(
         self,
@@ -260,7 +310,10 @@ class InteractiveHITLHandler(FeedbackHandler):
                 console.print(f"  ... and {len(capabilities) - 5} more")
 
         # Generate clarifying questions based on current round
-        questions = self._generate_questions(manifest, validation_report, self.current_round)
+        # Use dynamic LLM-based question generation instead of static templates
+        questions = self._generate_questions_dynamic(
+            manifest, validation_report, self.current_round
+        )
 
         # Collect answers
         answers = {}
@@ -373,7 +426,6 @@ class InteractiveHITLHandler(FeedbackHandler):
 
         # Extract skill context for contextual questions
         skill_name = manifest.get("name", "this skill")
-        skill_id = manifest.get("skill_id", "")
         capabilities = manifest.get("capabilities", [])
         cap_names = []
         for cap in capabilities[:3]:
@@ -619,54 +671,72 @@ class InteractiveHITLHandler(FeedbackHandler):
 
         return questions
 
+    def _generate_questions_dynamic(
+        self, manifest: dict, validation_report: dict, round_num: int
+    ) -> list[dict]:
+        """Generate dynamic, domain-aware questions using LLM.
+
+        Uses DynamicQuestionGeneratorModule to create contextual questions
+        that are specific to the task, domain, and skill being reviewed.
+
+        Falls back to static template questions if LLM generation fails.
+        """
+        # Build previous feedback context
+        previous_feedback = ""
+        if self.session_history:
+            for item in self.session_history[-1:]:
+                feedback_items = item.get("refinements", [])
+                if feedback_items:
+                    previous_feedback = "Previous feedback: " + "; ".join(feedback_items)
+
+        try:
+            # Call the dynamic question generator
+            result = self.question_generator(
+                task_description=self.task_description,
+                skill_metadata=manifest,
+                skill_content=self.skill_content[:500] if self.skill_content else "",
+                validation_report=validation_report,
+                round_number=round_num,
+                previous_feedback=previous_feedback,
+            )
+
+            questions = result.get("questions", [])
+
+            # Validate that we got proper questions
+            if questions and isinstance(questions, list) and len(questions) > 0:
+                # Ensure each question has required fields
+                valid_questions = []
+                for q in questions:
+                    if isinstance(q, dict) and q.get("question") and q.get("options"):
+                        # Ensure required fields exist
+                        q.setdefault("id", q.get("id", f"question_{len(valid_questions)}"))
+                        q.setdefault("context", "")
+                        valid_questions.append(q)
+
+                if valid_questions:
+                    return valid_questions
+
+        except Exception as e:
+            logger.warning(f"Dynamic question generation failed: {e}, using fallback")
+
+        # Fallback to static template questions
+        return self._generate_questions(manifest, validation_report, round_num)
+
     def _build_refinements(self, answers: dict) -> list[str]:
-        """Build list of refinements based on user answers."""
+        """Build list of refinements based on user answers.
+
+        Uses the module-level REFINEMENT_MAP to convert user answer
+        choices into actionable refinement suggestions.
+        """
         refinements = []
 
-        # Map answers to refinement suggestions
-        refinement_map = {
-            "scope_clarity": {
-                "b": "Add more detail to skill scope definition",
-                "c": "Consider splitting skill into smaller, focused skills",
-                "d": "Expand skill scope to cover more use cases",
-            },
-            "capabilities_complete": {
-                "b": "Add missing capabilities to the skill",
-                "c": "Remove or consolidate redundant capabilities",
-            },
-            "dependencies_correct": {
-                "b": "Add missing skill dependencies",
-                "c": "Remove unnecessary dependencies",
-            },
-            "examples_quality": {
-                "c": "Improve usage examples with clearer explanations",
-                "d": "Add practical usage examples",
-            },
-            "documentation_complete": {
-                "b": "Expand documentation with more details",
-                "c": "Add missing documentation sections",
-            },
-            "integration_ease": {
-                "c": "Simplify integration process or add setup guide",
-            },
-            "naming_appropriate": {
-                "b": "Consider improving skill name for clarity",
-                "c": "Rename skill to better reflect its purpose",
-            },
-            "overall_quality": {
-                "b": "Apply minor improvements before final approval",
-                "c": "Perform major revision based on feedback",
-                "d": "Reconsider skill design and requirements",
-            },
-        }
-
         for question_id, answer in answers.items():
-            if question_id in refinement_map:
+            if question_id in REFINEMENT_MAP:
                 # Handle both single (str) and multiple (list) answers
                 answer_keys = answer if isinstance(answer, list) else [answer]
                 for answer_key in answer_keys:
-                    if answer_key and answer_key in refinement_map[question_id]:
-                        refinements.append(refinement_map[question_id][answer_key])
+                    if answer_key and answer_key in REFINEMENT_MAP[question_id]:
+                        refinements.append(REFINEMENT_MAP[question_id][answer_key])
 
         return refinements
 

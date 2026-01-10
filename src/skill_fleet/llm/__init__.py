@@ -1,6 +1,6 @@
 """LLM configuration helpers for `skill_fleet`.
 
-This package loads `src/skill_fleet/config.yaml` and produces `dspy.LM` instances
+This package loads `config/config.yaml` and produces `dspy.LM` instances
 for tasks/roles, using the config as the single source of truth.
 """
 

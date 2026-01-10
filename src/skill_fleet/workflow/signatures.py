@@ -231,6 +231,10 @@ class EditSkillContent(dspy.Signature):
         desc="Content/metadata from parent/sibling skills for context"
     )
     composition_strategy: str = dspy.InputField(desc="How this skill composes with others")
+    revision_feedback: str = dspy.InputField(
+        default="",
+        desc="User feedback from previous revision to incorporate (empty if initial generation)"
+    )
 
     # Outputs - skill_content stays as string for long-form markdown
     skill_content: str = dspy.OutputField(
@@ -322,61 +326,58 @@ class IterateSkillWithFeedback(dspy.Signature):
 
 
 # =============================================================================
-# Legacy Signatures (String-based, for backward compatibility)
+# Dynamic Question Generation for Feedback
 # =============================================================================
-# These can be removed once all modules are updated to use typed signatures
 
 
-class UnderstandTaskForSkillLegacy(dspy.Signature):
-    """Legacy signature with string outputs for backward compatibility."""
+class GenerateDynamicFeedbackQuestions(dspy.Signature):
+    """Generate contextual, domain-aware questions for skill feedback.
 
-    task_description: str = dspy.InputField(desc="User task or capability requirement")
-    existing_skills: str = dspy.InputField(desc="JSON list of currently mounted skill_ids")
-    taxonomy_structure: str = dspy.InputField(
-        desc="JSON object with relevant portions of the hierarchical taxonomy"
+    Instead of using static template questions, this signature uses the LLM
+    to generate dynamic questions that are:
+    - Domain-aware (incorporating specific terminology from the task)
+    - Contextual (referencing specific capabilities and content)
+    - Task-specific (tailored to what the user actually requested)
+
+    This replaces the hardcoded template questions in InteractiveFeedbackHandler.
+    """
+
+    # Inputs
+    task_description: str = dspy.InputField(
+        desc="User's original task description - what they want to create"
+    )
+    skill_metadata: str = dspy.InputField(
+        desc="JSON skill metadata including name, description, capabilities, type"
+    )
+    skill_content: str = dspy.InputField(
+        desc="Generated SKILL.md content (first 500 chars for context)"
+    )
+    validation_report: str = dspy.InputField(
+        desc="JSON validation report with errors, warnings, quality score"
+    )
+    round_number: int = dspy.InputField(
+        desc="Current feedback round (1=alignment check, 2=quality, 3+=refinement)"
+    )
+    previous_feedback: str = dspy.InputField(
+        desc="Previous feedback and responses (empty for round 1)", default=""
     )
 
-    task_intent: str = dspy.OutputField(desc="Core intent and requirements extracted from task")
-    taxonomy_path: str = dspy.OutputField(
-        desc="Proposed taxonomy path (e.g., 'technical_skills/programming/languages/python')"
-    )
-    parent_skills: str = dspy.OutputField(
-        desc="JSON list of parent/sibling skills in taxonomy for context"
-    )
-    dependency_analysis: str = dspy.OutputField(
-        desc="JSON object analyzing required dependency skills not yet mounted"
-    )
-    confidence_score: float = dspy.OutputField(desc="Confidence in taxonomy placement (0.0-1.0)")
+    # Outputs - JSON formatted for compatibility with InteractiveFeedbackHandler
+    questions_json: str = dspy.OutputField(
+        desc="""JSON array of question objects. Each object must have:
+        - "id": unique identifier (e.g., "scope_alignment", "capability_completeness")
+        - "question": the actual question text (domain-specific, task-specific)
+        - "context": explanation of why this question matters
+        - "options": array of option objects with "id", "label", "description"
 
+        Format: [{"id": "...", "question": "...", "context": "...", "options": [...]}]
 
-class PlanSkillStructureLegacy(dspy.Signature):
-    """Legacy signature with string outputs for backward compatibility."""
-
-    task_intent: str = dspy.InputField()
-    taxonomy_path: str = dspy.InputField()
-    parent_skills: str = dspy.InputField()
-    dependency_analysis: str = dspy.InputField()
-
-    skill_metadata: str = dspy.OutputField(
-        desc="""JSON metadata with required fields:
-        - skill_id: taxonomy path (e.g., 'technical_skills/programming/languages/python/decorators')
-        - name: kebab-case name for agentskills.io (e.g., 'python-decorators'), max 64 chars, lowercase
-        - description: 1-2 sentence description (max 1024 chars) of what skill does and when to use it
-        - version: semver format '1.0.0'
-        - type: one of 'cognitive|technical|domain|tool|mcp|specialization|task_focus|memory'
-        - weight: one of 'lightweight|medium|heavyweight'
-        - load_priority: one of 'always|task_specific|on_demand|dormant'
-        - dependencies: list of skill_ids
-        - capabilities: list of capability names"""
+        Requirements:
+        - Round 1: Focus on scope alignment, capability completeness, dependencies
+        - Round 2: Focus on content quality, examples, clarity
+        - Round 3+: Focus on refinements, edge cases, improvements
+        - Use domain-specific terminology from the task
+        - Reference specific capabilities by name when relevant
+        - Each question should have 2-4 options covering key concerns
+        """
     )
-    dependencies: str = dspy.OutputField(
-        desc="JSON array of dependency skill_ids with justification for each"
-    )
-    capabilities: str = dspy.OutputField(desc="JSON array of discrete, testable capabilities")
-    resource_requirements: str = dspy.OutputField(
-        desc="JSON object of external resources (APIs, tools, files) needed"
-    )
-    compatibility_constraints: str = dspy.OutputField(
-        desc="JSON object with constraints, conflicts, platform requirements"
-    )
-    composition_strategy: str = dspy.OutputField(desc="How this skill composes with other skills")

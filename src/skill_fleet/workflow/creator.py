@@ -12,6 +12,7 @@ from typing import Any
 
 import dspy
 
+from ..common.utils import json_serialize
 from ..taxonomy.manager import TaxonomyManager
 from ..validators.skill_validator import SkillValidator
 from .feedback import FeedbackHandler, create_feedback_handler
@@ -37,6 +38,7 @@ class TaxonomySkillCreator(dspy.Module):
         lm: dspy.LM | None = None,
         optimizer: WorkflowOptimizer | None = None,
         verbose: bool = True,
+        reasoning_tracer: Any | None = None,  # TODO: Type properly when available
     ):
         """Initialize skill creator.
 
@@ -47,11 +49,13 @@ class TaxonomySkillCreator(dspy.Module):
             lm: Language model (uses dspy.settings if None)
             optimizer: Workflow optimizer for caching (optional)
             verbose: Whether to print progress
+            reasoning_tracer: Optional tracer for Phase 1/2 reasoning visibility
         """
         super().__init__()
         self.taxonomy = taxonomy_manager
         self.optimizer = optimizer
         self.verbose = verbose
+        self.reasoning_tracer = reasoning_tracer
 
         # Initialize feedback handler
         self.feedback_handler = feedback_handler or create_feedback_handler("auto")
@@ -326,7 +330,7 @@ class TaxonomySkillCreator(dspy.Module):
                         composition_strategy=plan["composition_strategy"],
                         plan=plan,
                         taxonomy_path=understanding["taxonomy_path"],
-                        revision_feedback=decision["revision_plan"],
+                        revision_feedback=json_serialize(decision["revision_plan"]),
                         task_lms=task_lms,
                     )
 

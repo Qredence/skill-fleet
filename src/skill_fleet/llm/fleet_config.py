@@ -1,6 +1,6 @@
 """Fleet LLM configuration loader and DSPy LM factory.
 
-This module interprets `src/skill_fleet/config.yaml` and builds `dspy.LM`
+This module interprets `config/config.yaml` and builds `dspy.LM`
 instances using LiteLLM-compatible model strings.
 """
 
@@ -161,92 +161,17 @@ def build_lm_for_task(config: dict[str, Any], task_name: str) -> dspy.LM:
     if resolved.timeout is not None:
         lm_kwargs["timeout"] = resolved.timeout
 
+    # Provider-specific configuration
     if provider == "deepinfra":
-        api_key_env = entry.get("env")
-        api_base_env = entry.get("base_url_env")
-        api_base_default = entry.get("base_url_default")
+        dspy_model, lm_kwargs = _configure_deepinfra(entry, model_name, lm_kwargs)
+    elif provider == "gemini":
+        dspy_model, lm_kwargs = _configure_gemini(entry, model_name, lm_kwargs)
+    elif provider == "zai":
+        dspy_model, lm_kwargs = _configure_zai(entry, model_name, lm_kwargs)
+    else:
+        # Vertex and other providers: treat as already LiteLLM-formatted
+        dspy_model = model_name if "/" in model_name else f"{provider}/{model_name}"
 
-        api_key = _get_env_value(str(api_key_env) if api_key_env else None)
-        if not api_key:
-            raise FleetConfigError(
-                f"Missing API key env var for {resolved.model_key}: {api_key_env}"
-            )
-
-        api_base = _get_env_value(str(api_base_env) if api_base_env else None) or api_base_default
-        if not isinstance(api_base, str) or not api_base:
-            raise FleetConfigError(f"Missing API base for {resolved.model_key}")
-
-        dspy_model = f"openai/{model_name}"
-        lm_kwargs.update({"api_key": api_key, "api_base": api_base})
-        return dspy.LM(
-            dspy_model,
-            model_type=resolved.model_type,  # type: ignore[arg-type]
-            temperature=temperature,
-            max_tokens=max_tokens,
-            **lm_kwargs,
-        )
-
-    if provider == "gemini":
-        api_key_env = entry.get("env")
-        api_key_fallback = entry.get("env_fallback")
-        api_key = _get_env_value(
-            str(api_key_env) if api_key_env else None,
-            str(api_key_fallback) if api_key_fallback else None,
-        )
-        if not api_key:
-            raise FleetConfigError(
-                f"Missing API key for {resolved.model_key}: set {api_key_env} or {api_key_fallback}"
-            )
-
-        dspy_model = f"gemini/{model_name}"
-
-        # Handle thinking_level for Gemini 3+ models
-        thinking_level = lm_kwargs.pop("thinking_level", None)
-        if thinking_level:
-            # Pass via extra_body to ensure it reaches Gemini API correctly
-            # The API expects generationConfig: { thinkingConfig: { thinkingLevel: ... } }
-            # LiteLLM often maps top-level extra_body to the request root.
-            if "extra_body" not in lm_kwargs:
-                lm_kwargs["extra_body"] = {}
-
-            # We'll provide it in a way that LiteLLM can hopefully pass through
-            lm_kwargs["extra_body"]["thinking_config"] = {"thinking_level": thinking_level}
-
-        lm_kwargs.update({"api_key": api_key})
-        return dspy.LM(
-            dspy_model,
-            model_type=resolved.model_type,  # type: ignore[arg-type]
-            temperature=temperature,
-            max_tokens=max_tokens,
-            **lm_kwargs,
-        )
-
-    if provider == "zai":
-        api_key_env = entry.get("env")
-        api_base_env = entry.get("base_url_env")
-
-        api_key = _get_env_value(str(api_key_env) if api_key_env else None)
-        if not api_key:
-            raise FleetConfigError(
-                f"Missing API key env var for {resolved.model_key}: {api_key_env}"
-            )
-
-        api_base = _get_env_value(str(api_base_env) if api_base_env else None)
-        if api_base:
-            lm_kwargs["api_base"] = api_base
-        lm_kwargs["api_key"] = api_key
-
-        dspy_model = f"anthropic/{model_name}"
-        return dspy.LM(
-            dspy_model,
-            model_type=resolved.model_type,  # type: ignore[arg-type]
-            temperature=temperature,
-            max_tokens=max_tokens,
-            **lm_kwargs,
-        )
-
-    # Vertex and other providers: treat as already LiteLLM-formatted where possible.
-    dspy_model = model_name if "/" in model_name else f"{provider}/{model_name}"
     return dspy.LM(
         dspy_model,
         model_type=resolved.model_type,  # type: ignore[arg-type]
@@ -254,3 +179,72 @@ def build_lm_for_task(config: dict[str, Any], task_name: str) -> dspy.LM:
         max_tokens=max_tokens,
         **lm_kwargs,
     )
+
+
+def _configure_deepinfra(
+    entry: dict[str, Any], model_name: str, lm_kwargs: dict[str, Any]
+) -> tuple[str, dict[str, Any]]:
+    """Configure DeepInfra provider settings."""
+    api_key_env = entry.get("env")
+    api_base_env = entry.get("base_url_env")
+    api_base_default = entry.get("base_url_default")
+
+    api_key = _get_env_value(str(api_key_env) if api_key_env else None)
+    if not api_key:
+        raise FleetConfigError(
+            f"Missing API key env var for {entry.get('model_key')}: {api_key_env}"
+        )
+
+    api_base = _get_env_value(str(api_base_env) if api_base_env else None) or api_base_default
+    if not isinstance(api_base, str) or not api_base:
+        raise FleetConfigError(f"Missing API base for {entry.get('model_key')}")
+
+    lm_kwargs.update({"api_key": api_key, "api_base": api_base})
+    return f"openai/{model_name}", lm_kwargs
+
+
+def _configure_gemini(
+    entry: dict[str, Any], model_name: str, lm_kwargs: dict[str, Any]
+) -> tuple[str, dict[str, Any]]:
+    """Configure Gemini provider settings."""
+    api_key_env = entry.get("env")
+    api_key_fallback = entry.get("env_fallback")
+    api_key = _get_env_value(
+        str(api_key_env) if api_key_env else None,
+        str(api_key_fallback) if api_key_fallback else None,
+    )
+    if not api_key:
+        raise FleetConfigError(
+            f"Missing API key for {entry.get('model_key')}: set {api_key_env} or {api_key_fallback}"
+        )
+
+    # Handle thinking_level for Gemini 3+ models
+    thinking_level = lm_kwargs.pop("thinking_level", None)
+    if thinking_level:
+        if "extra_body" not in lm_kwargs:
+            lm_kwargs["extra_body"] = {}
+        lm_kwargs["extra_body"]["thinking_config"] = {"thinking_level": thinking_level}
+
+    lm_kwargs["api_key"] = api_key
+    return f"gemini/{model_name}", lm_kwargs
+
+
+def _configure_zai(
+    entry: dict[str, Any], model_name: str, lm_kwargs: dict[str, Any]
+) -> tuple[str, dict[str, Any]]:
+    """Configure ZAI provider settings."""
+    api_key_env = entry.get("env")
+    api_base_env = entry.get("base_url_env")
+
+    api_key = _get_env_value(str(api_key_env) if api_key_env else None)
+    if not api_key:
+        raise FleetConfigError(
+            f"Missing API key env var for {entry.get('model_key')}: {api_key_env}"
+        )
+
+    api_base = _get_env_value(str(api_base_env) if api_base_env else None)
+    if api_base:
+        lm_kwargs["api_base"] = api_base
+    lm_kwargs["api_key"] = api_key
+
+    return f"anthropic/{model_name}", lm_kwargs

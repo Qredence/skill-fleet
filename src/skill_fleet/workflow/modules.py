@@ -16,16 +16,16 @@ Approved LLM Models:
 
 from __future__ import annotations
 
-import json
 import logging
-from typing import Any
 
 import dspy
 
+from ..common.utils import json_serialize, safe_float, safe_json_loads
 from .models import Capability, ExampleGatheringConfig
 from .signatures import (
     EditSkillContent,
     GatherExamplesForSkill,
+    GenerateDynamicFeedbackQuestions,
     InitializeSkillSkeleton,
     IterateSkillWithFeedback,
     PackageSkillForApproval,
@@ -34,83 +34,6 @@ from .signatures import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-# =============================================================================
-# Safe JSON Parsing Utilities
-# =============================================================================
-
-
-def safe_json_loads(
-    value: str | Any,
-    default: dict | list | None = None,
-    field_name: str = "unknown",
-) -> dict | list:
-    """Safely parse JSON string with fallback to default.
-
-    Handles:
-    - Already parsed objects (returns as-is)
-    - Valid JSON strings (parses and returns)
-    - Invalid JSON (returns default with warning)
-
-    Args:
-        value: String to parse or already-parsed object
-        default: Default value if parsing fails (dict or list)
-        field_name: Field name for logging
-
-    Returns:
-        Parsed JSON or default value (never None)
-    """
-    if default is None:
-        default = {}
-
-    # Already parsed (dict, list, or Pydantic model)
-    if isinstance(value, dict):
-        return value
-    if isinstance(value, list):
-        # Handle list of Pydantic models
-        return [item.model_dump() if hasattr(item, "model_dump") else item for item in value]
-    if hasattr(value, "model_dump"):  # Pydantic model
-        return value.model_dump()
-
-    # Empty or None
-    if not value:
-        return default
-
-    # Try to parse JSON string
-    if isinstance(value, str):
-        try:
-            return json.loads(value)
-        except json.JSONDecodeError as e:
-            logger.warning(
-                f"Failed to parse JSON for field '{field_name}': {e}. "
-                f"Value preview: {value[:100]}..."
-            )
-            return default
-
-    # Unknown type
-    logger.warning(f"Unexpected type for field '{field_name}': {type(value)}")
-    return default
-
-
-def safe_float(value: Any, default: float = 0.0) -> float:
-    """Safely convert value to float.
-
-    Args:
-        value: Value to convert
-        default: Default if conversion fails
-
-    Returns:
-        Float value
-    """
-    if isinstance(value, (int, float)):
-        return float(value)
-    if isinstance(value, str):
-        try:
-            return float(value)
-        except ValueError:
-            return default
-    return default
 
 
 # =============================================================================
@@ -149,17 +72,14 @@ class GatherExamplesModule(dspy.Module):
             Dict with clarifying_questions, new_examples, terminology_updates,
             refined_task, readiness_score, and readiness_reasoning
         """
-        if user_responses is None:
-            user_responses = []
-        if collected_examples is None:
-            collected_examples = []
-        if config is None:
-            config = ExampleGatheringConfig()
+        user_responses = user_responses or []
+        collected_examples = collected_examples or []
+        config = config or ExampleGatheringConfig()
 
         result = self.gather(
             task_description=task_description,
-            user_responses=json.dumps(user_responses, indent=2),
-            collected_examples=json.dumps(collected_examples, indent=2),
+            user_responses=json_serialize(user_responses),
+            collected_examples=json_serialize(collected_examples),
             config=config.model_dump_json(indent=2),
         )
 
@@ -212,17 +132,14 @@ class GatherExamplesModule(dspy.Module):
         config: ExampleGatheringConfig | None = None,
     ) -> dict:
         """Gather examples asynchronously."""
-        if user_responses is None:
-            user_responses = []
-        if collected_examples is None:
-            collected_examples = []
-        if config is None:
-            config = ExampleGatheringConfig()
+        user_responses = user_responses or []
+        collected_examples = collected_examples or []
+        config = config or ExampleGatheringConfig()
 
         result = await self.gather.acall(
             task_description=task_description,
-            user_responses=json.dumps(user_responses, indent=2),
-            collected_examples=json.dumps(collected_examples, indent=2),
+            user_responses=json_serialize(user_responses),
+            collected_examples=json_serialize(collected_examples),
             config=config.model_dump_json(indent=2),
         )
 
@@ -289,8 +206,8 @@ class UnderstandModule(dspy.Module):
         """
         result = self.understand(
             task_description=task_description,
-            existing_skills=json.dumps(existing_skills, indent=2),
-            taxonomy_structure=json.dumps(taxonomy_structure, indent=2),
+            existing_skills=json_serialize(existing_skills),
+            taxonomy_structure=json_serialize(taxonomy_structure),
         )
 
         return {
@@ -314,8 +231,8 @@ class UnderstandModule(dspy.Module):
         """Analyze task asynchronously."""
         result = await self.understand.acall(
             task_description=task_description,
-            existing_skills=json.dumps(existing_skills, indent=2),
-            taxonomy_structure=json.dumps(taxonomy_structure, indent=2),
+            existing_skills=json_serialize(existing_skills),
+            taxonomy_structure=json_serialize(taxonomy_structure),
         )
 
         return {
@@ -352,18 +269,11 @@ class PlanModule(dspy.Module):
             resource_requirements, compatibility_constraints,
             and composition_strategy
         """
-        # Serialize dependency_analysis if it's a dict (from UnderstandModule)
-        dependency_analysis_str = (
-            json.dumps(dependency_analysis, indent=2)
-            if isinstance(dependency_analysis, dict)
-            else dependency_analysis
-        )
-
         result = self.plan(
             task_intent=task_intent,
             taxonomy_path=taxonomy_path,
-            parent_skills=json.dumps(parent_skills, indent=2),
-            dependency_analysis=dependency_analysis_str,
+            parent_skills=json_serialize(parent_skills),
+            dependency_analysis=json_serialize(dependency_analysis),
         )
 
         return {
@@ -395,18 +305,11 @@ class PlanModule(dspy.Module):
         dependency_analysis: dict | str,
     ) -> dict:
         """Design skill structure asynchronously."""
-        # Serialize dependency_analysis if it's a dict (from UnderstandModule)
-        dependency_analysis_str = (
-            json.dumps(dependency_analysis, indent=2)
-            if isinstance(dependency_analysis, dict)
-            else dependency_analysis
-        )
-
         result = await self.plan.acall(
             task_intent=task_intent,
             taxonomy_path=taxonomy_path,
-            parent_skills=json.dumps(parent_skills, indent=2),
-            dependency_analysis=dependency_analysis_str,
+            parent_skills=json_serialize(parent_skills),
+            dependency_analysis=json_serialize(dependency_analysis),
         )
 
         return {
@@ -449,15 +352,9 @@ class InitializeModule(dspy.Module):
         Returns:
             Dict with skill_skeleton and validation_checklist
         """
-        # Note: capabilities can be either Pydantic Capability objects (from PlanModule)
-        # or plain dicts (from tests). We need to serialize them to JSON for the LLM.
-        # Use .model_dump() for Pydantic objects to convert to dict, then json.dumps()
-        # to create the JSON string expected by the LLM.
         result = self.initialize(
-            skill_metadata=json.dumps(skill_metadata, indent=2),
-            capabilities=json.dumps(
-                [c.model_dump() if hasattr(c, "model_dump") else c for c in capabilities], indent=2
-            ),
+            skill_metadata=json_serialize(skill_metadata),
+            capabilities=json_serialize(capabilities, ensure_list=True),
             taxonomy_path=taxonomy_path,
         )
 
@@ -478,10 +375,8 @@ class InitializeModule(dspy.Module):
     ) -> dict:
         """Create a skill file structure asynchronously."""
         result = await self.initialize.acall(
-            skill_metadata=json.dumps(skill_metadata, indent=2),
-            capabilities=json.dumps(
-                [c.model_dump() if hasattr(c, "model_dump") else c for c in capabilities], indent=2
-            ),
+            skill_metadata=json_serialize(skill_metadata),
+            capabilities=json_serialize(capabilities, ensure_list=True),
             taxonomy_path=taxonomy_path,
         )
 
@@ -521,11 +416,11 @@ class EditModule(dspy.Module):
             Dict with skill_content, capability_implementations,
             usage_examples, best_practices, and integration_guide
         """
-        # TODO: Incorporate revision_feedback into prompt
         result = self.edit(
-            skill_skeleton=json.dumps(skill_skeleton, indent=2),
+            skill_skeleton=json_serialize(skill_skeleton),
             parent_skills=parent_skills,
             composition_strategy=composition_strategy,
+            revision_feedback=revision_feedback or "",
         )
 
         return {
@@ -553,9 +448,10 @@ class EditModule(dspy.Module):
     ) -> dict:
         """Generate comprehensive skill content asynchronously."""
         result = await self.edit.acall(
-            skill_skeleton=json.dumps(skill_skeleton, indent=2),
+            skill_skeleton=json_serialize(skill_skeleton),
             parent_skills=parent_skills,
             composition_strategy=composition_strategy,
+            revision_feedback=revision_feedback or "",
         )
 
         return {
@@ -597,7 +493,7 @@ class PackageModule(dspy.Module):
         """
         result = self.package(
             skill_content=skill_content,
-            skill_metadata=json.dumps(skill_metadata, indent=2),
+            skill_metadata=json_serialize(skill_metadata),
             taxonomy_path=taxonomy_path,
             capability_implementations=capability_implementations,
         )
@@ -628,7 +524,7 @@ class PackageModule(dspy.Module):
         """Validate and package skill for approval asynchronously."""
         result = await self.package.acall(
             skill_content=skill_content,
-            skill_metadata=json.dumps(skill_metadata, indent=2),
+            skill_metadata=json_serialize(skill_metadata),
             taxonomy_path=taxonomy_path,
             capability_implementations=capability_implementations,
         )
@@ -672,9 +568,9 @@ class IterateModule(dspy.Module):
         """
         result = self.iterate(
             packaged_skill=packaged_skill,
-            validation_report=json.dumps(validation_report, indent=2),
+            validation_report=json_serialize(validation_report),
             human_feedback=human_feedback,
-            usage_analytics=json.dumps(usage_analytics or {}),
+            usage_analytics=json_serialize(usage_analytics or {}),
         )
 
         return {
@@ -698,9 +594,9 @@ class IterateModule(dspy.Module):
         """Process human feedback and determine next steps asynchronously."""
         result = await self.iterate.acall(
             packaged_skill=packaged_skill,
-            validation_report=json.dumps(validation_report, indent=2),
+            validation_report=json_serialize(validation_report),
             human_feedback=human_feedback,
-            usage_analytics=json.dumps(usage_analytics or {}),
+            usage_analytics=json_serialize(usage_analytics or {}),
         )
 
         return {
@@ -764,8 +660,8 @@ class UnderstandModuleQA(dspy.Module):
         """
         result = self.understand(
             task_description=task_description,
-            existing_skills=json.dumps(existing_skills, indent=2),
-            taxonomy_structure=json.dumps(taxonomy_structure, indent=2),
+            existing_skills=json_serialize(existing_skills),
+            taxonomy_structure=json_serialize(taxonomy_structure),
         )
 
         return {
@@ -789,8 +685,8 @@ class UnderstandModuleQA(dspy.Module):
         """Analyze task with quality assurance asynchronously."""
         result = await self.understand.acall(
             task_description=task_description,
-            existing_skills=json.dumps(existing_skills, indent=2),
-            taxonomy_structure=json.dumps(taxonomy_structure, indent=2),
+            existing_skills=json_serialize(existing_skills),
+            taxonomy_structure=json_serialize(taxonomy_structure),
         )
 
         return {
@@ -831,18 +727,11 @@ class PlanModuleQA(dspy.Module):
         dependency_analysis: dict | str,
     ) -> dict:
         """Design skill structure with quality assurance."""
-        # Serialize dependency_analysis if it's a dict (from UnderstandModule)
-        dependency_analysis_str = (
-            json.dumps(dependency_analysis, indent=2)
-            if isinstance(dependency_analysis, dict)
-            else dependency_analysis
-        )
-
         result = self.plan(
             task_intent=task_intent,
             taxonomy_path=taxonomy_path,
-            parent_skills=json.dumps(parent_skills, indent=2),
-            dependency_analysis=dependency_analysis_str,
+            parent_skills=json_serialize(parent_skills),
+            dependency_analysis=json_serialize(dependency_analysis),
         )
 
         return {
@@ -874,18 +763,11 @@ class PlanModuleQA(dspy.Module):
         dependency_analysis: dict | str,
     ) -> dict:
         """Design skill structure with quality assurance asynchronously."""
-        # Serialize dependency_analysis if it's a dict (from UnderstandModule)
-        dependency_analysis_str = (
-            json.dumps(dependency_analysis, indent=2)
-            if isinstance(dependency_analysis, dict)
-            else dependency_analysis
-        )
-
         result = await self.plan.acall(
             task_intent=task_intent,
             taxonomy_path=taxonomy_path,
-            parent_skills=json.dumps(parent_skills, indent=2),
-            dependency_analysis=dependency_analysis_str,
+            parent_skills=json_serialize(parent_skills),
+            dependency_analysis=json_serialize(dependency_analysis),
         )
 
         return {
@@ -956,11 +838,11 @@ class EditModuleQA(dspy.Module):
             Dict with skill_content, capability_implementations,
             usage_examples, best_practices, and integration_guide
         """
-        # TODO: Incorporate revision_feedback into prompt
         result = self.edit(
-            skill_skeleton=json.dumps(skill_skeleton, indent=2),
+            skill_skeleton=json_serialize(skill_skeleton),
             parent_skills=parent_skills,
             composition_strategy=composition_strategy,
+            revision_feedback=revision_feedback or "",
         )
 
         return {
@@ -988,9 +870,10 @@ class EditModuleQA(dspy.Module):
     ) -> dict:
         """Generate skill content with quality assurance asynchronously."""
         result = await self.edit.acall(
-            skill_skeleton=json.dumps(skill_skeleton, indent=2),
+            skill_skeleton=json_serialize(skill_skeleton),
             parent_skills=parent_skills,
             composition_strategy=composition_strategy,
+            revision_feedback=revision_feedback or "",
         )
 
         return {
@@ -1037,7 +920,7 @@ class PackageModuleQA(dspy.Module):
         """Validate and package skill with quality assurance."""
         result = self.package(
             skill_content=skill_content,
-            skill_metadata=json.dumps(skill_metadata, indent=2),
+            skill_metadata=json_serialize(skill_metadata),
             taxonomy_path=taxonomy_path,
             capability_implementations=capability_implementations,
         )
@@ -1070,7 +953,7 @@ class PackageModuleQA(dspy.Module):
         """Validate and package skill with quality assurance asynchronously."""
         result = await self.package.acall(
             skill_content=skill_content,
-            skill_metadata=json.dumps(skill_metadata, indent=2),
+            skill_metadata=json_serialize(skill_metadata),
             taxonomy_path=taxonomy_path,
             capability_implementations=capability_implementations,
         )
@@ -1092,6 +975,91 @@ class PackageModuleQA(dspy.Module):
             ),
             "quality_score": safe_float(result.quality_score, default=0.0),
         }
+
+
+# =============================================================================
+# Dynamic Question Generation Module
+# =============================================================================
+
+
+class DynamicQuestionGeneratorModule(dspy.Module):
+    """Generate contextual, domain-aware questions for skill feedback.
+
+    Replaces static template questions with LLM-generated dynamic questions
+    that are specific to the domain, task, and skill being reviewed.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.generate = dspy.ChainOfThought(GenerateDynamicFeedbackQuestions)
+
+    def forward(
+        self,
+        task_description: str,
+        skill_metadata: dict | str,
+        skill_content: str = "",
+        validation_report: dict | str | None = None,
+        round_number: int = 1,
+        previous_feedback: str = "",
+    ) -> dict:
+        """Generate dynamic feedback questions.
+
+        Args:
+            task_description: User's original task description
+            skill_metadata: Skill metadata dict or JSON string
+            skill_content: SKILL.md content (first 500 chars)
+            validation_report: Validation report dict or JSON string
+            round_number: Current feedback round
+            previous_feedback: Previous feedback and responses
+
+        Returns:
+            Dict with questions (list of question objects)
+        """
+        metadata_str = (
+            json_serialize(skill_metadata) if isinstance(skill_metadata, dict) else skill_metadata
+        )
+        validation_str = (
+            json_serialize(validation_report) if isinstance(validation_report, dict) else (validation_report or "{}")
+        )
+        content_preview = skill_content[:500] if skill_content else ""
+
+        result = self.generate(
+            task_description=task_description,
+            skill_metadata=metadata_str,
+            skill_content=content_preview,
+            validation_report=validation_str,
+            round_number=round_number,
+            previous_feedback=previous_feedback,
+        )
+
+        # Parse questions_json
+        questions_json = getattr(result, "questions_json", "[]")
+        questions = safe_json_loads(questions_json, default=[], field_name="questions_json")
+
+        # Ensure we have at least some fallback questions if parsing fails
+        if not questions or not isinstance(questions, list):
+            logger.warning("Failed to parse dynamic questions, using fallback")
+            questions = self._fallback_questions(task_description, skill_metadata, round_number)
+
+        return {"questions": questions}
+
+    def _fallback_questions(
+        self, task_description: str, skill_metadata: dict | str, round_number: int
+    ) -> list[dict]:
+        """Fallback questions if LLM generation fails."""
+        metadata = skill_metadata if isinstance(skill_metadata, dict) else {}
+        skill_name = metadata.get("name", "this skill")
+        return [
+            {
+                "id": "alignment_check",
+                "question": f"Does '{skill_name}' address your needs?",
+                "context": f"Task: {task_description[:100]}",
+                "options": [
+                    {"id": "a", "label": "Yes, approved", "description": "Skill meets requirements"},
+                    {"id": "b", "label": "Needs revision", "description": "Requires changes"},
+                ],
+            }
+        ]
 
 
 # =============================================================================

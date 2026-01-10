@@ -1,0 +1,95 @@
+# config.yaml - Single source of truth for `skills-fleet` LLM configuration
+#
+# Default model: gemini/gemini-3-flash-preview (LiteLLM format for Gemini 3 Flash)
+#
+# Required env:
+#   - GOOGLE_API_KEY
+#
+# Optional env:
+#   - DSPY_TEMPERATURE (override temperature globally)
+#
+# LiteLLM v1.80.8-stable.1+ required for Gemini 3 Flash features
+
+models:
+  default: gemini/gemini-3-flash-preview
+
+  registry:
+    gemini/gemini-3-flash-preview:
+      model: gemini/gemini-3-flash-preview
+      model_type: chat
+      env: GOOGLE_API_KEY
+      timeout: 60
+      parameters:
+        temperature: 1.0
+        max_tokens: 8192
+
+roles:
+  router:
+    model: gemini/gemini-3-flash-preview
+    description: "Routes requests and selects workflow patterns"
+    capabilities: [pattern_detection, team_selection, complexity_assessment]
+    parameter_overrides:
+      reasoning_effort: low
+
+  planner:
+    model: gemini/gemini-3-flash-preview
+    description: "Creates detailed plans and orchestrates skill selection"
+    capabilities: [task_decomposition, skill_orchestration, dependency_analysis]
+    parameter_overrides: {}
+
+  worker:
+    model: gemini/gemini-3-flash-preview
+    description: "Executes work steps"
+    capabilities: [file_operations, skill_execution, content_generation]
+    parameter_overrides: {}
+
+  judge:
+    model: gemini/gemini-3-flash-preview
+    description: "Evaluates results and validates completion quality"
+    capabilities: [quality_assessment, validation, critique_generation]
+    parameter_overrides: {}
+
+tasks:
+  # Skill Creation Workflow (6-step process)
+  skill_understand:
+    model: gemini/gemini-3-flash-preview
+    role: planner
+    parameters:
+      reasoning_effort: medium
+
+  skill_plan:
+    model: gemini/gemini-3-flash-preview
+    role: planner
+    parameters:
+      reasoning_effort: high
+
+  skill_initialize:
+    model: gemini/gemini-3-flash-preview
+    role: worker
+    parameters:
+      reasoning_effort: minimal
+
+  skill_edit:
+    model: gemini/gemini-3-flash-preview
+    role: worker
+    parameters:
+      reasoning_effort: high
+
+  skill_package:
+    model: gemini/gemini-3-flash-preview
+    role: worker
+    parameters:
+      reasoning_effort: medium
+
+  skill_validate:
+    model: gemini/gemini-3-flash-preview
+    role: judge
+    parameters:
+      reasoning_effort: high
+
+  # Conversational Agent (Interactive CLI)
+  conversational_agent:
+    model: gemini/gemini-3-flash-preview
+    role: planner
+    parameters:
+      reasoning_effort: high  # High thinking for complex reasoning in conversation

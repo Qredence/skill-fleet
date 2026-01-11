@@ -258,10 +258,10 @@ description: Description here
 **Correct**: `my-skill` (kebab-case only)
 
 ### 5. Test Failures on First Run
-**Expected**: 2 integration tests may fail without valid `GOOGLE_API_KEY`
+**Expected**: 2 integration tests may fail without valid `GOOGLE_API_KEY` or due to network/firewall blocks
 - `test_workflow_with_real_llm`
 - `test_capability_serialization`
-**Action**: This is normal. Unit tests (143) should pass.
+**Action**: This is normal. Unit tests (143) should pass. See "Network/Firewall Limitations" for details on common network blocks.
 
 ### 6. Ruff Linting Noise
 **Issue**: Ruff reports errors in `skills/` directory
@@ -279,6 +279,19 @@ bun install
 bun run tui
 ```
 Most development doesn't require TUI.
+
+### 9. Network/Firewall Limitations
+**Symptom**: DNS resolution failures, connection timeouts during setup or tests
+**Blocked Domains**:
+- `astral.sh` - Blocks `curl` installation of uv
+- `openaipublic.blob.core.windows.net` - Blocks tiktoken encoding downloads during pytest
+
+**Workarounds**:
+- **For uv installation**: Use `pip install uv` instead of the curl script
+- **For tiktoken errors**: These are typically in integration tests that also require `GOOGLE_API_KEY`. Expected: 2 integration tests may fail with network errors
+- **In CI/CD**: Configure Actions setup steps before firewall is enabled, or add domains to the custom allowlist in repository's Copilot settings (admin only)
+
+**Note**: Network restrictions are environment-specific. Local development typically has no firewall blocks.
 
 ## CI/CD Pipeline
 

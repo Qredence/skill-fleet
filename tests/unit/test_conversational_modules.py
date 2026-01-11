@@ -201,7 +201,12 @@ class TestGenerateQuestionModuleQA:
         """Test that questions are dynamically generated based on context."""
         mock_result = MagicMock()
         mock_result.question = "What specific async patterns do you want to test?"
-        mock_result.question_options = ["Event loop handling", "Task cancellation", "Timeouts", "All of the above"]
+        mock_result.question_options = [
+            "Event loop handling",
+            "Task cancellation",
+            "Timeouts",
+            "All of the above",
+        ]
         mock_result.reasoning = "Need to understand which async patterns are most relevant"
 
         with patch.object(GenerateQuestionModuleQA, "__init__", lambda self, n_candidates=3: None):
@@ -231,7 +236,10 @@ class TestGenerateQuestionModuleQA:
             module = GenerateQuestionModuleQA.__new__(GenerateQuestionModuleQA)
             module.generate = MagicMock(return_value=mock_result)
 
-            previous_questions = ["What testing framework do you use?", "Do you need async support?"]
+            previous_questions = [
+                "What testing framework do you use?",
+                "Do you need async support?",
+            ]
 
             _ = module.forward(
                 task_description="Create testing skill",
@@ -292,22 +300,34 @@ class TestDeepUnderstandingModuleQA:
     def test_forward_generates_contextual_question(self, configured_dspy):
         """Test generation of contextual multi-choice questions."""
         # Create mock next_question as JSON string
-        question_json = json.dumps({
-            "id": "problem_identification",
-            "question": "What problem are you trying to solve with async testing?",
-            "context": "Understanding your use case",
-            "options": [
-                {"id": "flaky", "label": "Flaky tests", "description": "Tests that pass/fail randomly"},
-                {"id": "slow", "label": "Slow tests", "description": "Tests taking too long"},
-                {"id": "complexity", "label": "Complex setup", "description": "Hard to configure"},
-            ],
-            "allows_multiple": False,
-            "required": True,
-        })
+        question_json = json.dumps(
+            {
+                "id": "problem_identification",
+                "question": "What problem are you trying to solve with async testing?",
+                "context": "Understanding your use case",
+                "options": [
+                    {
+                        "id": "flaky",
+                        "label": "Flaky tests",
+                        "description": "Tests that pass/fail randomly",
+                    },
+                    {"id": "slow", "label": "Slow tests", "description": "Tests taking too long"},
+                    {
+                        "id": "complexity",
+                        "label": "Complex setup",
+                        "description": "Hard to configure",
+                    },
+                ],
+                "allows_multiple": False,
+                "required": True,
+            }
+        )
 
         mock_result = MagicMock()
         mock_result.next_question = question_json
-        mock_result.reasoning = "Need to understand the user's core problem to design appropriate skill"
+        mock_result.reasoning = (
+            "Need to understand the user's core problem to design appropriate skill"
+        )
         mock_result.research_needed = None
         mock_result.understanding_summary = "User needs help with async testing challenges"
         mock_result.readiness_score = 0.3
@@ -328,7 +348,10 @@ class TestDeepUnderstandingModuleQA:
             )
 
             # Verify question parsing
-            assert result["next_question"]["question"] == "What problem are you trying to solve with async testing?"
+            assert (
+                result["next_question"]["question"]
+                == "What problem are you trying to solve with async testing?"
+            )
             assert result["reasoning"] != ""
             assert result["readiness_score"] == 0.3
             assert result["user_problem"] == "Flaky and slow async tests"
@@ -336,17 +359,21 @@ class TestDeepUnderstandingModuleQA:
 
     def test_forward_with_research_needed(self, configured_dspy):
         """Test when research is needed to answer the question."""
-        question_json = json.dumps({
-            "id": "research_q",
-            "question": "What async testing best practices should we follow?",
-            "options": [],
-        })
+        question_json = json.dumps(
+            {
+                "id": "research_q",
+                "question": "What async testing best practices should we follow?",
+                "options": [],
+            }
+        )
 
-        research_json = json.dumps({
-            "type": "web",
-            "query": "async testing best practices pytest",
-            "reason": "Need current best practices for context",
-        })
+        research_json = json.dumps(
+            {
+                "type": "web",
+                "query": "async testing best practices pytest",
+                "reason": "Need current best practices for context",
+            }
+        )
 
         mock_result = MagicMock()
         mock_result.next_question = question_json
@@ -476,7 +503,9 @@ class TestPresentSkillModuleQA:
     def test_forward_formats_conversationally(self, configured_dspy):
         """Test formatting skill results for conversational presentation."""
         mock_result = MagicMock()
-        mock_result.conversational_summary = "I've created an async testing skill that helps you write reliable tests."
+        mock_result.conversational_summary = (
+            "I've created an async testing skill that helps you write reliable tests."
+        )
         mock_result.key_highlights = [
             "Supports pytest and asyncio",
             "Handles flaky tests",
@@ -626,7 +655,9 @@ class TestConfirmUnderstandingModule:
     def test_forward_generates_confirmation(self, configured_dspy):
         """Test generation of confirmation message."""
         mock_result = MagicMock()
-        mock_result.confirmation_summary = "I'll create an async testing skill that helps with flaky tests."
+        mock_result.confirmation_summary = (
+            "I'll create an async testing skill that helps with flaky tests."
+        )
         mock_result.key_points = [
             "Skill name: async-testing-reliability",
             "Type: technique",

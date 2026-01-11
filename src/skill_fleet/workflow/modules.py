@@ -1019,7 +1019,9 @@ class DynamicQuestionGeneratorModule(dspy.Module):
             json_serialize(skill_metadata) if isinstance(skill_metadata, dict) else skill_metadata
         )
         validation_str = (
-            json_serialize(validation_report) if isinstance(validation_report, dict) else (validation_report or "{}")
+            json_serialize(validation_report)
+            if isinstance(validation_report, dict)
+            else (validation_report or "{}")
         )
         content_preview = skill_content[:500] if skill_content else ""
 
@@ -1055,7 +1057,11 @@ class DynamicQuestionGeneratorModule(dspy.Module):
                 "question": f"Does '{skill_name}' address your needs?",
                 "context": f"Task: {task_description[:100]}",
                 "options": [
-                    {"id": "a", "label": "Yes, approved", "description": "Skill meets requirements"},
+                    {
+                        "id": "a",
+                        "label": "Yes, approved",
+                        "description": "Skill meets requirements",
+                    },
                     {"id": "b", "label": "Needs revision", "description": "Requires changes"},
                 ],
             }

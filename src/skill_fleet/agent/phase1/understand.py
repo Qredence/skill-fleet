@@ -239,8 +239,7 @@ class Phase1Understand(dspy.Module):
         # Validate skill type
         if results["skill_type"] not in VALID_SKILL_TYPES:
             logger.warning(
-                f"Invalid skill_type '{results['skill_type']}', "
-                f"must be one of {VALID_SKILL_TYPES}"
+                f"Invalid skill_type '{results['skill_type']}', must be one of {VALID_SKILL_TYPES}"
             )
 
         # Capture reasoning

@@ -41,9 +41,7 @@ class SkillFleetStatusProvider(StatusMessageProvider):
         """Status message at the end of calling dspy.LM."""
         return "✅ LLM call complete"
 
-    def module_start_status_message(
-        self, instance: dspy.Module, inputs: dict[str, Any]
-    ) -> str:
+    def module_start_status_message(self, instance: dspy.Module, inputs: dict[str, Any]) -> str:
         """Status message at the start of calling a dspy.Module."""
         module_name = instance.__class__.__name__
         return f"🔄 Running {module_name}..."
@@ -106,9 +104,7 @@ def create_streaming_module(
     )
 
 
-def create_async_module(
-    module: dspy.Module, max_workers: int = 4
-) -> dspy.Module:
+def create_async_module(module: dspy.Module, max_workers: int = 4) -> dspy.Module:
     """Convert DSPy module to async mode for FastAPI deployment.
 
     Uses dspy.asyncify which runs the program in a thread pool.
@@ -130,9 +126,7 @@ def create_async_module(
     return dspy.asyncify(module)
 
 
-async def stream_dspy_response(
-    streaming_program: Any, **kwargs: Any
-) -> AsyncIterator[str]:
+async def stream_dspy_response(streaming_program: Any, **kwargs: Any) -> AsyncIterator[str]:
     """Convert DSPy streaming program to FastAPI Server-Sent Events format.
 
     This is the async generator function that yields SSE-formatted chunks.

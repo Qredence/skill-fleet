@@ -11,9 +11,7 @@ from pathlib import Path
 
 import typer
 from rich.console import Console
-from rich.live import Live
 from rich.panel import Panel
-from rich.text import Text
 
 from ..taxonomy.manager import TaxonomyManager
 from .interactive_cli import InteractiveSkillCLI
@@ -55,18 +53,6 @@ def interactive_chat(
         "-u",
         help="User ID for context",
     ),
-    model: str | None = typer.Option(
-        None,
-        "--model",
-        "-m",
-        help="Override default model for conversational agent",
-    ),
-    verbose: bool = typer.Option(
-        False,
-        "--verbose",
-        "-v",
-        help="Enable verbose output (shows reasoning thinking)",
-    ),
 ) -> None:
     """Start interactive AI agent for skill creation (chat mode).
 
@@ -75,11 +61,10 @@ def interactive_chat(
     - Detects when multiple skills are needed
     - Confirms understanding before creation (mandatory checkpoint)
     - Enforces TDD checklist before saving (mandatory)
-    - Shows thinking content for transparency (use --verbose)
     - Supports multi-skill creation (one at a time, checklist for each)
 
     Example:
-        skills-fleet chat --verbose
+        skills-fleet chat
     """
     console = Console()
 
@@ -88,10 +73,6 @@ def interactive_chat(
 
         # Load config
         config_obj = load_fleet_config(config)
-
-        # Override model if specified
-        if model:
-            logger.info(f"Using model override: {model}")
 
         # Create taxonomy manager
         taxonomy = TaxonomyManager(skills_root)
@@ -357,66 +338,6 @@ def test_deep_understanding(
 # =============================================================================
 # Shared Utilities
 # =============================================================================
-
-
-class TyperInteractiveCLI(InteractiveSkillCLI):
-    """Extended InteractiveSkillCLI with enhanced reasoning display."""
-
-    def _respond_with_streaming(self, user_message: str):
-        """Get agent response with real-time thinking display using Rich Live.
-
-        Enhanced version that shows reasoning content prominently using Rich Live display.
-
-        Args:
-            user_message: User's input message
-
-        Returns:
-            AgentResponse with message and thinking content
-        """
-
-        # Buffer for collecting streamed thinking
-        thinking_buffer = []
-        display_text = Text()
-
-        def streaming_callback(chunk: str):
-            """Callback for each thinking chunk from LLM."""
-            thinking_buffer.append(chunk)
-            # Update display text with new content
-            display_text.append(chunk, style="dim italic")
-
-        # Set the callback on the agent
-        self.agent.thinking_callback = streaming_callback
-
-        # Use Rich Live for real-time display
-        with Live(
-            Panel(
-                display_text,
-                title="[bold cyan]💭 Agent Thinking (Real-time)[/bold cyan]",
-                border_style="cyan",
-                title_align="left",
-            ),
-            console=self.console,
-            refresh_per_second=10,  # Update 10 times per second
-        ) as live:
-            # Get the agent response (callback will be invoked during this)
-            response = self.agent.respond(user_message, self.session, capture_thinking=True)
-
-            # Update the live display one final time with complete thinking
-            if thinking_buffer:
-                complete_thinking = Text()
-                for chunk in thinking_buffer:
-                    complete_thinking.append(chunk, style="dim italic")
-                live.update(Panel(
-                    complete_thinking,
-                    title="[bold green]💭 Thinking Complete[/bold green]",
-                    border_style="green",
-                    title_align="left",
-                ))
-
-        # Clear the callback
-        self.agent.thinking_callback = None
-
-        return response
 
 
 if __name__ == "__main__":

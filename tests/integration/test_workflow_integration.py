@@ -9,7 +9,7 @@ from skill_fleet.workflow.programs import SkillCreationProgram
 @pytest.fixture(autouse=True)
 def setup_dspy():
     """Configure DSPy with a real LLM for integration tests."""
-    lm = dspy.LM("gemini/gemini-2.0-flash-exp", cache=False)
+    lm = dspy.LM("gemini/gemini-3-flash-preview", cache=False)
     dspy.settings.configure(lm=lm)
 
 
@@ -18,7 +18,7 @@ def setup_dspy():
 async def test_workflow_with_real_llm():
     """Test the complete workflow with a real LLM call to verify Capability serialization."""
     # Configure DSPy
-    lm = dspy.LM("gemini/gemini-2.0-flash-exp", cache=False)
+    lm = dspy.LM("gemini/gemini-3-flash-preview", cache=False)
     dspy.settings.configure(lm=lm)
 
     # Create program without quality assurance for faster testing

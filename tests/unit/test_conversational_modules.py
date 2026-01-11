@@ -8,7 +8,7 @@ Tests the new conversational modules that use:
 """
 
 import json
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
 import dspy
 import pytest
@@ -111,7 +111,7 @@ class TestInterpretIntentModuleQA:
             module.interpret = MagicMock(return_value=mock_result)
 
             history = [{"role": "user", "content": "hello"}]
-            result = module.forward("test", history, "EXPLORING")
+            module.forward("test", history, "EXPLORING")
 
             # Should convert list to JSON string
             call_args = module.interpret.call_args
@@ -233,7 +233,7 @@ class TestGenerateQuestionModuleQA:
 
             previous_questions = ["What testing framework do you use?", "Do you need async support?"]
 
-            result = module.forward(
+            _ = module.forward(
                 task_description="Create testing skill",
                 collected_examples=[],
                 conversation_context="",

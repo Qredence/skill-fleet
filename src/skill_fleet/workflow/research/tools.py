@@ -63,7 +63,7 @@ def web_search_research(query: str, max_results: int = 5) -> dict[str, Any]:
         
         # Make request with search query
         response = client.models.generate_content(
-            model="gemini-3-flash",
+            model="gemini/gemini-3-flash-preview",
             contents=f"Search for and summarize the top {max_results} most relevant results about: {query}. Include URLs and key information.",
             config=config,
         )

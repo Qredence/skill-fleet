@@ -29,7 +29,7 @@ roles:
     description: "Routes requests and selects workflow patterns"
     capabilities: [pattern_detection, team_selection, complexity_assessment]
     parameter_overrides:
-      reasoning_effort: low
+      reasoning_effort: high
 
   planner:
     model: gemini/gemini-3-flash-preview
@@ -67,7 +67,7 @@ tasks:
     model: gemini/gemini-3-flash-preview
     role: worker
     parameters:
-      reasoning_effort: minimal
+      reasoning_effort: high
 
   skill_edit:
     model: gemini/gemini-3-flash-preview

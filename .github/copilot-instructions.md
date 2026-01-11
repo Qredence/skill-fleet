@@ -15,12 +15,14 @@
 
 ## Build & Validation Workflow
 
+### Prerequisites
+
+- **uv package manager**: Must be pre-installed (see environment setup or admin configuration)
+- **Python 3.12+**: Required for the project
+
 ### Initial Setup (First Time Only)
 
 ```bash
-# Install uv if not present
-pip install uv
-
 # Install all dependencies including dev tools
 uv sync --group dev
 
@@ -283,11 +285,11 @@ Most development doesn't require TUI.
 ### 9. Network/Firewall Limitations
 **Symptom**: DNS resolution failures, connection timeouts during setup or tests
 **Blocked Domains**:
-- `astral.sh` - Blocks `curl` installation of uv
+- `astral.sh` - Blocks curl-based uv installation (uv must be pre-installed by environment/admin)
 - `openaipublic.blob.core.windows.net` - Blocks tiktoken encoding downloads during pytest
 
 **Workarounds**:
-- **For uv installation**: Use `pip install uv` instead of the curl script
+- **For uv availability**: uv must be pre-installed in the environment by admins before the firewall is enabled
 - **For tiktoken errors**: These are typically in integration tests that also require `GOOGLE_API_KEY`. Expected: 2 integration tests may fail with network errors
 - **In CI/CD**: Configure Actions setup steps before firewall is enabled, or add domains to the custom allowlist in repository's Copilot settings (admin only)
 

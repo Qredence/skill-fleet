@@ -1,74 +1,115 @@
 {{!--
-SKILL.md Template - agentskills.io Compliant
+SKILL.md Template - skill-fleet Convention
 
-This template follows the agentskills.io specification:
-https://agentskills.io/specification
+Spec: https://agentskills.io/specification
+Authoring: See writing-skills for TDD-based skill creation process
 
-Token Budget:
+═══════════════════════════════════════════════════════════════════
+TOKEN BUDGET (Critical for agent context efficiency)
+═══════════════════════════════════════════════════════════════════
 
-- Frontmatter: ~100 tokens (name + description for XML injection)
-- Body: <5000 tokens recommended (~500 lines max)
-- Use references/ for deep dives that load on demand
+Frontmatter: ~100 tokens (name + description injected into XML prompt)
+Body by skill type: - Getting-started/frequent: <150 words - Standard skills: <500 words  
+ - Complex technical: <5000 tokens (~500 lines max)
 
-Directory Structure (recommended):
+Use capabilities/ for deep dives that load on demand.
+
+═══════════════════════════════════════════════════════════════════
+DIRECTORY STRUCTURE (skill-fleet convention)
+═══════════════════════════════════════════════════════════════════
+
 skill-name/
-├── SKILL.md # Required - this file
-├── references/ # Optional - deep-dive docs
-│ ├── patterns/ # Pattern documentation
-│ └── troubleshooting/ # Problem-solving guides
-├── scripts/ # Optional - executable utilities
-├── assets/ # Optional - images, diagrams, templates
-└── examples/ # Optional - runnable demos
---}}
+├── SKILL.md # Required - main skill document
+├── metadata.json # Optional - tooling metadata (see metadata*template.json)
+├── best_practices.md # Optional - supporting guidelines
+├── integration.md # Optional - integration patterns
+├── capabilities/ # Optional - deep-dive pattern docs (progressive disclosure)
+│ ├── pattern-one.md
+│ └── pattern-two.md
+├── examples/ # Optional - runnable demos
+│ └── example-name/
+│ ├── README.md
+│ └── implementation files
+├── resources/ # Optional - reference materials
+│ ├── quick-reference.md
+│ └── troubleshooting.md
+└── tests/ # Optional - test scenarios for skill validation
+└── test*\*.json
 
----
+═══════════════════════════════════════════════════════════════════
+FRONTMATTER (agentskills.io compliant)
+═══════════════════════════════════════════════════════════════════
+
+REQUIRED:
+name: Max 64 chars. Lowercase + hyphens only. Must match directory.
+description: Max 1024 chars. See CSO section below.
+
+OPTIONAL (use sparingly):
+license: License name or LICENSE file reference
+compatibility: Max 500 chars. Environment requirements
+metadata: Key-value pairs for frontmatter-level tooling data - skill_id, version, type, weight, load_priority - Note: prefer metadata.json for complex tooling data
+allowed-tools: Space-delimited tool list (experimental)
+
+═══════════════════════════════════════════════════════════════════
+CLAUDE SEARCH OPTIMIZATION (CSO) - Critical for Discovery
+═══════════════════════════════════════════════════════════════════
+
+Description = WHEN to use, NOT WHAT it does
+
+The description field determines if Claude loads your skill.
+If you summarize the workflow, Claude may follow the description
+instead of reading the full skill content.
+
+❌ BAD: Summarizes workflow (Claude takes shortcut)
+description: Use when executing plans - dispatches subagent per task with code review
+
+❌ BAD: Too vague
+description: For async testing
+
+✅ GOOD: Triggering conditions only
+description: Use when building FastAPI apps with async database operations, connection pool issues, or partial update bugs
+
+✅ GOOD: Symptoms and error messages
+description: Use when tests have race conditions, timing dependencies, or pass/fail inconsistently
+
+Include in description: - Concrete triggers and symptoms - Error messages agents might search for - Technology names if skill is technology-specific
+
+Do NOT include: - Process steps or workflow summary - What the skill teaches (save for Overview)
+
+═══════════════════════════════════════════════════════════════════
+ANTI-PATTERNS (from writing-skills)
+═══════════════════════════════════════════════════════════════════
+
+❌ Narrative examples: "In session 2025-10-03, we found..."
+→ Too specific, not reusable
+
+❌ Multi-language dilution: example-js.js, example-py.py, example-go.go
+→ Mediocre quality, maintenance burden. One excellent example beats many.
+
+❌ Code in flowcharts: step1 [label="import fs"]
+→ Can't copy-paste, hard to read
+
+❌ Generic labels: helper1, step2, pattern4
+→ Labels should have semantic meaning
+
+## --}}
 
 name: {{skill_name_kebab}}
-{{!--
-REQUIRED. Max 64 chars. Constraints:
-
-- Lowercase letters, numbers, and hyphens only (a-z, 0-9, -)
-- Must not start or end with hyphen
-- No consecutive hyphens (--)
-- Must match parent directory name
-  --}}
-  description: Use when {{triggering_conditions}}
-  {{!--
-  REQUIRED. Max 1024 chars. Guidelines:
-- Start with "Use when..." to focus on triggering conditions
-- Describe WHEN to use (symptoms, situations), not WHAT it does
-- Include keywords agents search for (error messages, symptoms)
-- Do NOT summarize the workflow (causes agents to skip reading body)
-- Write in third person (injected into system prompt)
-- Aim for ~150 chars, max 1024
-  --}}
-  {{#if license}}
-  license: {{license}}
-  {{!-- Optional. License name or reference to bundled LICENSE file --}}
-  {{/if}}
-  {{#if compatibility}}
-  compatibility: {{compatibility}}
-  {{!-- Optional. Max 500 chars. Environment requirements (Python version, dependencies, network access) --}}
-  {{/if}}
-  {{#if metadata}}
-  metadata:
-  {{!--
-    Optional. For tooling-specific fields only.
-    Do NOT duplicate name/description here.
-    Common fields: author, version, tags
-  --}}
-  {{#each metadata}}
-  {{@key}}: {{this}}
-  {{/each}}
-  {{/if}}
-  {{#if allowed_tools}}
-  allowed-tools: {{allowed_tools}}
-  {{!-- Optional. Space-delimited list of pre-approved tools. Experimental. --}}
-  {{/if}}
+description: Use when {{triggering_conditions}}
+{{#if license}}
+license: {{license}}
+{{/if}}
+{{#if compatibility}}
+compatibility: {{compatibility}}
+{{/if}}
+{{#if metadata}}
+metadata:
+{{#each metadata}}
+{{@key}}: {{this}}
+{{/each}}
+{{/if}}
 
 ---
-
-{{!-- Body: <5000 tokens recommended. Move detailed content to references/ --}}
 
 # {{skill_name}}
 
@@ -76,7 +117,7 @@ REQUIRED. Max 64 chars. Constraints:
 
 {{overview_description}}
 
-{{!-- Core principle in 1-2 sentences. What IS this skill? --}}
+**Core principle:** {{core_principle}}
 
 ## When to Use
 
@@ -84,9 +125,14 @@ REQUIRED. Max 64 chars. Constraints:
 
 ```dot
 digraph when_to_use {
-    "Condition?" [shape=diamond];
+    "Building X?" [shape=diamond];
+    "Has symptom Y?" [shape=diamond];
     "Use this skill" [shape=box];
-    "Condition?" -> "Use this skill" [label="yes"];
+    "Use other approach" [shape=box];
+
+    "Building X?" -> "Has symptom Y?" [label="yes"];
+    "Has symptom Y?" -> "Use this skill" [label="yes"];
+    "Has symptom Y?" -> "Use other approach" [label="no"];
 }
 ```
 
@@ -106,8 +152,6 @@ digraph when_to_use {
 
 ## Quick Reference
 
-{{!-- Table format for agent scanning. Include searchable keywords. --}}
-
 | Problem | Solution | Keywords |
 | ------- | -------- | -------- |
 
@@ -116,8 +160,6 @@ digraph when_to_use {
 {{/each}}
 
 ## Core Patterns
-
-{{!-- Use ❌ Bad / ✅ Good code comparison pattern --}}
 
 ### {{pattern_name}}
 
@@ -137,7 +179,15 @@ digraph when_to_use {
 
 **Key insight:** {{key_insight}}
 
-{{!-- Add more patterns as needed. Keep inline if <50 lines, else move to references/ --}}
+{{!-- For complex skills with multiple patterns, link to capabilities/ --}}
+{{#if capabilities}}
+
+> **Deep dives:** See `capabilities/` for detailed pattern documentation:
+> {{#each capabilities}}
+>
+> - [{{this}}](capabilities/{{this}}.md)
+>   {{/each}}
+>   {{/if}}
 
 ## Common Mistakes
 
@@ -148,9 +198,17 @@ digraph when_to_use {
 | {{mistake}} | {{why_wrong}} | {{fix}} |
 {{/each}}
 
-## Red Flags
+{{#if real_world_impact}}
 
-{{!-- Stop signs - when to reconsider approach --}}
+## Real-World Impact
+
+{{#each real_world_impact}}
+
+- {{this}}
+  {{/each}}
+  {{/if}}
+
+## Red Flags
 
 {{#each red_flags}}
 
@@ -159,26 +217,16 @@ digraph when_to_use {
 
 **All of these mean: Revisit your approach before proceeding.**
 
-{{#if real_world_impact}}
-
-## Real-World Impact
-
-{{!-- Optional: Concrete metrics showing skill value --}}
-
-{{#each real_world_impact}}
-
-- {{this}}
-  {{/each}}
-  {{/if}}
-
 ---
 
 ## Validation
 
 ```bash
-# agentskills.io standard validation
+# agentskills.io spec compliance
 skills-ref validate ./{{skill_name_kebab}}
 
 # skill-fleet project validation
 uv run skills-fleet validate-skill path/to/{{skill_name_kebab}}
 ```
+
+**Authoring process:** See `writing-skills` for TDD-based skill creation checklist.

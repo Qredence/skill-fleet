@@ -1,0 +1,40 @@
+{
+  "$schema": "https://skill-fleet.dev/schemas/metadata.json",
+  "_comment": [
+    "skill-fleet Metadata Template",
+    "",
+    "This file contains tooling-specific metadata separate from SKILL.md frontmatter.",
+    "Frontmatter (name, description) is the source of truth for agent discovery.",
+    "This file extends with skill-fleet specific fields for taxonomy, evolution, and tooling.",
+    "",
+    "DO NOT duplicate name/description here - they belong in SKILL.md frontmatter only."
+  ],
+
+  "skill_id": "{{taxonomy_path}}/{{skill_name_kebab}}",
+  "name": "{{skill_name_kebab}}",
+  "description": "{{description}}",
+
+  "version": "1.0.0",
+  "type": "{{type}}",
+  "weight": "{{weight}}",
+  "load_priority": "{{load_priority}}",
+
+  "dependencies": [],
+
+  "capabilities": ["{{capability_1}}", "{{capability_2}}"],
+
+  "category": "{{category}}",
+  "tags": ["{{tag_1}}", "{{tag_2}}"],
+
+  "created_at": "{{created_at}}",
+  "last_modified": "{{last_modified}}",
+
+  "evolution": {
+    "version": "1.0.0",
+    "parent_id": null,
+    "evolution_path": "initial_release",
+    "change_log": "{{change_log}}",
+    "validation_score": null,
+    "integrity_hash": null
+  }
+}

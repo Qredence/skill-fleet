@@ -208,9 +208,7 @@ class Phase2Scope(dspy.Module):
 
         # Validate weight
         if results["weight"] not in VALID_WEIGHTS:
-            logger.warning(
-                f"Invalid weight '{results['weight']}', must be one of {VALID_WEIGHTS}"
-            )
+            logger.warning(f"Invalid weight '{results['weight']}', must be one of {VALID_WEIGHTS}")
 
         # Capture reasoning
         self.tracer.trace(

@@ -131,9 +131,7 @@ class ConfigModelLoader:
             **model_config.get("parameters", {}),
         )
 
-    def _resolve_model_ref(
-        self, model_ref: str, role: str | None = None
-    ) -> dict:
+    def _resolve_model_ref(self, model_ref: str, role: str | None = None) -> dict:
         """Resolve model reference (e.g., 'gemini:gemini-3-flash-preview').
 
         Args:

@@ -321,9 +321,7 @@ class AssessReadinessModule(dspy.Module):
         Returns:
             Dict with readiness_score, readiness_reasoning, and should_proceed
         """
-        examples_str = (
-            json.dumps(examples, indent=2) if isinstance(examples, list) else examples
-        )
+        examples_str = json.dumps(examples, indent=2) if isinstance(examples, list) else examples
 
         result = self.assess(
             task_description=task_description,
@@ -332,9 +330,7 @@ class AssessReadinessModule(dspy.Module):
         )
 
         return {
-            "readiness_score": safe_float(
-                getattr(result, "readiness_score", 0.0), default=0.0
-            ),
+            "readiness_score": safe_float(getattr(result, "readiness_score", 0.0), default=0.0),
             "readiness_reasoning": getattr(result, "readiness_reasoning", "").strip(),
             "should_proceed": bool(getattr(result, "should_proceed", False)),
         }
@@ -346,9 +342,7 @@ class AssessReadinessModule(dspy.Module):
         questions_asked: int = 0,
     ) -> dict:
         """Assess readiness asynchronously."""
-        examples_str = (
-            json.dumps(examples, indent=2) if isinstance(examples, list) else examples
-        )
+        examples_str = json.dumps(examples, indent=2) if isinstance(examples, list) else examples
 
         result = await self.assess.acall(
             task_description=task_description,
@@ -357,9 +351,7 @@ class AssessReadinessModule(dspy.Module):
         )
 
         return {
-            "readiness_score": safe_float(
-                getattr(result, "readiness_score", 0.0), default=0.0
-            ),
+            "readiness_score": safe_float(getattr(result, "readiness_score", 0.0), default=0.0),
             "readiness_reasoning": getattr(result, "readiness_reasoning", "").strip(),
             "should_proceed": bool(getattr(result, "should_proceed", False)),
         }
@@ -380,13 +372,13 @@ class DeepUnderstandingModule(dspy.Module):
         current_understanding: str = "",
     ) -> dict:
         """Generate next question or proceed based on understanding.
-        
+
         Args:
             initial_task: User's original task description
             conversation_history: Previous questions and answers (list or JSON string)
             research_findings: Research results from web/filesystem (dict or JSON string)
             current_understanding: Current understanding summary
-            
+
         Returns:
             Dict with next_question, reasoning, research_needed, understanding_summary,
             readiness_score, refined_task_description, user_problem, user_goals
@@ -401,14 +393,14 @@ class DeepUnderstandingModule(dspy.Module):
             if isinstance(research_findings, dict)
             else research_findings
         )
-        
+
         result = self.understand(
             initial_task=initial_task,
             conversation_history=history_str or "[]",
             research_findings=research_str or "{}",
             current_understanding=current_understanding or "",
         )
-        
+
         # Parse next_question (JSON string or empty string)
         next_question = None
         question_data = getattr(result, "next_question", None) or ""
@@ -430,7 +422,7 @@ class DeepUnderstandingModule(dspy.Module):
         elif isinstance(question_data, ClarifyingQuestion):
             # Already a Pydantic model
             next_question = question_data
-        
+
         # Parse research_needed (dict or None)
         research_needed = None
         research_data = getattr(result, "research_needed", None)
@@ -443,7 +435,7 @@ class DeepUnderstandingModule(dspy.Module):
             except Exception as e:
                 logger.warning(f"Failed to parse research_needed: {e}")
                 research_needed = None
-        
+
         # Parse user_goals (list[str])
         user_goals = []
         goals_data = getattr(result, "user_goals", None)
@@ -457,14 +449,16 @@ class DeepUnderstandingModule(dspy.Module):
             except Exception as e:
                 logger.warning(f"Failed to parse user_goals: {e}")
                 user_goals = []
-        
+
         return {
             "next_question": next_question.model_dump() if next_question else None,
             "reasoning": getattr(result, "reasoning", "").strip(),
             "research_needed": research_needed,
             "understanding_summary": getattr(result, "understanding_summary", "").strip(),
             "readiness_score": safe_float(getattr(result, "readiness_score", 0.0), default=0.0),
-            "refined_task_description": getattr(result, "refined_task_description", initial_task).strip(),
+            "refined_task_description": getattr(
+                result, "refined_task_description", initial_task
+            ).strip(),
             "user_problem": getattr(result, "user_problem", "").strip(),
             "user_goals": user_goals,
         }
@@ -487,14 +481,14 @@ class DeepUnderstandingModule(dspy.Module):
             if isinstance(research_findings, dict)
             else research_findings
         )
-        
+
         result = await self.understand.acall(
             initial_task=initial_task,
             conversation_history=history_str or "[]",
             research_findings=research_str or "{}",
             current_understanding=current_understanding or "",
         )
-        
+
         # Same parsing logic as forward()
         next_question = None
         question_data = getattr(result, "next_question", None) or ""
@@ -511,7 +505,7 @@ class DeepUnderstandingModule(dspy.Module):
                 logger.warning(f"Failed to parse next_question dict: {e}")
         elif isinstance(question_data, ClarifyingQuestion):
             next_question = question_data
-        
+
         research_needed = None
         research_data = getattr(result, "research_needed", None)
         if research_data:
@@ -522,7 +516,7 @@ class DeepUnderstandingModule(dspy.Module):
                     research_needed = json.loads(research_data)
             except Exception as e:
                 logger.warning(f"Failed to parse research_needed: {e}")
-        
+
         user_goals = []
         goals_data = getattr(result, "user_goals", None)
         if goals_data:
@@ -534,14 +528,16 @@ class DeepUnderstandingModule(dspy.Module):
                     user_goals = [str(g) for g in parsed if g]
             except Exception as e:
                 logger.warning(f"Failed to parse user_goals: {e}")
-        
+
         return {
             "next_question": next_question.model_dump() if next_question else None,
             "reasoning": getattr(result, "reasoning", "").strip(),
             "research_needed": research_needed,
             "understanding_summary": getattr(result, "understanding_summary", "").strip(),
             "readiness_score": safe_float(getattr(result, "readiness_score", 0.0), default=0.0),
-            "refined_task_description": getattr(result, "refined_task_description", initial_task).strip(),
+            "refined_task_description": getattr(
+                result, "refined_task_description", initial_task
+            ).strip(),
             "user_problem": getattr(result, "user_problem", "").strip(),
             "user_goals": user_goals,
         }

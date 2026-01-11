@@ -575,7 +575,8 @@ class ChecklistState(BaseModel):
 
     # RED Phase - Write Failing Test
     red_scenarios_created: bool = Field(
-        default=False, description="Pressure scenarios created (3+ combined pressures for discipline skills)"
+        default=False,
+        description="Pressure scenarios created (3+ combined pressures for discipline skills)",
     )
     baseline_tests_run: bool = Field(
         default=False, description="Baseline tests run WITHOUT skill present"
@@ -588,9 +589,7 @@ class ChecklistState(BaseModel):
     )
 
     # GREEN Phase - Verify Skill Works
-    green_tests_run: bool = Field(
-        default=False, description="Tests run WITH skill present"
-    )
+    green_tests_run: bool = Field(default=False, description="Tests run WITH skill present")
     compliance_verified: bool = Field(
         default=False, description="Agents now comply with skill verified"
     )
@@ -626,7 +625,8 @@ class ChecklistState(BaseModel):
         default=False, description="No narrative storytelling (checked and confirmed)"
     )
     supporting_files_appropriate: bool = Field(
-        default=False, description="Supporting files only for tools or heavy reference (checked and confirmed)"
+        default=False,
+        description="Supporting files only for tools or heavy reference (checked and confirmed)",
     )
 
     def is_complete(self) -> bool:
@@ -646,9 +646,7 @@ class ChecklistState(BaseModel):
 
         # All GREEN items required
         green_complete = (
-            self.green_tests_run
-            and self.compliance_verified
-            and self.baseline_failures_addressed
+            self.green_tests_run and self.compliance_verified and self.baseline_failures_addressed
         )
 
         # All REFACTOR items required

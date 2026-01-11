@@ -44,8 +44,14 @@ VALID_PRIORITIES = ["always", "task_specific", "on_demand", "dormant"]
 
 # Valid skill types (from Phase 1)
 VALID_SKILL_TYPES = [
-    "cognitive", "technical", "domain", "tool",
-    "mcp", "specialization", "task_focus", "memory"
+    "cognitive",
+    "technical",
+    "domain",
+    "tool",
+    "mcp",
+    "specialization",
+    "task_focus",
+    "memory",
 ]
 
 
@@ -62,23 +68,14 @@ class ConfirmSkillType(dspy.Signature):
     """
 
     # Inputs
-    phase1_type: str = dspy.InputField(
-        desc="Skill type from Phase 1 classification"
-    )
-    phase1_rationale: str = dspy.InputField(
-        desc="Rationale from Phase 1 classification"
-    )
-    problem_statement: str = dspy.InputField(
-        desc="Problem statement from Phase 1"
-    )
+    phase1_type: str = dspy.InputField(desc="Skill type from Phase 1 classification")
+    phase1_rationale: str = dspy.InputField(desc="Rationale from Phase 1 classification")
+    problem_statement: str = dspy.InputField(desc="Problem statement from Phase 1")
 
     # Outputs
     confirmed_type: Literal[
-        "cognitive", "technical", "domain", "tool",
-        "mcp", "specialization", "task_focus", "memory"
-    ] = dspy.OutputField(
-        desc="Confirmed skill type (may differ from Phase 1)"
-    )
+        "cognitive", "technical", "domain", "tool", "mcp", "specialization", "task_focus", "memory"
+    ] = dspy.OutputField(desc="Confirmed skill type (may differ from Phase 1)")
     confirmation_confidence: float = dspy.OutputField(
         desc="0.0-1.0 confidence in this classification"
     )
@@ -98,23 +95,15 @@ class DetermineWeight(dspy.Signature):
     """
 
     # Inputs
-    proposed_capabilities: list[str] = dspy.InputField(
-        desc="List of proposed capability names"
-    )
-    estimated_documentation_lines: int = dspy.InputField(
-        desc="Estimated lines of documentation"
-    )
-    planned_examples_count: int = dspy.InputField(
-        desc="Number of planned usage examples"
-    )
+    proposed_capabilities: list[str] = dspy.InputField(desc="List of proposed capability names")
+    estimated_documentation_lines: int = dspy.InputField(desc="Estimated lines of documentation")
+    planned_examples_count: int = dspy.InputField(desc="Number of planned usage examples")
 
     # Outputs
     weight: Literal["lightweight", "medium", "heavyweight"] = dspy.OutputField(
         desc="One of: lightweight, medium, heavyweight"
     )
-    weight_justification: str = dspy.OutputField(
-        desc="Explanation using guidelines matrix"
-    )
+    weight_justification: str = dspy.OutputField(desc="Explanation using guidelines matrix")
 
 
 class DecideLoadPriority(dspy.Signature):
@@ -138,21 +127,11 @@ class DecideLoadPriority(dspy.Signature):
     """
 
     # Inputs
-    problem_statement: str = dspy.InputField(
-        desc="Problem statement"
-    )
-    skill_type: str = dspy.InputField(
-        desc="Skill type"
-    )
-    is_core_foundation: bool = dspy.InputField(
-        desc="Is this a foundational skill?"
-    )
-    is_commonly_used: bool = dspy.InputField(
-        desc="Is this commonly used across tasks?"
-    )
-    is_experimental: bool = dspy.InputField(
-        desc="Is this experimental or unstable?"
-    )
+    problem_statement: str = dspy.InputField(desc="Problem statement")
+    skill_type: str = dspy.InputField(desc="Skill type")
+    is_core_foundation: bool = dspy.InputField(desc="Is this a foundational skill?")
+    is_commonly_used: bool = dspy.InputField(desc="Is this commonly used across tasks?")
+    is_experimental: bool = dspy.InputField(desc="Is this experimental or unstable?")
 
     # Outputs
     load_priority: Literal["always", "task_specific", "on_demand", "dormant"] = dspy.OutputField(
@@ -179,26 +158,16 @@ class DesignCapabilities(dspy.Signature):
     """
 
     # Inputs
-    problem_statement: str = dspy.InputField(
-        desc="Problem statement"
-    )
-    phase1_requirements: list[str] = dspy.InputField(
-        desc="Key requirements from Phase 1"
-    )
-    target_count: int = dspy.InputField(
-        desc="Target number of capabilities (3-7)"
-    )
+    problem_statement: str = dspy.InputField(desc="Problem statement")
+    phase1_requirements: list[str] = dspy.InputField(desc="Key requirements from Phase 1")
+    target_count: int = dspy.InputField(desc="Target number of capabilities (3-7)")
 
     # Outputs
     capabilities: list[Capability] = dspy.OutputField(
         desc="List of atomic capabilities (3-7 items)"
     )
-    capability_count: int = dspy.OutputField(
-        desc="Actual number of capabilities designed"
-    )
-    atomicity_analysis: str = dspy.OutputField(
-        desc="Analysis of each capability's atomicity"
-    )
+    capability_count: int = dspy.OutputField(desc="Actual number of capabilities designed")
+    atomicity_analysis: str = dspy.OutputField(desc="Analysis of each capability's atomicity")
 
 
 class ValidateDependencies(dspy.Signature):
@@ -219,20 +188,12 @@ class ValidateDependencies(dspy.Signature):
     proposed_dependencies: list[DependencyRef] = dspy.InputField(
         desc="Proposed dependency references"
     )
-    existing_taxonomy: str = dspy.InputField(
-        desc="JSON of taxonomy for cycle detection"
-    )
+    existing_taxonomy: str = dspy.InputField(desc="JSON of taxonomy for cycle detection")
 
     # Outputs
-    dependencies_valid: bool = dspy.OutputField(
-        desc="True if all 5 rules pass"
-    )
-    validation_details: list[dict] = dspy.OutputField(
-        desc="Result for each of the 5 rules"
-    )
-    suggested_revisions: list[str] = dspy.OutputField(
-        desc="Suggestions to fix violations (if any)"
-    )
+    dependencies_valid: bool = dspy.OutputField(desc="True if all 5 rules pass")
+    validation_details: list[dict] = dspy.OutputField(desc="Result for each of the 5 rules")
+    suggested_revisions: list[str] = dspy.OutputField(desc="Suggestions to fix violations (if any)")
 
 
 class GenerateSkillMetadata(dspy.Signature):
@@ -250,18 +211,10 @@ class GenerateSkillMetadata(dspy.Signature):
     phase1_outputs: str = dspy.InputField(
         desc="JSON of Phase 1 outputs (problem_statement, skill_type, proposed_path)"
     )
-    confirmed_type: str = dspy.InputField(
-        desc="Confirmed skill type"
-    )
-    weight: str = dspy.InputField(
-        desc="Weight from DetermineWeight"
-    )
-    load_priority: str = dspy.InputField(
-        desc="Load priority from DecideLoadPriority"
-    )
-    capabilities: list[Capability] = dspy.InputField(
-        desc="Capabilities from DesignCapabilities"
-    )
+    confirmed_type: str = dspy.InputField(desc="Confirmed skill type")
+    weight: str = dspy.InputField(desc="Weight from DetermineWeight")
+    load_priority: str = dspy.InputField(desc="Load priority from DecideLoadPriority")
+    capabilities: list[Capability] = dspy.InputField(desc="Capabilities from DesignCapabilities")
     dependencies: list[DependencyRef] = dspy.InputField(
         desc="Validated dependencies from ValidateDependencies"
     )
@@ -270,9 +223,7 @@ class GenerateSkillMetadata(dspy.Signature):
     skill_metadata: SkillMetadata = dspy.OutputField(
         desc="Complete skill metadata following agentskills.io spec"
     )
-    resource_requirements: ResourceRequirements = dspy.OutputField(
-        desc="External resources needed"
-    )
+    resource_requirements: ResourceRequirements = dspy.OutputField(desc="External resources needed")
     compatibility_constraints: CompatibilityConstraints = dspy.OutputField(
         desc="Platform requirements and conflicts"
     )
@@ -298,29 +249,15 @@ class Phase2Checkpoint(dspy.Signature):
     """
 
     # Inputs - All Phase 2 outputs
-    skill_metadata: str = dspy.InputField(
-        desc="JSON of skill metadata from GenerateSkillMetadata"
-    )
-    capabilities: list[Capability] = dspy.InputField(
-        desc="List of capabilities"
-    )
-    dependencies: list[DependencyRef] = dspy.InputField(
-        desc="List of validated dependencies"
-    )
-    confirmed_type: str = dspy.InputField(
-        desc="Confirmed skill type"
-    )
-    weight: str = dspy.InputField(
-        desc="Weight assignment"
-    )
-    load_priority: str = dspy.InputField(
-        desc="Load priority decision"
-    )
+    skill_metadata: str = dspy.InputField(desc="JSON of skill metadata from GenerateSkillMetadata")
+    capabilities: list[Capability] = dspy.InputField(desc="List of capabilities")
+    dependencies: list[DependencyRef] = dspy.InputField(desc="List of validated dependencies")
+    confirmed_type: str = dspy.InputField(desc="Confirmed skill type")
+    weight: str = dspy.InputField(desc="Weight assignment")
+    load_priority: str = dspy.InputField(desc="Load priority decision")
 
     # Outputs - Checkpoint validation
-    checkpoint_passed: bool = dspy.OutputField(
-        desc="True if all validation criteria are met"
-    )
+    checkpoint_passed: bool = dspy.OutputField(desc="True if all validation criteria are met")
     validation_errors: list[str] = dspy.OutputField(
         desc="List of any validation failures (empty if passed)"
     )

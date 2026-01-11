@@ -18,7 +18,6 @@ Usage:
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 from typing import Any
 
 import dspy
@@ -60,9 +59,7 @@ def _configure_llm() -> dict[str, dspy.LM]:
     try:
         config = load_fleet_config(DEFAULT_CONFIG_PATH)
         task_names = ["skill_understand", "skill_validate", "skill_create"]
-        task_lms = {
-            task_name: build_lm_for_task(config, task_name) for task_name in task_names
-        }
+        task_lms = {task_name: build_lm_for_task(config, task_name) for task_name in task_names}
         # Set default LM
         if task_lms:
             dspy.configure(lm=list(task_lms.values())[0])

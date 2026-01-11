@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 _REPO_MARKERS = (".git", "pyproject.toml")
 
 
@@ -76,4 +75,3 @@ def default_skills_root() -> Path:
     candidates.append(_package_root() / "skills")
 
     return _first_existing(candidates) or (Path.cwd() / "skills")
-

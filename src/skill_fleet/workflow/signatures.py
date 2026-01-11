@@ -233,7 +233,7 @@ class EditSkillContent(dspy.Signature):
     composition_strategy: str = dspy.InputField(desc="How this skill composes with others")
     revision_feedback: str = dspy.InputField(
         default="",
-        desc="User feedback from previous revision to incorporate (empty if initial generation)"
+        desc="User feedback from previous revision to incorporate (empty if initial generation)",
     )
 
     # Outputs - skill_content stays as string for long-form markdown

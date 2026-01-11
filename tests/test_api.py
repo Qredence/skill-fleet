@@ -147,9 +147,7 @@ class TestCreateSkillEndpoint:
 
     def test_create_skill_short_description(self, client):
         """Test skill description must be at least 10 characters."""
-        response = client.post(
-            "/api/v1/create-skill", json={"task_description": "Short"}
-        )
+        response = client.post("/api/v1/create-skill", json={"task_description": "Short"})
 
         assert response.status_code == 422  # Validation error
 
@@ -347,9 +345,7 @@ class TestTaskResponse:
         """Test task response with data."""
         from skill_fleet.api.app import TaskResponse
 
-        response = TaskResponse(
-            status="success", data={"skill_id": "test", "content": "..."}
-        )
+        response = TaskResponse(status="success", data={"skill_id": "test", "content": "..."})
 
         assert response.status == "success"
         assert response.data["skill_id"] == "test"

@@ -61,3 +61,6 @@ ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["D"]
+# B008: Do not perform function call in default arguments
+# Standard pattern for CLI libraries (typer, click)
+"src/skill_fleet/cli/*.py" = ["B008"]

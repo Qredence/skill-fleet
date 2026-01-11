@@ -58,7 +58,7 @@ def web_search_research(query: str, max_results: int = 5) -> dict[str, Any]:
         # Configure request with Google Search tool
         config = types.GenerateContentConfig(
             tools=[grounding_tool],
-            temperature=0.7,
+            temperature=1,
         )
         
         # Make request with search query

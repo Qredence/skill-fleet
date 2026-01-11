@@ -145,6 +145,7 @@ def test_dynamic_questions(
 
         # Configure DSPy
         import dspy
+
         dspy.configure(lm=lm)
 
         # Initialize module
@@ -171,12 +172,14 @@ def test_dynamic_questions(
 
             # Display reasoning (thinking content)
             if reasoning:
-                console.print(Panel(
-                    f"[dim italic]{reasoning}[/dim italic]",
-                    title="[dim]💭 Thinking[/dim]",
-                    border_style="dim",
-                    title_align="left",
-                ))
+                console.print(
+                    Panel(
+                        f"[dim italic]{reasoning}[/dim italic]",
+                        title="[dim]💭 Thinking[/dim]",
+                        border_style="dim",
+                        title_align="left",
+                    )
+                )
 
             # Display question
             console.print(f"[cyan]Question:[/cyan] {question}")
@@ -247,6 +250,7 @@ def test_deep_understanding(
 
         # Configure DSPy
         import dspy
+
         dspy.configure(lm=lm)
 
         # Initialize module
@@ -276,12 +280,14 @@ def test_deep_understanding(
 
             # Display reasoning
             if reasoning:
-                console.print(Panel(
-                    f"[dim italic]{reasoning}[/dim italic]",
-                    title="[dim]💭 Thinking[/dim]",
-                    border_style="dim",
-                    title_align="left",
-                ))
+                console.print(
+                    Panel(
+                        f"[dim italic]{reasoning}[/dim italic]",
+                        title="[dim]💭 Thinking[/dim]",
+                        border_style="dim",
+                        title_align="left",
+                    )
+                )
 
             # Display question
             if next_question:
@@ -307,10 +313,12 @@ def test_deep_understanding(
 
                 # Add to conversation history (simulate user answer)
                 previous_questions.append(question_data)
-                conversation_history.append({
-                    "question": question_text,
-                    "answer": "[User's answer]",
-                })
+                conversation_history.append(
+                    {
+                        "question": question_text,
+                        "answer": "[User's answer]",
+                    }
+                )
 
             # Display understanding summary
             if understanding:

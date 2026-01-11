@@ -197,9 +197,9 @@ def create_skill(args: argparse.Namespace) -> int:
                 from rich.console import Console
 
                 console = Console()
-                console.print(f"\n{'='*70}")
+                console.print(f"\n{'=' * 70}")
                 console.print("[bold]Reasoning Summary:[/bold]")
-                console.print(f"{'='*70}")
+                console.print(f"{'=' * 70}")
                 console.print(f"Status: {result.get('status', 'unknown')}")
                 console.print(f"Total reasoning steps: {len(reasoning_tracer.traces)}")
 
@@ -640,7 +640,7 @@ The agent uses DSPy framework internally and:
     interactive.add_argument("--user-id", default="default", help="User ID for context")
     interactive.add_argument(
         "--model",
-        help="Override default model for conversational agent (uses config.yaml by default, thinking_level already configured for Gemini 3)"
+        help="Override default model for conversational agent (uses config.yaml by default, thinking_level already configured for Gemini 3)",
     )
     interactive.set_defaults(func=interactive_skill_cli)
 

@@ -162,11 +162,12 @@ class InteractiveSkillCLI:
                     if question_data:
                         # Parse ClarifyingQuestion from dict
                         from ..workflow.models import ClarifyingQuestion
+
                         if isinstance(question_data, dict):
                             question = ClarifyingQuestion(**question_data)
                         else:
                             question = question_data
-                        
+
                         user_answer = self._display_multi_choice_question(question, reasoning)
                         # Store question in session for answer tracking
                         if self.session.deep_understanding:
@@ -181,7 +182,10 @@ class InteractiveSkillCLI:
                 # Display agent response
                 if response.message:
                     # Check if this is a yes/no question that needs better formatting
-                    if response.state == ConversationState.TDD_REFACTOR_PHASE and "yes/no" in response.message.lower():
+                    if (
+                        response.state == ConversationState.TDD_REFACTOR_PHASE
+                        and "yes/no" in response.message.lower()
+                    ):
                         # Format yes/no questions with better visibility
                         self.console.print("\n[bold yellow]⚠ Decision required:[/bold yellow]\n")
                         self.console.print(
@@ -204,7 +208,13 @@ class InteractiveSkillCLI:
                 # Handle non-blocking actions (agent continues without user input)
                 if not response.requires_user_input:
                     # Agent is executing something (creating skill, running tests, etc.)
-                    if response.action in ("skill_created", "tdd_red_complete", "tdd_green_complete", "revising", "deep_understanding_complete"):
+                    if response.action in (
+                        "skill_created",
+                        "tdd_red_complete",
+                        "tdd_green_complete",
+                        "revising",
+                        "deep_understanding_complete",
+                    ):
                         # Agent has completed an action, automatically continue to next phase
                         if response.action == "tdd_red_complete":
                             # Automatically continue to GREEN phase
@@ -347,9 +357,7 @@ class InteractiveSkillCLI:
             "Create pressure scenarios",
             "✓" if checklist.red_scenarios_created else "✗",
         )
-        table.add_row(
-            "RED", "Run baseline tests", "✓" if checklist.baseline_tests_run else "✗"
-        )
+        table.add_row("RED", "Run baseline tests", "✓" if checklist.baseline_tests_run else "✗")
         table.add_row(
             "RED",
             "Document baseline behavior",
@@ -362,9 +370,7 @@ class InteractiveSkillCLI:
         )
 
         # GREEN Phase
-        table.add_row(
-            "GREEN", "Run tests with skill", "✓" if checklist.green_tests_run else "✗"
-        )
+        table.add_row("GREEN", "Run tests with skill", "✓" if checklist.green_tests_run else "✗")
         table.add_row(
             "GREEN",
             "Verify compliance",
@@ -530,12 +536,14 @@ class InteractiveSkillCLI:
                 complete_thinking = Text()
                 for chunk in thinking_buffer:
                     complete_thinking.append(chunk, style="dim italic")
-                live.update(Panel(
-                    complete_thinking,
-                    title="[dim]💭 Thinking Complete[/dim]",
-                    border_style="dim",
-                    title_align="left",
-                ))
+                live.update(
+                    Panel(
+                        complete_thinking,
+                        title="[dim]💭 Thinking Complete[/dim]",
+                        border_style="dim",
+                        title_align="left",
+                    )
+                )
 
         # Clear the callback
         self.agent.thinking_callback = None
@@ -565,11 +573,11 @@ class InteractiveSkillCLI:
 
     def _display_multi_choice_question(self, question, reasoning: str = "") -> str:
         """Display multi-choice question with reasoning context.
-        
+
         Args:
             question: ClarifyingQuestion object with question text and options
             reasoning: Agent's reasoning/thinking about why this question matters
-            
+
         Returns:
             User's selected answer (option ID or free-form text)
         """
@@ -584,40 +592,41 @@ class InteractiveSkillCLI:
                 )
             )
             self.console.print()
-        
+
         # Display question
         self.console.print(f"\n[cyan]Agent:[/cyan] {question.question}")
-        
+
         # Display context if available
-        if hasattr(question, 'context') and question.context:
+        if hasattr(question, "context") and question.context:
             self.console.print(f"[dim]{question.context}[/dim]\n")
-        elif hasattr(question, 'description') and question.description:
+        elif hasattr(question, "description") and question.description:
             self.console.print(f"[dim]{question.description}[/dim]\n")
-        
+
         # Show options
-        if hasattr(question, 'options') and question.options:
+        if hasattr(question, "options") and question.options:
             for opt in question.options:
                 label = f"[{opt.id}] {opt.label}"
-                if hasattr(opt, 'description') and opt.description:
+                if hasattr(opt, "description") and opt.description:
                     label += f" - {opt.description}"
                 self.console.print(f"  {label}")
-            
+
             # Get user input
             valid_ids = [opt.id for opt in question.options]
-            allows_multiple = getattr(question, 'allows_multiple', False)
-            
+            allows_multiple = getattr(question, "allows_multiple", False)
+
             if allows_multiple:
                 choice = Prompt.ask("Your choice(s)", default=valid_ids[0])
                 return ", ".join([c.strip() for c in choice.split(",")])
             else:
                 # Add skip as an option for yes/no questions
-                if len(valid_ids) == 2 and any(k in question.question.lower() for k in ['yes', 'no', 'should', 'add']):
+                if len(valid_ids) == 2 and any(
+                    k in question.question.lower() for k in ["yes", "no", "should", "add"]
+                ):
                     valid_ids.append("skip")
                 return Prompt.ask("Your choice", choices=valid_ids, default=valid_ids[0])
         else:
             # Free-form question
             return Prompt.ask("Your answer")
-
 
 
 def interactive_skill_cli(args) -> int:

@@ -220,8 +220,12 @@ class GenerateQuestionModuleQA(dspy.Module):
         # Add previous questions context to avoid repetition
         enhanced_context = conversation_context
         if previous_questions:
-            prev_q_str = "\nPreviously asked questions (DO NOT repeat):\n" + "\n".join(f"- {q}" for q in previous_questions)
-            enhanced_context = f"{conversation_context}\n{prev_q_str}" if conversation_context else prev_q_str
+            prev_q_str = "\nPreviously asked questions (DO NOT repeat):\n" + "\n".join(
+                f"- {q}" for q in previous_questions
+            )
+            enhanced_context = (
+                f"{conversation_context}\n{prev_q_str}" if conversation_context else prev_q_str
+            )
 
         result = self.generate(
             task_description=task_description,
@@ -367,7 +371,9 @@ class DeepUnderstandingModuleQA(dspy.Module):
             "research_needed": research_needed,
             "understanding_summary": getattr(result, "understanding_summary", "").strip(),
             "readiness_score": safe_float(getattr(result, "readiness_score", 0.0), default=0.0),
-            "refined_task_description": getattr(result, "refined_task_description", initial_task).strip(),
+            "refined_task_description": getattr(
+                result, "refined_task_description", initial_task
+            ).strip(),
             "user_problem": getattr(result, "user_problem", "").strip(),
             "user_goals": user_goals,
         }
@@ -561,9 +567,7 @@ class AssessReadinessModule(dspy.Module):
         Returns:
             Dict with readiness_score, readiness_reasoning, and should_proceed
         """
-        examples_str = (
-            json.dumps(examples, indent=2) if isinstance(examples, list) else examples
-        )
+        examples_str = json.dumps(examples, indent=2) if isinstance(examples, list) else examples
 
         result = self.assess(
             task_description=task_description,
@@ -572,9 +576,7 @@ class AssessReadinessModule(dspy.Module):
         )
 
         return {
-            "readiness_score": safe_float(
-                getattr(result, "readiness_score", 0.0), default=0.0
-            ),
+            "readiness_score": safe_float(getattr(result, "readiness_score", 0.0), default=0.0),
             "readiness_reasoning": getattr(result, "readiness_reasoning", "").strip(),
             "should_proceed": bool(getattr(result, "should_proceed", False)),
         }

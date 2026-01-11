@@ -134,12 +134,8 @@ class AssessReadiness(dspy.Signature):
 
     # Inputs
     task_description: str = dspy.InputField(desc="Refined task description")
-    examples: str = dspy.InputField(
-        desc="Collected examples (JSON list of UserExample objects)"
-    )
-    questions_asked: int = dspy.InputField(
-        desc="Number of clarifying questions already asked"
-    )
+    examples: str = dspy.InputField(desc="Collected examples (JSON list of UserExample objects)")
+    questions_asked: int = dspy.InputField(desc="Number of clarifying questions already asked")
 
     # Outputs
     readiness_score: float = dspy.OutputField(
@@ -160,7 +156,7 @@ class AssessReadiness(dspy.Signature):
 
 class DeepUnderstandingSignature(dspy.Signature):
     """Understand user's actual needs, problems, and goals before creating skill.
-    
+
     This signature generates contextual multi-choice questions to understand WHY
     the user needs the skill, what problem they're solving, and what their goals are.
     Uses research when needed to provide better context. Asks questions one at a time
@@ -168,9 +164,7 @@ class DeepUnderstandingSignature(dspy.Signature):
     """
 
     # Inputs
-    initial_task: str = dspy.InputField(
-        desc="User's original task description"
-    )
+    initial_task: str = dspy.InputField(desc="User's original task description")
     conversation_history: str = dspy.InputField(
         desc="JSON string of previous questions and answers (list of {question_id, answer, timestamp})"
     )
@@ -265,7 +259,8 @@ class UnderstandingSummary(dspy.Signature):
         desc="User's goals/outcomes (empty list if not identified)", default=[]
     )
     research_context: str = dspy.InputField(
-        desc="JSON string of research findings from web/filesystem (empty string if none)", default=""
+        desc="JSON string of research findings from web/filesystem (empty string if none)",
+        default="",
     )
     taxonomy_path: str = dspy.InputField(
         desc="Proposed taxonomy path (e.g., 'technical_skills/testing/async-testing')"
@@ -369,9 +364,7 @@ class SuggestTestScenarios(dspy.Signature):
 
     # Inputs
     skill_content: str = dspy.InputField(desc="Generated skill content (SKILL.md)")
-    skill_type: Literal[
-        "technique", "pattern", "reference", "discipline"
-    ] = dspy.InputField(
+    skill_type: Literal["technique", "pattern", "reference", "discipline"] = dspy.InputField(
         desc="Type of skill: 'technique' (how-to guide), 'pattern' (mental model), 'reference' (documentation), 'discipline' (rules/requirements)"
     )
     skill_metadata: str = dspy.InputField(desc="JSON skill metadata")

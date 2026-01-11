@@ -62,9 +62,7 @@ def setup_mlflow_experiment(
     try:
         import mlflow
     except ImportError as err:
-        raise ImportError(
-            "MLflow is not installed. Install it with: uv add mlflow"
-        ) from err
+        raise ImportError("MLflow is not installed. Install it with: uv add mlflow") from err
 
     mlflow.set_tracking_uri(tracking_uri)
     mlflow.set_experiment(experiment_name)
@@ -177,9 +175,7 @@ def log_checkpoint_result(
                 artifact_file=f"{phase}_checkpoint_errors.txt",
             )
 
-        logger.debug(
-            f"Logged checkpoint for {phase}: passed={checkpoint_passed}, score={score}"
-        )
+        logger.debug(f"Logged checkpoint for {phase}: passed={checkpoint_passed}, score={score}")
     except Exception as e:
         logger.warning(f"Failed to log checkpoint result: {e}")
 

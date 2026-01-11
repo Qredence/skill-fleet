@@ -290,6 +290,7 @@ class TestStreamDspyResponse:
     @pytest.mark.asyncio
     async def test_stream_passes_kwargs(self):
         """Test that kwargs are passed to streaming program."""
+
         async def mock_stream(**kwargs):
             # Verify kwargs passed through
             assert kwargs.get("question") == "test"
@@ -376,6 +377,7 @@ class TestProcessStreamSync:
 
     def test_process_passes_kwargs(self):
         """Test that kwargs are passed to streaming program."""
+
         def mock_stream(**kwargs):
             assert kwargs.get("question") == "test"
             assert kwargs.get("param2") == "value"

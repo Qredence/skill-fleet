@@ -26,14 +26,14 @@ import dspy
 
 # Valid skill types from guidelines lines 269-282
 VALID_SKILL_TYPES = [
-    "cognitive",      # Thinking, reasoning, decision-making skills
-    "technical",      # Programming, implementation, code-focused
-    "domain",         # Industry-specific knowledge
-    "tool",           # External tool or service integration
-    "mcp",            # Model Context Protocol server skills
-    "specialization", # Specialized expertise areas
-    "task_focus",     # Focused on specific task completion
-    "memory",         # Memory and recall-focused skills
+    "cognitive",  # Thinking, reasoning, decision-making skills
+    "technical",  # Programming, implementation, code-focused
+    "domain",  # Industry-specific knowledge
+    "tool",  # External tool or service integration
+    "mcp",  # Model Context Protocol server skills
+    "specialization",  # Specialized expertise areas
+    "task_focus",  # Focused on specific task completion
+    "memory",  # Memory and recall-focused skills
 ]
 
 
@@ -52,12 +52,9 @@ class ExtractProblemStatement(dspy.Signature):
     """
 
     # Inputs
-    task_description: str = dspy.InputField(
-        desc="User's raw task description"
-    )
+    task_description: str = dspy.InputField(desc="User's raw task description")
     context: str = dspy.InputField(
-        default="",
-        desc="Additional context about user's project or environment"
+        default="", desc="Additional context about user's project or environment"
     )
 
     # Outputs
@@ -86,12 +83,9 @@ class DecideNovelty(dspy.Signature):
     problem_statement: str = dspy.InputField(
         desc="Clear problem statement from ExtractProblemStatement"
     )
-    existing_skills: str = dspy.InputField(
-        desc="JSON list of existing skill_ids for comparison"
-    )
+    existing_skills: str = dspy.InputField(desc="JSON list of existing skill_ids for comparison")
     taxonomy_search_results: str = dspy.InputField(
-        default="{}",
-        desc="Search results from taxonomy (skill_ids and descriptions)"
+        default="{}", desc="Search results from taxonomy (skill_ids and descriptions)"
     )
 
     # Outputs
@@ -99,12 +93,9 @@ class DecideNovelty(dspy.Signature):
         desc="True if this is a new skill, False if enhancement to existing"
     )
     target_skill_id: str = dspy.OutputField(
-        default="",
-        desc="Skill to enhance (if is_new_skill=False), empty otherwise"
+        default="", desc="Skill to enhance (if is_new_skill=False), empty otherwise"
     )
-    rationale: str = dspy.OutputField(
-        desc="Explanation of decision with supporting evidence"
-    )
+    rationale: str = dspy.OutputField(desc="Explanation of decision with supporting evidence")
 
 
 class DetectOverlap(dspy.Signature):
@@ -121,9 +112,7 @@ class DetectOverlap(dspy.Signature):
     """
 
     # Inputs
-    problem_statement: str = dspy.InputField(
-        desc="Clear problem statement"
-    )
+    problem_statement: str = dspy.InputField(desc="Clear problem statement")
     proposed_domain: str = dspy.InputField(
         desc="Proposed skill domain (from preliminary classification)"
     )
@@ -162,26 +151,17 @@ class ClassifyDomain(dspy.Signature):
     """
 
     # Inputs
-    problem_statement: str = dspy.InputField(
-        desc="Clear problem statement"
-    )
+    problem_statement: str = dspy.InputField(desc="Clear problem statement")
     key_characteristics: list[str] = dspy.InputField(
         desc="Extracted characteristics from problem analysis"
     )
 
     # Outputs
     skill_type: Literal[
-        "cognitive", "technical", "domain", "tool",
-        "mcp", "specialization", "task_focus", "memory"
-    ] = dspy.OutputField(
-        desc="One of 8 skill types from decision matrix"
-    )
-    type_confidence: float = dspy.OutputField(
-        desc="0.0-1.0 confidence in classification"
-    )
-    type_rationale: str = dspy.OutputField(
-        desc="Explanation using decision matrix criteria"
-    )
+        "cognitive", "technical", "domain", "tool", "mcp", "specialization", "task_focus", "memory"
+    ] = dspy.OutputField(desc="One of 8 skill types from decision matrix")
+    type_confidence: float = dspy.OutputField(desc="0.0-1.0 confidence in classification")
+    type_rationale: str = dspy.OutputField(desc="Explanation using decision matrix criteria")
 
 
 class ProposeTaxonomyPath(dspy.Signature):
@@ -199,12 +179,8 @@ class ProposeTaxonomyPath(dspy.Signature):
     """
 
     # Inputs
-    skill_type: str = dspy.InputField(
-        desc="Classified skill type from ClassifyDomain"
-    )
-    problem_statement: str = dspy.InputField(
-        desc="Clear problem statement"
-    )
+    skill_type: str = dspy.InputField(desc="Classified skill type from ClassifyDomain")
+    problem_statement: str = dspy.InputField(desc="Clear problem statement")
     existing_taxonomy: str = dspy.InputField(
         desc="JSON of taxonomy structure showing available paths"
     )
@@ -216,9 +192,7 @@ class ProposeTaxonomyPath(dspy.Signature):
     parent_skills: list[str] = dspy.OutputField(
         desc="Immediate parent skills for context and composition"
     )
-    path_confidence: float = dspy.OutputField(
-        desc="0.0-1.0 confidence in path placement"
-    )
+    path_confidence: float = dspy.OutputField(desc="0.0-1.0 confidence in path placement")
 
 
 class Phase1Checkpoint(dspy.Signature):
@@ -239,39 +213,24 @@ class Phase1Checkpoint(dspy.Signature):
     """
 
     # Inputs - All Phase 1 outputs
-    problem_statement: str = dspy.InputField(
-        desc="Problem statement from ExtractProblemStatement"
-    )
-    is_new_skill: bool = dspy.InputField(
-        desc="Novelty decision from DecideNovelty"
-    )
-    skill_type: str = dspy.InputField(
-        desc="Domain classification from ClassifyDomain"
-    )
-    proposed_path: str = dspy.InputField(
-        desc="Taxonomy path from ProposeTaxonomyPath"
-    )
-    overlapping_skills: list[dict] = dspy.InputField(
-        desc="Overlap analysis from DetectOverlap"
-    )
+    problem_statement: str = dspy.InputField(desc="Problem statement from ExtractProblemStatement")
+    is_new_skill: bool = dspy.InputField(desc="Novelty decision from DecideNovelty")
+    skill_type: str = dspy.InputField(desc="Domain classification from ClassifyDomain")
+    proposed_path: str = dspy.InputField(desc="Taxonomy path from ProposeTaxonomyPath")
+    overlapping_skills: list[dict] = dspy.InputField(desc="Overlap analysis from DetectOverlap")
     key_requirements: list[str] = dspy.InputField(
-        default=[],
-        desc="Key requirements from ExtractProblemStatement"
+        default=[], desc="Key requirements from ExtractProblemStatement"
     )
 
     # Outputs - Checkpoint validation
-    checkpoint_passed: bool = dspy.OutputField(
-        desc="True if all validation criteria are met"
-    )
+    checkpoint_passed: bool = dspy.OutputField(desc="True if all validation criteria are met")
     validation_errors: list[str] = dspy.OutputField(
         desc="List of any validation failures (empty if passed)"
     )
     checkpoint_score: float = dspy.OutputField(
         desc="0.0-1.0 overall checkpoint score (>=0.8 to proceed)"
     )
-    recommendations: list[str] = dspy.OutputField(
-        desc="Recommendations to proceed or fix issues"
-    )
+    recommendations: list[str] = dspy.OutputField(desc="Recommendations to proceed or fix issues")
 
 
 __all__ = [

@@ -263,9 +263,9 @@ class ReasoningTracer:
         Args:
             trace: ReasoningTrace to display
         """
-        print(f"\n{'='*70}")
+        print(f"\n{'=' * 70}")
         print(f"[{trace.phase.upper()}] {trace.step}")
-        print(f"{'='*70}")
+        print(f"{'=' * 70}")
         print(f"\n📝 Reasoning:\n{trace.reasoning}")
         print("\n✓ Output:")
         for key, value in trace.outputs.items():

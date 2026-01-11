@@ -145,7 +145,9 @@ class AgentResponse:
     message: str  # Main conversational message
     thinking_content: str = ""  # Gemini 3 thinking tokens (if available)
     state: ConversationState | None = None  # Updated state (if changed)
-    action: str | None = None  # Action taken (e.g., "ask_question", "create_skill", "wait_for_confirmation")
+    action: str | None = (
+        None  # Action taken (e.g., "ask_question", "create_skill", "wait_for_confirmation")
+    )
     data: dict[str, Any] = field(default_factory=dict)  # Additional data (questions, options, etc.)
     requires_user_input: bool = True  # Whether agent is waiting for user response
 
@@ -325,7 +327,7 @@ class ConversationalSkillAgent(dspy.Module):
             # Handle empty/continue messages for automatic progression
             user_message_trimmed = user_message.strip().lower() if user_message else ""
             is_continue = user_message_trimmed in ("", "continue", "proceed", "next")
-            
+
             # Don't add empty messages to history
             if user_message.strip():
                 session.messages.append({"role": "user", "content": user_message})
@@ -445,7 +447,9 @@ class ConversationalSkillAgent(dspy.Module):
                 readiness = self.assess_readiness(
                     task_description=session.task_description,
                     examples=session.collected_examples,
-                    questions_asked=len([m for m in session.messages if m.get("role") == "assistant"]),
+                    questions_asked=len(
+                        [m for m in session.messages if m.get("role") == "assistant"]
+                    ),
                 )
 
             if readiness["should_proceed"]:
@@ -496,7 +500,9 @@ class ConversationalSkillAgent(dspy.Module):
                 readiness = self.assess_readiness(
                     task_description=session.task_description,
                     examples=session.collected_examples,
-                    questions_asked=len([m for m in session.messages if m.get("role") == "assistant"]),
+                    questions_asked=len(
+                        [m for m in session.messages if m.get("role") == "assistant"]
+                    ),
                 )
 
             if readiness["should_proceed"]:
@@ -564,7 +570,9 @@ class ConversationalSkillAgent(dspy.Module):
                 requires_user_input=True,
             )
 
-    def _handle_confirmation(self, user_message: str, session: ConversationSession) -> AgentResponse:
+    def _handle_confirmation(
+        self, user_message: str, session: ConversationSession
+    ) -> AgentResponse:
         """Handle CONFIRMING state - user confirmation before creation."""
         user_message_lower = user_message.strip().lower()
 
@@ -635,7 +643,9 @@ class ConversationalSkillAgent(dspy.Module):
         # Execute GREEN phase
         return self._execute_tdd_green_phase(session)
 
-    def _handle_tdd_refactor(self, user_message: str, session: ConversationSession) -> AgentResponse:
+    def _handle_tdd_refactor(
+        self, user_message: str, session: ConversationSession
+    ) -> AgentResponse:
         """Handle TDD_REFACTOR_PHASE - closing loopholes."""
         user_message_lower = user_message.strip().lower()
         if user_message_lower in ("yes", "y", "add", "close"):
@@ -648,19 +658,21 @@ class ConversationalSkillAgent(dspy.Module):
             plan = skill_draft.get("plan", {})
             skill_metadata = plan.get("skill_metadata", {})
             skill_type = skill_metadata.get("type", "general")
-            
+
             # Only require counters for "discipline" type skills (enforcement skills)
             if skill_type == "discipline":
                 # For discipline skills, counters are more important, but still allow skip
                 session.checklist_state.explicit_counters_added = False
-                session.checklist_state.retested_until_bulletproof = True  # Mark as done since skipping
+                session.checklist_state.retested_until_bulletproof = (
+                    True  # Mark as done since skipping
+                )
                 logger.info("Skipped explicit counters (discipline skill, user chose to skip)")
             else:
                 # For other skills, counters are optional enhancement
                 session.checklist_state.explicit_counters_added = False
                 session.checklist_state.retested_until_bulletproof = True
                 logger.info("Skipped explicit counters (optional enhancement)")
-            
+
             return self._verify_checklist_complete(session)
 
         # Ask about counters
@@ -674,12 +686,12 @@ class ConversationalSkillAgent(dspy.Module):
             plan = skill_draft.get("plan", {})
             skill_metadata = plan.get("skill_metadata", {})
             skill_type = skill_metadata.get("type", "general")
-            
+
             if skill_type == "discipline":
                 message = "I found potential loopholes in the skill. Should I add explicit counters to close them? (yes/no/skip)\n\n[Note: For discipline skills, counters are recommended but can be skipped]"
             else:
                 message = "I found potential loopholes in the skill. Should I add explicit counters to close them? (yes/no/skip)\n\n[Note: This is optional - you can skip if you prefer]"
-            
+
             return AgentResponse(
                 message=message,
                 state=ConversationState.TDD_REFACTOR_PHASE,
@@ -687,15 +699,17 @@ class ConversationalSkillAgent(dspy.Module):
                 requires_user_input=True,
             )
 
-    def _handle_deep_understanding(self, user_message: str, session: ConversationSession) -> AgentResponse:
+    def _handle_deep_understanding(
+        self, user_message: str, session: ConversationSession
+    ) -> AgentResponse:
         """Handle DEEP_UNDERSTANDING state - process answers and ask next question."""
         # Parse user response (could be multi-choice option ID or free-form)
         user_answer = user_message.strip()
-        
+
         # Store answer in session
         if not session.deep_understanding:
             session.deep_understanding = {"questions_asked": [], "answers": []}
-        
+
         last_question_data = session.deep_understanding.get("current_question")
         if last_question_data:
             # Store the answer
@@ -703,16 +717,20 @@ class ConversationalSkillAgent(dspy.Module):
                 last_question_id = last_question_data.get("id", "unknown")
             else:
                 last_question_id = getattr(last_question_data, "id", "unknown")
-            
-            session.deep_understanding.setdefault("answers", []).append({
-                "question_id": last_question_id,
-                "answer": user_answer,
-            })
-            
+
+            session.deep_understanding.setdefault("answers", []).append(
+                {
+                    "question_id": last_question_id,
+                    "answer": user_answer,
+                }
+            )
+
             # Store question in questions_asked if not already there
             if last_question_data not in session.deep_understanding.get("questions_asked", []):
-                session.deep_understanding.setdefault("questions_asked", []).append(last_question_data)
-        
+                session.deep_understanding.setdefault("questions_asked", []).append(
+                    last_question_data
+                )
+
         # Continue deep understanding process
         return self._execute_deep_understanding(session)
 
@@ -729,23 +747,29 @@ class ConversationalSkillAgent(dspy.Module):
                 "understanding_summary": "",
                 "research_findings": {},
             }
-        
+
         # Get conversation history
         conversation_history = []
         questions_asked = session.deep_understanding.get("questions_asked", [])
         answers = session.deep_understanding.get("answers", [])
         for i, question in enumerate(questions_asked):
             if i < len(answers):
-                conversation_history.append({
-                    "question_id": question.get("id") if isinstance(question, dict) else getattr(question, "id", ""),
-                    "question_text": question.get("question") if isinstance(question, dict) else getattr(question, "question", ""),
-                    "answer": answers[i].get("answer", ""),
-                    "timestamp": datetime.now().isoformat(),
-                })
-        
+                conversation_history.append(
+                    {
+                        "question_id": question.get("id")
+                        if isinstance(question, dict)
+                        else getattr(question, "id", ""),
+                        "question_text": question.get("question")
+                        if isinstance(question, dict)
+                        else getattr(question, "question", ""),
+                        "answer": answers[i].get("answer", ""),
+                        "timestamp": datetime.now().isoformat(),
+                    }
+                )
+
         # Get research findings
         research_findings = session.deep_understanding.get("research_findings", {})
-        
+
         # Call DeepUnderstandingModule with streaming
         lm = self.task_lms.get("skill_understand") if self.task_lms else dspy.settings.lm
         with dspy.context(lm=lm):
@@ -756,7 +780,7 @@ class ConversationalSkillAgent(dspy.Module):
                 research_findings=research_findings,
                 current_understanding=session.deep_understanding.get("understanding_summary", ""),
             )
-        
+
         # Check if research needed
         if result.get("research_needed"):
             research_result = self._perform_research(result["research_needed"], session)
@@ -770,28 +794,30 @@ class ConversationalSkillAgent(dspy.Module):
                     initial_task=session.task_description,
                     conversation_history=conversation_history,
                     research_findings=research_findings,
-                    current_understanding=session.deep_understanding.get("understanding_summary", ""),
+                    current_understanding=session.deep_understanding.get(
+                        "understanding_summary", ""
+                    ),
                 )
-        
+
         # Update understanding summary
         if result.get("understanding_summary"):
             session.deep_understanding["understanding_summary"] = result["understanding_summary"]
-        
+
         # Check readiness
         readiness_score = result.get("readiness_score", 0.0)
         session.deep_understanding.setdefault("readiness_scores", []).append(readiness_score)
-        
+
         if readiness_score >= 0.8:
             # Ready to proceed - mark as complete
             session.deep_understanding["complete"] = True
             session.user_problem = result.get("user_problem", "")
             session.user_goals = result.get("user_goals", [])
             session.research_context = session.deep_understanding.get("research_findings", {})
-            
+
             # Update task description with refined version
             if result.get("refined_task_description"):
                 session.task_description = result["refined_task_description"]
-            
+
             # Continue with multi-skill check - set state to EXPLORING and return signal
             # The respond() method will handle continuation on next call
             message = f"✅ I understand your needs now!\n\n**Summary:**\n{result.get('understanding_summary', 'Understanding complete.')}\n\nProceeding to skill creation..."
@@ -822,7 +848,9 @@ class ConversationalSkillAgent(dspy.Module):
                 )
             else:
                 # No question but not ready - this shouldn't happen, but proceed anyway
-                logger.warning("Deep understanding: no question but readiness < 0.8, proceeding anyway")
+                logger.warning(
+                    "Deep understanding: no question but readiness < 0.8, proceeding anyway"
+                )
                 session.deep_understanding["complete"] = True
                 return AgentResponse(
                     message="Proceeding with current understanding.",
@@ -835,12 +863,17 @@ class ConversationalSkillAgent(dspy.Module):
         """Perform research based on research_needed specification."""
         research_type = research_needed.get("type", "web")  # "web", "filesystem", or "both"
         query = research_needed.get("query", "")
-        
+
         if not query:
-            return {"type": research_type, "query": "", "completed": False, "error": "No query provided"}
-        
+            return {
+                "type": research_type,
+                "query": "",
+                "completed": False,
+                "error": "No query provided",
+            }
+
         research_result = {"type": research_type, "query": query, "completed": False}
-        
+
         # Perform web search if needed
         if research_type in ("web", "both"):
             try:
@@ -851,19 +884,21 @@ class ConversationalSkillAgent(dspy.Module):
                 logger.warning(f"Web research failed: {e}")
                 research_result["web_success"] = False
                 research_result["web_error"] = str(e)
-        
+
         # Perform filesystem search if needed
         if research_type in ("filesystem", "both"):
             try:
                 workspace_path = self.skills_root or Path.cwd()
                 fs_results = filesystem_research(query, workspace_path, max_results=10)
-                session.deep_understanding.setdefault("research_findings", {})["filesystem"] = fs_results
+                session.deep_understanding.setdefault("research_findings", {})["filesystem"] = (
+                    fs_results
+                )
                 research_result["filesystem_success"] = fs_results.get("success", False)
             except Exception as e:
                 logger.warning(f"Filesystem research failed: {e}")
                 research_result["filesystem_success"] = False
                 research_result["filesystem_error"] = str(e)
-        
+
         research_result["completed"] = True
         return research_result
 
@@ -875,8 +910,12 @@ class ConversationalSkillAgent(dspy.Module):
             feedback_result, feedback_thinking = self._execute_with_streaming(
                 self._streaming_process_feedback,
                 user_feedback=user_message,
-                current_skill_content=session.skill_draft.get("skill_content", "") if session.skill_draft else "",
-                validation_errors=session.skill_draft.get("validation_errors", []) if session.skill_draft else [],
+                current_skill_content=session.skill_draft.get("skill_content", "")
+                if session.skill_draft
+                else "",
+                validation_errors=session.skill_draft.get("validation_errors", [])
+                if session.skill_draft
+                else [],
             )
             thinking_content = feedback_thinking
 
@@ -940,12 +979,16 @@ class ConversationalSkillAgent(dspy.Module):
         revision_feedback = session.skill_draft.get("revision_plan") or user_message
 
         # Convert parent_skills to string (revision program expects str, not list)
-        parent_skills_str = json.dumps(
-            understanding["parent_skills"], indent=2
-        ) if understanding.get("parent_skills") else "[]"
-        composition_strategy_str = json.dumps(
-            plan.get("composition_strategy", {}), indent=2
-        ) if isinstance(plan.get("composition_strategy"), dict) else str(plan.get("composition_strategy", ""))
+        parent_skills_str = (
+            json.dumps(understanding["parent_skills"], indent=2)
+            if understanding.get("parent_skills")
+            else "[]"
+        )
+        composition_strategy_str = (
+            json.dumps(plan.get("composition_strategy", {}), indent=2)
+            if isinstance(plan.get("composition_strategy"), dict)
+            else str(plan.get("composition_strategy", ""))
+        )
 
         # Execute revision program
         try:
@@ -1010,7 +1053,9 @@ class ConversationalSkillAgent(dspy.Module):
                 requires_user_input=True,
             )
 
-    def _handle_checklist_complete(self, user_message: str, session: ConversationSession) -> AgentResponse:
+    def _handle_checklist_complete(
+        self, user_message: str, session: ConversationSession
+    ) -> AgentResponse:
         """Handle CHECKLIST_COMPLETE state - ready to save."""
         user_message_lower = user_message.strip().lower()
 
@@ -1146,11 +1191,11 @@ class ConversationalSkillAgent(dspy.Module):
             message += f"**Skill Name:** {metadata.get('name', 'N/A')}\n"
             message += f"**Description:** {metadata.get('description', 'N/A')}\n"
             message += f"**Taxonomy Path:** `{session.taxonomy_path}`\n"
-            capabilities = metadata.get('capabilities', [])
+            capabilities = metadata.get("capabilities", [])
             if capabilities:
                 message += "\n**Capabilities:**\n"
                 for cap in capabilities[:5]:  # Show first 5
-                    cap_name = cap.get('name', cap) if isinstance(cap, dict) else str(cap)
+                    cap_name = cap.get("name", cap) if isinstance(cap, dict) else str(cap)
                     message += f"- {cap_name}\n"
 
         # Section 3: How This Addresses Your Task
@@ -1164,7 +1209,7 @@ class ConversationalSkillAgent(dspy.Module):
         message += "\n## " + "=" * 60 + " ##\n\n"
 
         # Add final confirmation question
-        message += confirm_result['confirmation_question']
+        message += confirm_result["confirmation_question"]
 
         # Combine all result data for return
         combined_data = {
@@ -1200,7 +1245,7 @@ class ConversationalSkillAgent(dspy.Module):
                     research_summary = self._summarize_research(session.research_context)
                     if research_summary:
                         enhanced_task += f"\n### Relevant Context\n{research_summary}\n"
-            
+
             # Execute creation program
             existing_skills = self.taxonomy.get_mounted_skills("default")
             taxonomy_structure = self.taxonomy.get_relevant_branches(enhanced_task)
@@ -1211,7 +1256,9 @@ class ConversationalSkillAgent(dspy.Module):
                 taxonomy_structure=taxonomy_structure,
                 parent_skills_getter=self.taxonomy.get_parent_skills,
                 task_lms=self.task_lms,
-                gathered_examples=session.collected_examples if session.collected_examples else None,
+                gathered_examples=session.collected_examples
+                if session.collected_examples
+                else None,
             )
 
             # Store skill draft
@@ -1244,7 +1291,9 @@ class ConversationalSkillAgent(dspy.Module):
 
             message += "\n**BEFORE SAVING: TDD Checklist (MANDATORY)**\n"
             message += "Before saving, we must complete the TDD checklist. This is required.\n\n"
-            message += "Starting RED phase - creating pressure scenarios and running baseline tests..."
+            message += (
+                "Starting RED phase - creating pressure scenarios and running baseline tests..."
+            )
 
             session.state = ConversationState.TDD_RED_PHASE
 
@@ -1285,7 +1334,8 @@ class ConversationalSkillAgent(dspy.Module):
         if not session.checklist_state.is_complete():
             missing = session.checklist_state.get_missing_items()
             return AgentResponse(
-                message="Cannot save: Checklist incomplete. Missing items:\n" + "\n".join(f"- {item}" for item in missing),
+                message="Cannot save: Checklist incomplete. Missing items:\n"
+                + "\n".join(f"- {item}" for item in missing),
                 state=ConversationState.TDD_REFACTOR_PHASE,
                 action="checklist_incomplete",
                 data={"missing_items": missing},
@@ -1323,7 +1373,10 @@ class ConversationalSkillAgent(dspy.Module):
                 skill_path = understanding["taxonomy_path"]
 
                 # Check if more skills in queue
-                if session.multi_skill_queue and session.current_skill_index < len(session.multi_skill_queue) - 1:
+                if (
+                    session.multi_skill_queue
+                    and session.current_skill_index < len(session.multi_skill_queue) - 1
+                ):
                     session.current_skill_index += 1
                     next_skill = session.multi_skill_queue[session.current_skill_index]
                     session.task_description = f"Create a skill for: {next_skill}"
@@ -1530,7 +1583,10 @@ class ConversationalSkillAgent(dspy.Module):
         # Automatically execute REFACTOR phase to identify rationalizations
         refactor_response = self._execute_tdd_refactor_phase(session, add_counters=False)
         # If it's asking about counters, return that; otherwise combine messages
-        if refactor_response.requires_user_input and refactor_response.action == "ask_about_counters":
+        if (
+            refactor_response.requires_user_input
+            and refactor_response.action == "ask_about_counters"
+        ):
             return AgentResponse(
                 message=message + "\n" + refactor_response.message,
                 state=ConversationState.TDD_REFACTOR_PHASE,
@@ -1608,7 +1664,9 @@ class ConversationalSkillAgent(dspy.Module):
             message += "- Agents might use 'just this once' exceptions\n"
             message += "- Agents might skip testing claiming 'too simple'\n"
             message += "- Agents might test after instead of before\n"
-            message += "\nShould I add explicit counters to the skill to close these loopholes? (yes/no)"
+            message += (
+                "\nShould I add explicit counters to the skill to close these loopholes? (yes/no)"
+            )
 
             return AgentResponse(
                 message=message,
@@ -1625,7 +1683,9 @@ class ConversationalSkillAgent(dspy.Module):
         # For now, we'll skip this check as it's optional
 
         # Check for quick reference table
-        checklist.quick_reference_included = "## Quick Reference" in skill_content or "## Reference" in skill_content
+        checklist.quick_reference_included = (
+            "## Quick Reference" in skill_content or "## Reference" in skill_content
+        )
 
         # Check for common mistakes section
         checklist.common_mistakes_included = (
@@ -1643,7 +1703,9 @@ class ConversationalSkillAgent(dspy.Module):
             "Once we",
             "When we",
         ]
-        has_narrative = any(pattern.lower() in skill_content.lower() for pattern in narrative_patterns)
+        has_narrative = any(
+            pattern.lower() in skill_content.lower() for pattern in narrative_patterns
+        )
         checklist.no_narrative_storytelling = not has_narrative
 
         # Check supporting files (this would require checking actual files)
@@ -1652,15 +1714,15 @@ class ConversationalSkillAgent(dspy.Module):
 
     def _summarize_research(self, research_context: dict) -> str:
         """Summarize research findings into concise text for skill creation.
-        
+
         Args:
             research_context: Dict with 'web' and 'filesystem' keys containing research results
-            
+
         Returns:
             Summary string to append to task description
         """
         summary_parts = []
-        
+
         if research_context.get("web"):
             web_data = research_context["web"]
             if web_data.get("success") and web_data.get("results"):
@@ -1672,15 +1734,18 @@ class ConversationalSkillAgent(dspy.Module):
                     if snippet:
                         insights.append(snippet[:200])
                 if insights:
-                    summary_parts.append("Web research findings:\n" + "\n".join(f"- {insight}" for insight in insights))
-        
+                    summary_parts.append(
+                        "Web research findings:\n"
+                        + "\n".join(f"- {insight}" for insight in insights)
+                    )
+
         if research_context.get("filesystem"):
             fs_data = research_context["filesystem"]
             if fs_data.get("success"):
                 fs_files = fs_data.get("files_found", [])[:5]
                 if fs_files:
                     summary_parts.append(f"Relevant files found: {', '.join(fs_files)}")
-        
+
         return "\n\n".join(summary_parts)
 
     def _verify_checklist_complete(

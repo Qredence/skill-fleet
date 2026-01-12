@@ -99,7 +99,7 @@ def optimize_command(
     # Run optimization
     try:
         if track:
-            _optimized = optimize_with_tracking(
+            optimize_with_tracking(
                 program,
                 trainset_path=trainset,
                 output_path=output,
@@ -108,7 +108,7 @@ def optimize_command(
                 auto=auto,
             )
         elif optimizer == "miprov2":
-            _optimized = optimize_with_miprov2(
+            optimize_with_miprov2(
                 program,
                 trainset_path=trainset,
                 output_path=output,
@@ -116,7 +116,7 @@ def optimize_command(
                 auto=auto,
             )
         else:
-            _optimized = optimize_with_gepa(
+            optimize_with_gepa(
                 program,
                 trainset_path=trainset,
                 output_path=output,

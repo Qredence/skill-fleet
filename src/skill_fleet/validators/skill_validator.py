@@ -36,6 +36,12 @@ class SkillValidator:
     _WEIGHT_ENUM = {"lightweight", "medium", "heavyweight"}
     _PRIORITY_ENUM = {"always", "task_specific", "on_demand", "dormant"}
 
+    # Pre-compiled regex patterns for performance
+    _SKILL_ID_PATTERN = re.compile(r"^[a-z0-9_]+(?:/[a-z0-9_]+)*$")
+    _SEMVER_PATTERN = re.compile(r"^\d+\.\d+\.\d+$")
+    _SKILL_NAME_PATTERN = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
+    _SAFE_PATH_PATTERN = re.compile(r"^[a-zA-Z0-9._-]+$")
+
     def __init__(self, skills_root: Path) -> None:
         self.skills_root = Path(skills_root)
         self.required_files = ["metadata.json", "SKILL.md"]
@@ -120,7 +126,14 @@ class SkillValidator:
         return ValidationResult(len(errors) == 0, errors, warnings)
 
     def validate_structure(self, skill_dir: Path) -> ValidationResult:
-        """Validate that a directory skill has the expected files and folders."""
+        """Validate that a directory skill has the expected files and folders.
+
+        Security: This method implements defense-in-depth against path traversal:
+        1. Resolves skill_dir and validates it's within skills_root
+        2. Validates each filename/dirname component before use
+        3. Re-validates resolved paths are within skill_dir
+        4. Uses _is_safe_path_component() to reject malicious patterns
+        """
         errors: list[str] = []
         warnings: list[str] = []
 
@@ -301,7 +314,7 @@ class SkillValidator:
         if len(name) > 64:
             return False, f"Name exceeds 64 characters (got {len(name)})"
 
-        if not re.match(r"^[a-z0-9]+(-[a-z0-9]+)*$", name):
+        if not self._SKILL_NAME_PATTERN.match(name):
             return False, "Name must be lowercase alphanumeric with single hyphens between segments"
 
         return True, None
@@ -452,12 +465,10 @@ class SkillValidator:
         return results
 
     def _validate_skill_id_format(self, skill_id: str) -> bool:
-        pattern = r"^[a-z0-9_]+(?:/[a-z0-9_]+)*$"
-        return bool(re.match(pattern, skill_id))
+        return bool(self._SKILL_ID_PATTERN.match(skill_id))
 
     def _validate_semver(self, version: str) -> bool:
-        pattern = r"^\d+\.\d+\.\d+$"
-        return bool(re.match(pattern, version))
+        return bool(self._SEMVER_PATTERN.match(version))
 
     def _validate_weight_capabilities(self, weight: str, capabilities: list[str]) -> bool:
         cap_count = len(capabilities)
@@ -501,7 +512,7 @@ class SkillValidator:
 
         # Check for valid characters: alphanumeric, hyphen, underscore, dot
         # Allow dots for file extensions, but validate the pattern
-        if not re.match(r"^[a-zA-Z0-9._-]+$", component):
+        if not self._SAFE_PATH_PATTERN.match(component):
             return False
 
         return True

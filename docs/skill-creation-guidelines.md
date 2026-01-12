@@ -39,16 +39,14 @@ Each skill represents a discrete capability that can be:
 
 ### Relationship to Other Documentation
 
-
-| Document                           | Purpose                                 | Use When                            |
-| ---------------------------------- | --------------------------------------- | ----------------------------------- |
-| `overview.md`                      | System architecture and taxonomy design | Understanding the big picture       |
-| `user-guide.md`                     | Installation, CLI workflow, and templates | Getting started quickly             |
-| `skill-creator-guide.md`           | 6-step DSPy workflow overview           | Understanding automated creation    |
-| `**skill-creation-guidelines.md**` | **Practical creation guidelines**       | **Creating or modifying skills**    |
-| `cli-reference.md`                 | Complete CLI command reference          | Looking up specific commands        |
-| `agentskills-compliance.md`        | agentskills.io specification            | Ensuring cross-system compatibility |
-
+| Document                           | Purpose                                   | Use When                            |
+| ---------------------------------- | ----------------------------------------- | ----------------------------------- |
+| `overview.md`                      | System architecture and taxonomy design   | Understanding the big picture       |
+| `getting-started/index.md`         | Installation, CLI workflow, and templates | Getting started quickly             |
+| `skill-creator-guide.md`           | 6-step DSPy workflow overview             | Understanding automated creation    |
+| `**skill-creation-guidelines.md**` | **Practical creation guidelines**         | **Creating or modifying skills**    |
+| `cli-reference.md`                 | Complete CLI command reference            | Looking up specific commands        |
+| `agentskills-compliance.md`        | agentskills.io specification              | Ensuring cross-system compatibility |
 
 ---
 
@@ -193,23 +191,30 @@ Before creating a skill, ask these questions to ensure proper scoping and avoid 
 #### Questions to Ask
 
 1. **What problem does this skill solve?**
-  - Be specific: "Handle async database connections in FastAPI" not "database stuff"
-  - Identify the pain point this skill addresses
+
+- Be specific: "Handle async database connections in FastAPI" not "database stuff"
+- Identify the pain point this skill addresses
+
 2. **Is this a new skill or enhancement to existing?**
-  - Search existing taxonomy first
-  - Check if capability fits in existing skill
+
+- Search existing taxonomy first
+- Check if capability fits in existing skill
+
 3. **Does it overlap with existing skills?**
-  - Use `find` and `grep` to search for related terms
-  - Check dependency graph for related skills
+
+- Use `find` and `grep` to search for related terms
+- Check dependency graph for related skills
+
 4. **What domain does it belong to?**
-  - `cognitive`: Thinking patterns, reasoning approaches
-  - `technical`: Programming, frameworks, tools
-  - `domain`: Subject matter expertise
-  - `tool`: Software/platform proficiency
-  - `mcp`: Model Context Protocol
-  - `specialization`: Advanced/focused applications
-  - `task_focus`: Problem-solving methodologies
-  - `memory`: Memory management patterns
+
+- `cognitive`: Thinking patterns, reasoning approaches
+- `technical`: Programming, frameworks, tools
+- `domain`: Subject matter expertise
+- `tool`: Software/platform proficiency
+- `mcp`: Model Context Protocol
+- `specialization`: Advanced/focused applications
+- `task_focus`: Problem-solving methodologies
+- `memory`: Memory management patterns
 
 #### Decision Points
 
@@ -242,36 +247,43 @@ find skills -name "metadata.json" | xargs grep -l "sql"
 #### Questions to Ask
 
 1. **What type of skill?**
-  - Review the 8 types and choose the best fit
-  - Use the [Type Determination Matrix](#type-determination-matrix) below
+
+- Review the 8 types and choose the best fit
+- Use the [Type Determination Matrix](#type-determination-matrix) below
+
 2. **What weight?**
-  - `lightweight`: Small, focused, 1-3 capabilities
-  - `medium`: Multi-capability, 4-7 capabilities
-  - `heavyweight`: Complex workflows, 8+ capabilities (rare)
+
+- `lightweight`: Small, focused, 1-3 capabilities
+- `medium`: Multi-capability, 4-7 capabilities
+- `heavyweight`: Complex workflows, 8+ capabilities (rare)
+
 3. **What load priority?**
-  - `always`: Core skills loaded at startup
-  - `task_specific`: Loaded when task matches intent
-  - `on_demand`: Loaded only when referenced
-  - `dormant`: Archived or experimental
+
+- `always`: Core skills loaded at startup
+- `task_specific`: Loaded when task matches intent
+- `on_demand`: Loaded only when referenced
+- `dormant`: Archived or experimental
+
 4. **How many capabilities?**
-  - Target 3-7 capabilities
-  - Each capability should be atomic and testable
-  - Use the [Capability Design Principles](#capability-design-principles) below
+
+- Target 3-7 capabilities
+- Each capability should be atomic and testable
+- Use the [Capability Design Principles](#capability-design-principles) below
+
 5. **What dependencies on other skills?**
-  - List skills this one builds upon
-  - Avoid circular dependencies
-  - Use the [Dependency Composition Rules](#dependency-composition-rules) below
+
+- List skills this one builds upon
+- Avoid circular dependencies
+- Use the [Dependency Composition Rules](#dependency-composition-rules) below
 
 #### Decision Framework
 
 ##### Type Determination Matrix
 
-
 | Skill Characteristics                  | Best Type   |
 | -------------------------------------- | ----------- |
 | Implementation patterns, code examples | `technical` |
 | Subject matter, terminology, facts     | `domain`    |
-
 
 - Thinking strategies, reasoning methods | `cognitive` |
 - Software/platform proficiency | `tool` |
@@ -282,7 +294,6 @@ find skills -name "metadata.json" | xargs grep -l "sql"
 
 ##### Weight Guidelines
 
-
 | Factor        | Lightweight     | Medium              | Heavyweight       |
 | ------------- | --------------- | ------------------- | ----------------- |
 | Capabilities  | 1-3             | 4-7                 | 8+                |
@@ -290,7 +301,6 @@ find skills -name "metadata.json" | xargs grep -l "sql"
 | Examples      | 1-2             | 3-5                 | 6+                |
 | Dependencies  | 0-2             | 3-5                 | 6+                |
 | Complexity    | Simple concepts | Moderate complexity | Complex workflows |
-
 
 **Rule of thumb:** Start with `lightweight` or `medium`. Use `heavyweight` sparingly.
 
@@ -328,7 +338,7 @@ Is this a core/foundational skill?
 ```json
 {
   "dependencies": [
-    "technical/programming/languages/python"  // Reason: Uses Python syntax
+    "technical/programming/languages/python" // Reason: Uses Python syntax
   ]
 }
 ```
@@ -338,7 +348,7 @@ Is this a core/foundational skill?
 ```json
 {
   "dependencies": [
-    "technical/programming/web_frameworks/python/fastapi"  // Too narrow
+    "technical/programming/web_frameworks/python/fastapi" // Too narrow
   ]
 }
 ```
@@ -356,35 +366,49 @@ Is this a core/foundational skill?
 #### Questions to Ask
 
 1. **What are the atomic capabilities?**
-  - Break down into smallest testable units
-  - Each capability should solve one specific problem
+
+- Break down into smallest testable units
+- Each capability should solve one specific problem
+
 2. **Can each be tested independently?**
-  - Write a test for each capability
-  - If you can't test it independently, it's not atomic
+
+- Write a test for each capability
+- If you can't test it independently, it's not atomic
+
 3. **Are they cohesive (single responsibility)?**
-  - Each capability should have one clear purpose
-  - If it does multiple things, split it
+
+- Each capability should have one clear purpose
+- If it does multiple things, split it
+
 4. **Do they have clear boundaries?**
-  - No overlap between capabilities
-  - Clear distinction where one ends and another begins
+
+- No overlap between capabilities
+- Clear distinction where one ends and another begins
 
 #### Capability Design Principles
 
 1. **Atomic and Testable**
-  - Each capability is independently testable
-  - Has clear inputs and outputs
-  - Can be demonstrated in isolation
+
+- Each capability is independently testable
+- Has clear inputs and outputs
+- Can be demonstrated in isolation
+
 2. **Single Responsibility**
-  - Each capability does one thing well
-  - Avoid multi-purpose capabilities
+
+- Each capability does one thing well
+- Avoid multi-purpose capabilities
+
 3. **Clear Input/Output Contracts**
-  - Specify what the capability requires
-  - Specify what the capability produces
-  - Document edge cases
+
+- Specify what the capability requires
+- Specify what the capability produces
+- Document edge cases
+
 4. **Cross-Referencable**
-  - Other skills can reference this capability
-  - Has a stable identifier (kebab-case name)
-  - Related capabilities are linked
+
+- Other skills can reference this capability
+- Has a stable identifier (kebab-case name)
+- Related capabilities are linked
 
 #### Example: Breaking Down a Skill
 
@@ -429,7 +453,7 @@ skill-name/
 │   ├── capability-2.md
 │   └── ...
 ├── references/
-├── scripts/   
+├── scripts/
 ├── examples/             # Required: Usage examples
 │   ├── 01-example-name/
 │   │   ├── README.md
@@ -561,7 +585,6 @@ Every skill must have a `metadata.json` file:
 
 **Field descriptions:**
 
-
 | Field           | Type   | Required | Description                                                                         |
 | --------------- | ------ | -------- | ----------------------------------------------------------------------------------- |
 | `skill_id`      | string | Yes      | Path-style identifier                                                               |
@@ -578,7 +601,6 @@ Every skill must have a `metadata.json` file:
 | `created_at`    | string | Yes      | ISO-8601 timestamp                                                                  |
 | `last_modified` | string | Yes      | ISO-8601 timestamp                                                                  |
 | `evolution`     | object | Yes      | Evolution tracking metadata                                                         |
-
 
 ### SKILL.md Format (agentskills.io compliant)
 
@@ -601,53 +623,62 @@ metadata:
 # Skill Title
 
 ## Overview
+
 High-level description of what this skill does (2-3 sentences).
 
 ## When to Use
+
 Decision framework for when to apply this skill.
 
 **When to use:**
+
 - Condition 1
 - Condition 2
 - Condition 3
 
 **When NOT to use:**
+
 - Condition 1
 - Condition 2
 
 ## Quick Reference
-| Problem | Solution | Keywords |
-|---------|----------|----------|
+
+| Problem   | Solution   | Keywords           |
+| --------- | ---------- | ------------------ |
 | Problem 1 | Solution 1 | keyword1, keyword2 |
 | Problem 2 | Solution 2 | keyword3, keyword4 |
 
 ## Core Patterns/Capabilities
 
 ### Capability 1
+
 **Problem:** What problem does it solve?
 **Solution:** How does it solve it?
 **Example:** Code or usage example
 
 ### Capability 2
+
 ...
 
 ## Common Mistakes
-| Mistake | Why It's Wrong | Fix |
-|---------|----------------|-----|
-| Mistake 1 | Explanation | Solution |
-| Mistake 2 | Explanation | Solution |
+
+| Mistake   | Why It's Wrong | Fix      |
+| --------- | -------------- | -------- |
+| Mistake 1 | Explanation    | Solution |
+| Mistake 2 | Explanation    | Solution |
 
 ## Real-World Impact
+
 - **Metric 1**: Description → measurable outcome
 - **Metric 2**: Description → measurable outcome
 
 ## See Also
+
 - [Related Skill 1](../related-skill-1/SKILL.md)
 - [Related Skill 2](../related-skill-2/SKILL.md)
 ```
 
 **agentskills.io frontmatter requirements:**
-
 
 | Field                    | Required | Format          | Description              |
 | ------------------------ | -------- | --------------- | ------------------------ |
@@ -661,19 +692,21 @@ Decision framework for when to apply this skill.
 | `metadata.weight`        | Yes      | enum            | Skill weight             |
 | `metadata.load_priority` | Yes      | enum            | Load priority            |
 
-
 ### Capability Files Format
 
 Each capability should have its own markdown file in `capabilities/`:
 
-```markdown
+````markdown
 # Capability Name
 
 ## Overview
+
 What this capability does in 1-2 sentences.
 
 ## Problem Statement
+
 **Silent failures that cause problems:**
+
 - Issue 1
 - Issue 2
 - Issue 3
@@ -681,10 +714,12 @@ What this capability does in 1-2 sentences.
 ## Pattern/Solution
 
 ### ❌ Broken (Baseline Failure)
+
 ```python
 # Show what NOT to do
 problematic_code_here
 ```
+````
 
 ### ✅ Production Pattern
 
@@ -695,21 +730,17 @@ correct_code_here
 
 ## Key Parameters/Concepts
 
-
 | Parameter/Concept | Purpose      | Typical Value/Usage |
 | ----------------- | ------------ | ------------------- |
 | Param 1           | What it does | Example             |
 | Param 2           | What it does | Example             |
 
-
 ## Symptoms of Misconfiguration
-
 
 | Symptom   | Root Cause | Fix   |
 | --------- | ---------- | ----- |
 | Symptom 1 | Cause 1    | Fix 1 |
 | Symptom 2 | Cause 2    | Fix 2 |
-
 
 ## Testing
 
@@ -735,15 +766,15 @@ Each example should be in its own directory under `examples/`:
 
 examples/
 ├── 01-example-name/
-│   ├── README.md          # Explanation of the example
-│   ├── example.py         # The example code
-│   └── test_example.py    # Test for the example
+│ ├── README.md # Explanation of the example
+│ ├── example.py # The example code
+│ └── test_example.py # Test for the example
 ├── 02-another-example/
-│   ├── README.md
-│   ├── example.py
-│   └── test_example.py
+│ ├── README.md
+│ ├── example.py
+│ └── test_example.py
 
-```
+````
 
 **README.md format:**
 ```markdown
@@ -756,7 +787,7 @@ Brief description of what this example shows.
 ```bash
 # Commands to run the example
 python example.py
-```
+````
 
 ## Key Concepts
 
@@ -774,7 +805,7 @@ python example.py
 
 - [Related Capability](../../capabilities/capability-name.md)
 
-```
+````
 
 **Numbering:** Use `01-`, `02-`, etc. for ordering.
 
@@ -814,11 +845,11 @@ async def lifespan(app: FastAPI):
     )
     yield
     await engine.dispose()
-```
+````
 
 **Why this works:** The engine is created once at startup, properly configured with pool limits, and disposed of at shutdown, preventing connection leaks.
 
-```
+````
 
 #### ❌/✅ Patterns
 
@@ -829,7 +860,7 @@ Show both wrong and right approaches:
 ```python
 # Engine created at import time - never closes!
 engine = create_async_engine(DATABASE_URL)
-```
+````
 
 ### ✅ Production Pattern
 
@@ -842,7 +873,7 @@ async def lifespan(app: FastAPI):
     await engine.dispose()
 ```
 
-```
+````
 
 **Why?** Visual distinction makes patterns memorable. Shows what to avoid AND what to do.
 
@@ -858,7 +889,7 @@ Include tables for fast lookup:
 | Connections not closing | Use `lifespan` with `engine.dispose()` | connection leak, pool |
 | Pool exhaustion | Set `pool_size` and `max_overflow` | concurrent, load |
 | Tests fail together | Use async fixtures with rollback | isolation, flaky |
-```
+````
 
 **Why?** Enables quick scanning and problem-solving.
 
@@ -867,35 +898,44 @@ Include tables for fast lookup:
 Follow these guidelines for code examples:
 
 1. **Include type hints:**
-  ```python
-   async def get_user(user_id: int) -> Optional[User]:
-  ```
-2. **Add explanatory comments:**
-  ```python
-   # CRITICAL: Only update provided fields
-   update_data = update.model_dump(exclude_unset=True)
-  ```
-3. **Show imports:**
-  ```python
-   from typing import Optional
-   from pydantic import BaseModel
-  ```
-4. **Use meaningful variable names:**
-  ```python
-   # Good
-   async_connection_pool = create_async_engine(url)
 
-   # Bad
-   x = create_async_engine(url)
-  ```
+```python
+ async def get_user(user_id: int) -> Optional[User]:
+```
+
+2. **Add explanatory comments:**
+
+```python
+ # CRITICAL: Only update provided fields
+ update_data = update.model_dump(exclude_unset=True)
+```
+
+3. **Show imports:**
+
+```python
+ from typing import Optional
+ from pydantic import BaseModel
+```
+
+4. **Use meaningful variable names:**
+
+```python
+ # Good
+ async_connection_pool = create_async_engine(url)
+
+ # Bad
+ x = create_async_engine(url)
+```
+
 5. **Handle errors:**
-  ```python
-   try:
-       result = await operation()
-   except SpecificError as e:
-       logger.error(f"Operation failed: {e}")
-       raise
-  ```
+
+```python
+ try:
+     result = await operation()
+ except SpecificError as e:
+     logger.error(f"Operation failed: {e}")
+     raise
+```
 
 #### Cross-References
 
@@ -903,6 +943,7 @@ Link to related skills and capabilities:
 
 ```markdown
 ## See Also
+
 - [Database Lifecycle Management](database-lifecycle-management.md)
 - [Async Testing](async-testing.md)
 - [Dependency Injection](dependency-injection.md)
@@ -914,21 +955,21 @@ Link to related skills and capabilities:
 ### Writing Principles
 
 1. **Be Specific**
-  ❌ "Handle errors properly"
+   ❌ "Handle errors properly"
    ✅ "Return HTTPException with status_code 404 and detail message"
 2. **Show, Don't Just Tell**
-  ❌ "Use the lifespan context manager"
-   ✅ "`python  @asynccontextmanager  async def lifespan(app: FastAPI):      engine = create_async_engine(DATABASE_URL)      yield      await engine.dispose()`  "
+   ❌ "Use the lifespan context manager"
+   ✅ "`python  @asynccontextmanager  async def lifespan(app: FastAPI):      engine = create_async_engine(DATABASE_URL)      yield      await engine.dispose()` "
 3. **Explain Why**
-  Don't just say what to do - explain why it matters:
+   Don't just say what to do - explain why it matters:
    ❌ "Create the engine in lifespan"
    ✅ "Create the engine in lifespan so it's disposed on shutdown, preventing connection leaks"
 4. **Be Concise**
-  Respect the reader's time. Remove fluff:
+   Respect the reader's time. Remove fluff:
    ❌ "In this section, we're going to talk about how you can go about creating a database engine..."
    ✅ "Create the database engine in lifespan:"
 5. **Be Complete**
-  Cover edge cases and common pitfalls:
+   Cover edge cases and common pitfalls:
    ✅ "Note: If you're using multiple workers, stagger startup to prevent connection pool exhaustion."
 
 ### Version & Dependency Management
@@ -953,6 +994,7 @@ Always specify versions for external dependencies:
 
 ```markdown
 ## Requirements
+
 - Python 3.8+
 - FastAPI 0.128.0+
 - SQLAlchemy 2.0+
@@ -964,6 +1006,7 @@ Always specify versions for external dependencies:
 ## Version Notes
 
 ### 0.128.0 Breaking Changes
+
 - `@app.on_event` is deprecated, use `lifespan` instead
 - New CLI: `fastapi dev` replaces `uvicorn --reload`
 ```
@@ -990,21 +1033,26 @@ Follow this 5-step process to create a new skill from concept to validated artif
 **Actions:**
 
 1. **Ask interrogation questions** (see [Section 3](#3-skill-creation-interrogations-discovery-questions))
-  - Phase 1: Understanding the Need
-  - Phase 2: Scope & Boundaries
-  - Phase 3: Capability Breakdown
-2. **Search existing taxonomy:**
-  ```bash
-   # Search for related terms
-   find skills -name "*.md" | xargs grep -l "search_term"
 
-   # Check metadata for related skills
-   find skills -name "metadata.json" | xargs grep -l "keyword"
-  ```
+- Phase 1: Understanding the Need
+- Phase 2: Scope & Boundaries
+- Phase 3: Capability Breakdown
+
+2. **Search existing taxonomy:**
+
+```bash
+ # Search for related terms
+ find skills -name "*.md" | xargs grep -l "search_term"
+
+ # Check metadata for related skills
+ find skills -name "metadata.json" | xargs grep -l "keyword"
+```
+
 3. **Define scope and boundaries:**
-  - Determine skill type, weight, load priority
-  - List dependencies
-  - Break down into capabilities (3-7)
+
+- Determine skill type, weight, load priority
+- List dependencies
+- Break down into capabilities (3-7)
 
 **Outputs:**
 
@@ -1029,32 +1077,37 @@ Follow this 5-step process to create a new skill from concept to validated artif
 **Actions:**
 
 1. **Determine metadata fields:**
-  - Finalize `skill_id`, `name`, `description`
-  - Choose `type`, `weight`, `load_priority`
-  - List `dependencies` and `capabilities`
+
+- Finalize `skill_id`, `name`, `description`
+- Choose `type`, `weight`, `load_priority`
+- List `dependencies` and `capabilities`
+
 2. **Plan directory structure:**
-  ```
-   skill-name/
-   ├── metadata.json
-   ├── SKILL.md
-   ├── capabilities/
-   │   ├── capability-1.md
-   │   ├── capability-2.md
-   │   └── ...
-   ├── examples/
-   │   ├── 01-example-1/
-   │   └── 02-example-2/
-   ├── tests/
-   │   └── test_skill.py
-   └── resources/
-       ├── requirements.json
-       └── reference.md
-  ```
+
+```
+ skill-name/
+ ├── metadata.json
+ ├── SKILL.md
+ ├── capabilities/
+ │   ├── capability-1.md
+ │   ├── capability-2.md
+ │   └── ...
+ ├── examples/
+ │   ├── 01-example-1/
+ │   └── 02-example-2/
+ ├── tests/
+ │   └── test_skill.py
+ └── resources/
+     ├── requirements.json
+     └── reference.md
+```
+
 3. **Plan content for each file:**
-  - SKILL.md sections and examples
-  - Each capability's content
-  - Examples to demonstrate each capability
-  - Tests for validation
+
+- SKILL.md sections and examples
+- Each capability's content
+- Examples to demonstrate each capability
+- Tests for validation
 
 **Outputs:**
 
@@ -1078,41 +1131,52 @@ Follow this 5-step process to create a new skill from concept to validated artif
 **Actions:**
 
 1. **Create directory structure:**
-  ```bash
-   mkdir -p skills/path/to/skill-name
-   mkdir -p skills/path/to/skill-name/capabilities
-   mkdir -p skills/path/to/skill-name/examples/01-first-example
-   mkdir -p skills/path/to/skill-name/tests
-   mkdir -p skills/path/to/skill-name/resources
-  ```
+
+```bash
+ mkdir -p skills/path/to/skill-name
+ mkdir -p skills/path/to/skill-name/capabilities
+ mkdir -p skills/path/to/skill-name/examples/01-first-example
+ mkdir -p skills/path/to/skill-name/tests
+ mkdir -p skills/path/to/skill-name/resources
+```
+
 2. **Write metadata.json:**
-  - Use the draft from Step 2
-  - Ensure all required fields are present
-  - Validate JSON syntax
+
+- Use the draft from Step 2
+- Ensure all required fields are present
+- Validate JSON syntax
+
 3. **Write SKILL.md:**
-  - Add YAML frontmatter (agentskills.io compliant)
-  - Write Overview section
-  - Write When to Use section
-  - Write Quick Reference table
-  - Write Core Patterns/Capabilities sections
-  - Write Common Mistakes table
-  - Write Real-World Impact section
-  - Add See Also links
+
+- Add YAML frontmatter (agentskills.io compliant)
+- Write Overview section
+- Write When to Use section
+- Write Quick Reference table
+- Write Core Patterns/Capabilities sections
+- Write Common Mistakes table
+- Write Real-World Impact section
+- Add See Also links
+
 4. **Create capability files:**
-  - One file per capability in `capabilities/`
-  - Follow the [Capability File Format](#capability-files-format)
-  - Include problem statement, pattern, examples
-  - Add cross-references
+
+- One file per capability in `capabilities/`
+- Follow the [Capability File Format](#capability-files-format)
+- Include problem statement, pattern, examples
+- Add cross-references
+
 5. **Add examples:**
-  - Create at least one example per capability
-  - Include README.md, example code, test
-  - Ensure examples are runnable
-  - Test each example
+
+- Create at least one example per capability
+- Include README.md, example code, test
+- Ensure examples are runnable
+- Test each example
+
 6. **Add resources:**
-  - requirements.json or equivalent
-  - Config files if applicable
-  - Reference materials
-  - Troubleshooting guide
+
+- requirements.json or equivalent
+- Config files if applicable
+- Reference materials
+- Troubleshooting guide
 
 **Outputs:**
 
@@ -1138,33 +1202,42 @@ Follow this 5-step process to create a new skill from concept to validated artif
 **Actions:**
 
 1. **Check agentskills.io compliance:**
-  ```bash
-   # Verify YAML frontmatter
-   # Check required fields
-   # Validate naming conventions
-  ```
+
+```bash
+ # Verify YAML frontmatter
+ # Check required fields
+ # Validate naming conventions
+```
+
 2. **Run validation CLI:**
-  ```bash
-   uv run skill-fleet validate-skill skills/path/to/skill-name
-  ```
+
+```bash
+ uv run skill-fleet validate-skill skills/path/to/skill-name
+```
+
 3. **Test examples:**
-  ```bash
-   # Run each example
-   for example in examples/*; do
-       cd $example
-       python example.py
-       python test_example.py
-   done
-  ```
+
+```bash
+ # Run each example
+ for example in examples/*; do
+     cd $example
+     python example.py
+     python test_example.py
+ done
+```
+
 4. **Verify cross-references:**
-  - Check all links work
-  - Verify referenced skills exist
-  - Ensure no circular dependencies
+
+- Check all links work
+- Verify referenced skills exist
+- Ensure no circular dependencies
+
 5. **Run tests:**
-  ```bash
-   cd tests/
-   pytest test_skill.py -v
-  ```
+
+```bash
+ cd tests/
+ pytest test_skill.py -v
+```
 
 **Outputs:**
 
@@ -1187,35 +1260,44 @@ Follow this 5-step process to create a new skill from concept to validated artif
 **Actions:**
 
 1. **Self-review using checklist:**
-  - Use the [Validation Checklist](#9-validation-checklist)
-  - Verify all sections are complete
-  - Check for consistency
+
+- Use the [Validation Checklist](#9-validation-checklist)
+- Verify all sections are complete
+- Check for consistency
+
 2. **Peer review (if applicable):**
-  - Submit for review
-  - Address feedback
-  - Update documentation
+
+- Submit for review
+- Address feedback
+- Update documentation
+
 3. **Update evolution metadata:**
-  ```json
-   {
-     "evolution": {
-       "version": "1.0.0",
-       "parent_id": null,
-       "evolution_path": "initial_release",
-       "change_log": "Initial skill creation with N capabilities",
-       "validation_score": 1.0,
-       "integrity_hash": "sha256_hash"
-     }
-   }
-  ```
+
+```json
+{
+  "evolution": {
+    "version": "1.0.0",
+    "parent_id": null,
+    "evolution_path": "initial_release",
+    "change_log": "Initial skill creation with N capabilities",
+    "validation_score": 1.0,
+    "integrity_hash": "sha256_hash"
+  }
+}
+```
+
 4. **Update taxonomy_meta.json:**
-  - Add skill to taxonomy
-  - Update dependencies
-  - Increment version
+
+- Add skill to taxonomy
+- Update dependencies
+- Increment version
+
 5. **Commit to version control:**
-  ```bash
-   git add skills/path/to/skill-name
-   git commit -m "Add skill-name: description of capabilities"
-  ```
+
+```bash
+ git add skills/path/to/skill-name
+ git commit -m "Add skill-name: description of capabilities"
+```
 
 **Outputs:**
 
@@ -1241,74 +1323,111 @@ Follow this 5-step process to create a new skill from concept to validated artif
 These practices ensure quality and consistency:
 
 1. **Use kebab-case for names**
-  - Directories: `fastapi-production-patterns`
-  - Capabilities: `database-lifecycle-management`
-  - Examples: `01-partial-updates`
+
+- Directories: `fastapi-production-patterns`
+- Capabilities: `database-lifecycle-management`
+- Examples: `01-partial-updates`
+
 2. **Include all required directories**
-  - `capabilities/`, `examples/`, `tests/`, `resources/`
+
+- `capabilities/`, `examples/`, `tests/`, `resources/`
+
 3. **Specify versions in dependencies**
-  - `"fastapi>=0.128.0"` not `"fastapi"`
+
+- `"fastapi>=0.128.0"` not `"fastapi"`
+
 4. **Write testable examples**
-  - Each example should run independently
-  - Include test files
+
+- Each example should run independently
+- Include test files
+
 5. **Cross-reference related skills**
-  - Link to related capabilities
-  - Link to parent/child skills
+
+- Link to related capabilities
+- Link to parent/child skills
+
 6. **Document breaking changes**
-  - Note version requirements
-  - Explain migration paths
+
+- Note version requirements
+- Explain migration paths
+
 7. **Update taxonomy_meta.json**
-  - Keep taxonomy in sync
-  - Track dependencies
+
+- Keep taxonomy in sync
+- Track dependencies
+
 8. **Show both wrong and right approaches**
-  - Use ❌/✅ pattern
-  - Explain why
+
+- Use ❌/✅ pattern
+- Explain why
+
 9. **Include quick reference tables**
-  - Problem → Solution mappings
-  - Common mistakes and fixes
+
+- Problem → Solution mappings
+- Common mistakes and fixes
+
 10. **Write descriptive commit messages**
-  - `Add skill-name: brief description`
-    - Include capability list
+
+- `Add skill-name: brief description`
+  - Include capability list
 
 ### Never Do
 
 These practices cause problems:
 
 1. **Create circular dependencies**
-  - A depends on B, B depends on A
-  - Use shared abstractions instead
+
+- A depends on B, B depends on A
+- Use shared abstractions instead
+
 2. **Use camelCase or snake_case for names**
-  - ❌ `FastAPI_Patterns`, `fastapi_patterns`
-  - ✅ `fastapi-patterns`
+
+- ❌ `FastAPI_Patterns`, `fastapi_patterns`
+- ✅ `fastapi-patterns`
+
 3. **Forget to update metadata**
-  - Always update `metadata.json`
-  - Always update `last_modified`
+
+- Always update `metadata.json`
+- Always update `last_modified`
+
 4. **Skip validation**
-  - Always run `skill-fleet validate-skill`
-  - Fix issues before committing
+
+- Always run `skill-fleet validate-skill`
+- Fix issues before committing
+
 5. **Duplicate existing capabilities**
-  - Search existing skills first
-  - Enhance existing skill if appropriate
+
+- Search existing skills first
+- Enhance existing skill if appropriate
+
 6. **Make capabilities too broad**
-  - > 7 capabilities → split into multiple skills
-  - Each capability should be atomic
+
+- > 7 capabilities → split into multiple skills
+- Each capability should be atomic
+
 7. **Mix multiple domains in one skill**
-  - Keep skills focused on one domain
-  - Use dependencies to compose
+
+- Keep skills focused on one domain
+- Use dependencies to compose
+
 8. **Write vague descriptions**
-  - ❌ "Database utilities"
-  - ✅ "Async database connection lifecycle management for FastAPI"
+
+- ❌ "Database utilities"
+- ✅ "Async database connection lifecycle management for FastAPI"
+
 9. **Forget to dispose resources**
-  - Always clean up in shutdown
-  - Use context managers
+
+- Always clean up in shutdown
+- Use context managers
+
 10. **Hardcode paths or configurations**
-  - Use environment variables
-    - Provide config templates
+
+- Use environment variables
+  - Provide config templates
 
 ### Red Flags
 
 Watch for these warning signs:
-
 
 | Red Flag                     | Why It's a Problem          | What to Do                          |
 | ---------------------------- | --------------------------- | ----------------------------------- |
@@ -1322,7 +1441,6 @@ Watch for these warning signs:
 | Long capability names        | Hard to reference           | Keep names concise                  |
 | Missing tests                | Unknown validity            | Add tests for all capabilities      |
 | No See Also sections         | Poor discoverability        | Add cross-references                |
-
 
 ---
 
@@ -1361,9 +1479,7 @@ Watch for these warning signs:
   "type": "technical",
   "weight": "medium",
   "load_priority": "task_specific",
-  "dependencies": [
-    "technical/programming/languages/python"
-  ],
+  "dependencies": ["technical/programming/languages/python"],
   "capabilities": [
     "basic-function-decorators",
     "class-decorators",
@@ -1710,7 +1826,7 @@ uv run skill-fleet create-skill --help
 #### Documentation
 
 - [Overview](overview.md) - System architecture
-- [User Guide](user-guide.md) - Installation & CLI workflow
+- [Getting Started Guide](getting-started/index.md) - Installation & CLI workflow
 - [Skill Creator Guide](skill-creator-guide.md) - DSPy workflow
 - [CLI Reference](cli-reference.md) - Command reference
 - [agentskills.io Compliance](agentskills-compliance.md) - Specification
@@ -1741,7 +1857,6 @@ uv run skill-fleet validate-skill path/to/skill
 
 ### Skill Types
 
-
 | Type             | Description                   | Examples                             |
 | ---------------- | ----------------------------- | ------------------------------------ |
 | `cognitive`      | Thinking patterns, reasoning  | Logical reasoning, Creative thinking |
@@ -1753,9 +1868,7 @@ uv run skill-fleet validate-skill path/to/skill
 | `task_focus`     | Problem-solving methodologies | Debug-fix, Code review               |
 | `memory`         | Memory management             | Context management, Retrieval        |
 
-
 ### Weight Guidelines
-
 
 | Weight        | Capabilities | Documentation  | Examples |
 | ------------- | ------------ | -------------- | -------- |
@@ -1763,9 +1876,7 @@ uv run skill-fleet validate-skill path/to/skill
 | `medium`      | 4-7          | 500-2000 lines | 3-5      |
 | `heavyweight` | 8+           | > 2000 lines   | 6+       |
 
-
 ### Load Priority
-
 
 | Priority        | Description                 | Examples               |
 | --------------- | --------------------------- | ---------------------- |
@@ -1774,16 +1885,13 @@ uv run skill-fleet validate-skill path/to/skill
 | `on_demand`     | Loaded only when referenced | Medical terminology    |
 | `dormant`       | Archived/experimental       | Deprecated skills      |
 
-
 ### Naming Examples
 
-
-| Type       | ✅ Correct                                | ❌ Incorrect                    |
+| Type       | ✅ Correct                               | ❌ Incorrect                   |
 | ---------- | ---------------------------------------- | ------------------------------ |
 | Directory  | `fastapi-production-patterns`            | `FastAPI_Patterns`             |
 | Capability | `database-lifecycle-management`          | `DB_Lifecycle`                 |
 | skill_id   | `technical/programming/languages/python` | `technical.programming.python` |
-
 
 ### File Templates
 
@@ -1834,35 +1942,45 @@ metadata:
 # Skill Title
 
 ## Overview
+
 Description of what this skill does.
 
 ## When to Use
+
 **When to use:**
+
 - Condition 1
 - Condition 2
 
 **When NOT to use:**
+
 - Condition 1
 
 ## Quick Reference
-| Problem | Solution | Keywords |
-|---------|----------|----------|
+
+| Problem   | Solution   | Keywords |
+| --------- | ---------- | -------- |
 | Problem 1 | Solution 1 | keywords |
 
 ## Core Patterns/Capabilities
+
 ### Capability 1
+
 **Problem:** What problem does it solve?
 **Solution:** How to solve it
 
 ## Common Mistakes
-| Mistake | Fix |
-|---------|-----|
+
+| Mistake   | Fix   |
+| --------- | ----- |
 | Mistake 1 | Fix 1 |
 
 ## Real-World Impact
+
 - **Metric**: Description → outcome
 
 ## See Also
+
 - [Related Skill](../related-skill/SKILL.md)
 ```
 
@@ -1870,7 +1988,7 @@ Description of what this skill does.
 
 **Next Steps:**
 
-1. Review the [User Guide](user-guide.md) for CLI usage
+1. Review the [Getting Started Guide](getting-started/index.md) for CLI usage
 2. Read the [Skill Creator Guide](skill-creator-guide.md) for DSPy workflow
 3. Explore existing skills to see patterns in action
 4. Start creating your first skill!

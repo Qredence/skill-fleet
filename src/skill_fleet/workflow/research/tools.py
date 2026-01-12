@@ -7,7 +7,6 @@ capabilities to gather context before skill creation.
 from __future__ import annotations
 
 import logging
-import os
 from pathlib import Path
 from typing import Any
 
@@ -37,17 +36,22 @@ def web_search_research(query: str, max_results: int = 5) -> dict[str, Any]:
         from google import genai
         from google.genai import types
 
-        # Get API key from environment
-        api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+        # Resolve API credentials preferring LiteLLM proxy (LITELLM_API_KEY)
+        from ...common.env_utils import resolve_api_credentials
+
+        creds = resolve_api_credentials(prefer_litellm=True)
+        api_key = creds.get("api_key")
         if not api_key:
             return {
                 "success": False,
                 "results": [],
-                "error": "GOOGLE_API_KEY not set",
+                "error": "No LITELLM_API_KEY or GOOGLE_API_KEY/GEMINI_API_KEY set",
                 "query": query,
             }
 
-        # Initialize client
+        # Initialize client — if using LiteLLM proxy provide base_url if present
+        # Note: google.genai.Client does not accept base_url in __init__.
+        # Ignoring base_url if present to prevent initialization error.
         client = genai.Client(api_key=api_key)
 
         # Define Google Search tool for grounding

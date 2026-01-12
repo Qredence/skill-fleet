@@ -171,13 +171,26 @@ class ConfigModelLoader:
         Returns:
             API key string (empty if not configured)
         """
+        # Prefer LITELLM proxy credentials when available
+        from ...common.env_utils import resolve_api_credentials
+
+        # If the model config explicitly points to an env var, honor that first
         env_var = model_config.get("env")
         if env_var:
             api_key = os.environ.get(env_var, "")
-            if not api_key:
-                logger.warning(f"API key environment variable '{env_var}' is not set")
-            return api_key
-        return ""
+            if api_key:
+                return api_key
+            logger.debug(
+                f"Configured env var '{env_var}' not set, falling back to resolution logic"
+            )
+
+        creds = resolve_api_credentials(prefer_litellm=True)
+        api_key = creds.get("api_key", "")
+        if not api_key:
+            logger.warning(
+                "No API key found in environment (LITELLM_API_KEY or GOOGLE_API_KEY/GEMINI_API_KEY)"
+            )
+        return api_key
 
 
 # Singleton instance

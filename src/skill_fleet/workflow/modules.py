@@ -1045,6 +1045,39 @@ class DynamicQuestionGeneratorModule(dspy.Module):
 
         return {"questions": questions}
 
+    async def aforward(
+        self,
+        task_description: str,
+        skill_metadata: dict | str,
+        skill_content: str = "",
+        validation_report: dict | str | None = None,
+        round_number: int = 1,
+        previous_feedback: str = "",
+    ) -> dict:
+        """Async version of forward method for generating dynamic feedback questions.
+        
+        Args:
+            task_description: User's original task description
+            skill_metadata: Skill metadata dict or JSON string
+            skill_content: SKILL.md content (first 500 chars)
+            validation_report: Validation report dict or JSON string
+            round_number: Current feedback round
+            previous_feedback: Previous feedback and responses
+            
+        Returns:
+            Dict with questions (list of question objects)
+        """
+        # For now, delegate to sync version since underlying ChainOfThought
+        # doesn't have async support in this version
+        return self.forward(
+            task_description=task_description,
+            skill_metadata=skill_metadata,
+            skill_content=skill_content,
+            validation_report=validation_report,
+            round_number=round_number,
+            previous_feedback=previous_feedback,
+        )
+
     def _fallback_questions(
         self, task_description: str, skill_metadata: dict | str, round_number: int
     ) -> list[dict]:

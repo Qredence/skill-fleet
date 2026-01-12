@@ -13,8 +13,8 @@ from typing import Any
 from ..llm.dspy_config import configure_dspy
 from ..llm.fleet_config import load_fleet_config
 from ..taxonomy.manager import TaxonomyManager
-from ..workflow.creator import TaxonomySkillCreator
 from ..validators.skill_validator import SkillValidator
+from ..workflow.creator import TaxonomySkillCreator
 
 
 def create_skill(args: Any) -> int:
@@ -46,7 +46,7 @@ def create_skill(args: Any) -> int:
     result = creator(task)
 
     status = (result or {}).get("status")
-    if status in {"approved", "exists", "completed", "approved"}:
+    if status in {"approved", "exists", "completed"}:
         return 0
     return 2
 
@@ -58,10 +58,11 @@ def validate_skill(args: Any) -> int:
     - skill_path: str
     - skills_root: str
     """
-    skills_root = getattr(args, "skills_root", "./skills")
+    skills_root = args.skills_root if hasattr(args, "skills_root") else "./skills"
     validator = SkillValidator(skills_root)
 
-    result = validator.validate_complete(Path(getattr(args, "skill_path")))
+    skill_path = args.skill_path if hasattr(args, "skill_path") else ""
+    result = validator.validate_complete(Path(skill_path))
     passed = bool(result.get("passed"))
     return 0 if passed else 2
 

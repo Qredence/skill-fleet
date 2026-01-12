@@ -10,7 +10,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Prompt
 
-from ...hitl.runner import run_hitl_job
+from ..hitl.runner import run_hitl_job
 
 console = Console()
 
@@ -41,7 +41,7 @@ def chat_command(
                         "- /help: show this message\n"
                         "- /exit: quit\n\n"
                         "[bold]Tips[/bold]\n"
-                        "- Use [dim]create[/dim] for one-shot runs: `uv run skill-fleet create \"...\"`\n"
+                        '- Use [dim]create[/dim] for one-shot runs: `uv run skill-fleet create "..."`\n'
                         "- Run the server first: `uv run skill-fleet serve`",
                         title="Help",
                         border_style="cyan",

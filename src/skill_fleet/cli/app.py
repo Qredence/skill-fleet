@@ -25,33 +25,34 @@ from .commands.validate import validate_command
 # Initialize Typer app
 app = typer.Typer(
     name="skill-fleet",
-    help="Hierarchical AI skill management and creation system.",
+    help="Skills Fleet - Interactive mode",
     add_completion=False,
 )
 
 console = Console()
 
+
 class CLIConfig:
     """Container for CLI configuration and shared state."""
+
     def __init__(self, api_url: str, user_id: str):
         self.api_url = api_url
         self.user_id = user_id
         self.client = SkillFleetClient(base_url=api_url)
 
+
 @app.callback()
 def main_callback(
     ctx: typer.Context,
     api_url: str = typer.Option(
-        "http://localhost:8000", 
-        "--api-url", "-a", 
+        "http://localhost:8000",
+        "--api-url",
+        "-a",
         help="API server URL",
-        envvar="SKILL_FLEET_API_URL"
+        envvar="SKILL_FLEET_API_URL",
     ),
     user_id: str = typer.Option(
-        "default", 
-        "--user", "-u", 
-        help="User ID for context",
-        envvar="SKILL_FLEET_USER_ID"
+        "default", "--user", "-u", help="User ID for context", envvar="SKILL_FLEET_USER_ID"
     ),
 ):
     """
@@ -59,6 +60,7 @@ def main_callback(
     """
     # Store config object in Click context
     ctx.obj = CLIConfig(api_url=api_url, user_id=user_id)
+
 
 # Register commands from separate files
 app.command(name="create")(create_command)

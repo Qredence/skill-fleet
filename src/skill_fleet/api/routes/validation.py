@@ -32,7 +32,9 @@ async def validate_skill(request: dict):
     try:
         # Ensure the candidate_path is within the skills_root directory
         candidate_path.relative_to(skills_root_resolved)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid path")
+    except ValueError as err:
+        # Chain the original ValueError to distinguish this HTTPException from
+        # errors raised while handling the exception (satisfies ruff B904)
+        raise HTTPException(status_code=400, detail="Invalid path") from err
 
     return validator.validate_complete(candidate_path)

@@ -1,12 +1,21 @@
-"""Tests for CLI security utilities."""
+"""Tests for CLI security utilities.
 
-import pytest
+This module tests input validation and sanitization functions used throughout
+the CLI to prevent security vulnerabilities including:
+- Path traversal attacks
+- Injection attacks
+- Invalid protocol usage
+- Invalid timeout values
+"""
+
 from pathlib import Path
 
+import pytest
+
 from skill_fleet.cli.utils.security import (
-    validate_path_within_root,
     sanitize_user_id,
     validate_api_url,
+    validate_path_within_root,
     validate_timeout,
 )
 
@@ -51,6 +60,12 @@ def test_validate_api_url_rejects_invalid_protocol():
     """Test API URL validation rejects invalid protocols."""
     with pytest.raises(ValueError, match="must use http:// or https://"):
         validate_api_url("ftp://localhost:8000")
+
+
+def test_validate_api_url_warns_on_http_non_localhost():
+    """Test API URL validation warns on HTTP with non-localhost."""
+    with pytest.warns(UserWarning, match="Using HTTP.*non-localhost"):
+        validate_api_url("http://example.com")
 
 
 def test_sanitize_user_id_rejects_empty():

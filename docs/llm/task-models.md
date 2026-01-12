@@ -202,37 +202,37 @@ graph LR
 tasks:
   skill_understand:
     role: understanding
-    model: "gemini:gemini-2.0-flash-exp"
+    model: "gemini/gemini-2.0-flash-exp"
     parameters:
       temperature: 0.7
 
   skill_plan:
     role: planning
-    model: "gemini:gemini-2.0-flash-exp"
+    model: "gemini/gemini-2.0-flash-exp"
     parameters:
       temperature: 0.5
 
   skill_initialize:
     role: fast_operation
-    model: "gemini:gemini-2.0-flash-exp"
+    model: "gemini/gemini-2.0-flash-exp"
     parameters:
       temperature: 0.1
 
   skill_edit:
     role: creative_generation
-    model: "gemini:gemini-2.5-pro"
+    model: "gemini/gemini-2.5-pro"
     parameters:
       temperature: 0.6
 
   skill_package:
     role: validation
-    model: "gemini:gemini-2.0-flash-exp"
+    model: "gemini/gemini-2.0-flash-exp"
     parameters:
       temperature: 0.1
 
   skill_validate:
     role: strict_validation
-    model: "gemini:gemini-2.0-flash-exp"
+    model: "gemini/gemini-2.0-flash-exp"
     parameters:
       temperature: 0.0
 ```

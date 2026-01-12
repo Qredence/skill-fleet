@@ -8,11 +8,14 @@ from pathlib import Path
 
 
 class ComprehensiveFunctionVisitor(ast.NodeVisitor):
+    """Comprehensive AST visitor to find functions and check for docstrings."""
+
     def __init__(self):
         self.functions: list[dict] = []
         self.current_class = None
 
     def visit_FunctionDef(self, node):
+        """Visit function definition nodes and collect metadata."""
         # Skip private functions (starting with underscore)
         if not node.name.startswith("_"):
             has_docstring = ast.get_docstring(node) is not None
@@ -30,6 +33,7 @@ class ComprehensiveFunctionVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_AsyncFunctionDef(self, node):
+        """Visit async function definition nodes and collect metadata."""
         # Handle async functions the same way
         if not node.name.startswith("_"):
             has_docstring = ast.get_docstring(node) is not None
@@ -47,6 +51,7 @@ class ComprehensiveFunctionVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_ClassDef(self, node):
+        """Visit class definition nodes and set current class context."""
         old_class = self.current_class
         self.current_class = node.name
         self.generic_visit(node)
@@ -75,6 +80,7 @@ def check_file_for_missing_docstrings(filepath: Path) -> list[dict]:
 
 
 def main():
+    """Find and report public functions missing docstrings with detailed breakdown."""
     src_dir = Path("src/skill_fleet")
     all_missing = []
 

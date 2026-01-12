@@ -8,11 +8,14 @@ from pathlib import Path
 
 
 class FunctionVisitor(ast.NodeVisitor):
+    """AST visitor to find public functions and check for docstrings."""
+
     def __init__(self):
         self.functions: list[tuple[str, int, bool]] = []  # (name, line, has_docstring)
         self.current_class = None
 
     def visit_FunctionDef(self, node):
+        """Visit function definition nodes and check for docstrings."""
         # Skip private functions (starting with underscore)
         if not node.name.startswith("_"):
             has_docstring = ast.get_docstring(node) is not None
@@ -20,6 +23,7 @@ class FunctionVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_AsyncFunctionDef(self, node):
+        """Visit async function definition nodes and check for docstrings."""
         # Handle async functions the same way
         if not node.name.startswith("_"):
             has_docstring = ast.get_docstring(node) is not None
@@ -49,6 +53,7 @@ def check_file_for_missing_docstrings(filepath: Path) -> list[tuple[str, int, st
 
 
 def main():
+    """Find and report public functions missing docstrings in the skill_fleet package."""
     src_dir = Path("src/skill_fleet")
     all_missing = []
 
@@ -64,7 +69,7 @@ def main():
         print("=" * 60)
         for filepath, functions in all_missing:
             print(f"\n{filepath}:")
-            for func_name, line_num, filename in functions:
+            for func_name, line_num, _filename in functions:
                 print(f"  - {func_name} (line {line_num})")
     else:
         print("No public functions missing docstrings found!")

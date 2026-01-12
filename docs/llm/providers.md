@@ -109,8 +109,8 @@ DeepInfra provides access to open-source models with an OpenAI-compatible API.
 ```yaml
 models:
   registry:
-    deepinfra:meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo:
-      model: "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo"
+    deepinfra:nvidia/Nemotron-3-Nano-30B-A3B:
+      model: "nvidia/Nemotron-3-Nano-30B-A3B"
       model_type: "chat"
       env: "DEEPINFRA_API_KEY"
       base_url_env: "DEEPINFRA_BASE_URL"
@@ -142,7 +142,7 @@ export DEEPINFRA_BASE_URL="https://api.deepinfra.com/v1/openai"
 import dspy
 
 llama_lm = dspy.LM(
-    "openai/meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+    "openai/nvidia/Nemotron-3-Nano-30B-A3B",
     api_base="https://api.deepinfra.com/v1/openai",
     api_key="...",
 )
@@ -168,8 +168,8 @@ ZAI provides access to Anthropic's Claude models with high-quality outputs.
 ```yaml
 models:
   registry:
-    zai:claude-sonnet-4-20250514:
-      model: "claude-sonnet-4-20250514"
+    zai:glm-4.7:
+      model: "glm-4.7"
       model_type: "chat"
       env: "ZAI_API_KEY"
       base_url_env: "ZAI_BASE_URL"
@@ -200,7 +200,7 @@ export ZAI_BASE_URL="https://api.zai.ai"
 import dspy
 
 claude_lm = dspy.LM(
-    "anthropic/claude-sonnet-4-20250514",
+    "anthropic/glm-4.7",
     api_key="...",
     api_base="https://api.zai.ai",
 )

@@ -87,16 +87,16 @@ def _load_skill_md_template() -> str | None:
 
 class SkillCreationProgram(dspy.Module):
     """Complete 3-phase skill creation orchestrator with integrated HITL."""
-    
+
     def __init__(self, quality_assured: bool = True, hitl_enabled: bool = True):
         super().__init__()
         self.hitl_enabled = hitl_enabled
-        
+
         # Phase Orchestrators
         self.phase1 = Phase1UnderstandingModule()
         self.phase2 = Phase2GenerationModule(quality_assured=quality_assured)
         self.phase3 = Phase3ValidationModule()
-        
+
         # HITL Utility Modules
         self.hitl_strategy = HITLStrategyModule()
         self.readiness = ReadinessAssessorModule()
@@ -113,17 +113,17 @@ class SkillCreationProgram(dspy.Module):
         taxonomy_structure: str,
         existing_skills: str,
         hitl_callback: Callable[[str, dict[str, Any]], Any] | None = None,
-        **kwargs
+        **kwargs,
     ) -> SkillCreationResult:
         """Execute the 3-phase skill creation workflow with HITL.
-        
+
         Args:
             task_description: Initial user task
             user_context: Context about the user
             taxonomy_structure: Current taxonomy tree
             existing_skills: List of existing skills
             hitl_callback: Async callback for human interaction
-            
+
         Returns:
             SkillCreationResult with content and metadata
         """
@@ -132,28 +132,31 @@ class SkillCreationProgram(dspy.Module):
             # PHASE 1: UNDERSTANDING & PLANNING
             # ============================================================
             logger.info("Starting Phase 1: Understanding & Planning")
-            
+
             # HITL 1.1: Clarification (if needed)
             user_clarifications = ""
             if self.hitl_enabled and hitl_callback:
                 # Initial analysis for clarification
                 requirements = await self.phase1.gather_requirements.aforward(task_description)
-                
+
                 if requirements["ambiguities"]:
                     # Generate focused questions
                     hitl_module = dspy.ChainOfThought("requirements, task -> questions")
                     # Note: Using dspy.settings.lm if not provided
-                    q_result = hitl_module(
-                        requirements=str(requirements),
-                        task=task_description
-                    )
-                    
+                    q_result = hitl_module(requirements=str(requirements), task=task_description)
+
                     # Ask user via callback
                     clarifications = await hitl_callback(
                         "clarify",
-                        {"questions": q_result.questions, "rationale": getattr(q_result, 'rationale', '')}
+                        {
+                            "questions": q_result.questions,
+                            "rationale": getattr(q_result, "rationale", ""),
+                        },
                     )
-                    if isinstance(clarifications, dict) and clarifications.get("action") == "cancel":
+                    if (
+                        isinstance(clarifications, dict)
+                        and clarifications.get("action") == "cancel"
+                    ):
                         return SkillCreationResult(status="cancelled")
 
                     user_clarifications = _extract_hitl_text_response(clarifications).strip()
@@ -167,9 +170,9 @@ class SkillCreationProgram(dspy.Module):
                 task_description=task_description,
                 user_context=str(user_context),
                 taxonomy_structure=taxonomy_structure,
-                existing_skills=existing_skills
+                existing_skills=existing_skills,
             )
-            
+
             # HITL 1.2: Confirmation
             if self.hitl_enabled and hitl_callback:
                 summary = await self.confirm_understanding.aforward(
@@ -177,19 +180,31 @@ class SkillCreationProgram(dspy.Module):
                     user_clarifications=user_clarifications,
                     intent_analysis=str(p1_result["intent"]),
                     taxonomy_path=p1_result["taxonomy"]["recommended_path"],
-                    dependencies=p1_result["dependencies"]["prerequisite_skills"]
+                    dependencies=p1_result["dependencies"]["prerequisite_skills"],
                 )
-                
+
                 # Confirm with user
                 confirmation = await hitl_callback(
                     "confirm",
-                    {"summary": summary["summary"], "path": p1_result["taxonomy"]["recommended_path"]}
+                    {
+                        "summary": summary["summary"],
+                        "path": p1_result["taxonomy"]["recommended_path"],
+                    },
                 )
-                
+
                 if confirmation.get("action") == "revise":
                     # Loop back or adjust
-                    task_description = f"{task_description}\n\nRevision request: {confirmation.get('feedback')}"
-                    return await self.aforward(task_description, user_context, taxonomy_structure, existing_skills, hitl_callback, **kwargs)
+                    task_description = (
+                        f"{task_description}\n\nRevision request: {confirmation.get('feedback')}"
+                    )
+                    return await self.aforward(
+                        task_description,
+                        user_context,
+                        taxonomy_structure,
+                        existing_skills,
+                        hitl_callback,
+                        **kwargs,
+                    )
                 elif confirmation.get("action") == "cancel":
                     return SkillCreationResult(status="cancelled")
 
@@ -207,29 +222,28 @@ class SkillCreationProgram(dspy.Module):
                     "render to normal markdown with valid YAML frontmatter):\n\n"
                     f"{skill_md_template}"
                 )
-            
+
             # Execute Phase 2 generation
             p2_result = await self.phase2.aforward(
                 skill_metadata=p1_result["plan"]["skill_metadata"],
                 content_plan=p1_result["plan"]["content_plan"],
                 generation_instructions=generation_instructions,
-                parent_skills_content="", # TODO: Fetch parent content if needed
-                dependency_summaries=str(p1_result["dependencies"])
+                parent_skills_content="",  # TODO: Fetch parent content if needed
+                dependency_summaries=str(p1_result["dependencies"]),
             )
-            
+
             # HITL 2.1: Preview & Feedback
             if self.hitl_enabled and hitl_callback:
                 preview = await self.preview_generator.aforward(
                     skill_content=p2_result["skill_content"],
-                    metadata=str(p1_result["plan"]["skill_metadata"])
+                    metadata=str(p1_result["plan"]["skill_metadata"]),
                 )
-                
+
                 # Show preview to user
                 feedback = await hitl_callback(
-                    "preview",
-                    {"content": preview["preview"], "highlights": preview["highlights"]}
+                    "preview", {"content": preview["preview"], "highlights": preview["highlights"]}
                 )
-                
+
                 if isinstance(feedback, dict) and feedback.get("action") == "cancel":
                     return SkillCreationResult(status="cancelled")
 
@@ -237,9 +251,9 @@ class SkillCreationProgram(dspy.Module):
                     # Analyze feedback and re-run Phase 2 refinement
                     analysis = await self.feedback_analyzer.aforward(
                         user_feedback=feedback.get("feedback", ""),
-                        current_content=p2_result["skill_content"]
+                        current_content=p2_result["skill_content"],
                     )
-                    
+
                     p2_result = await self.phase2.aforward(
                         skill_metadata=p1_result["plan"]["skill_metadata"],
                         content_plan=p1_result["plan"]["content_plan"],
@@ -247,35 +261,38 @@ class SkillCreationProgram(dspy.Module):
                         parent_skills_content="",
                         dependency_summaries=str(p1_result["dependencies"]),
                         user_feedback=feedback.get("feedback", ""),
-                        change_requests=str(analysis["change_requests"])
+                        change_requests=str(analysis["change_requests"]),
                     )
 
             # ============================================================
             # PHASE 3: VALIDATION & REFINEMENT
             # ============================================================
             logger.info("Starting Phase 3: Validation & Refinement")
-            
+
             # Execute Phase 3
             p3_result = await self.phase3.aforward(
                 skill_content=p2_result["skill_content"],
                 skill_metadata=p1_result["plan"]["skill_metadata"],
                 content_plan=p1_result["plan"]["content_plan"],
                 validation_rules="Standard agentskills.io compliance",
-                target_level=p1_result["requirements"]["target_level"]
+                target_level=p1_result["requirements"]["target_level"],
             )
-            
+
             # HITL 3.1: Final Validation Review
             if self.hitl_enabled and hitl_callback:
                 report = await self.validation_formatter.aforward(
                     validation_report=str(p3_result["validation_report"]),
-                    skill_content=p3_result["refined_content"]
+                    skill_content=p3_result["refined_content"],
                 )
-                
+
                 final_decision = await hitl_callback(
                     "validate",
-                    {"report": report["formatted_report"], "passed": p3_result["validation_report"].passed}
+                    {
+                        "report": report["formatted_report"],
+                        "passed": p3_result["validation_report"].passed,
+                    },
                 )
-                
+
                 if isinstance(final_decision, dict) and final_decision.get("action") == "cancel":
                     return SkillCreationResult(status="cancelled")
 
@@ -287,7 +304,7 @@ class SkillCreationProgram(dspy.Module):
                         content_plan=p1_result["plan"]["content_plan"],
                         validation_rules="Standard agentskills.io compliance",
                         user_feedback=final_decision.get("feedback", ""),
-                        target_level=p1_result["requirements"]["target_level"]
+                        target_level=p1_result["requirements"]["target_level"],
                     )
 
             return SkillCreationResult(
@@ -295,7 +312,7 @@ class SkillCreationProgram(dspy.Module):
                 skill_content=p3_result["refined_content"],
                 metadata=p1_result["plan"]["skill_metadata"],
                 validation_report=p3_result["validation_report"],
-                quality_assessment=p3_result["quality_assessment"]
+                quality_assessment=p3_result["quality_assessment"],
             )
 
         except Exception as e:

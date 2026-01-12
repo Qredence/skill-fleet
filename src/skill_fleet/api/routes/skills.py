@@ -95,14 +95,14 @@ async def run_skill_creation(job_id: str, task_description: str, user_id: str):
 
     async def hitl_callback(interaction_type: str, data: dict):
         """Handle Human-in-the-Loop interactions during skill creation.
-        
+
         Args:
             interaction_type: Type of HITL interaction (e.g., 'approval', 'feedback')
             data: Interaction data containing questions, options, or feedback
-            
+
         Returns:
             dict: User response data from the HITL interaction
-            
+
         Raises:
             TimeoutError: If user takes too long to respond
         """

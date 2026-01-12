@@ -1,14 +1,13 @@
 """Tests for CLI custom exceptions."""
 
-import pytest
 from rich.console import Console
 
 from skill_fleet.cli.exceptions import (
-    CLIError,
-    ConfigError,
     APIError,
-    ValidationError,
+    CLIError,
     CLIExit,
+    ConfigError,
+    ValidationError,
 )
 
 

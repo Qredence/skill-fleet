@@ -28,47 +28,41 @@ from ..config.models import (
 
 class ValidateSkill(dspy.Signature):
     """Comprehensive validation of generated skill content.
-    
+
     Validate against multiple criteria:
     1. **agentskills.io Compliance**:
        - YAML frontmatter present and valid
        - Name in kebab-case
        - Description present
-    
+
     2. **Content Quality**:
        - All planned sections present
        - Sufficient examples (at least 3 per major section)
        - Code examples are valid and runnable
        - Best practices included
-    
+
     3. **Structural Integrity**:
        - Proper markdown formatting
        - No broken links
        - Consistent heading levels
-    
+
     4. **Metadata Consistency**:
        - Metadata matches content
        - Tags appropriate
        - Dependencies correctly referenced
-    
+
     Return a structured validation report with specific issues
     and suggested fixes.
     """
-    
+
     # Inputs
-    skill_content: str = dspy.InputField(
-        desc="Complete SKILL.md content to validate"
-    )
-    skill_metadata: SkillMetadata = dspy.InputField(
-        desc="Skill metadata"
-    )
+    skill_content: str = dspy.InputField(desc="Complete SKILL.md content to validate")
+    skill_metadata: SkillMetadata = dspy.InputField(desc="Skill metadata")
     content_plan: str = dspy.InputField(
         desc="Original content plan from Phase 1 (to verify all planned content is present)"
     )
-    validation_rules: str = dspy.InputField(
-        desc="JSON validation rules and thresholds"
-    )
-    
+    validation_rules: str = dspy.InputField(desc="JSON validation rules and thresholds")
+
     # Outputs
     validation_report: ValidationReport = dspy.OutputField(
         desc="Complete validation report with: passed, checks, issues, warnings"
@@ -79,9 +73,7 @@ class ValidateSkill(dspy.Signature):
     warnings: list[ValidationCheckItem] = dspy.OutputField(
         desc="Issues that SHOULD be fixed but not blocking"
     )
-    suggestions: list[str] = dspy.OutputField(
-        desc="Optional suggestions for improvement"
-    )
+    suggestions: list[str] = dspy.OutputField(desc="Optional suggestions for improvement")
     overall_score: float = dspy.OutputField(
         desc="Overall quality score 0-1. >0.8 means high quality"
     )
@@ -94,22 +86,18 @@ class ValidateSkill(dspy.Signature):
 
 class AnalyzeValidationIssues(dspy.Signature):
     """Analyze validation issues and determine fix strategy.
-    
+
     For each validation issue, determine:
     - Can it be auto-fixed?
     - What's the fix strategy?
     - What's the priority?
     - Are there related issues that should be fixed together?
     """
-    
+
     # Inputs
-    validation_report: str = dspy.InputField(
-        desc="JSON validation report with all issues"
-    )
-    skill_content: str = dspy.InputField(
-        desc="Current skill content"
-    )
-    
+    validation_report: str = dspy.InputField(desc="JSON validation report with all issues")
+    skill_content: str = dspy.InputField(desc="Current skill content")
+
     # Outputs
     auto_fixable_issues: list[ValidationCheckItem] = dspy.OutputField(
         desc="Issues that can be automatically fixed without user input"
@@ -132,41 +120,31 @@ class AnalyzeValidationIssues(dspy.Signature):
 
 class RefineSkillFromFeedback(dspy.Signature):
     """Refine skill content based on validation issues and user feedback.
-    
+
     This signature is used with dspy.Refine for iterative improvement.
     Each iteration should:
     1. Address highest priority issues first
     2. Maintain consistency with existing content
     3. Preserve what's working well
     4. Re-validate after changes
-    
+
     Continue refining until:
     - All critical issues resolved
     - User is satisfied (via HITL)
     - Max iterations reached
     """
-    
+
     # Inputs
-    current_content: str = dspy.InputField(
-        desc="Current skill content"
-    )
-    validation_issues: str = dspy.InputField(
-        desc="JSON list of validation issues to address"
-    )
+    current_content: str = dspy.InputField(desc="Current skill content")
+    validation_issues: str = dspy.InputField(desc="JSON list of validation issues to address")
     user_feedback: str = dspy.InputField(
         desc="User's feedback on what to change (may be empty for auto-fix)"
     )
-    fix_strategies: str = dspy.InputField(
-        desc="JSON fix strategies from AnalyzeValidationIssues"
-    )
-    iteration_number: int = dspy.InputField(
-        desc="Current iteration number (1, 2, 3, ...)"
-    )
-    
+    fix_strategies: str = dspy.InputField(desc="JSON fix strategies from AnalyzeValidationIssues")
+    iteration_number: int = dspy.InputField(desc="Current iteration number (1, 2, 3, ...)")
+
     # Outputs
-    refined_content: str = dspy.OutputField(
-        desc="Refined skill content with issues addressed"
-    )
+    refined_content: str = dspy.OutputField(desc="Refined skill content with issues addressed")
     issues_resolved: list[str] = dspy.OutputField(
         desc="List of issue IDs that were resolved in this iteration"
     )
@@ -188,7 +166,7 @@ class RefineSkillFromFeedback(dspy.Signature):
 
 class GenerateAutoFix(dspy.Signature):
     """Generate automatic fixes for common validation issues.
-    
+
     For issues that don't require user input, generate the fix automatically:
     - Add missing YAML frontmatter
     - Convert name to kebab-case
@@ -196,28 +174,16 @@ class GenerateAutoFix(dspy.Signature):
     - Add missing sections (with placeholder content)
     - Fix broken links
     """
-    
+
     # Inputs
-    skill_content: str = dspy.InputField(
-        desc="Current skill content with issues"
-    )
-    issue: ValidationCheckItem = dspy.InputField(
-        desc="The specific validation issue to auto-fix"
-    )
-    fix_strategy: str = dspy.InputField(
-        desc="Strategy for fixing this issue"
-    )
-    
+    skill_content: str = dspy.InputField(desc="Current skill content with issues")
+    issue: ValidationCheckItem = dspy.InputField(desc="The specific validation issue to auto-fix")
+    fix_strategy: str = dspy.InputField(desc="Strategy for fixing this issue")
+
     # Outputs
-    fixed_content: str = dspy.OutputField(
-        desc="Skill content with this specific issue fixed"
-    )
-    fix_applied: str = dspy.OutputField(
-        desc="Description of what was changed"
-    )
-    verification: str = dspy.OutputField(
-        desc="How to verify the fix worked (for re-validation)"
-    )
+    fixed_content: str = dspy.OutputField(desc="Skill content with this specific issue fixed")
+    fix_applied: str = dspy.OutputField(desc="Description of what was changed")
+    verification: str = dspy.OutputField(desc="How to verify the fix worked (for re-validation)")
 
 
 # =============================================================================
@@ -227,41 +193,29 @@ class GenerateAutoFix(dspy.Signature):
 
 class AssessSkillQuality(dspy.Signature):
     """Assess overall quality of skill content beyond validation.
-    
+
     While ValidateSkill checks compliance and structure, this signature
     evaluates content quality:
     - Are examples clear and helpful?
     - Is the writing engaging?
     - Are explanations thorough?
     - Is the skill actually useful?
-    
+
     Provides qualitative feedback for refinement.
     """
-    
+
     # Inputs
-    skill_content: str = dspy.InputField(
-        desc="Complete skill content"
-    )
-    skill_metadata: SkillMetadata = dspy.InputField(
-        desc="Skill metadata"
-    )
-    target_level: str = dspy.InputField(
-        desc="Target level: beginner/intermediate/advanced"
-    )
-    
+    skill_content: str = dspy.InputField(desc="Complete skill content")
+    skill_metadata: SkillMetadata = dspy.InputField(desc="Skill metadata")
+    target_level: str = dspy.InputField(desc="Target level: beginner/intermediate/advanced")
+
     # Outputs
     quality_score: float = dspy.OutputField(
         desc="Overall quality score 0-1. >0.8 is excellent, 0.6-0.8 is good, <0.6 needs improvement"
     )
-    strengths: list[str] = dspy.OutputField(
-        desc="What's good about this skill (3-5 points)"
-    )
-    weaknesses: list[str] = dspy.OutputField(
-        desc="What could be improved (3-5 points)"
-    )
-    recommendations: list[str] = dspy.OutputField(
-        desc="Specific recommendations for improvement"
-    )
+    strengths: list[str] = dspy.OutputField(desc="What's good about this skill (3-5 points)")
+    weaknesses: list[str] = dspy.OutputField(desc="What could be improved (3-5 points)")
+    recommendations: list[str] = dspy.OutputField(desc="Specific recommendations for improvement")
     audience_alignment: float = dspy.OutputField(
         desc="How well content matches target level 0-1. >0.8 means well-aligned"
     )

@@ -29,19 +29,19 @@ from ..config.models import (
 
 class GatherRequirements(dspy.Signature):
     """Initial requirements gathering from task description.
-    
+
     Extract basic requirements before detailed analysis:
     - What domain/category?
     - What level (beginner/intermediate/advanced)?
     - What specific topics to cover?
     - Any constraints or preferences?
     """
-    
+
     # Inputs
     task_description: str = dspy.InputField(
         desc="User's task description (may include clarifications)"
     )
-    
+
     # Outputs
     domain: str = dspy.OutputField(
         desc="Primary domain: 'technical', 'cognitive', 'domain_knowledge', etc."
@@ -52,9 +52,7 @@ class GatherRequirements(dspy.Signature):
     target_level: str = dspy.OutputField(
         desc="Target level: 'beginner', 'intermediate', 'advanced', 'expert'"
     )
-    topics: list[str] = dspy.OutputField(
-        desc="List of specific topics to cover (3-7 items)"
-    )
+    topics: list[str] = dspy.OutputField(desc="List of specific topics to cover (3-7 items)")
     constraints: list[str] = dspy.OutputField(
         desc="Any constraints or preferences (e.g., 'focus on Python 3.12+', 'no deprecated patterns')"
     )
@@ -70,24 +68,22 @@ class GatherRequirements(dspy.Signature):
 
 class AnalyzeIntent(dspy.Signature):
     """Deeply analyze user intent to understand what skill is needed.
-    
+
     This is one of three parallel analyses in Phase 1. Focus on:
     - WHY is this skill needed?
     - WHAT problem does it solve?
     - WHO is the target user?
     - WHAT value does it provide?
-    
+
     Use chain-of-thought reasoning for thorough analysis.
     """
-    
+
     # Inputs
-    task_description: str = dspy.InputField(
-        desc="User's task description with any clarifications"
-    )
+    task_description: str = dspy.InputField(desc="User's task description with any clarifications")
     user_context: str = dspy.InputField(
         desc="JSON user context (user_id, existing skills, preferences)"
     )
-    
+
     # Outputs
     task_intent: TaskIntent = dspy.OutputField(
         desc="Structured intent with: purpose, problem_statement, target_audience, value_proposition"
@@ -95,9 +91,7 @@ class AnalyzeIntent(dspy.Signature):
     skill_type: str = dspy.OutputField(
         desc="Type of skill: 'how_to', 'reference', 'concept', 'workflow', 'checklist'"
     )
-    scope: str = dspy.OutputField(
-        desc="Scope description: what's included and excluded"
-    )
+    scope: str = dspy.OutputField(desc="Scope description: what's included and excluded")
     success_criteria: list[str] = dspy.OutputField(
         desc="How will we know this skill is successful? (3-5 criteria)"
     )
@@ -110,28 +104,22 @@ class AnalyzeIntent(dspy.Signature):
 
 class FindTaxonomyPath(dspy.Signature):
     """Determine optimal taxonomy placement for this skill.
-    
+
     This is one of three parallel analyses in Phase 1. Analyze the
     taxonomy structure and find the best location for this skill.
-    
+
     Rules:
     - Prefer deeper paths (more specific is better)
     - Consider existing skills in similar categories
     - Follow taxonomy naming conventions
     - Avoid creating new top-level categories
     """
-    
+
     # Inputs
-    task_description: str = dspy.InputField(
-        desc="User's task description"
-    )
-    taxonomy_structure: str = dspy.InputField(
-        desc="JSON representation of full taxonomy structure"
-    )
-    existing_skills: list[str] = dspy.InputField(
-        desc="List of existing skill paths for reference"
-    )
-    
+    task_description: str = dspy.InputField(desc="User's task description")
+    taxonomy_structure: str = dspy.InputField(desc="JSON representation of full taxonomy structure")
+    existing_skills: list[str] = dspy.InputField(desc="List of existing skill paths for reference")
+
     # Outputs
     recommended_path: str = dspy.OutputField(
         desc="Recommended taxonomy path (e.g., 'technical_skills/programming/python/async')"
@@ -157,27 +145,19 @@ class FindTaxonomyPath(dspy.Signature):
 
 class AnalyzeDependencies(dspy.Signature):
     """Analyze skill dependencies and prerequisites.
-    
+
     This is one of three parallel analyses in Phase 1. Determine:
     - What skills must user know first? (prerequisites)
     - What skills complement this one? (related skills)
     - What skills might conflict? (conflicts)
     """
-    
+
     # Inputs
-    task_description: str = dspy.InputField(
-        desc="User's task description"
-    )
-    task_intent: str = dspy.InputField(
-        desc="Analyzed task intent (from AnalyzeIntent)"
-    )
-    taxonomy_path: str = dspy.InputField(
-        desc="Recommended taxonomy path (from FindTaxonomyPath)"
-    )
-    existing_skills: str = dspy.InputField(
-        desc="JSON list of existing skills with metadata"
-    )
-    
+    task_description: str = dspy.InputField(desc="User's task description")
+    task_intent: str = dspy.InputField(desc="Analyzed task intent (from AnalyzeIntent)")
+    taxonomy_path: str = dspy.InputField(desc="Recommended taxonomy path (from FindTaxonomyPath)")
+    existing_skills: str = dspy.InputField(desc="JSON list of existing skills with metadata")
+
     # Outputs
     dependency_analysis: DependencyAnalysis = dspy.OutputField(
         desc="Complete dependency analysis with: required, recommended, conflicts"
@@ -200,21 +180,19 @@ class AnalyzeDependencies(dspy.Signature):
 
 class SynthesizePlan(dspy.Signature):
     """Synthesize all Phase 1 analyses into a coherent skill creation plan.
-    
+
     Combine results from:
     - Intent analysis
     - Taxonomy path selection
     - Dependency analysis
-    
+
     Create a unified plan that guides Phase 2 (generation).
-    
+
     This signature uses dspy.Refine for iterative improvement.
     """
-    
+
     # Inputs
-    intent_analysis: str = dspy.InputField(
-        desc="JSON TaskIntent from AnalyzeIntent"
-    )
+    intent_analysis: str = dspy.InputField(desc="JSON TaskIntent from AnalyzeIntent")
     taxonomy_analysis: str = dspy.InputField(
         desc="JSON taxonomy path and rationale from FindTaxonomyPath"
     )
@@ -224,7 +202,7 @@ class SynthesizePlan(dspy.Signature):
     user_confirmation: str = dspy.InputField(
         desc="User's confirmation or feedback from HITL checkpoint (may be empty on first pass)"
     )
-    
+
     # Outputs
     skill_metadata: SkillMetadata = dspy.OutputField(
         desc="Complete skill metadata: name, description, taxonomy_path, tags, etc."

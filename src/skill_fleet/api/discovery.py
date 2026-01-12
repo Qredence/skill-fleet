@@ -12,6 +12,7 @@ from pydantic import BaseModel, create_model
 
 logger = logging.getLogger(__name__)
 
+
 def create_pydantic_model_from_signature(
     signature: type[dspy.Signature], name: str, input: bool = True
 ) -> type[BaseModel]:
@@ -32,33 +33,39 @@ def create_pydantic_model_from_signature(
 def discover_and_expose(app: FastAPI, module_package: Any, prefix: str = "/api/v2/auto"):
     """Scan a package for DSPy modules and expose them as API endpoints."""
     router = APIRouter(prefix=prefix)
-    
+
     for name, obj in inspect.getmembers(module_package):
         if inspect.isclass(obj) and issubclass(obj, dspy.Module) and obj != dspy.Module:
             # We found a DSPy module. Let's look for its signature.
             # This logic assumes the module has a clear signature or we can infer it.
             # For simplicity, let's look for a 'signature' attribute or inspect forward()
-            
+
             # If it's a Predict or CoT, it has a signature
-            signature = getattr(obj, 'signature', None)
-            
-            if not signature and hasattr(obj, '__init__'):
+            signature = getattr(obj, "signature", None)
+
+            if not signature and hasattr(obj, "__init__"):
                 # Try to find signature in __init__ if it's a Predict wrapper
                 # This is more complex, for now let's focus on explicit signatures
                 pass
-                
+
             if signature:
-                request_model = create_pydantic_model_from_signature(signature, f"{name}Request", input=True)
-                response_model = create_pydantic_model_from_signature(signature, f"{name}Response", input=False)
-                
-                @router.post(f"/{name.lower()}", response_model=response_model, tags=["auto-exposed"])
+                request_model = create_pydantic_model_from_signature(
+                    signature, f"{name}Request", input=True
+                )
+                response_model = create_pydantic_model_from_signature(
+                    signature, f"{name}Response", input=False
+                )
+
+                @router.post(
+                    f"/{name.lower()}", response_model=response_model, tags=["auto-exposed"]
+                )
                 async def dynamic_endpoint(request: request_model, module_class=obj):
                     """Dynamically created endpoint for auto-exposed DSPy modules.
-                    
+
                     Args:
                         request: Pydantic model containing the request data
                         module_class: The DSPy module class to instantiate and execute
-                        
+
                     Returns:
                         The result from executing the DSPy module
                     """
@@ -67,7 +74,7 @@ def discover_and_expose(app: FastAPI, module_package: Any, prefix: str = "/api/v
                     # Execute
                     result = instance(**request.dict())
                     return result
-                
+
                 logger.info(f"Exposed DSPy module {name} at {prefix}/{name.lower()}")
 
     app.include_router(router)

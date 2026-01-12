@@ -19,7 +19,13 @@ from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.prompt import Prompt
 
-from ..utils.constants import HITL_POLL_INTERVAL
+try:
+    from ..utils.constants import HITL_POLL_INTERVAL
+except (ImportError, AttributeError):
+    # Fallback default if the shared constants module is unavailable.
+    # This keeps the HITL runner functional in environments where
+    # `skill_fleet.cli.utils.constants` does not define HITL_POLL_INTERVAL.
+    HITL_POLL_INTERVAL: float = 2.0
 
 
 def _render_questions(questions: object) -> str:

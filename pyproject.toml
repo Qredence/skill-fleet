@@ -1,5 +1,5 @@
 [project]
-name = "fleet-agent"
+name = "skill-fleet"
 version = "0.1.0"
 description = "Hierarchical skills taxonomy + DSPy workflow prototype"
 readme = "README.md"
@@ -72,7 +72,7 @@ requires = ["hatchling>=1.26.0"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["skill_fleet"]
+packages = ["src/skill_fleet"]
 include = ["src/skill_fleet/config/**"]
 
 [tool.pytest.ini_options]

@@ -36,11 +36,35 @@ class SkillValidator:
     _WEIGHT_ENUM = {"lightweight", "medium", "heavyweight"}
     _PRIORITY_ENUM = {"always", "task_specific", "on_demand", "dormant"}
 
+    # Pre-compiled regex patterns for performance
+    _SKILL_ID_PATTERN = re.compile(r"^[a-z0-9_]+(?:/[a-z0-9_]+)*$")
+    _SEMVER_PATTERN = re.compile(r"^\d+\.\d+\.\d+$")
+    _SKILL_NAME_PATTERN = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
+    _SAFE_PATH_PATTERN = re.compile(r"^[a-zA-Z0-9._-]+$")
+
     def __init__(self, skills_root: Path) -> None:
         self.skills_root = Path(skills_root)
         self.required_files = ["metadata.json", "SKILL.md"]
         self.required_dirs = ["capabilities", "examples", "tests", "resources"]
         self._load_template_overrides()
+
+    def _is_safe_path_component(self, component: str) -> bool:
+        """Return True if the given string is a safe single path component.
+
+        A safe component:
+        - is non-empty
+        - does not contain path separators or traversal tokens
+        - matches the conservative _SAFE_PATH_PATTERN
+        """
+        if not component:
+            return False
+        # Disallow any explicit path separators to keep it a single component
+        if "/" in component or "\\" in component:
+            return False
+        # Disallow traversal-like segments
+        if component in {".", ".."} or ".." in component:
+            return False
+        return bool(self._SAFE_PATH_PATTERN.fullmatch(component))
 
     def _load_template_overrides(self) -> None:
         template_path = self.skills_root / "_templates" / "skill_template.json"
@@ -53,11 +77,29 @@ class SkillValidator:
 
         directory_structure = template.get("directory_structure")
         if isinstance(directory_structure, list):
-            self.required_dirs = [d.rstrip("/") for d in directory_structure if isinstance(d, str)]
+            # Only keep safe, single-segment directory names
+            safe_dirs: list[str] = []
+            for d in directory_structure:
+                if not isinstance(d, str):
+                    continue
+                # Normalize any trailing slash before validation
+                d_normalized = d.rstrip("/")
+                if d_normalized and self._is_safe_path_component(d_normalized):
+                    safe_dirs.append(d_normalized)
+            if safe_dirs:
+                self.required_dirs = safe_dirs
 
         required_files = template.get("required_files")
         if isinstance(required_files, list):
-            self.required_files = [f for f in required_files if isinstance(f, str)]
+            # Only keep safe, single-segment file names
+            safe_files: list[str] = []
+            for f in required_files:
+                if not isinstance(f, str):
+                    continue
+                if self._is_safe_path_component(f):
+                    safe_files.append(f)
+            if safe_files:
+                self.required_files = safe_files
 
     def validate_metadata(self, metadata: dict[str, Any]) -> ValidationResult:
         """Validate required metadata fields and their basic formats."""
@@ -120,19 +162,63 @@ class SkillValidator:
         return ValidationResult(len(errors) == 0, errors, warnings)
 
     def validate_structure(self, skill_dir: Path) -> ValidationResult:
-        """Validate that a directory skill has the expected files and folders."""
+        """Validate that a directory skill has the expected files and folders.
+
+        Security: This method implements defense-in-depth against path traversal:
+        1. Resolves skill_dir and validates it's within skills_root
+        2. Validates each filename/dirname component before use
+        3. Re-validates resolved paths are within skill_dir
+        4. Uses _is_safe_path_component() to reject malicious patterns
+        """
         errors: list[str] = []
         warnings: list[str] = []
 
+        # Resolve and constrain skill_dir to the configured skills_root to
+        # protect against path traversal and misuse of this method.
+        skill_dir_resolved = skill_dir.resolve()
+        skills_root_resolved = self.skills_root.resolve()
+        try:
+            skill_dir_resolved.relative_to(skills_root_resolved)
+        except ValueError:
+            errors.append("Skill directory not allowed")
+            return ValidationResult(False, errors, warnings)
+
         for filename in self.required_files:
-            if not (skill_dir / filename).exists():
+            # Validate filename to prevent path traversal attacks
+            if not self._is_safe_path_component(filename):
+                errors.append(f"Invalid required file name: {filename}")
+                continue
+            file_path = (skill_dir_resolved / filename).resolve()
+            # Ensure resolved path is within skill_dir
+            try:
+                file_path.relative_to(skill_dir_resolved)
+            except ValueError:
+                errors.append(f"Invalid required file path: {filename}")
+                continue
+            if not file_path.exists():
                 errors.append(f"Missing required file: {filename}")
 
         for dirname in self.required_dirs:
-            if not (skill_dir / dirname).is_dir():
+            # Validate dirname to prevent path traversal attacks
+            if not self._is_safe_path_component(dirname):
+                errors.append(f"Invalid required directory name: {dirname}")
+                continue
+            dir_path = (skill_dir_resolved / dirname).resolve()
+            # Ensure resolved path is within skill_dir
+            try:
+                dir_path.relative_to(skill_dir_resolved)
+            except ValueError:
+                errors.append(f"Invalid required directory path: {dirname}")
+                continue
+            if not dir_path.is_dir():
                 errors.append(f"Missing required directory: {dirname}")
 
-        metadata_path = skill_dir / "metadata.json"
+        metadata_path = (skill_dir_resolved / "metadata.json").resolve()
+        try:
+            metadata_path.relative_to(skill_dir_resolved)
+        except ValueError:
+            errors.append("Invalid metadata.json path")
+            return ValidationResult(False, errors, warnings)
         if metadata_path.exists():
             try:
                 json.loads(metadata_path.read_text(encoding="utf-8"))
@@ -264,7 +350,7 @@ class SkillValidator:
         if len(name) > 64:
             return False, f"Name exceeds 64 characters (got {len(name)})"
 
-        if not re.match(r"^[a-z0-9]+(-[a-z0-9]+)*$", name):
+        if not self._SKILL_NAME_PATTERN.match(name):
             return False, "Name must be lowercase alphanumeric with single hyphens between segments"
 
         return True, None
@@ -306,6 +392,14 @@ class SkillValidator:
         results = {"passed": True, "checks": [], "warnings": [], "errors": []}
 
         skill_path = skill_path.resolve()
+        skills_root_resolved = self.skills_root.resolve()
+        try:
+            # Ensure the skill_path is within the configured skills_root
+            skill_path.relative_to(skills_root_resolved)
+        except ValueError:
+            results["passed"] = False
+            results["errors"].append("Skill path not allowed")
+            return results
 
         if skill_path.is_file() and skill_path.suffix == ".json":
             metadata = json.loads(skill_path.read_text(encoding="utf-8"))
@@ -407,12 +501,10 @@ class SkillValidator:
         return results
 
     def _validate_skill_id_format(self, skill_id: str) -> bool:
-        pattern = r"^[a-z0-9_]+(?:/[a-z0-9_]+)*$"
-        return bool(re.match(pattern, skill_id))
+        return bool(self._SKILL_ID_PATTERN.match(skill_id))
 
     def _validate_semver(self, version: str) -> bool:
-        pattern = r"^\d+\.\d+\.\d+$"
-        return bool(re.match(pattern, version))
+        return bool(self._SEMVER_PATTERN.match(version))
 
     def _validate_weight_capabilities(self, weight: str, capabilities: list[str]) -> bool:
         cap_count = len(capabilities)
@@ -422,4 +514,41 @@ class SkillValidator:
             return False
         if weight == "heavyweight" and cap_count < 8:
             return False
+        return True
+
+    def _is_safe_path_component(self, component: str) -> bool:
+        """Validate that a path component is safe and doesn't allow traversal attacks.
+
+        Rules:
+        - Cannot be empty
+        - Cannot contain path separators (/ or \\)
+        - Cannot contain null bytes
+        - Cannot be "." or ".."
+        - Cannot contain consecutive dots or special traversal patterns
+        - Must be a simple filename/dirname (alphanumeric, underscore, hyphen, dot)
+        """
+        if not component:
+            return False
+
+        # Check for null bytes
+        if "\0" in component:
+            return False
+
+        # Check for path separators
+        if "/" in component or "\\" in component:
+            return False
+
+        # Check for current/parent directory references
+        if component in (".", ".."):
+            return False
+
+        # Check for consecutive dots (to prevent ".." bypasses)
+        if ".." in component:
+            return False
+
+        # Check for valid characters: alphanumeric, hyphen, underscore, dot
+        # Allow dots for file extensions, but validate the pattern
+        if not self._SAFE_PATH_PATTERN.match(component):
+            return False
+
         return True

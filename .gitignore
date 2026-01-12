@@ -55,3 +55,8 @@ node_modules/
 .vscode/
 .letta/settings.local.json
 .letta/settings.local.json
+.junie/guidelines.md
+server.log
+.ai/mcp/mcp.json
+.junie/
+.ai/

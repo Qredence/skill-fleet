@@ -4,6 +4,7 @@
 #
 # Required env:
 #   - GOOGLE_API_KEY
+#   - LITELLM_API_KEY
 #
 # Optional env:
 #   - DSPY_TEMPERATURE (override temperature globally)
@@ -17,7 +18,7 @@ models:
     gemini/gemini-3-flash-preview:
       model: gemini/gemini-3-flash-preview
       model_type: chat
-      env: GOOGLE_API_KEY
+      env: LITELLM_API_KEY # Uses LiteLLM to access Gemini 3 Flash
       timeout: 60
       parameters:
         temperature: 1.0

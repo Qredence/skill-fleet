@@ -465,7 +465,7 @@ These are configured in `config/config.yaml` under the `model_tasks` section.
 
 - [API Reference](api-reference.md) - Python programmatic API
 - [Overview](overview.md) - System architecture
-- [Quick Start](quick-start.md) - Getting started guide
+- [Getting Started Guide](getting-started/index.md) - Installation & CLI workflow
 
 ---
 

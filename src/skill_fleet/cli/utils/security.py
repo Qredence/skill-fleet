@@ -29,9 +29,7 @@ def validate_path_within_root(user_path: Path, root_path: Path, path_type: str =
     try:
         resolved_user.relative_to(resolved_root)
     except ValueError as e:
-        raise ValueError(
-            f"{path_type} must be within {resolved_root}. Got: {resolved_user}"
-        ) from e
+        raise ValueError(f"{path_type} must be within {resolved_root}. Got: {resolved_user}") from e
 
     return resolved_user
 
@@ -55,7 +53,7 @@ def sanitize_user_id(user_id: str) -> str:
         raise ValueError("User ID cannot be empty")
 
     # Remove dangerous characters
-    sanitized = re.sub(r'[^\w\-@.]', '', user_id)
+    sanitized = re.sub(r"[^\w\-@.]", "", user_id)
 
     # Check if characters were removed
     if sanitized != user_id:
@@ -66,9 +64,7 @@ def sanitize_user_id(user_id: str) -> str:
 
     # Validate length
     if len(sanitized) < 1 or len(sanitized) > 100:
-        raise ValueError(
-            f"User ID must be between 1 and 100 characters. Got: {len(sanitized)}"
-        )
+        raise ValueError(f"User ID must be between 1 and 100 characters. Got: {len(sanitized)}")
 
     return sanitized
 
@@ -88,18 +84,16 @@ def validate_api_url(url: str) -> str:
     """
     parsed = urlparse(url)
 
-    if parsed.scheme not in ('http', 'https'):
-        raise ValueError(
-            f"API URL must use http:// or https:// protocol. Got: {parsed.scheme}"
-        )
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError(f"API URL must use http:// or https:// protocol. Got: {parsed.scheme}")
 
     # Warn if using HTTP with non-localhost
-    if parsed.scheme == 'http' and parsed.hostname not in ('localhost', '127.0.0.1'):
+    if parsed.scheme == "http" and parsed.hostname not in ("localhost", "127.0.0.1"):
         warnings.warn(
             f"Using HTTP (non-secure) protocol with non-localhost host: {parsed.hostname}. "
             "Consider using HTTPS for secure communication.",
             UserWarning,
-            stacklevel=2
+            stacklevel=2,
         )
 
     return url
@@ -119,13 +113,9 @@ def validate_timeout(seconds: float) -> float:
         ValueError: If the timeout is out of bounds
     """
     if seconds < 0:
-        raise ValueError(
-            f"Timeout must be non-negative. Got: {seconds}"
-        )
+        raise ValueError(f"Timeout must be non-negative. Got: {seconds}")
 
     if seconds > 300:
-        raise ValueError(
-            f"Timeout must be 300 seconds (5 minutes) or less. Got: {seconds}"
-        )
+        raise ValueError(f"Timeout must be 300 seconds (5 minutes) or less. Got: {seconds}")
 
     return seconds

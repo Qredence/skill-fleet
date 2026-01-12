@@ -1,0 +1,26 @@
+{
+  "skill_id": "technical_skills/testing/python/pytest-foundations",
+  "name": "pytest-foundations",
+  "description": "A workflow-oriented guide to setting up and using pytest with modern Python best practices, including the src layout and pyproject.toml configuration.",
+  "version": "1.0.0",
+  "type": "technical",
+  "tags": [
+    "python",
+    "testing",
+    "pytest",
+    "src-layout",
+    "fixtures",
+    "parametrization"
+  ],
+  "dependencies": [
+    "technical_skills/programming/python/fundamentals",
+    "technical_skills/programming/python/packaging"
+  ],
+  "created_at": "2026-01-12T12:29:53.800988+00:00",
+  "last_modified": "2026-01-12T12:29:53.800988+00:00",
+  "evolution": {
+    "created_by": "skill-fleet-api",
+    "workflow": "SkillCreationProgram",
+    "validation_score": 0.92
+  }
+}

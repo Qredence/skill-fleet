@@ -19,10 +19,13 @@ The **Agentic Skills System** is a hierarchical, dynamic capability framework th
    - Each skill is a directory containing a `SKILL.md` file with YAML frontmatter
    - Skills are organized by domain (e.g., `general/`, `development/`, `business/`)
 
-2. **Skill Creation Workflow** (`src/skill_fleet/workflow/`)
-   - 6-step DSPy-based pipeline for generating new skills
-   - Includes research, drafting, validation, and refinement stages
-   - Supports Human-in-the-Loop (HITL) review at each stage
+2. **Skill Creation (API + DSPy)** (`src/skill_fleet/api/`, `src/skill_fleet/core/`)
+   - FastAPI background jobs + HITL prompt loop (create job → prompt → response)
+   - DSPy program: `src/skill_fleet/core/programs/skill_creator.py` (3-phase orchestrator)
+   - Authoring templates:
+     - `config/templates/SKILL_md_template.md` (SKILL.md structure + frontmatter rules)
+     - `config/templates/metadata_template.json` (metadata.json shape + fields)
+   - Note: `src/skill_fleet/workflow/` still exists (used by onboarding/optimizer); API-backed `create`/`chat` uses the `core/` program.
 
 3. **CLI** (`src/skill_fleet/cli/`)
    - Primary interface for skill creation, validation, and migration
@@ -80,47 +83,55 @@ description: Comprehensive guide to Python's asyncio framework, including corout
 ### Setting Up
 
 ```bash
-# Clone and navigate to repo
-cd skill-fleet
+# From repo root
 
-# Install Python dependencies
+# Install Python dependencies (including dev tools)
 uv sync --group dev
 
 # Install TUI dependencies (optional)
 bun install
 
-# Set up environment variables
-echo 'GOOGLE_API_KEY="your_key_here"' > .env
+# Configure environment
+cp .env.example .env
+# then edit .env (at minimum: GOOGLE_API_KEY)
 ```
 
 ### Creating a New Skill
 
 ```bash
-# Interactive creation (recommended)
-uv run skills-fleet create-skill --task "Create a skill for Docker best practices"
+# Start the API server (required for API-backed commands like create/chat/list)
+uv run skill-fleet serve
+# Dev mode with auto-reload
+uv run skill-fleet serve --reload
 
-# Auto-approve mode (skips HITL review)
-uv run skills-fleet create-skill --task "Create a skill for Docker best practices" --auto-approve
+# Create a new skill (HITL by default)
+uv run skill-fleet create "Create a skill for Docker best practices"
+
+# Auto-approve mode (skips interactive prompts)
+uv run skill-fleet create "Create a skill for Docker best practices" --auto-approve
+
+# Interactive chat mode
+uv run skill-fleet chat
+uv run skill-fleet chat "Create a skill for Docker best practices"
+uv run skill-fleet chat --auto-approve
 ```
 
-**The 6-step workflow:**
-1. **Research**: Gather information about the skill topic
-2. **Draft**: Generate initial skill content
-3. **Validate**: Check format and compliance
-4. **Refine**: Improve based on validation feedback
-5. **Review**: Human-in-the-Loop approval (unless `--auto-approve`)
-6. **Save**: Write to taxonomy
+**API-backed guided flow (create/chat):**
+1. **Clarify (optional)**: Ask targeted questions when the task is ambiguous
+2. **Confirm**: Show an understanding summary + proposed taxonomy path (proceed/revise/cancel)
+3. **Preview**: Show a draft preview (proceed/refine/cancel)
+4. **Validate**: Show validation report (proceed/refine/cancel)
+5. **Save**: Persist to `skills/` (auto-save when the job completes)
 
 ### Creating a Revised Skill
 
 ```bash
 # Create a revised version with specific feedback
-uv run skills-fleet create-skill \
-  --task "Improve Python async skill" \
-  --revision-feedback "Add more examples for error handling"
+# (Implemented via the API-backed workflow; use chat to iterate with HITL)
+uv run skill-fleet chat
 ```
 
-The `--revision-feedback` parameter allows you to provide specific guidance for improving existing skills.
+Use chat/HITL prompts to provide specific guidance for improving an existing skill.
 
 ### DSPy Configuration
 
@@ -129,7 +140,7 @@ The system uses centralized DSPy configuration for consistent LLM settings acros
 ```python
 from skill_fleet.llm.dspy_config import configure_dspy, get_task_lm
 
-# Configure once at startup (CLI does this automatically)
+# Configure once at startup (the API server does this automatically)
 lm = configure_dspy(default_task="skill_understand")
 
 # Get task-specific LM when needed
@@ -153,23 +164,23 @@ Different workflow phases use different LM configurations:
 
 ```bash
 # Validate a specific skill directory
-uv run skills-fleet validate-skill skills/general/testing
+uv run skill-fleet validate skills/general/testing
 
 # Migrate all skills to agentskills.io format
-uv run skills-fleet migrate
+uv run skill-fleet migrate
 
 # Preview migration without writing changes
-uv run skills-fleet migrate --dry-run
+uv run skill-fleet migrate --dry-run
 ```
 
 ### Generating XML for Agents
 
 ```bash
 # Print XML to console
-uv run skills-fleet generate-xml
+uv run skill-fleet generate-xml
 
 # Save to file for agent prompt injection
-uv run skills-fleet generate-xml -o available_skills.xml
+uv run skill-fleet generate-xml -o available_skills.xml
 ```
 
 The generated XML follows the agentskills.io format:
@@ -211,9 +222,16 @@ src/skill_fleet/
 ├── agent/
 │   └── agent.py                 # Conversational agent for skill creation
 ├── cli/
-│   └── main.py                  # CLI entry point
+│   ├── __init__.py              # Exposes cli_entrypoint()
+│   └── app.py                   # Typer app + command registration
 ├── common/
 │   └── utils.py                 # Shared utility functions
+├── core/
+│   ├── programs/
+│   │   └── skill_creator.py      # API-backed 3-phase DSPy program + HITL hooks
+│   ├── modules/                 # Phase modules + HITL utilities
+│   ├── signatures/              # DSPy signatures for each phase
+│   └── config/                  # Pydantic models + core config
 ├── llm/
 │   ├── dspy_config.py           # Centralized DSPy configuration
 │   └── fleet_config.py          # LLM provider configuration
@@ -329,7 +347,7 @@ uv run skill-fleet migrate
 **ALWAYS** validate skills before creating a commit:
 ```bash
 # Validate a specific skill
-uv run skill-fleet validate-skill path/to/skill
+uv run skill-fleet validate path/to/skill
 
 # Generate XML to ensure all skills are discoverable
 uv run skill-fleet generate-xml
@@ -367,7 +385,15 @@ uv run pytest
 # Required
 GOOGLE_API_KEY=your_key_here
 
-# Optional
+# Optional (CLI)
+SKILL_FLEET_API_URL=http://localhost:8000
+SKILL_FLEET_USER_ID=default
+
+# Optional (API)
+SKILL_FLEET_SKILLS_ROOT=skills
+SKILL_FLEET_CORS_ORIGINS=http://localhost:3000
+
+# Optional (providers/observability)
 DEEPINFRA_API_KEY=your_key_here
 LITELLM_API_KEY=your_key_here
 LANGFUSE_SECRET_KEY=your_key_here
@@ -384,16 +410,16 @@ DSPY_TEMPERATURE=0.7
 
 1. Create command file in `src/skill_fleet/cli/`
 2. Define command using Typer
-3. Register in `main.py`
+3. Register in `src/skill_fleet/cli/app.py`
 4. Add tests in `tests/cli/`
 5. Update CLI documentation
 
 ### Modifying the Skill Creation Workflow
 
-1. Update DSPy signatures in `workflow/signatures.py`
-2. Modify workflow logic in `workflow/creator.py`
-3. Test with `uv run skill-fleet create-skill --task "Test task"`
-4. Validate output format and quality
+1. API-backed flow (create/chat): update `src/skill_fleet/core/` modules/signatures/programs
+2. Template guidance: update `config/templates/SKILL_md_template.md` and/or `config/templates/metadata_template.json`
+3. Run the API server, then test with `uv run skill-fleet create "Test task"`
+4. Validate output format and quality (and run unit tests)
 
 ### Adding a New Validator
 
@@ -416,11 +442,17 @@ DSPY_TEMPERATURE=0.7
 ### Essential Commands
 
 ```bash
-# Create skill
-uv run skill-fleet create-skill --task "Your task description"
+# CLI help
+uv run skill-fleet --help
+
+# Start API server (required for API-backed create/chat/list)
+uv run skill-fleet serve
+
+# Create a skill (HITL by default)
+uv run skill-fleet create "Your task description"
 
 # Validate skill
-uv run skill-fleet validate-skill path/to/skill
+uv run skill-fleet validate skills/general/testing
 
 # Migrate to agentskills.io format
 uv run skill-fleet migrate --dry-run
@@ -434,6 +466,7 @@ uv run pytest
 
 # Lint/format
 uv run ruff check .
+uv run ruff check --fix .
 uv run ruff format .
 ```
 
@@ -450,6 +483,7 @@ uv run ruff format .
 ## 📚 Further Reading
 
 ### User Documentation
+- [Getting Started](docs/getting-started/index.md) - Quick installation, CLI usage, validation, and templates
 - [agentskills.io Compliance Guide](docs/agentskills-compliance.md) - Complete specification
 - [Skill Creator Guide](docs/skill-creator-guide.md) - Detailed creation workflow
 - [Architecture Overview](docs/overview.md) - System design and concepts
@@ -468,11 +502,12 @@ uv run ruff format .
 2. **Use migration tools** when updating skill format - don't manually edit all files
 3. **Validate early and often** - catch compliance issues before they spread
 4. **Follow existing patterns** - check similar skills for structure and style
-5. **Test your changes** - run pytest and validate-skill before considering work complete
+5. **Test your changes** - run `uv run pytest` and `uv run skill-fleet validate` before considering work complete
 6. **Document assumptions** - if you make decisions, explain them in commit messages
 7. **Use dry-run mode** - preview changes before applying them to avoid mistakes
 8. **Use common utilities** - import from `skill_fleet.common.utils` for safe JSON/float conversion
-9. **Understand DSPy configuration** - CLI auto-configures DSPy, but library users must call `configure_dspy()`
+9. **Understand DSPy configuration** - the API server calls `configure_dspy()`; local workflows should call it (or pass task-specific LMs) before running DSPy programs
+10. **Follow templates** - keep new skills aligned with `config/templates/SKILL_md_template.md` and `config/templates/metadata_template.json`
 
 ---
 
@@ -503,5 +538,5 @@ uv run ruff format .
 
 ---
 
-**Last Updated**: 2026-01-10
+**Last Updated**: 2026-01-12
 **Maintainer**: skill-fleet team

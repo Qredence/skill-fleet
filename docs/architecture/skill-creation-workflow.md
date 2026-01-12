@@ -105,3 +105,24 @@ This repo is configured to use **Gemini 3** models via `config/config.yaml`:
 
 The workflow supports automatic optimization using DSPy's `MIPROv2` and `GEPA` optimizers.
 Run `skills-fleet optimize` to tune the prompts against the `workflow/data/trainset.json`.
+
+---
+
+## Further Reading
+
+### Detailed Documentation
+
+| Topic | Description |
+|-------|-------------|
+| **[DSPy Programs](../dspy/programs.md)** | Complete DSPy program reference |
+| **[DSPy Signatures](../dspy/signatures.md)** | All DSPy signature definitions |
+| **[DSPy Modules](../dspy/modules.md)** | DSPy module implementations |
+| **[DSPy Optimization](../dspy/optimization.md)** | MIPROv2, GEPA, and tuning |
+| **[HITL System](../hitl/)** | Human-in-the-Loop interactions |
+| **[LLM Configuration](../llm/)** | Task-specific model configuration |
+
+### Related Documentation
+
+- **[System Overview](../overview.md)** - High-level system architecture
+- **[Developer Reference](../concepts/developer-reference.md)** - Development workflows
+- **[Getting Started](../getting-started/)** - Installation and quick start

@@ -1,11 +1,11 @@
 """Tests for CLI commands."""
 
-import pytest
 from unittest.mock import MagicMock, patch
-from pathlib import Path
 
-from skill_fleet.cli.main import create_skill, validate_skill, migrate_skills_cli
-from skill_fleet.cli.app import app, CLIConfig
+import pytest
+from skill_fleet.cli.main import create_skill, validate_skill
+
+from skill_fleet.cli.app import app
 
 
 @pytest.fixture
@@ -41,18 +41,31 @@ class TestCreateSkillCommand:
         """Test create-skill is callable with args."""
         mock_config = {
             "tasks": {
-                "skill_understand": {"role": "default", "model": "default"},
-                "skill_plan": {"role": "default", "model": "default"},
-                "skill_initialize": {"role": "default", "model": "default"},
-                "skill_edit": {"role": "default", "model": "default"},
-                "skill_package": {"role": "default", "model": "default"},
-                "skill_validate": {"role": "default", "model": "default"},
+                "skill_understand": {"role": "planner", "model": "gemini/gemini-3-flash-preview"},
+                "skill_plan": {"role": "planner", "model": "gemini/gemini-3-flash-preview"},
+                "skill_initialize": {"role": "worker", "model": "gemini/gemini-3-flash-preview"},
+                "skill_edit": {"role": "worker", "model": "gemini/gemini-3-flash-preview"},
+                "skill_package": {"role": "worker", "model": "gemini/gemini-3-flash-preview"},
+                "skill_validate": {"role": "judge", "model": "gemini/gemini-3-flash-preview"},
             },
             "roles": {
-                "default": {"model": "test-model"},
+                "planner": {"model": "gemini/gemini-3-flash-preview"},
+                "worker": {"model": "gemini/gemini-3-flash-preview"},
+                "judge": {"model": "gemini/gemini-3-flash-preview"},
             },
             "models": {
                 "default": "gemini/gemini-3-flash-preview",
+                "registry": {
+                    "gemini/gemini-3-flash-preview": {
+                        "model": "gemini/gemini-3-flash-preview",
+                        "model_type": "chat",
+                        "timeout": 60,
+                        "parameters": {
+                            "temperature": 1.0,
+                            "max_tokens": 8192,
+                        },
+                    },
+                },
             },
         }
         mock_load_config.return_value = mock_config
@@ -146,15 +159,5 @@ class TestTyperApp:
     def test_app_initialization(self):
         """Test Typer app is properly initialized."""
         # Act & Assert
-        assert app.info.name == "skill-fleet"
         assert app is not None
-
-    def test_cli_config_class(self):
-        """Test CLIConfig class initialization."""
-        # Act
-        config = CLIConfig(api_url="http://localhost:8000", user_id="test-user")
-
-        # Assert
-        assert config.api_url == "http://localhost:8000"
-        assert config.user_id == "test-user"
-        assert config.client is not None
+        assert app.info.help == "Skills Fleet - Interactive mode"

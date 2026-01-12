@@ -1,0 +1,29 @@
+{
+  "skill_id": "technical_skills/programming/python/fastapi/backend_architecture",
+  "name": "fastapi-clean-architecture-python-3-13",
+  "description": "A workflow for building scalable, maintainable FastAPI applications using Clean Architecture principles and Python 3.13. Covers modular directory structures, the repository pattern with SQLAlchemy 2.0, and async testing strategies.",
+  "version": "1.0.0",
+  "type": "technical",
+  "tags": [
+    "fastapi",
+    "clean-architecture",
+    "python-3-13",
+    "repository-pattern",
+    "sqlalchemy-2",
+    "dependency-injection",
+    "modular-monolith"
+  ],
+  "dependencies": [
+    "technical_skills/programming/python/fundamentals",
+    "technical_skills/programming/python/fastapi/fundamentals",
+    "technical_skills/programming/python/asynchronous_programming",
+    "technical_skills/software_engineering/architecture/clean_architecture"
+  ],
+  "created_at": "2026-01-12T12:43:22.180730+00:00",
+  "last_modified": "2026-01-12T12:43:22.180730+00:00",
+  "evolution": {
+    "created_by": "skill-fleet-api",
+    "workflow": "SkillCreationProgram",
+    "validation_score": 0.92
+  }
+}

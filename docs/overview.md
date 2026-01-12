@@ -369,4 +369,25 @@ For practical, hands-on guidance on creating skills, see **[Skill Creation Guide
 - Validation checklist
 - Troubleshooting guide
 
-For workflow internals, see `docs/architecture/skill-creation-workflow.md`.
+For workflow internals, see [`docs/architecture/skill-creation-workflow.md`](architecture/skill-creation-workflow.md).
+
+---
+
+## Further Reading
+
+### Core System Documentation
+
+| Topic | Description |
+|-------|-------------|
+| **[DSPy Documentation](dspy/)** | 3-phase workflow, signatures, modules, programs, optimization |
+| **[API Documentation](api/)** | REST API endpoints, schemas, jobs, middleware |
+| **[CLI Documentation](cli/)** | Command reference, interactive chat, architecture |
+| **[LLM Configuration](llm/)** | Provider setup, DSPy config, task-specific models |
+| **[HITL System](hitl/)** | Callbacks, interactions, runner implementation |
+
+### Concept Guides
+
+- **[Introduction](intro/introduction.md)** - System introduction and documentation map
+- **[Getting Started](getting-started/)** - Installation, quick start, templates
+- **[Developer Reference](concepts/developer-reference.md)** - Development workflows and patterns
+- **[agentskills.io Compliance](agentskills-compliance.md)** - Schema and validation rules

@@ -48,6 +48,24 @@ class SkillValidator:
         self.required_dirs = ["capabilities", "examples", "tests", "resources"]
         self._load_template_overrides()
 
+    def _is_safe_path_component(self, component: str) -> bool:
+        """Return True if the given string is a safe single path component.
+
+        A safe component:
+        - is non-empty
+        - does not contain path separators or traversal tokens
+        - matches the conservative _SAFE_PATH_PATTERN
+        """
+        if not component:
+            return False
+        # Disallow any explicit path separators to keep it a single component
+        if "/" in component or "\\" in component:
+            return False
+        # Disallow traversal-like segments
+        if component in {".", ".."} or ".." in component:
+            return False
+        return bool(self._SAFE_PATH_PATTERN.fullmatch(component))
+
     def _load_template_overrides(self) -> None:
         template_path = self.skills_root / "_templates" / "skill_template.json"
         if not template_path.exists():
@@ -59,11 +77,29 @@ class SkillValidator:
 
         directory_structure = template.get("directory_structure")
         if isinstance(directory_structure, list):
-            self.required_dirs = [d.rstrip("/") for d in directory_structure if isinstance(d, str)]
+            # Only keep safe, single-segment directory names
+            safe_dirs: list[str] = []
+            for d in directory_structure:
+                if not isinstance(d, str):
+                    continue
+                # Normalize any trailing slash before validation
+                d_normalized = d.rstrip("/")
+                if d_normalized and self._is_safe_path_component(d_normalized):
+                    safe_dirs.append(d_normalized)
+            if safe_dirs:
+                self.required_dirs = safe_dirs
 
         required_files = template.get("required_files")
         if isinstance(required_files, list):
-            self.required_files = [f for f in required_files if isinstance(f, str)]
+            # Only keep safe, single-segment file names
+            safe_files: list[str] = []
+            for f in required_files:
+                if not isinstance(f, str):
+                    continue
+                if self._is_safe_path_component(f):
+                    safe_files.append(f)
+            if safe_files:
+                self.required_files = safe_files
 
     def validate_metadata(self, metadata: dict[str, Any]) -> ValidationResult:
         """Validate required metadata fields and their basic formats."""

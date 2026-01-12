@@ -324,6 +324,14 @@ class SkillValidator:
         results = {"passed": True, "checks": [], "warnings": [], "errors": []}
 
         skill_path = skill_path.resolve()
+        skills_root_resolved = self.skills_root.resolve()
+        try:
+            # Ensure the skill_path is within the configured skills_root
+            skill_path.relative_to(skills_root_resolved)
+        except ValueError:
+            results["passed"] = False
+            results["errors"].append("Skill path not allowed")
+            return results
 
         if skill_path.is_file() and skill_path.suffix == ".json":
             metadata = json.loads(skill_path.read_text(encoding="utf-8"))

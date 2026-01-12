@@ -884,7 +884,7 @@ from __future__ import annotations
 
 import typer
 
-from ..utils.security import validate_api_url, sanitize_user_id, validate_timeout
+from .utils.security import validate_api_url, sanitize_user_id, validate_timeout
 from ..utils.console import get_console
 from ..utils.constants import DEFAULT_API_URL
 from .client import SkillFleetClient

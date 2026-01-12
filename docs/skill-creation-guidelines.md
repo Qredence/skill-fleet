@@ -8,7 +8,7 @@ This document provides **comprehensive, domain-agnostic guidelines** for creatin
 
 - **Theoretical architecture** (covered in `overview.md`)
 - **Practical implementation** (this document)
-- **CLI operations** (covered in `user-guide.md` and `cli-reference.md`)
+- **CLI operations** (covered in `getting-started/index.md` and `cli-reference.md`)
 - **DSPy workflow** (covered in `skill-creator-guide.md`)
 
 ### Who Should Use This

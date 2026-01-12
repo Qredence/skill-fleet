@@ -97,9 +97,7 @@ class GuidedCreatorProgram(dspy.Module):
         elif action == "start_generation":
             if state.current_phase == "PROPOSING":
                 state.current_phase = "GENERATING"
-                agent_message = (
-                    "Excellent! I'm starting the generation process now. You'll see updates as I work."
-                )
+                agent_message = "Excellent! I'm starting the generation process now. You'll see updates as I work."
 
         # Update history
         state.history.append({"role": "user", "content": user_input})

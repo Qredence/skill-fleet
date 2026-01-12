@@ -33,13 +33,13 @@ class SkillValidatorModule(dspy.Module):
         validation_rules: str,
     ) -> dict[str, Any]:
         """Validate skill content against rules and requirements.
-        
+
         Args:
             skill_content: The SKILL.md content to validate
             skill_metadata: Skill metadata for context
             content_plan: Original content plan for comparison
             validation_rules: Validation rules and criteria
-            
+
         Returns:
             dict: Validation report with issues, warnings, suggestions, and score
         """
@@ -59,11 +59,11 @@ class SkillValidatorModule(dspy.Module):
 
     async def aforward(self, *args, **kwargs) -> dict[str, Any]:
         """Async wrapper for skill validation.
-        
+
         Args:
             *args: Positional arguments passed to forward method
             **kwargs: Keyword arguments passed to forward method
-            
+
         Returns:
             dict: Validation report from async execution
         """
@@ -86,14 +86,14 @@ class SkillRefinerModule(dspy.Module):
         iteration_number: int = 1,
     ) -> dict[str, Any]:
         """Refine skill content based on validation feedback.
-        
+
         Args:
             current_content: Current skill content to refine
             validation_issues: Issues identified during validation
             user_feedback: User feedback for improvement
             fix_strategies: Suggested strategies for fixing issues
             iteration_number: Current refinement iteration
-            
+
         Returns:
             dict: Refined content with improvements and change summary
         """
@@ -127,12 +127,12 @@ class QualityAssessorModule(dspy.Module):
 
     def forward(self, skill_content: str, skill_metadata: Any, target_level: str) -> dict[str, Any]:
         """Assess the overall quality of skill content.
-        
+
         Args:
             skill_content: The SKILL.md content to assess
             skill_metadata: Skill metadata for context
             target_level: Target complexity level (beginner, intermediate, advanced)
-            
+
         Returns:
             dict: Quality assessment with score, level, strengths, and areas for improvement
         """
@@ -174,7 +174,7 @@ class Phase3ValidationModule(dspy.Module):
         target_level: str = "intermediate",
     ) -> dict[str, Any]:
         """Async orchestration of Phase 3 validation, refinement, and quality assessment.
-        
+
         Args:
             skill_content: The SKILL.md content to validate and refine
             skill_metadata: Skill metadata for context
@@ -182,7 +182,7 @@ class Phase3ValidationModule(dspy.Module):
             validation_rules: Validation rules and criteria
             user_feedback: Optional user feedback for refinement
             target_level: Target complexity level (beginner, intermediate, advanced)
-            
+
         Returns:
             dict: Comprehensive validation results with quality assessment
         """
@@ -193,7 +193,12 @@ class Phase3ValidationModule(dspy.Module):
             validation_rules=validation_rules,
         )
         if not validation_result["validation_report"].passed or user_feedback:
-            refinement_result = await self.refiner.aforward(current_content=skill_content, validation_issues=str(validation_result["validation_report"]), user_feedback=user_feedback, fix_strategies="{}")
+            refinement_result = await self.refiner.aforward(
+                current_content=skill_content,
+                validation_issues=str(validation_result["validation_report"]),
+                user_feedback=user_feedback,
+                fix_strategies="{}",
+            )
             validation_result["refined_content"] = refinement_result["refined_content"]
         else:
             validation_result["refined_content"] = skill_content
@@ -206,14 +211,14 @@ class Phase3ValidationModule(dspy.Module):
             **validation_result,
             "quality_assessment": quality_result,
         }
-    
+
     def forward(self, *args, **kwargs) -> dict[str, Any]:
         """Sync version of Phase 3 validation orchestration.
-        
+
         Args:
             *args: Positional arguments passed to aforward method
             **kwargs: Keyword arguments passed to aforward method
-            
+
         Returns:
             dict: Comprehensive validation results with quality assessment
         """

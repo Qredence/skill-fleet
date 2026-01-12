@@ -14,12 +14,12 @@ MAX_API_TIMEOUT = 300.0
 
 # Polling configuration
 HITL_POLL_INTERVAL = 2.0  # seconds between HITL polls
-MAX_POLL_ATTEMPTS = 100   # maximum polling iterations
+MAX_POLL_ATTEMPTS = 100  # maximum polling iterations
 
 # Display configuration
 CONSOLE_REFRESH_RATE = 10  # times per second for Live displays
-JSON_INDENT = 2            # spaces for JSON output
-SEPARATOR_WIDTH = 60       # characters for separator lines
+JSON_INDENT = 2  # spaces for JSON output
+SEPARATOR_WIDTH = 60  # characters for separator lines
 
 # Rich color palette (consistent theming)
 COLOR_SUCCESS = "green"

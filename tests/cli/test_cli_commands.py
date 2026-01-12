@@ -1,11 +1,11 @@
 """Tests for CLI commands."""
 
-import pytest
 from unittest.mock import MagicMock, patch
-from pathlib import Path
 
-from skill_fleet.cli.main import create_skill, validate_skill, migrate_skills_cli
+import pytest
+
 from skill_fleet.cli.interactive_typer import app
+from skill_fleet.cli.main import create_skill, validate_skill
 
 
 @pytest.fixture

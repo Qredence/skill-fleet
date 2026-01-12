@@ -15,6 +15,7 @@ from .routes import hitl, skills, taxonomy, validation
 
 logger = logging.getLogger(__name__)
 
+
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application.
 
@@ -63,12 +64,13 @@ def create_app() -> FastAPI:
     @app.get("/health")
     async def health():
         """Health check endpoint to verify API availability.
-        
+
         Returns:
             dict: Status and version information
         """
         return {"status": "ok", "version": "2.0.0"}
-        
+
     return app
+
 
 app = create_app()

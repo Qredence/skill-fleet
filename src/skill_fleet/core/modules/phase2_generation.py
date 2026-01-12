@@ -35,16 +35,16 @@ class ContentGeneratorModule(dspy.Module):
         dependency_summaries: str,
     ) -> dict[str, Any]:
         """Generate skill content based on metadata and planning.
-        
+
         Args:
             skill_metadata: Skill metadata including name, description, etc.
             content_plan: Structured plan for the skill content
             generation_instructions: Specific instructions for content generation
             parent_skills_content: Content from parent skills in taxonomy
             dependency_summaries: Summaries of skill dependencies
-            
+
         Returns:
-            dict: Generated content including skill_content, usage_examples, 
+            dict: Generated content including skill_content, usage_examples,
                   best_practices, test_cases, estimated_reading_time, and rationale
         """
         result = self.generate(
@@ -65,11 +65,11 @@ class ContentGeneratorModule(dspy.Module):
 
     async def aforward(self, *args, **kwargs) -> dict[str, Any]:
         """Async wrapper for content generation.
-        
+
         Args:
             *args: Positional arguments passed to forward method
             **kwargs: Keyword arguments passed to forward method
-            
+
         Returns:
             dict: Generated content from async execution
         """
@@ -91,13 +91,13 @@ class FeedbackIncorporatorModule(dspy.Module):
         skill_metadata: Any,
     ) -> dict[str, Any]:
         """Incorporate user feedback into existing skill content.
-        
+
         Args:
             current_content: Current skill content to be refined
             user_feedback: User's feedback and comments
             change_requests: Specific change requests from user
             skill_metadata: Skill metadata for context
-            
+
         Returns:
             dict: Refined content including refined_content, changes_made, and rationale
         """
@@ -139,7 +139,7 @@ class Phase2GenerationModule(dspy.Module):
         change_requests: str = "",
     ) -> dict[str, Any]:
         """Async orchestration of Phase 2 content generation and feedback incorporation.
-        
+
         Args:
             skill_metadata: Skill metadata including name, description, etc.
             content_plan: Structured plan for the skill content
@@ -148,7 +148,7 @@ class Phase2GenerationModule(dspy.Module):
             dependency_summaries: Summaries of skill dependencies
             user_feedback: Optional user feedback for refinement
             change_requests: Optional specific change requests
-            
+
         Returns:
             dict: Final generated content with all metadata
         """
@@ -173,11 +173,11 @@ class Phase2GenerationModule(dspy.Module):
 
     def forward(self, *args, **kwargs) -> dict[str, Any]:
         """Sync version of Phase 2 content generation orchestration.
-        
+
         Args:
             *args: Positional arguments passed to aforward method
             **kwargs: Keyword arguments passed to aforward method
-            
+
         Returns:
             dict: Final generated content with all metadata
         """

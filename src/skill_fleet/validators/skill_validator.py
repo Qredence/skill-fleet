@@ -124,14 +124,24 @@ class SkillValidator:
         errors: list[str] = []
         warnings: list[str] = []
 
+        # Resolve and constrain skill_dir to the configured skills_root to
+        # protect against path traversal and misuse of this method.
+        skill_dir_resolved = skill_dir.resolve()
+        skills_root_resolved = self.skills_root.resolve()
+        try:
+            skill_dir_resolved.relative_to(skills_root_resolved)
+        except ValueError:
+            errors.append("Skill directory not allowed")
+            return ValidationResult(False, errors, warnings)
+
         for filename in self.required_files:
             # Validate filename to prevent path traversal attacks
             if not self._is_safe_path_component(filename):
                 errors.append(f"Invalid required file name: {filename}")
                 continue
-            file_path = (skill_dir / filename).resolve()
+            file_path = (skill_dir_resolved / filename).resolve()
             # Ensure resolved path is within skill_dir
-            if not str(file_path).startswith(str(skill_dir.resolve())):
+            if not str(file_path).startswith(str(skill_dir_resolved)):
                 errors.append(f"Invalid required file path: {filename}")
                 continue
             if not file_path.exists():
@@ -142,15 +152,15 @@ class SkillValidator:
             if not self._is_safe_path_component(dirname):
                 errors.append(f"Invalid required directory name: {dirname}")
                 continue
-            dir_path = (skill_dir / dirname).resolve()
+            dir_path = (skill_dir_resolved / dirname).resolve()
             # Ensure resolved path is within skill_dir
-            if not str(dir_path).startswith(str(skill_dir.resolve())):
+            if not str(dir_path).startswith(str(skill_dir_resolved)):
                 errors.append(f"Invalid required directory path: {dirname}")
                 continue
             if not dir_path.is_dir():
                 errors.append(f"Missing required directory: {dirname}")
 
-        metadata_path = skill_dir / "metadata.json"
+        metadata_path = skill_dir_resolved / "metadata.json"
         if metadata_path.exists():
             try:
                 json.loads(metadata_path.read_text(encoding="utf-8"))

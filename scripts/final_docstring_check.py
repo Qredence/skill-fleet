@@ -112,7 +112,6 @@ def main():
             print(f"\n{filepath}:")
             for func in functions:
                 func_type = "async " if func["is_async"] else ""
-                method_type = "method" if func["is_method"] else "function"
                 print(f"  def {func_type}{func['name']}(...)  # line {func['line']}")
 
 

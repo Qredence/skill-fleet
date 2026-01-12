@@ -43,6 +43,15 @@ def create_app() -> FastAPI:
     if "*" in cors_origins and len(cors_origins) > 1:
         cors_origins = [origin for origin in cors_origins if origin != "*"]
 
+    if cors_origins == ["*"]:
+        logger.warning(
+            "CORS is configured with wildcard origins ('*'). "
+            "This is insecure for production deployments. "
+            "Set the SKILL_FLEET_CORS_ORIGINS environment variable to a "
+            "comma-separated list of allowed origins. "
+            "Note: when using '*', CORS credentials (cookies, auth headers) "
+            "are disabled (allow_credentials=False)."
+        )
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cors_origins,

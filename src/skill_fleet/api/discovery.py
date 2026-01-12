@@ -34,6 +34,24 @@ def discover_and_expose(app: FastAPI, module_package: Any, prefix: str = "/api/v
     """Scan a package for DSPy modules and expose them as API endpoints."""
     router = APIRouter(prefix=prefix)
 
+    def create_endpoint(module_class: type, request_model: type[BaseModel], response_model: type[BaseModel]):
+        """Factory function to create endpoint with properly captured closure variables."""
+        async def dynamic_endpoint(request: request_model):
+            """Dynamically created endpoint for auto-exposed DSPy modules.
+
+            Args:
+                request: Pydantic model containing the request data
+
+            Returns:
+                The result from executing the DSPy module
+            """
+            # Initialize module
+            instance = module_class()
+            # Execute
+            result = instance(**request.dict())
+            return result
+        return dynamic_endpoint
+
     for name, obj in inspect.getmembers(module_package):
         if inspect.isclass(obj) and issubclass(obj, dspy.Module) and obj != dspy.Module:
             # We found a DSPy module. Let's look for its signature.
@@ -56,24 +74,14 @@ def discover_and_expose(app: FastAPI, module_package: Any, prefix: str = "/api/v
                     signature, f"{name}Response", input=False
                 )
 
-                @router.post(
-                    f"/{name.lower()}", response_model=response_model, tags=["auto-exposed"]
+                endpoint = create_endpoint(obj, request_model, response_model)
+                router.add_api_route(
+                    f"/{name.lower()}",
+                    endpoint,
+                    methods=["POST"],
+                    response_model=response_model,
+                    tags=["auto-exposed"],
                 )
-                async def dynamic_endpoint(request: request_model, module_class=obj):
-                    """Dynamically created endpoint for auto-exposed DSPy modules.
-
-                    Args:
-                        request: Pydantic model containing the request data
-                        module_class: The DSPy module class to instantiate and execute
-
-                    Returns:
-                        The result from executing the DSPy module
-                    """
-                    # Initialize module
-                    instance = module_class()
-                    # Execute
-                    result = instance(**request.dict())
-                    return result
 
                 logger.info(f"Exposed DSPy module {name} at {prefix}/{name.lower()}")
 

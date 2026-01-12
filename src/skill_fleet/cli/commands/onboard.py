@@ -26,7 +26,19 @@ def onboard_command(
         str(default_profiles_path()), "--profiles-path", help="Path to bootstrap profiles JSON"
     ),
 ):
-    """Interactive onboarding workflow."""
+    """Interactive onboarding workflow for new users.
+
+    Guides users through setting up their personalized skill set by:
+    - Collecting user preferences and context
+    - Loading bootstrap profiles for role-based initialization
+    - Creating initial skills based on user needs
+    - Saving user configuration for future sessions
+
+    Args:
+        user_id: Unique identifier for the user
+        skills_root: Root directory for the skills taxonomy
+        profiles_path: Path to JSON file containing bootstrap profiles
+    """
     console.print("\n[bold cyan]Welcome to the Agentic Skills System![/bold cyan]\n")
     console.print("Let's set up your personalized skill set.\n")
 

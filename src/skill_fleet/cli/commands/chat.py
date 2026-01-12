@@ -10,7 +10,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Prompt
 
-from ..hitl.runner import run_hitl_job
+from ...hitl.runner import run_hitl_job
 
 console = Console()
 

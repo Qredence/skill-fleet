@@ -141,7 +141,9 @@ class SkillValidator:
                 continue
             file_path = (skill_dir_resolved / filename).resolve()
             # Ensure resolved path is within skill_dir
-            if not str(file_path).startswith(str(skill_dir_resolved)):
+            try:
+                file_path.relative_to(skill_dir_resolved)
+            except ValueError:
                 errors.append(f"Invalid required file path: {filename}")
                 continue
             if not file_path.exists():
@@ -154,7 +156,9 @@ class SkillValidator:
                 continue
             dir_path = (skill_dir_resolved / dirname).resolve()
             # Ensure resolved path is within skill_dir
-            if not str(dir_path).startswith(str(skill_dir_resolved)):
+            try:
+                dir_path.relative_to(skill_dir_resolved)
+            except ValueError:
                 errors.append(f"Invalid required directory path: {dirname}")
                 continue
             if not dir_path.is_dir():

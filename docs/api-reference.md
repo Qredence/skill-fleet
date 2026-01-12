@@ -895,7 +895,7 @@ mypy src/skill_fleet/
 
 - [CLI Reference](cli-reference.md) - Command-line interface usage
 - [Overview](overview.md) - System architecture and concepts
-- [User Guide](user-guide.md) - Installation & CLI workflow
+- [Getting Started Guide](getting-started/index.md) - Installation & CLI workflow
 
 ---
 

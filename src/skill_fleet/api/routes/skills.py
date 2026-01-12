@@ -10,7 +10,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 
 from ...core.config.models import SkillCreationResult
-from ...core.programs.skill_creator import SkillCreationProgram
+from ...workflow.programs import SkillCreationProgram
 from ...taxonomy.manager import TaxonomyManager
 from ..jobs import JOBS, create_job, wait_for_hitl_response
 

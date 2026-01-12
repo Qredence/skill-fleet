@@ -164,7 +164,12 @@ class SkillValidator:
             if not dir_path.is_dir():
                 errors.append(f"Missing required directory: {dirname}")
 
-        metadata_path = skill_dir_resolved / "metadata.json"
+        metadata_path = (skill_dir_resolved / "metadata.json").resolve()
+        try:
+            metadata_path.relative_to(skill_dir_resolved)
+        except ValueError:
+            errors.append("Invalid metadata.json path")
+            return ValidationResult(False, errors, warnings)
         if metadata_path.exists():
             try:
                 json.loads(metadata_path.read_text(encoding="utf-8"))

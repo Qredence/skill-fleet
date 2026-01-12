@@ -226,8 +226,8 @@ Google Cloud's Vertex AI provides enterprise access to various models including 
 ```yaml
 models:
   registry:
-    vertex:claude-3-5-sonnet@20240620:
-      model: "claude-3-5-sonnet@20240620"
+    vertex:deepseek/deepseek-v3.2:
+      model: "deepseek-v3.2"
       model_type: "chat"
       parameters:
         temperature: 0.7
@@ -260,7 +260,7 @@ from google.cloud import aiplatform
 
 # Uses Application Default Credentials
 vertex_lm = dspy.LM(
-    "vertex_ai_claude_3_5_sonnet@20240620",
+    "vertex_ai_deepseek_v3_2",
     project="your-project-id",
     location="us-central1",
 )

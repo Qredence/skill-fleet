@@ -18,18 +18,18 @@ The **task-specific model mapping** is a key differentiator. Different phases of
 ```yaml
 # Default model
 models:
-  default: "gemini:gemini-2.0-flash-exp"
+  default: "gemini:gemini-3-flash-preview"
 
   # Model registry
   registry:
     # Gemini (Google)
-    gemini:gemini-2.0-flash-exp:
-      model: "gemini-2.0-flash-exp"
+    gemini:gemini-3-flash-preview:
+      model: "gemini-3-flash-preview"
       model_type: "chat"
       env: "GEMINI_API_KEY"
       env_fallback: "GOOGLE_API_KEY"
       parameters:
-        temperature: 0.7
+        temperature: 1.0
         max_tokens: 4096
         thinking_level: "high"
 
@@ -38,7 +38,7 @@ models:
       model_type: "chat"
       env: "GEMINI_API_KEY"
       parameters:
-        temperature: 0.5
+        temperature: 1.0
         max_tokens: 8192
 
     # DeepInfra
@@ -49,7 +49,7 @@ models:
       base_url_env: "DEEPINFRA_BASE_URL"
       base_url_default: "https://api.deepinfra.com/v1/openai"
       parameters:
-        temperature: 0.7
+        temperature: 1.0
         max_tokens: 4096
 
     # ZAI (Claude)
@@ -59,7 +59,7 @@ models:
       env: "ZAI_API_KEY"
       base_url_env: "ZAI_BASE_URL"
       parameters:
-        temperature: 0.7
+        temperature: 1.0
         max_tokens: 8192
 
     # Vertex AI
@@ -67,7 +67,7 @@ models:
       model: "claude-3-5-sonnet@20240620"
       model_type: "chat"
       parameters:
-        temperature: 0.7
+        temperature: 1.0
         max_tokens: 4096
         vertex_project: "your-project-id"
         vertex_location: "us-central1"
@@ -76,46 +76,46 @@ models:
 tasks:
   skill_understand:
     role: understanding
-    model: "gemini:gemini-2.0-flash-exp"
+    model: "gemini:gemini-3-flash-preview"
     parameters:
-      temperature: 0.7
+      temperature: 1.0
 
   skill_plan:
     role: planning
-    model: "gemini:gemini-2.0-flash-exp"
+    model: "gemini:gemini-3-flash-preview"
     parameters:
-      temperature: 0.5
+      temperature: 1.0
 
   skill_initialize:
     role: fast_operation
-    model: "gemini:gemini-2.0-flash-exp"
+    model: "gemini:gemini-3-flash-preview"
     parameters:
-      temperature: 0.1
+      temperature: 1.0
 
   skill_edit:
     role: creative_generation
-    model: "gemini:gemini-2.5-pro"
+    model: "gemini:gemini-3-pro-preview"
     parameters:
-      temperature: 0.6
+      temperature: 1.0
 
   skill_package:
     role: validation
-    model: "gemini:gemini-2.0-flash-exp"
+    model: "gemini:gemini-3-flash-preview"
     parameters:
-      temperature: 0.1
+      temperature: 1
 
   skill_validate:
     role: strict_validation
-    model: "gemini:gemini-2.0-flash-exp"
+    model: "gemini:gemini-3-flash-preview"
     parameters:
-      temperature: 0.0
+      temperature: 1
 
 # Roles (reusable configuration)
 roles:
   understanding:
     description: "Deep understanding and analysis"
     parameters:
-      temperature: 0.7
+      temperature: 1
       max_tokens: 4096
 
   planning:
@@ -150,8 +150,8 @@ roles:
 
 # Legacy aliases
 legacy_aliases:
-  "gpt-4": "gemini:gemini-2.0-flash-exp"
-  "claude-3": "zai:claude-sonnet-4-20250514"
+  "gpt-4": "gemini:gemini-3-flash-preview"
+  "glm-4.7": "zai:glm-4.7"
 ```
 
 ## Environment Variables
@@ -203,7 +203,7 @@ $ env | grep FLEET_MODEL_SKILL_EDIT
 # (none)
 
 # 2. Check task config
-tasks.skill_edit.model = "gemini:gemini-2.5-pro"  ✓ FOUND
+tasks.skill_edit.model = "gemini:gemini-3-pro-preview"  ✓ FOUND
 
 # Would then merge parameters from:
 # - tasks.skill_edit.parameters
@@ -219,12 +219,13 @@ tasks.skill_edit.model = "gemini:gemini-2.5-pro"  ✓ FOUND
 **Required**: `GEMINI_API_KEY` or `GOOGLE_API_KEY`
 
 ```yaml
-gemini:gemini-2.0-flash-exp:
-  model: "gemini-2.0-flash-exp"
+gemini:gemini-3-pro-preview:
+  model: "gemini-3-pro-preview"
+  model_type: "chat
   env: "GEMINI_API_KEY"
   env_fallback: "GOOGLE_API_KEY"
   parameters:
-    temperature: 0.7
+    temperature: 1.0
     max_tokens: 4096
     thinking_level: "high"  # For Gemini 3+ models
 ```

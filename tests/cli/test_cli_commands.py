@@ -1,11 +1,13 @@
 """Tests for CLI commands."""
 
-import pytest
-from unittest.mock import MagicMock, patch
-from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from skill_fleet.cli.main import create_skill, validate_skill, migrate_skills_cli
-from skill_fleet.cli.app import app, CLIConfig
+import pytest
+import typer
+
+from skill_fleet.cli.app import CLIConfig, app
+from skill_fleet.cli.commands.create import create_command
+from skill_fleet.cli.commands.validate import validate_command
 
 
 @pytest.fixture
@@ -23,80 +25,46 @@ def mock_creator():
 
 
 class TestCreateSkillCommand:
-    """Test create-skill command."""
+    """Test create command behavior."""
 
-    def test_create_skill_imports(self):
-        """Test that create_skill can be imported."""
-        from skill_fleet.cli.main import create_skill
+    def test_create_command_imports(self):
+        """create_command should be importable and callable."""
+        from skill_fleet.cli.commands.create import create_command as imported
 
-        assert callable(create_skill)
+        assert callable(imported)
 
-    @patch("skill_fleet.cli.main.configure_dspy")
-    @patch("skill_fleet.cli.main.TaxonomySkillCreator")
-    @patch("skill_fleet.cli.main.load_fleet_config")
-    @patch("skill_fleet.cli.main.TaxonomyManager")
-    def test_create_skill_callable(
-        self, mock_taxonomy_class, mock_load_config, mock_creator_class, mock_configure
-    ):
-        """Test create-skill is callable with args."""
-        mock_config = {
-            "tasks": {
-                "skill_understand": {"role": "default", "model": "default"},
-                "skill_plan": {"role": "default", "model": "default"},
-                "skill_initialize": {"role": "default", "model": "default"},
-                "skill_edit": {"role": "default", "model": "default"},
-                "skill_package": {"role": "default", "model": "default"},
-                "skill_validate": {"role": "default", "model": "default"},
-            },
-            "roles": {
-                "default": {"model": "test-model"},
-            },
-            "models": {
-                "default": "gemini/gemini-3-flash-preview",
-            },
-        }
-        mock_load_config.return_value = mock_config
+    def test_create_command_invokes_client(self):
+        """create_command should call the client and close it on completion."""
 
-        mock_taxonomy_instance = MagicMock()
-        mock_taxonomy_class.return_value = mock_taxonomy_instance
+        # Arrange
+        client = MagicMock()
+        client.create_skill = AsyncMock(return_value={"job_id": "job-123"})
+        client.get_hitl_prompt = AsyncMock(
+            return_value={"status": "completed", "saved_path": "/tmp/skill"}
+        )
+        client.close = AsyncMock()
 
-        mock_creator_instance = MagicMock()
-        mock_creator_instance.return_value = {
-            "status": "approved",
-            "skill_id": "test-skill",
-            "path": "/tmp/test-skill",
-        }
-        mock_creator_class.return_value = mock_creator_instance
+        config = CLIConfig(api_url="http://localhost:8000", user_id="tester")
+        config.client = client
 
-        args = MagicMock()
-        args.task = "Create a test skill"
-        args.auto_approve = True
-        args.user_id = "test-user"
-        args.config = "config.yaml"
-        args.skills_root = "/tmp/skills"
-        args.feedback_type = "auto"
-        args.max_iterations = 3
-        args.min_rounds = 1
-        args.max_rounds = 4
-        args.cache_dir = None
-        args.reasoning = "none"
-        args.json = False
-        args.is_training_run = False
+        ctx = MagicMock()
+        ctx.obj = config
 
         # Act
-        result = create_skill(args)
+        create_command(ctx, task="Create a test skill", auto_approve=True)
 
         # Assert
-        assert result == 0
+        client.create_skill.assert_awaited_once_with("Create a test skill", "tester")
+        client.get_hitl_prompt.assert_awaited()
+        client.close.assert_awaited_once()
 
 
 class TestValidateSkillCommand:
-    """Test validate-skill command."""
+    """Test validate command behavior."""
 
-    @patch("skill_fleet.cli.main.SkillValidator")
+    @patch("skill_fleet.cli.commands.validate.SkillValidator")
     def test_validate_valid_skill(self, mock_validator_class):
-        """Test validate-skill with valid skill."""
-        # Arrange
+        """validate_command should exit cleanly when validation passes."""
         mock_validator = MagicMock()
         mock_validator_class.return_value = mock_validator
         mock_validator.validate_complete.return_value = {
@@ -105,21 +73,13 @@ class TestValidateSkillCommand:
             "warnings": [],
         }
 
-        args = MagicMock()
-        args.skill_path = "skills/general/testing"
-        args.skills_root = "/tmp/skills"
-        args.json = False
+        validate_command("skills/general/testing", skills_root="/tmp/skills", json_output=False)
 
-        # Act
-        result = validate_skill(args)
+        mock_validator.validate_complete.assert_called_once()
 
-        # Assert
-        assert result == 0
-
-    @patch("skill_fleet.cli.main.SkillValidator")
+    @patch("skill_fleet.cli.commands.validate.SkillValidator")
     def test_validate_invalid_skill(self, mock_validator_class):
-        """Test validate-skill with invalid skill."""
-        # Arrange
+        """validate_command should raise typer.Exit with code 2 on failure."""
         mock_validator = MagicMock()
         mock_validator_class.return_value = mock_validator
         mock_validator.validate_complete.return_value = {
@@ -128,16 +88,10 @@ class TestValidateSkillCommand:
             "warnings": [],
         }
 
-        args = MagicMock()
-        args.skill_path = "skills/invalid/skill"
-        args.skills_root = "/tmp/skills"
-        args.json = False
+        with pytest.raises(typer.Exit) as exc_info:
+            validate_command("skills/invalid/skill", skills_root="/tmp/skills", json_output=False)
 
-        # Act
-        result = validate_skill(args)
-
-        # Assert
-        assert result == 2  # Exit code for validation failure
+        assert exc_info.value.exit_code == 2
 
 
 class TestTyperApp:

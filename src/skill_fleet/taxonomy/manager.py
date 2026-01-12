@@ -187,7 +187,7 @@ class TaxonomyManager:
             version=skill_data.get("version", "1.0.0"),
             type=skill_data.get("type", "technical"),
             weight=skill_data.get("weight", "medium"),
-            load_priority=skill_data.get("load_priority", "normal"),
+            load_priority=skill_data.get("load_priority", "on_demand"),
             dependencies=list(skill_data.get("dependencies", [])),
             capabilities=list(skill_data.get("capabilities", [])),
             path=skill_file,
@@ -223,7 +223,7 @@ class TaxonomyManager:
             version=skill_data.get("version", "1.0.0"),
             type=skill_data.get("type", "technical"),
             weight=skill_data.get("weight", "medium"),
-            load_priority=skill_data.get("load_priority", "normal"),
+            load_priority=skill_data.get("load_priority", "on_demand"),
             dependencies=list(skill_data.get("dependencies", [])),
             capabilities=list(skill_data.get("capabilities", [])),
             path=metadata_path,
@@ -347,6 +347,7 @@ class TaxonomyManager:
         content: str,
         evolution: dict[str, Any],
         extra_files: dict[str, Any] | None = None,
+        overwrite: bool = False,
     ) -> bool:
         """Register a new skill in the taxonomy.
 
@@ -354,6 +355,8 @@ class TaxonomyManager:
         and extended metadata in metadata.json.
         """
         skill_dir = self.skills_root / path
+        if (skill_dir / "metadata.json").exists() and not overwrite:
+            return False
         skill_dir.mkdir(parents=True, exist_ok=True)
 
         now = datetime.now(tz=UTC).isoformat()
@@ -361,6 +364,22 @@ class TaxonomyManager:
         # Ensure skill_id is set
         metadata.setdefault("skill_id", path)
         skill_id = metadata["skill_id"]
+
+        # Ensure metadata.json contains required taxonomy fields (aligns with config/templates).
+        metadata.setdefault("version", "1.0.0")
+        metadata.setdefault("type", "technical")
+        metadata.setdefault("weight", "medium")
+        metadata.setdefault("load_priority", "on_demand")
+
+        if not isinstance(metadata.get("dependencies"), list):
+            metadata["dependencies"] = []
+        if not isinstance(metadata.get("capabilities"), list):
+            metadata["capabilities"] = []
+        if not isinstance(metadata.get("tags"), list):
+            metadata["tags"] = []
+        if not metadata.get("category"):
+            if "/" in path:
+                metadata["category"] = "/".join(path.split("/")[:-1])
 
         # Generate agentskills.io compliant name
         name = metadata.get("name") or skill_id_to_name(skill_id)
@@ -405,7 +424,7 @@ class TaxonomyManager:
             version=metadata.get("version", "1.0.0"),
             type=metadata.get("type", "technical"),
             weight=metadata.get("weight", "medium"),
-            load_priority=metadata.get("load_priority", "normal"),
+            load_priority=metadata.get("load_priority", "on_demand"),
             dependencies=list(metadata.get("dependencies", [])),
             capabilities=list(metadata.get("capabilities", [])),
             path=metadata_path,

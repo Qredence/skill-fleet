@@ -8,7 +8,7 @@ This document provides **comprehensive, domain-agnostic guidelines** for creatin
 
 - **Theoretical architecture** (covered in `overview.md`)
 - **Practical implementation** (this document)
-- **CLI operations** (covered in `quick-start.md` and `cli-reference.md`)
+- **CLI operations** (covered in `user-guide.md` and `cli-reference.md`)
 - **DSPy workflow** (covered in `skill-creator-guide.md`)
 
 ### Who Should Use This
@@ -43,7 +43,7 @@ Each skill represents a discrete capability that can be:
 | Document                           | Purpose                                 | Use When                            |
 | ---------------------------------- | --------------------------------------- | ----------------------------------- |
 | `overview.md`                      | System architecture and taxonomy design | Understanding the big picture       |
-| `quick-start.md`                   | Basic CLI usage and simple examples     | Getting started quickly             |
+| `user-guide.md`                     | Installation, CLI workflow, and templates | Getting started quickly             |
 | `skill-creator-guide.md`           | 6-step DSPy workflow overview           | Understanding automated creation    |
 | `**skill-creation-guidelines.md**` | **Practical creation guidelines**       | **Creating or modifying skills**    |
 | `cli-reference.md`                 | Complete CLI command reference          | Looking up specific commands        |
@@ -1710,7 +1710,7 @@ uv run skill-fleet create-skill --help
 #### Documentation
 
 - [Overview](overview.md) - System architecture
-- [Quick Start](quick-start.md) - Basic usage
+- [User Guide](user-guide.md) - Installation & CLI workflow
 - [Skill Creator Guide](skill-creator-guide.md) - DSPy workflow
 - [CLI Reference](cli-reference.md) - Command reference
 - [agentskills.io Compliance](agentskills-compliance.md) - Specification
@@ -1870,7 +1870,7 @@ Description of what this skill does.
 
 **Next Steps:**
 
-1. Review the [Quick Start Guide](quick-start.md) for CLI usage
+1. Review the [User Guide](user-guide.md) for CLI usage
 2. Read the [Skill Creator Guide](skill-creator-guide.md) for DSPy workflow
 3. Explore existing skills to see patterns in action
 4. Start creating your first skill!

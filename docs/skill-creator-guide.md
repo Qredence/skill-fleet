@@ -4,7 +4,7 @@ The **Skill Creator** is the core component of the `skill-fleet` system, respons
 
 ## 🚀 Quick Start
 
-To create a new skill, use the CLI:
+Use the CLI (see the [User Guide](user-guide.md#core-user-workflows) for a complete walkthrough):
 
 ```bash
 uv run skill-fleet create-skill --task "Implement a Python FastAPI integration skill"
@@ -12,9 +12,9 @@ uv run skill-fleet create-skill --task "Implement a Python FastAPI integration s
 
 ## 📚 Related Documentation
 
+- **[User Guide](user-guide.md)**: Installation, CLI usage, validation, and templates
 - **[Skill Creation Guidelines](skill-creation-guidelines.md)**: Comprehensive guide with interrogations, format requirements, and process workflow
 - **[Overview](overview.md)**: System architecture and taxonomy design
-- **[Quick Start](quick-start.md)**: Basic CLI usage and examples
 
 ## 🧠 Workflow Steps
 

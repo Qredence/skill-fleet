@@ -6,16 +6,23 @@ import os
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 from ...validators.skill_validator import SkillValidator
 
 router = APIRouter()
 
 
+class ValidateSkillRequest(BaseModel):
+    """Request body for validating a skill."""
+
+    path: str
+
+
 @router.post("/validate")
-async def validate_skill(request: dict):
+async def validate_skill(request: ValidateSkillRequest):
     """Validate a skill at the specified path."""
-    path = request.get("path")
+    path = request.path
     if not path:
         raise HTTPException(status_code=400, detail="path is required")
 

@@ -94,6 +94,7 @@ ANTI-PATTERNS (from writing-skills)
 
 ## --}}
 
+---
 name: {{skill_name_kebab}}
 description: Use when {{triggering_conditions}}
 {{#if license}}

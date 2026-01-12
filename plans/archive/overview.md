@@ -861,7 +861,7 @@ The Agentic Skills System makes this vision achievable today.
 ## Next Steps
 
 1. **Explore the Documentation**: [Architecture Docs](docs/architecture/)
-2. **Try the Demo**: [Quick Start Guide](docs/guides/quick-start.md)
+2. **Try the Demo**: [Getting Started](docs/getting-started/index.md)
 3. **Contribute**: [Contributing Guide](CONTRIBUTING.md)
 4. **Join Community**: [Discord](https://discord.gg/agentic-skills) | [Forum](https://forum.agentic-skills.dev)
 

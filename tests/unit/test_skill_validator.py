@@ -127,3 +127,52 @@ def test_validation_failure_for_missing_fields(temp_skills_root: Path) -> None:
 
     assert results["passed"] is False
     assert results["errors"]
+
+
+def test_path_injection_protection(temp_skills_root: Path) -> None:
+    """Test that path traversal attacks in required_files and required_dirs are blocked."""
+    validator = SkillValidator(temp_skills_root)
+
+    # Test that path traversal patterns are rejected
+    assert not validator._is_safe_path_component("../../../etc/passwd")
+    assert not validator._is_safe_path_component("..\\..\\..\\windows\\system32")
+    assert not validator._is_safe_path_component("..")
+    assert not validator._is_safe_path_component(".")
+    assert not validator._is_safe_path_component("/absolute/path")
+    assert not validator._is_safe_path_component("C:\\windows\\path")
+    assert not validator._is_safe_path_component("file\x00name")  # Null byte
+    assert not validator._is_safe_path_component("")  # Empty string
+
+    # Test that valid filenames are accepted
+    assert validator._is_safe_path_component("metadata.json")
+    assert validator._is_safe_path_component("SKILL.md")
+    assert validator._is_safe_path_component("capabilities")
+    assert validator._is_safe_path_component("file-name")
+    assert validator._is_safe_path_component("file_name")
+    assert validator._is_safe_path_component("file.multiple.dots")
+
+    # Test actual validation with malicious required_files
+    skill_dir = temp_skills_root / "general/test_skill"
+    skill_dir.mkdir(parents=True)
+    for dirname in ["capabilities", "examples", "tests", "resources"]:
+        (skill_dir / dirname).mkdir()
+
+    metadata = {
+        "skill_id": "general/test_skill",
+        "version": "1.0.0",
+        "type": "technical",
+        "weight": "lightweight",
+        "load_priority": "on_demand",
+        "dependencies": [],
+        "capabilities": ["test"],
+    }
+    (skill_dir / "metadata.json").write_text(json.dumps(metadata), encoding="utf-8")
+    (skill_dir / "SKILL.md").write_text("# Test Skill\n\n## Overview\n", encoding="utf-8")
+
+    # Inject malicious path traversal in required_files
+    validator.required_files = ["metadata.json", "../../../etc/passwd"]
+    results = validator.validate_structure(skill_dir)
+
+    # Should fail due to invalid path component
+    assert not results.passed
+    assert any("Invalid required file" in error for error in results.errors)

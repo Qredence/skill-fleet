@@ -125,11 +125,29 @@ class SkillValidator:
         warnings: list[str] = []
 
         for filename in self.required_files:
-            if not (skill_dir / filename).exists():
+            # Validate filename to prevent path traversal attacks
+            if not self._is_safe_path_component(filename):
+                errors.append(f"Invalid required file name: {filename}")
+                continue
+            file_path = (skill_dir / filename).resolve()
+            # Ensure resolved path is within skill_dir
+            if not str(file_path).startswith(str(skill_dir.resolve())):
+                errors.append(f"Invalid required file path: {filename}")
+                continue
+            if not file_path.exists():
                 errors.append(f"Missing required file: {filename}")
 
         for dirname in self.required_dirs:
-            if not (skill_dir / dirname).is_dir():
+            # Validate dirname to prevent path traversal attacks
+            if not self._is_safe_path_component(dirname):
+                errors.append(f"Invalid required directory name: {dirname}")
+                continue
+            dir_path = (skill_dir / dirname).resolve()
+            # Ensure resolved path is within skill_dir
+            if not str(dir_path).startswith(str(skill_dir.resolve())):
+                errors.append(f"Invalid required directory path: {dirname}")
+                continue
+            if not dir_path.is_dir():
                 errors.append(f"Missing required directory: {dirname}")
 
         metadata_path = skill_dir / "metadata.json"
@@ -422,4 +440,41 @@ class SkillValidator:
             return False
         if weight == "heavyweight" and cap_count < 8:
             return False
+        return True
+
+    def _is_safe_path_component(self, component: str) -> bool:
+        """Validate that a path component is safe and doesn't allow traversal attacks.
+
+        Rules:
+        - Cannot be empty
+        - Cannot contain path separators (/ or \\)
+        - Cannot contain null bytes
+        - Cannot be "." or ".."
+        - Cannot contain consecutive dots or special traversal patterns
+        - Must be a simple filename/dirname (alphanumeric, underscore, hyphen, dot)
+        """
+        if not component:
+            return False
+
+        # Check for null bytes
+        if "\0" in component:
+            return False
+
+        # Check for path separators
+        if "/" in component or "\\" in component:
+            return False
+
+        # Check for current/parent directory references
+        if component in (".", ".."):
+            return False
+
+        # Check for consecutive dots (to prevent ".." bypasses)
+        if ".." in component:
+            return False
+
+        # Check for valid characters: alphanumeric, hyphen, underscore, dot
+        # Allow dots for file extensions, but validate the pattern
+        if not re.match(r"^[a-zA-Z0-9._-]+$", component):
+            return False
+
         return True

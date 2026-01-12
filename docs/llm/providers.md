@@ -6,6 +6,8 @@
 
 Skills Fleet supports multiple LLM providers through a unified configuration system. All providers are accessible via the same API using LiteLLM-compatible model strings.
 
+Default model: gemini/gemini-3-flash-preview (see config/config.yaml)
+
 `★ Insight ─────────────────────────────────────`
 The provider abstraction allows you to switch between models without changing code. A task that uses `skill_understand` can be reconfigured to use Gemini, Claude, or Llama simply by changing the config file.
 `─────────────────────────────────────────────────`
@@ -31,7 +33,7 @@ Google's Gemini models provide fast, cost-effective inference with native DSPy s
 
 | Model | Context | Features |
 |-------|---------|----------|
-| **gemini-2.0-flash-exp** | 1M tokens | Fast, experimental |
+| **gemini-3-flash-preview** | 1M tokens | Fast, experimental |
 | **gemini-2.5-pro** | 2M tokens | High quality |
 
 ### Configuration
@@ -39,24 +41,26 @@ Google's Gemini models provide fast, cost-effective inference with native DSPy s
 ```yaml
 models:
   registry:
-    gemini:gemini-2.0-flash-exp:
-      model: "gemini-2.0-flash-exp"
+    gemini/gemini-3-flash-preview:
+      model: "gemini/gemini-3-flash-preview"
       model_type: "chat"
-      env: "GEMINI_API_KEY"
-      env_fallback: "GOOGLE_API_KEY"
+      env: "LITELLM_API_KEY"           # Uses LiteLLM to access Gemini 3 Flash
+      timeout: 60
       parameters:
-        temperature: 0.7
-        max_tokens: 4096
+        temperature: 1.0  # Intentionally higher than the common default (0.7) to favor creative/diverse outputs
+        max_tokens: 8192
         thinking_level: "high"  # Gemini 3+ only
 ```
+
+Note: The example above uses temperature=1.0 intentionally to encourage more creative and varied responses from Gemini 3. For more deterministic or focused outputs, lower the temperature (common default is around 0.7; values near 0.0 produce very deterministic responses).
 
 ### Setup
 
 ```bash
-# Get API key from: https://aistudio.google.com/apikey
-export GEMINI_API_KEY="your-api-key"
+# Uses LiteLLM API key to access Gemini 3 Flash
+export LITELLM_API_KEY="your-litelm-api-key"
 
-# Or use Google Cloud fallback
+# Optional: Google API key fallback if you use direct Google Cloud integrations
 export GOOGLE_API_KEY="your-google-api-key"
 ```
 
@@ -81,7 +85,7 @@ lm = configure_dspy()
 
 # Or use specific Gemini model
 import dspy
-gemini_lm = dspy.LM("gemini/gemini-2.0-flash-exp", api_key="...")
+gemini_lm = dspy.LM("gemini/gemini-3-flash-preview", api_key="<LITELLM_API_KEY>")
 ```
 
 ---

@@ -24,7 +24,11 @@ async def validate_skill(request: dict):
 
     # Normalize and constrain the requested path to the skills_root directory
     skills_root_resolved = skills_root.resolve()
-    candidate_path = (skills_root_resolved / path).resolve()
+    relative_path = Path(path)
+    # Disallow absolute paths from the request
+    if relative_path.is_absolute():
+        raise HTTPException(status_code=400, detail="Invalid path")
+    candidate_path = (skills_root_resolved / relative_path).resolve()
     try:
         # Ensure the candidate_path is within the skills_root directory
         candidate_path.relative_to(skills_root_resolved)

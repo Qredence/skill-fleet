@@ -22,8 +22,13 @@ async def validate_skill(request: dict):
     skills_root = Path(os.environ.get("SKILL_FLEET_SKILLS_ROOT", "skills"))
     validator = SkillValidator(skills_root)
 
-    skill_path = Path(path)
-    if not skill_path.is_absolute():
-        skill_path = skills_root / skill_path
+    # Normalize and constrain the requested path to the skills_root directory
+    skills_root_resolved = skills_root.resolve()
+    candidate_path = (skills_root_resolved / path).resolve()
+    try:
+        # Ensure the candidate_path is within the skills_root directory
+        candidate_path.relative_to(skills_root_resolved)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid path")
 
-    return validator.validate_complete(skill_path)
+    return validator.validate_complete(candidate_path)

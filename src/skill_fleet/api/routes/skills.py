@@ -8,6 +8,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 
+from ...core.config.models import SkillCreationResult
 from ...core.programs.skill_creator import SkillCreationProgram
 from ...taxonomy.manager import TaxonomyManager
 from ..jobs import JOBS, create_job, wait_for_hitl_response
@@ -19,7 +20,7 @@ router = APIRouter()
 SKILLS_ROOT = Path(os.environ.get("SKILL_FLEET_SKILLS_ROOT", "skills"))
 
 
-def _save_skill_to_taxonomy(result) -> str | None:
+def _save_skill_to_taxonomy(result: SkillCreationResult) -> str | None:
     """Save a completed skill to the taxonomy.
 
     Args:
@@ -125,8 +126,8 @@ async def run_skill_creation(job_id: str, task_description: str, user_id: str):
         result = await program.aforward(
             task_description=task_description,
             user_context={"user_id": user_id},
-            taxonomy_structure="{}",
-            existing_skills="[]",
+            taxonomy_structure={},
+            existing_skills=[],
             hitl_callback=hitl_callback,
         )
 

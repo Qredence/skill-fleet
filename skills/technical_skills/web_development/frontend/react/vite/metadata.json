@@ -1,0 +1,31 @@
+{
+  "skill_id": "technical_skills/web_development/frontend/react/vite-tailwind-setup",
+  "name": "react-vite-tailwind-setup",
+  "description": "A comprehensive workflow for bootstrapping modern React applications using Vite and Tailwind CSS, focusing on rapid development and optimized build performance.",
+  "version": "1.0.0",
+  "type": "technical",
+  "tags": [
+    "react",
+    "vite",
+    "tailwind-css",
+    "frontend-tooling",
+    "postcss",
+    "web-dev-workflow"
+  ],
+  "dependencies": [
+    "technical_skills/web_development/languages/javascript",
+    "technical_skills/web_development/runtime/node_js",
+    "technical_skills/web_development/frontend/react/fundamentals"
+  ],
+  "weight": "medium",
+  "load_priority": "on_demand",
+  "capabilities": [],
+  "category": "technical_skills/web_development/frontend/react",
+  "created_at": "2026-01-12T16:02:25.047093+00:00",
+  "last_modified": "2026-01-12T16:02:25.047093+00:00",
+  "evolution": {
+    "created_by": "skill-fleet-api",
+    "workflow": "SkillCreationProgram",
+    "validation_score": 0.88
+  }
+}

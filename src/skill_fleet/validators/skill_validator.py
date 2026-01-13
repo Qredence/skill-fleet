@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 import yaml
@@ -38,6 +39,7 @@ class SkillValidator:
 
     # Pre-compiled regex patterns for performance
     _SKILL_ID_PATTERN = re.compile(r"^[a-z0-9_]+(?:/[a-z0-9_]+)*$")
+    _SKILL_REF_PATTERN = re.compile(r"^[a-z0-9_.-]+(?:/[a-z0-9_.-]+)*?(?:\.json)?$")
     _SEMVER_PATTERN = re.compile(r"^\d+\.\d+\.\d+$")
     _SKILL_NAME_PATTERN = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
     _SAFE_PATH_PATTERN = re.compile(r"^[a-zA-Z0-9._-]+$")
@@ -60,13 +62,20 @@ class SkillValidator:
             return None, f"{label} must not be a symlink"
 
         try:
-            resolved = candidate.resolve()
+            base_dir_resolved = base_dir.resolve()
+            resolved = candidate.resolve(strict=True)
         except FileNotFoundError:
             return None, f"{label} not found"
 
         try:
-            resolved.relative_to(base_dir)
+            resolved.relative_to(base_dir_resolved)
         except ValueError:
+            return None, f"{label} path not allowed"
+
+        # Additional containment check using os.path.commonpath (helps static analyzers).
+        base_str = os.fspath(base_dir_resolved)
+        resolved_str = os.fspath(resolved)
+        if os.path.commonpath([base_str, resolved_str]) != base_str:
             return None, f"{label} path not allowed"
 
         return resolved, None
@@ -84,6 +93,62 @@ class SkillValidator:
         if err is not None:
             return None, err
         return candidate_resolved, None
+
+    def resolve_skill_ref(self, skill_ref: str) -> Path:
+        """Resolve an untrusted skill reference safely within skills_root.
+
+        A skill reference is a taxonomy-relative directory path (e.g.
+        "general/testing") or a taxonomy-relative JSON file (e.g.
+        "_core/reasoning.json").
+
+        Raises:
+            ValueError: If the reference is malformed or escapes skills_root.
+        """
+        if not isinstance(skill_ref, str):
+            raise ValueError("Invalid path")
+
+        ref = skill_ref.strip()
+        if not ref:
+            raise ValueError("Invalid path")
+
+        # Reject Windows separators and drive/URI-ish inputs.
+        if "\\" in ref or ":" in ref:
+            raise ValueError("Invalid path")
+
+        # Fast reject obvious traversal patterns.
+        if ref.startswith("/") or ".." in ref:
+            raise ValueError("Invalid path")
+
+        if not self._SKILL_REF_PATTERN.fullmatch(ref):
+            raise ValueError("Invalid path")
+
+        posix = PurePosixPath(ref)
+        if posix.is_absolute() or any(p in {".", ".."} for p in posix.parts):
+            raise ValueError("Invalid path")
+
+        # Validate each segment using the conservative component rules.
+        for part in posix.parts:
+            if not self._is_safe_path_component(part):
+                raise ValueError("Invalid path")
+
+        base_dir = self.skills_root.resolve()
+        candidate = (self.skills_root.joinpath(*posix.parts)).resolve()
+
+        base_str = os.fspath(base_dir)
+        candidate_str = os.fspath(candidate)
+        if os.path.commonpath([base_str, candidate_str]) != base_str:
+            raise ValueError("Invalid path")
+
+        return candidate
+
+    def validate_complete_ref(self, skill_ref: str) -> dict[str, Any]:
+        """Validate a skill using an untrusted taxonomy-relative reference."""
+        try:
+            candidate = self.resolve_skill_ref(skill_ref)
+        except ValueError as exc:
+            return {"passed": False, "checks": [], "warnings": [], "errors": [str(exc)]}
+
+        return self.validate_complete(candidate)
 
     def _load_template_overrides(self) -> None:
         template_path = self.skills_root / "_templates" / "skill_template.json"
@@ -449,7 +514,16 @@ class SkillValidator:
             return results
 
         if skill_path.is_file() and skill_path.suffix == ".json":
-            metadata = json.loads(skill_path.read_text(encoding="utf-8"))
+            skill_json_resolved, err = self._resolve_existing_path_within_skills_root(
+                candidate=skill_path,
+                label="skill JSON",
+            )
+            if err is not None:
+                results["passed"] = False
+                results["errors"].append(err)
+                return results
+
+            metadata = json.loads(skill_json_resolved.read_text(encoding="utf-8"))
             meta_result = self.validate_metadata(metadata)
             results["checks"].append(
                 {

@@ -22,11 +22,22 @@ def validate_command(
     skills_root_path = Path(skills_root)
     validator = SkillValidator(skills_root_path)
 
-    path = Path(skill_path)
-    if not path.is_absolute():
-        path = skills_root_path / path
-
-    results = validator.validate_complete(path)
+    # Treat user input as untrusted; normalize to a taxonomy-relative reference.
+    raw = Path(skill_path)
+    if raw.is_absolute():
+        try:
+            rel = raw.resolve().relative_to(skills_root_path.resolve())
+        except ValueError:
+            results = {
+                "passed": False,
+                "checks": [],
+                "warnings": [],
+                "errors": ["Invalid path"],
+            }
+        else:
+            results = validator.validate_complete_ref(rel.as_posix())
+    else:
+        results = validator.validate_complete_ref(raw.as_posix())
 
     if json_output:
         print(json.dumps(results, indent=2))

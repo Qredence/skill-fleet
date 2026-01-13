@@ -58,11 +58,36 @@ def validate_skill(args: Any) -> int:
     - skill_path: str
     - skills_root: str
     """
-    skills_root = args.skills_root if hasattr(args, "skills_root") else "./skills"
+    skills_root = Path(args.skills_root) if hasattr(args, "skills_root") else Path("./skills")
     validator = SkillValidator(skills_root)
 
     skill_path = args.skill_path if hasattr(args, "skill_path") else ""
-    result = validator.validate_complete(Path(skill_path))
+    raw = Path(skill_path)
+
+    # Maintain compatibility with existing tests and scripts: call validate_complete,
+    # but ensure the final path cannot escape skills_root.
+    if raw.is_absolute():
+        try:
+            rel = raw.resolve().relative_to(skills_root.resolve())
+        except ValueError:
+            result = {"passed": False}
+        else:
+            try:
+                candidate = validator.resolve_skill_ref(rel.as_posix())
+            except ValueError:
+                result = {"passed": False}
+            else:
+                result = validator.validate_complete(candidate)
+        passed = bool(result.get("passed"))
+        return 0 if passed else 2
+
+    candidate = raw
+    try:
+        candidate_path = validator.resolve_skill_ref(candidate.as_posix())
+    except ValueError:
+        result = {"passed": False}
+    else:
+        result = validator.validate_complete(candidate_path)
     passed = bool(result.get("passed"))
     return 0 if passed else 2
 

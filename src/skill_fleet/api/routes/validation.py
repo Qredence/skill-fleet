@@ -26,22 +26,14 @@ async def validate_skill(request: ValidateSkillRequest):
     if not path:
         raise HTTPException(status_code=400, detail="path is required")
 
+    # skills_root is configured server-side; request.path is untrusted.
     skills_root = Path(os.environ.get("SKILL_FLEET_SKILLS_ROOT", "skills"))
     validator = SkillValidator(skills_root)
 
-    # Normalize and constrain the requested path to the skills_root directory
-    skills_root_resolved = skills_root.resolve()
-    relative_path = Path(path)
-    # Disallow absolute paths from the request
-    if relative_path.is_absolute():
-        raise HTTPException(status_code=400, detail="Invalid path")
-    candidate_path = (skills_root_resolved / relative_path).resolve()
+    # Validate and resolve the user-provided reference string (no traversal/escape).
     try:
-        # Ensure the candidate_path is within the skills_root directory
-        candidate_path.relative_to(skills_root_resolved)
+        candidate_path = validator.resolve_skill_ref(path)
     except ValueError as err:
-        # Chain the original ValueError to distinguish this HTTPException from
-        # errors raised while handling the exception (satisfies ruff B904)
         raise HTTPException(status_code=400, detail="Invalid path") from err
 
     return validator.validate_complete(candidate_path)

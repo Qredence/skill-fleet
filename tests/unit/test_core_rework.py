@@ -8,9 +8,9 @@ from unittest.mock import MagicMock, patch
 
 import dspy
 
-from skill_fleet.core.config.models import SkillCreationResult, SkillMetadata
-from skill_fleet.core.modules.phase1_understanding import RequirementsGathererModule
-from skill_fleet.core.signatures.phase1_understanding import GatherRequirements
+from skill_fleet.core.models import SkillCreationResult, SkillMetadata
+from skill_fleet.core.dspy.modules import RequirementsGathererModule
+from skill_fleet.core.dspy.signatures.phase1_understanding import GatherRequirements
 
 
 class TestCoreLayer(unittest.TestCase):
@@ -57,12 +57,10 @@ class TestCoreLayer(unittest.TestCase):
             name="test-skill",
             description="A test skill",
             type="technical",
-            taxonomy_path="technical/test"
+            taxonomy_path="technical/test",
         )
         result = SkillCreationResult(
-            status="completed",
-            skill_content="# Test Content",
-            metadata=metadata
+            status="completed", skill_content="# Test Content", metadata=metadata
         )
         self.assertEqual(result.status, "completed")
         self.assertEqual(result.metadata.name, "test-skill")

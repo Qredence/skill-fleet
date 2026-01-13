@@ -20,8 +20,8 @@ import dspy
 
 from ...common.async_utils import run_async
 from ...common.paths import find_repo_root
-from ..config.models import SkillCreationResult
-from ..modules.hitl import (
+from ..models import SkillCreationResult
+from .modules.hitl import (
     ConfirmUnderstandingModule,
     FeedbackAnalyzerModule,
     HITLStrategyModule,
@@ -30,9 +30,9 @@ from ..modules.hitl import (
     RefinementPlannerModule,
     ValidationFormatterModule,
 )
-from ..modules.phase1_understanding import Phase1UnderstandingModule
-from ..modules.phase2_generation import Phase2GenerationModule
-from ..modules.phase3_validation import Phase3ValidationModule
+from .modules.phase1_understanding import Phase1UnderstandingModule
+from .modules.phase2_generation import Phase2GenerationModule
+from .modules.phase3_validation import Phase3ValidationModule
 
 logger = logging.getLogger(__name__)
 

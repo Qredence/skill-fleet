@@ -2,7 +2,7 @@ import contextlib
 
 import pytest
 
-from skill_fleet.workflow import creator as skill_creator_module
+from skill_fleet.core import creator as skill_creator_module
 
 
 class _FakeTaxonomy:

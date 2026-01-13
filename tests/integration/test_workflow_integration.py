@@ -3,7 +3,7 @@
 import dspy
 import pytest
 
-from skill_fleet.workflow.programs import SkillCreationProgram
+from skill_fleet.core.dspy.programs import SkillCreationProgram
 
 
 @pytest.fixture(autouse=True)

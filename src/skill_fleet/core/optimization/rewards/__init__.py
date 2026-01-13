@@ -12,8 +12,8 @@ These are used for:
 - Checkpoint validation scoring
 """
 
-from .phase1_rewards import phase1_completeness_reward
-from .phase2_rewards import phase2_validity_metric
+from .phase1_rewards import phase1_checkpoint_score, phase1_completeness_reward
+from .phase2_rewards import phase2_checkpoint_score, phase2_validity_metric
 from .step_rewards import (
     capabilities_reward,
     combined_edit_reward,
@@ -41,5 +41,7 @@ __all__ = [
     "combined_package_reward",
     # Phase-specific rewards
     "phase1_completeness_reward",
+    "phase1_checkpoint_score",
     "phase2_validity_metric",
+    "phase2_checkpoint_score",
 ]

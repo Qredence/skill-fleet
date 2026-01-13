@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from skill_fleet.workflow.evaluation import (
+from skill_fleet.core.optimization.evaluation import (
     content_quality_metric,
     metadata_metric,
     skill_creation_metric,

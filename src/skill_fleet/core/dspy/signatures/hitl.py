@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import dspy
 
-from ..config.models import ClarifyingQuestion, ValidationCheckItem
+from ...models import ClarifyingQuestion, ValidationCheckItem
 
 # =============================================================================
 # Phase 1 HITL: Understanding & Planning

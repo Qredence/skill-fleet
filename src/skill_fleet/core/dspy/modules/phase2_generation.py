@@ -8,7 +8,7 @@ from typing import Any
 
 import dspy
 
-from ...common.async_utils import run_async
+from ....common.async_utils import run_async
 from ..signatures.phase2_generation import (
     GenerateSkillContent,
     IncorporateFeedback,

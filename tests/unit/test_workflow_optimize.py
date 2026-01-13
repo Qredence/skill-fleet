@@ -3,7 +3,7 @@ import pytest
 
 def test_get_lm_rejects_unapproved_models() -> None:
     pytest.importorskip("dspy")
-    from skill_fleet.workflow.optimize import get_lm
+    from skill_fleet.core.optimization.optimizer import get_lm
 
     with pytest.raises(ValueError):
         get_lm("unapproved-test-model")
@@ -11,7 +11,7 @@ def test_get_lm_rejects_unapproved_models() -> None:
 
 def test_get_lm_constructs_dspy_lm_with_approved_model(monkeypatch: pytest.MonkeyPatch) -> None:
     pytest.importorskip("dspy")
-    from skill_fleet.workflow import optimize
+    from skill_fleet.core.optimization import optimizer
 
     class DummyLM:
         def __init__(self, model: str, temperature: float = 0.0, **kwargs):
@@ -19,13 +19,13 @@ def test_get_lm_constructs_dspy_lm_with_approved_model(monkeypatch: pytest.Monke
             self.temperature = temperature
             self.kwargs = kwargs
 
-    monkeypatch.setattr(optimize.dspy, "LM", DummyLM)
+    monkeypatch.setattr(optimizer.dspy, "LM", DummyLM)
 
     # Arbitrary but fixed values to verify that get_lm forwards parameters correctly.
     test_temperature = 0.12
     test_max_tokens = 123
 
-    language_model = optimize.get_lm(
+    language_model = optimizer.get_lm(
         "gemini-3-flash-preview",
         temperature=test_temperature,
         max_tokens=test_max_tokens,

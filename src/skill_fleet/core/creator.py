@@ -15,10 +15,10 @@ import dspy
 from ..common.utils import json_serialize
 from ..taxonomy.manager import TaxonomyManager
 from ..validators.skill_validator import SkillValidator
-from .feedback import FeedbackHandler, create_feedback_handler
-from .modules import IterateModule
-from .optimizer import WorkflowOptimizer
-from .programs import SkillCreationProgram, SkillRevisionProgram
+from .hitl import FeedbackHandler, create_feedback_handler
+from .dspy.modules import IterateModule
+from .optimization import WorkflowOptimizer
+from .dspy.programs import SkillCreationProgram, SkillRevisionProgram
 
 logger = logging.getLogger(__name__)
 

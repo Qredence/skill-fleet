@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from skill_fleet.workflow.feedback import (
+from skill_fleet.core.hitl import (
     AutoApprovalHandler,
     create_feedback_handler,
 )

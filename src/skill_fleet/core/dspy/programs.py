@@ -26,7 +26,7 @@ from typing import TYPE_CHECKING, Any
 
 import dspy
 
-from ..common.utils import json_serialize
+from ...common.utils import json_serialize
 from .modules import (
     EditModule,
     EditModuleQA,

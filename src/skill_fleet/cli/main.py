@@ -14,7 +14,7 @@ from ..llm.dspy_config import configure_dspy
 from ..llm.fleet_config import load_fleet_config
 from ..taxonomy.manager import TaxonomyManager
 from ..validators.skill_validator import SkillValidator
-from ..workflow.creator import TaxonomySkillCreator
+from ..core.creator import TaxonomySkillCreator
 
 
 def create_skill(args: Any) -> int:

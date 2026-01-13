@@ -12,7 +12,7 @@ import logging
 
 import dspy
 
-from ..agent.signatures import (
+from ...agent.signatures import (
     AssessReadiness,
     ConfirmUnderstandingBeforeCreation,
     DeepUnderstandingSignature,
@@ -24,8 +24,8 @@ from ..agent.signatures import (
     SuggestTestScenarios,
     VerifyTDDPassed,
 )
-from ..common.utils import safe_float, safe_json_loads
-from ..workflow.models import ClarifyingQuestion
+from ...common.utils import safe_float, safe_json_loads
+from ..models import ClarifyingQuestion
 
 logger = logging.getLogger(__name__)
 

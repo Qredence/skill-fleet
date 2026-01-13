@@ -12,10 +12,11 @@ from rich.progress import Progress
 from ...common.paths import default_profiles_path, default_skills_root
 from ...onboarding.bootstrap import SkillBootstrapper
 from ...taxonomy.manager import TaxonomyManager
-from ...workflow.creator import TaxonomySkillCreator
+from ...core.creator import TaxonomySkillCreator
 from ..onboarding_cli import collect_onboarding_responses
 
 console = Console()
+
 
 def onboard_command(
     user_id: str = typer.Option(..., "--user-id", help="Unique user identifier"),

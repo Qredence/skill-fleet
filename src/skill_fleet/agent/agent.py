@@ -21,9 +21,9 @@ import dspy
 
 from ..common.streaming import create_streaming_module, process_stream_sync
 from ..taxonomy.manager import TaxonomyManager
-from ..workflow.models import ChecklistState
-from ..workflow.programs import SkillCreationProgram, SkillRevisionProgram
-from ..workflow.research.tools import filesystem_research, web_search_research
+from ..core.models import ChecklistState
+from ..core.dspy.programs import SkillCreationProgram, SkillRevisionProgram
+from ..core.tools import filesystem_research, web_search_research
 from .modules import (
     AssessReadinessModule,
     ConfirmUnderstandingModule,
@@ -1104,7 +1104,7 @@ class ConversationalSkillAgent(dspy.Module):
         lm = self.task_lms.get("skill_understand") if self.task_lms else dspy.settings.lm
 
         # Quick understand to get taxonomy path
-        from ..workflow.modules import UnderstandModule
+        from ..core.dspy.modules import UnderstandModule
 
         understand_module = UnderstandModule()
         with dspy.context(lm=lm):
@@ -1120,7 +1120,7 @@ class ConversationalSkillAgent(dspy.Module):
         parent_skills = self.taxonomy.get_parent_skills(understanding["taxonomy_path"])
 
         # Quick plan to get metadata draft
-        from ..workflow.modules import PlanModule
+        from ..core.dspy.modules import PlanModule
 
         plan_module = PlanModule()
         with dspy.context(lm=lm):

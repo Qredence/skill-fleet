@@ -20,9 +20,9 @@ import logging
 
 import dspy
 
-from ..common.utils import json_serialize, safe_float, safe_json_loads
-from .models import Capability, ExampleGatheringConfig
-from .signatures import (
+from ....common.utils import json_serialize, safe_float, safe_json_loads
+from ...models import Capability, ExampleGatheringConfig
+from ..signatures.base import (
     EditSkillContent,
     GatherExamplesForSkill,
     GenerateDynamicFeedbackQuestions,
@@ -634,7 +634,7 @@ class UnderstandModuleQA(dspy.Module):
             threshold: Score threshold to accept result early (0.0-1.0)
         """
         super().__init__()
-        from .rewards import taxonomy_path_reward
+        from ...optimization.rewards import taxonomy_path_reward
 
         # Wrap ChainOfThought with Refine for automatic feedback
         self.understand = dspy.Refine(
@@ -710,7 +710,7 @@ class PlanModuleQA(dspy.Module):
 
     def __init__(self, n_refinements: int = 3, threshold: float = 0.8):
         super().__init__()
-        from .rewards import combined_plan_reward
+        from ...optimization.rewards import combined_plan_reward
 
         self.plan = dspy.Refine(
             module=dspy.ChainOfThought(PlanSkillStructure),
@@ -807,7 +807,7 @@ class EditModuleQA(dspy.Module):
             threshold: Score threshold to accept result early (0.0-1.0)
         """
         super().__init__()
-        from .rewards import combined_edit_reward
+        from ...optimization.rewards import combined_edit_reward
 
         # Use BestOfN for content generation - pick best of N attempts
         self.edit = dspy.BestOfN(
@@ -901,7 +901,7 @@ class PackageModuleQA(dspy.Module):
 
     def __init__(self, n_refinements: int = 2, threshold: float = 0.9):
         super().__init__()
-        from .rewards import combined_package_reward
+        from ...optimization.rewards import combined_package_reward
 
         self.package = dspy.Refine(
             module=dspy.ChainOfThought(PackageSkillForApproval),
@@ -1055,7 +1055,7 @@ class DynamicQuestionGeneratorModule(dspy.Module):
         previous_feedback: str = "",
     ) -> dict:
         """Async version of forward method for generating dynamic feedback questions.
-        
+
         Args:
             task_description: User's original task description
             skill_metadata: Skill metadata dict or JSON string
@@ -1063,7 +1063,7 @@ class DynamicQuestionGeneratorModule(dspy.Module):
             validation_report: Validation report dict or JSON string
             round_number: Current feedback round
             previous_feedback: Previous feedback and responses
-            
+
         Returns:
             Dict with questions (list of question objects)
         """

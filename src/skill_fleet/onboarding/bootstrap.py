@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from ..taxonomy.manager import TaxonomyManager
-from ..workflow.creator import TaxonomySkillCreator
+from ..core.creator import TaxonomySkillCreator
 
 
 class SkillBootstrapper:

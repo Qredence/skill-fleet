@@ -8,8 +8,8 @@ from typing import Any, Literal
 import dspy
 from pydantic import BaseModel, Field
 
-from ..config.models import SkillMetadata
-from ..signatures.chat import ClarificationSignature, GuidedResponseSignature, ProposalSignature
+from ..models import SkillMetadata
+from .signatures.chat import ClarificationSignature, GuidedResponseSignature, ProposalSignature
 
 logger = logging.getLogger(__name__)
 

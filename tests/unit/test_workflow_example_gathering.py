@@ -11,13 +11,13 @@ import json
 
 import pytest
 
-from skill_fleet.workflow.models import (
+from skill_fleet.core.models import (
     ClarifyingQuestion,
     ExampleGatheringConfig,
     ExampleGatheringSession,
     UserExample,
 )
-from skill_fleet.workflow.modules import GatherExamplesModule
+from skill_fleet.core.dspy.modules import GatherExamplesModule
 
 # =============================================================================
 # UserExample Tests

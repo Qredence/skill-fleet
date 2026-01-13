@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import dspy
 
-from ..config.models import (
+from ...models import (
     DependencyAnalysis,
     DependencyRef,
     SkillMetadata,

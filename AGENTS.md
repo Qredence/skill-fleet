@@ -19,21 +19,53 @@ The **Agentic Skills System** is a hierarchical, dynamic capability framework th
    - Each skill is a directory containing a `SKILL.md` file with YAML frontmatter
    - Skills are organized by domain (e.g., `general/`, `development/`, `business/`)
 
-2. **Skill Creation (API + DSPy)** (`src/skill_fleet/api/`, `src/skill_fleet/core/`)
-   - FastAPI background jobs + HITL prompt loop (create job → prompt → response)
-   - DSPy program: `src/skill_fleet/core/programs/skill_creator.py` (3-phase orchestrator)
-   - Authoring templates:
-     - `config/templates/SKILL_md_template.md` (SKILL.md structure + frontmatter rules)
-     - `config/templates/metadata_template.json` (metadata.json shape + fields)
-   - Note: `src/skill_fleet/workflow/` still exists (used by onboarding/optimizer); API-backed `create`/`chat` uses the `core/` program.
+2. **Unified Core Architecture** (`src/skill_fleet/core/`)
+   - **DSPy Integration** (`dspy/`): Complete DSPy framework integration
+     - `modules/`: Phase 1 (Understanding), Phase 2 (Generation), Phase 3 (Validation)
+     - `signatures/`: DSPy signatures for each phase
+     - `programs/`: SkillCreationProgram, SkillRevisionProgram, QuickSkillProgram
+     - `skill_creator.py`: Main 3-phase orchestrator
+   - **Optimization** (`optimization/`): DSPy workflow optimization
+     - MIPROv2 optimizer for prompt tuning
+     - GEPA optimizer for reflective prompt evolution
+   - **Tracing** (`tracing/`): MLflow integration and configuration
+   - **Tools** (`tools/`): Research capabilities (filesystem, web search)
+   - **HITL** (`hitl/`): Human-in-the-loop feedback handlers
+   - `models.py`: Unified Pydantic models (consolidated from workflow and core)
+   - `creator.py`: Main entry point for skill creation
 
-3. **CLI** (`src/skill_fleet/cli/`)
+3. **Conversational Agent** (`src/skill_fleet/agent/`)
+   - Natural language interface for skill creation
+   - Multi-phase conversation orchestration (phase1/, phase2/)
+   - TDD checklist enforcement
+   - Streaming modules with real-time thinking display
+
+4. **CLI** (`src/skill_fleet/cli/`)
    - Primary interface for skill creation, validation, and migration
    - Built with Typer for a clean, typed command-line interface
+   - **Commands** (`commands/`): Modular command files (create, chat, optimize, analytics, etc.)
+   - **Interactive CLI** (`interactive_cli.py`): Rich-based chat interface
+   - **PromptUI** (`ui/prompts.py`): Abstraction for interactive prompts
 
-4. **Validators** (`src/skill_fleet/validators/`)
+5. **API Layer** (`src/skill_fleet/api/`)
+   - FastAPI REST API with async background jobs
+   - Auto-discovery system for DSPy modules (`discovery.py`)
+   - Jobs system for long-running operations (`jobs.py`)
+   - Quality-assured program versions with Refine/BestOfN
+
+6. **Frontend UI** (`src/skill_fleet/ui/`)
+   - React/TypeScript application
+   - Components: chat, artifacts (CatalogTree, SkillDetail, WorkflowDashboard)
+   - Hooks and services for CLI bridge integration
+   - Theme system and keybinding support
+
+7. **Validators** (`src/skill_fleet/validators/`)
    - Ensures skills meet quality and compliance standards
    - Validates YAML frontmatter, content structure, and agentskills.io compliance
+
+8. **Analytics** (`src/skill_fleet/analytics/`)
+   - Usage tracking in JSONL format
+   - Analytics engine for pattern analysis
 
 ---
 
@@ -104,24 +136,53 @@ uv run skill-fleet serve
 # Dev mode with auto-reload
 uv run skill-fleet serve --reload
 
-# Create a new skill (HITL by default)
+# Conversational mode (RECOMMENDED - natural language interface)
+uv run skill-fleet chat
+
+# Create a skill with direct task (HITL by default)
 uv run skill-fleet create "Create a skill for Docker best practices"
 
 # Auto-approve mode (skips interactive prompts)
 uv run skill-fleet create "Create a skill for Docker best practices" --auto-approve
 
-# Interactive chat mode
-uv run skill-fleet chat
+# Interactive chat mode with streaming
 uv run skill-fleet chat "Create a skill for Docker best practices"
 uv run skill-fleet chat --auto-approve
 ```
 
-**API-backed guided flow (create/chat):**
-1. **Clarify (optional)**: Ask targeted questions when the task is ambiguous
-2. **Confirm**: Show an understanding summary + proposed taxonomy path (proceed/revise/cancel)
-3. **Preview**: Show a draft preview (proceed/refine/cancel)
-4. **Validate**: Show validation report (proceed/refine/cancel)
-5. **Save**: Persist to `skills/` (auto-save when the job completes)
+**Three-Phase Skill Creation Workflow:**
+
+The skill creation process uses a DSPy-powered 3-phase workflow:
+
+**Phase 1: Understanding & Planning**
+1. **Deep Understanding**: Ask WHY questions to understand user's problem and goals
+2. **Research**: Perform web and filesystem research when needed
+3. **Intent Analysis**: Parse task description and identify skill type
+4. **Taxonomy Path**: Find optimal placement in skills hierarchy
+5. **Dependency Analysis**: Identify related skills and prerequisites
+
+**Phase 2: Content Generation**
+6. **Initialize**: Create skill skeleton and directory structure
+7. **Gather Examples**: Collect usage examples from user (optional)
+8. **Edit**: Generate skill content (SKILL.md, metadata, supporting files)
+9. **Preview**: Present draft for review
+
+**Phase 3: Validation & Refinement**
+10. **Validate**: Run compliance checks and quality validation
+11. **TDD Checklist**: MANDATORY 3-phase verification:
+    - **RED**: Baseline tests without skill (identify rationalizations)
+    - **GREEN**: Tests with skill (verify compliance)
+    - **REFACTOR**: Close loopholes with explicit counters
+12. **Iterate**: Refine based on feedback (if needed)
+13. **Save**: Persist to taxonomy
+
+**Conversational Agent Flow:**
+The `chat` command uses a natural language interface that:
+- Asks clarifying questions one at a time
+- Performs research when context is needed
+- Presents structured confirmation before creation
+- Enforces TDD checklist before saving
+- Handles multi-skill requests (creates one at a time)
 
 ### Creating a Revised Skill
 
@@ -159,6 +220,64 @@ Different workflow phases use different LM configurations:
 - `skill_edit`: Content generation (medium temperature)
 - `skill_package`: Validation and packaging (low temperature)
 - `skill_validate`: Compliance checking (minimal temperature)
+- `conversational_agent`: Conversational interface (uses skill_understand as default)
+
+### Workflow Optimization
+
+DSPy programs can be optimized for better quality and consistency:
+
+**MIPROv2 Optimization:**
+- Automatically tunes prompts using training data
+- Adjusts few-shot examples for each module
+- Best for: Improving average quality across many examples
+
+**GEPA Optimization:**
+- Reflective prompt evolution with critique cycle
+- Uses stronger reasoning model for reflection
+- Best for: Complex tasks requiring deep reasoning
+
+**Optimization CLI:**
+```bash
+# Optimize workflow with MIPROv2
+uv run skill-fleet optimize --optimizer miprov2 --model gemini-3-flash-preview
+
+# Optimize with GEPA (uses reflection model)
+uv run skill-fleet optimize --optimizer gepa --model gemini-3-flash-preview
+
+# Evaluate only (no optimization)
+uv run skill-fleet optimize --evaluate-only --n-examples 10
+
+# Enable MLflow tracking
+uv run skill-fleet optimize --optimizer miprov2 --track
+```
+
+**Quality Assurance:**
+Programs can run in "quality-assured" mode:
+- Uses Refine wrapper for iterative improvement
+- Uses BestOfN for generating multiple candidates
+- Slower but higher quality outputs
+
+```python
+from skill_fleet.core.dspy import SkillCreationProgram
+
+# Standard program
+program = SkillCreationProgram()
+
+# Quality-assured program
+program_qa = SkillCreationProgram(quality_assured=True)
+```
+
+**MLflow Tracing:**
+Optional MLflow integration for tracking experiments:
+```python
+from skill_fleet.core.tracing import configure_tracing
+
+# Enable tracing (requires mlflow>=2.21.1)
+configure_tracing(
+    tracking_uri="mlflow-server",
+    experiment_name="skill-creation"
+)
+```
 
 ### Validating Skills
 
@@ -211,6 +330,29 @@ uv run ruff check .
 uv run ruff format .
 ```
 
+### Analytics
+
+The system includes usage tracking and analytics for understanding skill usage patterns:
+
+```bash
+# View usage analytics
+uv run skill-fleet analytics
+
+# View analytics for specific user
+uv run skill-fleet analytics --user-id user@example.com
+```
+
+**Analytics Features:**
+- **Usage Tracking**: JSONL log of all skill usage events
+- **Success Rates**: Track skill success/failure patterns
+- **Skill Combinations**: Identify commonly co-used skills
+- **Cold Skills**: Detect unused or rarely-used skills
+- **Most Used Skills**: Rank skills by usage frequency
+
+**Analytics Data Location:**
+- Log file: `analytics/usage_log.jsonl`
+- Analytics root: Configurable via environment variable
+
 ---
 
 ## 📂 Key Files & Directories
@@ -220,30 +362,117 @@ uv run ruff format .
 ```
 src/skill_fleet/
 ├── agent/
-│   └── agent.py                 # Conversational agent for skill creation
+│   ├── agent.py                 # Conversational agent (1850+ lines)
+│   ├── modules.py               # Agent conversation modules
+│   ├── phase1/                  # Phase 1: Understanding & Planning
+│   │   ├── signatures.py
+│   │   └── understand.py
+│   ├── phase2/                  # Phase 2: Scoping
+│   │   ├── signatures.py
+│   │   └── scope.py
+│   └── signatures.py            # Agent-level signatures
+├── analytics/
+│   └── engine.py                # Usage tracking and analytics engine
+├── api/
+│   ├── app.py                   # FastAPI application
+│   ├── discovery.py             # Auto-discovery of DSPy modules as endpoints
+│   ├── jobs.py                  # Background job handling
+│   ├── routes/                  # API route handlers
+│   │   ├── hitl.py              # HITL feedback endpoints
+│   │   ├── skills.py            # Skill creation endpoints
+│   │   ├── taxonomy.py          # Taxonomy management endpoints
+│   │   └── validation.py        # Validation endpoints
+│   └── schemas/                 # Pydantic request/response models
 ├── cli/
-│   ├── __init__.py              # Exposes cli_entrypoint()
-│   └── app.py                   # Typer app + command registration
+│   ├── app.py                   # Main Typer application
+│   ├── interactive_cli.py       # Rich-based conversational interface
+│   ├── onboarding_cli.py        # Onboarding workflow CLI
+│   ├── client.py                # API client for CLI commands
+│   ├── commands/                # Modular command files (12 commands)
+│   │   ├── analytics.py         # Usage analytics command
+│   │   ├── chat.py              # Conversational agent command
+│   │   ├── create.py            # Skill creation command
+│   │   ├── generate_xml.py      # XML generation command
+│   │   ├── list_skills.py       # Skills listing command
+│   │   ├── migrate.py           # Format migration command
+│   │   ├── onboard.py           # User onboarding command
+│   │   ├── optimize.py          # DSPy optimization command
+│   │   ├── serve.py             # API server command
+│   │   └── validate.py          # Skill validation command
+│   ├── hitl/
+│   │   └── runner.py            # Centralized HITL runner for CLI
+│   ├── ui/
+│   │   └── prompts.py           # PromptUI abstraction (PromptToolkitUI + RichFallbackUI)
+│   └── utils/
+│       ├── constants.py         # CLI constants
+│       └── security.py          # Security utilities
 ├── common/
+│   ├── streaming.py             # Streaming module utilities
 │   └── utils.py                 # Shared utility functions
 ├── core/
-│   ├── programs/
-│   │   └── skill_creator.py      # API-backed 3-phase DSPy program + HITL hooks
-│   ├── modules/                 # Phase modules + HITL utilities
-│   ├── signatures/              # DSPy signatures for each phase
-│   └── config/                  # Pydantic models + core config
+│   ├── __init__.py              # Unified core exports (consolidated workflow+core)
+│   ├── models.py                # Unified Pydantic models
+│   ├── creator.py               # Main skill creation entry point
+│   ├── dspy/                    # DSPy integration
+│   │   ├── modules/             # DSPy modules by phase
+│   │   │   ├── phase1_understanding.py
+│   │   │   ├── phase2_generation.py
+│   │   │   ├── phase3_validation.py
+│   │   │   ├── base.py          # Base modules
+│   │   │   └── hitl.py          # HITL modules
+│   │   ├── signatures/          # DSPy signatures by phase
+│   │   │   ├── phase1_understanding.py
+│   │   │   ├── phase2_generation.py
+│   │   │   ├── phase3_validation.py
+│   │   │   ├── base.py
+│   │   │   ├── chat.py          # Chat signatures
+│   │   │   └── hitl.py          # HITL signatures
+│   │   ├── programs.py          # SkillCreationProgram, SkillRevisionProgram
+│   │   ├── conversational.py    # Conversational DSPy modules
+│   │   └── skill_creator.py     # 3-phase orchestrator
+│   ├── optimization/            # DSPy optimization
+│   │   ├── optimizer.py         # MIPROv2 and GEPA optimizers
+│   │   ├── cache.py             # Optimization cache
+│   │   ├── evaluation.py        # Evaluation metrics
+│   │   └── rewards/             # Reward functions
+│   │       ├── phase1_rewards.py
+│   │       ├── phase2_rewards.py
+│   │       └── step_rewards.py
+│   ├── tracing/                 # MLflow tracing
+│   │   ├── tracer.py            # Tracing utilities
+│   │   ├── mlflow.py            # MLflow integration
+│   │   └── config.py            # Tracing configuration
+│   ├── tools/                   # Research tools
+│   │   └── research.py          # Filesystem and web search
+│   └── hitl/                    # Human-in-the-loop
+│       └── handlers.py          # Feedback handlers (auto, cli, webhook)
 ├── llm/
 │   ├── dspy_config.py           # Centralized DSPy configuration
 │   └── fleet_config.py          # LLM provider configuration
+├── onboarding/
+│   └── workflow.py              # User onboarding workflow
 ├── taxonomy/
 │   └── manager.py               # Taxonomy management
+├── ui/                          # React/TypeScript frontend
+│   ├── main.tsx                 # Application entry point
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── artifacts/       # Artifact display components
+│   │   │   ├── chat/            # Chat interface components
+│   │   │   └── layout/          # Layout components
+│   │   ├── hooks/               # React hooks
+│   │   ├── services/            # API and CLI bridge services
+│   │   ├── tools/               # UI tools (permissions, prompts)
+│   │   └── types.ts             # TypeScript type definitions
+│   ├── tsconfig.json            # TypeScript configuration
+│   └── package.json             # NPM dependencies
 ├── validators/
 │   └── skill_validator.py       # Core validation logic
-└── workflow/
-    ├── creator.py               # Main workflow orchestrator
-    ├── modules.py               # DSPy modules
-    ├── programs.py              # DSPy programs
-    └── signatures.py            # DSPy signatures for each step
+└── workflow/                    # DEPRECATED: Consolidated into core/
+    ├── creator.py               # Legacy workflow orchestrator
+    ├── modules.py               # Legacy DSPy modules
+    ├── programs.py              # Legacy DSPy programs
+    └── signatures.py            # Legacy DSPy signatures
 ```
 
 ### Documentation
@@ -268,6 +497,39 @@ docs/
 - **`.env`**: Environment variables (API keys, configuration)
 - **`config/config.yaml`**: LLM configuration (model selection, parameters)
 - **`src/skill_fleet/config/`**: Packaged defaults for wheels (kept in sync with `config/`)
+
+### Frontend UI
+
+The system includes a React/TypeScript frontend application for visual skill management:
+
+```bash
+# Navigate to UI directory
+cd src/skill_fleet/ui
+
+# Install UI dependencies
+bun install
+
+# Start development server
+bun run dev
+
+# Build for production
+bun run build
+```
+
+**UI Features:**
+- **Chat Interface**: Real-time conversational skill creation with message list and input area
+- **Artifact Display**: View skill catalog, skill details, and workflow dashboard
+- **CLI Bridge**: Direct integration with backend CLI for command execution
+- **Theme System**: Dark, light, and Dracula themes
+- **Keybindings**: Customizable keyboard shortcuts
+- **Tools Integration**: File system access and command execution permissions
+
+**UI Components:**
+- `Chat`: MessageList, InputArea, SuggestionList
+- `Artifacts`: CatalogTree, SkillDetail, WorkflowDashboard
+- `Layout`: AppShell with resizable panes
+- `Hooks`: useUI for state management
+- `Services`: API bridge and filesystem services
 
 ---
 
@@ -448,8 +710,24 @@ uv run skill-fleet --help
 # Start API server (required for API-backed create/chat/list)
 uv run skill-fleet serve
 
+# Conversational mode (RECOMMENDED - natural language interface)
+uv run skill-fleet chat
+
 # Create a skill (HITL by default)
 uv run skill-fleet create "Your task description"
+
+# Optimize workflow (DSPy MIPROv2 or GEPA)
+uv run skill-fleet optimize --optimizer miprov2
+uv run skill-fleet optimize --optimizer gepa --track
+
+# View analytics
+uv run skill-fleet analytics
+
+# List skills
+uv run skill-fleet list
+
+# Onboard new user
+uv run skill-fleet onboard
 
 # Validate skill
 uv run skill-fleet validate skills/general/testing
@@ -474,6 +752,9 @@ uv run ruff format .
 
 - Skills: `skills/`
 - CLI: `src/skill_fleet/cli/`
+- Core DSPy: `src/skill_fleet/core/dspy/`
+- API: `src/skill_fleet/api/`
+- UI: `src/skill_fleet/ui/`
 - Tests: `tests/`
 - Docs: `docs/`
 - Config: `config/config.yaml`

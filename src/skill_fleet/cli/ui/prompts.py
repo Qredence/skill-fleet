@@ -80,19 +80,42 @@ class PromptToolkitUI:
         if not choices:
             return ""
 
+        # First, prefer the (older) `choice()` helper if available; tests and
+        # some prompt-toolkit versions monkeypatch or expose it. If it's not
+        # present, fall back to a radiolist_dialog which provides a similar
+        # single-choice UX. Any import/runtime error falls back to Rich.
+        default = default_id or (choices[0][0] if choices else "")
+
         try:
             from prompt_toolkit.shortcuts import choice as pt_choice
         except Exception:
+            pt_choice = None
+
+        if pt_choice is not None:
+            try:
+                selected = await asyncio.to_thread(
+                    pt_choice,
+                    message=prompt,
+                    options=choices,
+                    default=default,
+                )
+            except Exception:
+                return await RichFallbackUI().choose_one(prompt, choices, default_id=default_id)
+
+            return str(selected) if selected is not None else default
+
+        # choice() not available — try radiolist_dialog next
+        try:
+            from prompt_toolkit.shortcuts import radiolist_dialog
+        except Exception:
             return await RichFallbackUI().choose_one(prompt, choices, default_id=default_id)
 
-        default = default_id or choices[0][0]
+        dialog = radiolist_dialog(title="", text=prompt, values=choices)
         try:
-            selected = await asyncio.to_thread(
-                pt_choice,
-                message=prompt,
-                options=choices,
-                default=default,
-            )
+            if hasattr(dialog, "run_async"):
+                selected = await dialog.run_async()
+            else:
+                selected = await asyncio.to_thread(dialog.run)
         except Exception:
             return await RichFallbackUI().choose_one(prompt, choices, default_id=default_id)
 

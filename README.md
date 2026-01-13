@@ -76,6 +76,18 @@ UV_CACHE_DIR=$PWD/.uv_cache uv run ruff check src/skill_fleet
 UV_CACHE_DIR=$PWD/.uv_cache uv run pytest -q tests/unit
 ```
 
+## Branch Protection & CI/CD
+
+The repository uses branch protection rules to maintain code quality and security. See [Branch Protection Guide](.github/BRANCH_PROTECTION.md) for:
+- Recommended protection settings for the `main` branch
+- CI/CD workflow configuration and status checks
+- Step-by-step setup instructions using GitHub UI, CLI, or API
+
+Quick setup:
+```bash
+./scripts/setup_branch_protection.sh
+```
+
 ## Documentation & Contribution Paths
 
 - Keep `AGENTS.md` and `plans/` in sync with any workflow changes.

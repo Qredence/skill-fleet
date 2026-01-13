@@ -176,6 +176,20 @@ Before submitting your PR, ensure:
 - [ ] Commit messages follow conventions
 - [ ] PR description clearly explains the changes
 
+### Branch Protection & Required Checks
+
+The `main` branch is protected with the following requirements:
+- At least 1 approving review required
+- All CI status checks must pass:
+  - Linting (ruff check and format)
+  - Tests (Python 3.12 and 3.13)
+  - Build verification
+  - Security checks
+- All conversations must be resolved
+- Linear history enforced (no merge commits)
+
+See the [Branch Protection Guide](../../.github/BRANCH_PROTECTION.md) for complete details on repository protection rules.
+
 ## Project Structure
 
 ```

@@ -13,6 +13,19 @@ from __future__ import annotations
 
 # Re-export from new locations for backward compatibility
 from skill_fleet.core.creator import TaxonomySkillCreator
+from skill_fleet.core.dspy.modules.base import (
+    EditModule,
+    EditModuleQA,
+    GatherExamplesModule,
+    InitializeModule,
+    IterateModule,
+    PackageModule,
+    PackageModuleQA,
+    PlanModule,
+    PlanModuleQA,
+    UnderstandModule,
+    UnderstandModuleQA,
+)
 from skill_fleet.core.hitl import (
     AutoApprovalHandler,
     CLIFeedbackHandler,
@@ -22,6 +35,7 @@ from skill_fleet.core.hitl import (
     create_feedback_handler,
 )
 from skill_fleet.core.models import (
+    Capability,
     ClarifyingQuestion,
     HITLRound,
     HITLSession,
@@ -35,10 +49,25 @@ from skill_fleet.core.optimization import (
 )
 from skill_fleet.core.optimization.evaluation import load_trainset, skill_creation_metric
 
+# Backward compat: allow `from skill_fleet.workflow.models import X`
+from skill_fleet.core import models
+
 # Core workflow components
 __all__ = [
     # Main orchestrator
     "TaxonomySkillCreator",
+    # DSPy Modules (backward compat)
+    "EditModule",
+    "EditModuleQA",
+    "GatherExamplesModule",
+    "InitializeModule",
+    "IterateModule",
+    "PackageModule",
+    "PackageModuleQA",
+    "PlanModule",
+    "PlanModuleQA",
+    "UnderstandModule",
+    "UnderstandModuleQA",
     # Feedback handlers
     "FeedbackHandler",
     "AutoApprovalHandler",
@@ -52,6 +81,9 @@ __all__ = [
     "QuestionAnswer",
     "HITLRound",
     "HITLSession",
+    # Other models
+    "Capability",
+    "models",
     # Optimization functions
     "optimize_with_miprov2",
     "optimize_with_gepa",

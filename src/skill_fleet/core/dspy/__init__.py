@@ -11,6 +11,10 @@ Submodules:
 - conversational.py: Conversational DSPy modules
 """
 
+# Re-export subpackages for auto-discovery
+from skill_fleet.core.dspy import modules
+from skill_fleet.core.dspy import programs
+
 # Re-export main components
 from skill_fleet.core.dspy.skill_creator import SkillCreationProgram
 from skill_fleet.core.dspy.programs import (
@@ -20,4 +24,6 @@ from skill_fleet.core.dspy.programs import (
 __all__ = [
     "SkillCreationProgram",
     "LegacySkillCreationProgram",
+    "modules",
+    "programs",
 ]

@@ -57,6 +57,7 @@ class TestCoreLayer(unittest.TestCase):
             name="test-skill",
             description="A test skill",
             type="technical",
+            weight="lightweight",
             taxonomy_path="technical/test",
         )
         result = SkillCreationResult(

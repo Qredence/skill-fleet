@@ -66,6 +66,28 @@ class TestPromptToolkitUI:
         # Assert
         assert selected == ["a", "c"]
 
+    @pytest.mark.asyncio
+    async def test_choose_one_radiolist_dialog_returns_selected_id(self, monkeypatch):
+        # Arrange: simulate radiolist_dialog returning a dialog with run_async()
+        class _Dialog:
+            async def run_async(self):
+                return "b"
+
+        def _radiolist(**_kwargs):
+            return _Dialog()
+
+        # Ensure the `choice` helper is not used so the radiolist path is taken.
+        monkeypatch.setattr("prompt_toolkit.shortcuts.choice", None, raising=False)
+        monkeypatch.setattr("prompt_toolkit.shortcuts.radiolist_dialog", _radiolist)
+
+        ui = PromptToolkitUI()
+
+        # Act
+        selected = await ui.choose_one("Pick one", [("a", "A"), ("b", "B")], default_id="a")
+
+        # Assert
+        assert selected == "b"
+
 
 class TestRichFallbackUI:
     @pytest.mark.asyncio

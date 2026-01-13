@@ -179,12 +179,25 @@ class SkillCreationProgram(dspy.Module):
 
             # HITL 1.2: Confirmation
             if self.hitl_enabled and hitl_callback:
+                # ConfirmUnderstanding signature expects `dependencies: list[str]`.
+                # Phase 1 dependency analysis may return structured DependencyRef objects.
+                raw_deps = p1_result.get("dependencies", {}).get("prerequisite_skills", [])
+                dependencies: list[str] = []
+                if isinstance(raw_deps, list):
+                    for dep in raw_deps:
+                        if hasattr(dep, "skill_id"):
+                            dependencies.append(str(dep.skill_id))
+                        elif isinstance(dep, dict):
+                            dependencies.append(str(dep.get("skill_id") or dep.get("name") or dep))
+                        else:
+                            dependencies.append(str(dep))
+
                 summary = await self.confirm_understanding.aforward(
                     task_description=task_description,
                     user_clarifications=user_clarifications,
                     intent_analysis=str(p1_result["intent"]),
                     taxonomy_path=p1_result["taxonomy"]["recommended_path"],
-                    dependencies=p1_result["dependencies"]["prerequisite_skills"],
+                    dependencies=dependencies,
                 )
 
                 # Confirm with user

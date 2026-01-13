@@ -9,6 +9,7 @@ from typing import Any
 import dspy
 
 from ....common.async_utils import run_async
+from ....common.utils import safe_json_loads
 from ..signatures.phase1_understanding import (
     AnalyzeDependencies,
     AnalyzeIntent,
@@ -185,8 +186,22 @@ class Phase1UnderstandingModule(dspy.Module):
         """Execute Phase 1 orchestrator asynchronously."""
         requirements = await self.gather_requirements.aforward(task_description)
         intent_future = self.analyze_intent.aforward(task_description, user_context)
+
+        # `FindTaxonomyPath` signature expects a list[str] for existing_skills.
+        # The public program contract uses JSON strings; normalize here.
+        existing_skill_paths = safe_json_loads(
+            existing_skills,
+            default=[],
+            field_name="existing_skills",
+        )
+        if not isinstance(existing_skill_paths, list):
+            existing_skill_paths = []
+        existing_skill_paths = [str(s) for s in existing_skill_paths]
+
         taxonomy_future = self.find_taxonomy.aforward(
-            task_description, taxonomy_structure, existing_skills
+            task_description,
+            taxonomy_structure,
+            existing_skill_paths,
         )
         intent_result, taxonomy_result = await asyncio.gather(intent_future, taxonomy_future)
         deps_result = await self.analyze_dependencies.aforward(

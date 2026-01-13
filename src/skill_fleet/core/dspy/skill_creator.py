@@ -11,6 +11,7 @@ All phases support async execution.
 
 from __future__ import annotations
 
+import json
 import logging
 from collections.abc import Callable
 from pathlib import Path
@@ -143,7 +144,10 @@ class SkillCreationProgram(dspy.Module):
                     # Generate focused questions
                     hitl_module = dspy.ChainOfThought("requirements, task -> questions")
                     # Note: Using dspy.settings.lm if not provided
-                    q_result = hitl_module(requirements=str(requirements), task=task_description)
+                    q_result = await hitl_module.acall(
+                        requirements=json.dumps(requirements),
+                        task=task_description,
+                    )
 
                     # Ask user via callback
                     clarifications = await hitl_callback(

@@ -1,6 +1,6 @@
 # Interactive Chat Mode
 
-**Last Updated**: 2026-01-12
+**Last Updated**: 2026-01-13
 **Command**: `skill-fleet chat`
 
 ## Overview
@@ -38,11 +38,11 @@ What capability would you like to build?
 
 ## Chat Commands
 
-| Command | Alias | Description |
-|---------|-------|-------------|
-| `/help` | - | Show help message |
-| `/exit` | `/quit` | Exit chat mode |
-| `/cancel` | - | Cancel current job |
+| Command   | Alias   | Description        |
+| --------- | ------- | ------------------ |
+| `/help`   | -       | Show help message  |
+| `/exit`   | `/quit` | Exit chat mode     |
+| `/cancel` | -       | Cancel current job |
 
 ## Workflow
 
@@ -67,16 +67,29 @@ stateDiagram-v2
 
 ### 1. Clarify
 
-```
-╭─ 🤔 Clarification Needed ─────────╮
-│ What level of detail should this     │
-│ skill cover?                         │
-╰──────────────────────────────────────╯
+The API may return clarifying questions as:
 
-Your answers (or /cancel):
+- a structured list (`[{"question": "...", "options": [...]}, ...]`), or
+- a single markdown string that contains a numbered list (`"1. ...\n2. ..."`).
+
+The CLI normalizes both formats and presents **one question at a time**.
+
+```
+╭─────────────────────────────── 🤔 Clarification Needed ───────────────────────────────╮
+│ Answer the following question(s) one at a time.                                       │
+╰───────────────────────────────────────────────────────────────────────────────────────╯
+
+╭────────────────────────────── Question 1/3 ──────────────────────────────╮
+│ What level of detail should this skill cover?                             │
+╰──────────────────────────────────────────────────────────────────────────╯
+
+Your answer (or /cancel):
 ```
 
-**Response:** Free-form text or `/cancel`
+**Response:** One question is shown at a time. You can answer in free-form text or `/cancel`.
+
+If the question includes multi-choice options, the CLI uses prompt-toolkit to let you
+select with arrow keys (and supports an **“Other (type my own)”** free-text option).
 
 ---
 
@@ -95,9 +108,12 @@ Proceed? (proceed/revise/cancel) [proceed]:
 ```
 
 **Options:**
+
 - `proceed` - Continue to next phase
 - `revise` - Restart current phase with feedback
 - `cancel` - Cancel job
+
+Tip: In supported terminals, selection prompts use arrow keys (prompt-toolkit) instead of requiring typed input.
 
 ---
 
@@ -123,9 +139,12 @@ Looks good? (proceed/refine/cancel) [proceed]:
 ```
 
 **Options:**
+
 - `proceed` - Accept and continue
 - `refine` - Request changes with feedback
 - `cancel` - Cancel job
+
+Tip: In supported terminals, selection prompts use arrow keys.
 
 ---
 
@@ -145,6 +164,17 @@ Accept? (proceed/refine/cancel) [proceed]:
 ```
 
 ---
+
+## CLI Flags
+
+`skill-fleet chat` supports a couple of UX toggles:
+
+- `--show-thinking/--no-show-thinking`: show or hide rationale panels (when the server provides them).
+- `--force-plain-text`: disable arrow-key dialogs and fall back to plain text prompts (useful for limited terminals/CI).
+
+You can also force plain-text prompts via environment variable:
+
+- `SKILL_FLEET_FORCE_PLAIN_TEXT=1`
 
 ## Session Example
 
@@ -197,6 +227,7 @@ skill-fleet chat --auto-approve
 ```
 
 In auto-approve mode:
+
 - All clarifications use empty responses
 - All confirmations auto-proceed
 - All previews auto-proceed

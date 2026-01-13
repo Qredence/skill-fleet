@@ -1,6 +1,6 @@
 # CLI Commands Reference
 
-**Last Updated**: 2026-01-12
+**Last Updated**: 2026-01-13
 
 ## Overview
 
@@ -20,17 +20,17 @@ skill-fleet create [OPTIONS] TASK
 
 ### Arguments
 
-| Argument | Type | Required | Description |
-|----------|------|----------|-------------|
-| `TASK` | `string` | Yes | Description of the skill to create |
+| Argument | Type     | Required | Description                        |
+| -------- | -------- | -------- | ---------------------------------- |
+| `TASK`   | `string` | Yes      | Description of the skill to create |
 
 ### Options
 
-| Option | Short | Default | Description |
-|--------|-------|---------|-------------|
-| `--auto-approve` | - | `false` | Skip interactive prompts |
-| `--api-url` | `-a` | `$SKILL_FLEET_API_URL` | API server URL |
-| `--user` | `-u` | `$SKILL_FLEET_USER_ID` | User ID |
+| Option           | Short | Default                | Description              |
+| ---------------- | ----- | ---------------------- | ------------------------ |
+| `--auto-approve` | -     | `false`                | Skip interactive prompts |
+| `--api-url`      | `-a`  | `$SKILL_FLEET_API_URL` | API server URL           |
+| `--user`         | `-u`  | `$SKILL_FLEET_USER_ID` | User ID                  |
 
 ### Examples
 
@@ -57,11 +57,11 @@ skill-fleet create "task" --api-url https://api.example.com
 
 ### Exit Codes
 
-| Code | Meaning |
-|------|---------|
-| `0` | Skill created successfully |
-| `1` | Error (API connection, job failed, user cancelled) |
-| `130` | Interrupted (Ctrl+C) |
+| Code  | Meaning                                            |
+| ----- | -------------------------------------------------- |
+| `0`   | Skill created successfully                         |
+| `1`   | Error (API connection, job failed, user cancelled) |
+| `130` | Interrupted (Ctrl+C)                               |
 
 ---
 
@@ -75,25 +75,27 @@ skill-fleet chat [OPTIONS] [TASK]
 
 ### Arguments
 
-| Argument | Type | Required | Description |
-|----------|------|----------|-------------|
-| `TASK` | `string` | No | Optional task to run immediately |
+| Argument | Type     | Required | Description                      |
+| -------- | -------- | -------- | -------------------------------- |
+| `TASK`   | `string` | No       | Optional task to run immediately |
 
 ### Options
 
-| Option | Short | Default | Description |
-|--------|-------|---------|-------------|
-| `--auto-approve` | - | `false` | Skip interactive prompts |
-| `--api-url` | `-a` | `$SKILL_FLEET_API_URL` | API server URL |
-| `--user` | `-u` | `$SKILL_FLEET_USER_ID` | User ID |
+| Option                               | Short | Default                | Description                                          |
+| ------------------------------------ | ----- | ---------------------- | ---------------------------------------------------- |
+| `--auto-approve`                     | -     | `false`                | Skip interactive prompts                             |
+| `--show-thinking/--no-show-thinking` | -     | `true`                 | Show rationale/thinking panels when provided         |
+| `--force-plain-text`                 | -     | `false`                | Disable arrow-key dialogs and use plain-text prompts |
+| `--api-url`                          | `-a`  | `$SKILL_FLEET_API_URL` | API server URL                                       |
+| `--user`                             | `-u`  | `$SKILL_FLEET_USER_ID` | User ID                                              |
 
 ### Chat Commands
 
-| Command | Description |
-|---------|-------------|
-| `/help` | Show help message |
-| `/exit`, `/quit` | Exit chat |
-| `/cancel` | Cancel current job |
+| Command          | Description        |
+| ---------------- | ------------------ |
+| `/help`          | Show help message  |
+| `/exit`, `/quit` | Exit chat          |
+| `/cancel`        | Cancel current job |
 
 ### Examples
 
@@ -134,11 +136,11 @@ skill-fleet list [OPTIONS]
 
 ### Options
 
-| Option | Short | Default | Description |
-|--------|-------|---------|-------------|
-| `--filter` | `-f` | None | Filter by pattern |
-| `--format` | - | `pretty` | Output format: `pretty`, `json`, `csv` |
-| `--sort` | - | `name` | Sort by: `name`, `path`, `created` |
+| Option     | Short | Default  | Description                            |
+| ---------- | ----- | -------- | -------------------------------------- |
+| `--filter` | `-f`  | None     | Filter by pattern                      |
+| `--format` | -     | `pretty` | Output format: `pretty`, `json`, `csv` |
+| `--sort`   | -     | `name`   | Sort by: `name`, `path`, `created`     |
 
 ### Examples
 
@@ -168,16 +170,16 @@ skill-fleet validate [OPTIONS] SKILL_PATH
 
 ### Arguments
 
-| Argument | Type | Required | Description |
-|----------|------|----------|-------------|
-| `SKILL_PATH` | `string` | Yes | Path to skill directory |
+| Argument     | Type     | Required | Description             |
+| ------------ | -------- | -------- | ----------------------- |
+| `SKILL_PATH` | `string` | Yes      | Path to skill directory |
 
 ### Options
 
-| Option | Short | Default | Description |
-|--------|-------|---------|-------------|
-| `--strict` | `-s` | `false` | Treat warnings as errors |
-| `--fix` | - | `false` | Auto-fix issues where possible |
+| Option     | Short | Default | Description                    |
+| ---------- | ----- | ------- | ------------------------------ |
+| `--strict` | `-s`  | `false` | Treat warnings as errors       |
+| `--fix`    | -     | `false` | Auto-fix issues where possible |
 
 ### Examples
 
@@ -194,13 +196,13 @@ skill-fleet validate path/to/skill --fix
 
 ### Validation Checks
 
-| Check | Description |
-|-------|-------------|
-| `metadata_exists` | metadata.json exists |
-| `frontmatter_valid` | YAML frontmatter is valid |
-| `yaml_frontmatter` | Proper YAML frontmatter |
-| `documentation_complete` | All sections present |
-| `examples_present` | Usage examples exist |
+| Check                    | Description               |
+| ------------------------ | ------------------------- |
+| `metadata_exists`        | metadata.json exists      |
+| `frontmatter_valid`      | YAML frontmatter is valid |
+| `yaml_frontmatter`       | Proper YAML frontmatter   |
+| `documentation_complete` | All sections present      |
+| `examples_present`       | Usage examples exist      |
 
 ---
 
@@ -214,12 +216,12 @@ skill-fleet serve [OPTIONS]
 
 ### Options
 
-| Option | Short | Default | Description |
-|--------|-------|---------|-------------|
-| `--host` | `-H` | `127.0.0.1` | Host to bind to |
-| `--port` | `-p` | `8000` | Port to bind to |
-| `--reload` | `-r` | `false` | Enable auto-reload for development |
-| `--workers` | `-w` | `1` | Number of worker processes |
+| Option      | Short | Default     | Description                        |
+| ----------- | ----- | ----------- | ---------------------------------- |
+| `--host`    | `-H`  | `127.0.0.1` | Host to bind to                    |
+| `--port`    | `-p`  | `8000`      | Port to bind to                    |
+| `--reload`  | `-r`  | `false`     | Enable auto-reload for development |
+| `--workers` | `-w`  | `1`         | Number of worker processes         |
 
 ### Examples
 
@@ -239,12 +241,12 @@ skill-fleet serve --workers 4
 
 ### Server Endpoints
 
-| Endpoint | Description |
-|----------|-------------|
-| `/health` | Health check |
-| `/docs` | Interactive API documentation (Swagger UI) |
-| `/redoc` | Alternative API documentation (ReDoc) |
-| `/api/v2/*` | API endpoints |
+| Endpoint    | Description                                |
+| ----------- | ------------------------------------------ |
+| `/health`   | Health check                               |
+| `/docs`     | Interactive API documentation (Swagger UI) |
+| `/redoc`    | Alternative API documentation (ReDoc)      |
+| `/api/v2/*` | API endpoints                              |
 
 ---
 
@@ -258,10 +260,10 @@ skill-fleet onboard [OPTIONS]
 
 ### Options
 
-| Option | Short | Default | Description |
-|--------|-------|---------|-------------|
-| `--skip-api` | - | `false` | Skip API server check |
-| `--config-only` | - | `false` | Only create config files |
+| Option          | Short | Default | Description              |
+| --------------- | ----- | ------- | ------------------------ |
+| `--skip-api`    | -     | `false` | Skip API server check    |
+| `--config-only` | -     | `false` | Only create config files |
 
 ### Examples
 
@@ -285,10 +287,10 @@ skill-fleet analytics [OPTIONS]
 
 ### Options
 
-| Option | Short | Default | Description |
-|--------|-------|---------|-------------|
-| `--period` | `-p` | `7d` | Time period: `1d`, `7d`, `30d`, `all` |
-| `--format` | - | `table` | Output format: `table`, `json` |
+| Option     | Short | Default | Description                           |
+| ---------- | ----- | ------- | ------------------------------------- |
+| `--period` | `-p`  | `7d`    | Time period: `1d`, `7d`, `30d`, `all` |
+| `--format` | -     | `table` | Output format: `table`, `json`        |
 
 ### Examples
 
@@ -315,18 +317,18 @@ skill-fleet migrate [OPTIONS] COMMAND
 
 ### Commands
 
-| Command | Description |
-|---------|-------------|
-| `agentskills-io` | Migrate to agentskills.io format |
-| `add-frontmatter` | Add YAML frontmatter to skills |
-| `restructure` | Restructure taxonomy paths |
+| Command           | Description                      |
+| ----------------- | -------------------------------- |
+| `agentskills-io`  | Migrate to agentskills.io format |
+| `add-frontmatter` | Add YAML frontmatter to skills   |
+| `restructure`     | Restructure taxonomy paths       |
 
 ### Options
 
-| Option | Short | Default | Description |
-|--------|-------|---------|-------------|
-| `--dry-run` | `-d` | `false` | Show changes without applying |
-| `--backup` | `-b` | `true` | Create backup before migrating |
+| Option      | Short | Default | Description                    |
+| ----------- | ----- | ------- | ------------------------------ |
+| `--dry-run` | `-d`  | `false` | Show changes without applying  |
+| `--backup`  | `-b`  | `true`  | Create backup before migrating |
 
 ### Examples
 
@@ -353,10 +355,10 @@ skill-fleet generate-xml [OPTIONS]
 
 ### Options
 
-| Option | Short | Default | Description |
-|--------|-------|---------|-------------|
-| `--output` | `-o` | `-` | Output file (default: stdout) |
-| `--filter` | `-f` | None | Filter by taxonomy path |
+| Option     | Short | Default | Description                   |
+| ---------- | ----- | ------- | ----------------------------- |
+| `--output` | `-o`  | `-`     | Output file (default: stdout) |
+| `--filter` | `-f`  | None    | Filter by taxonomy path       |
 
 ### Examples
 
@@ -383,18 +385,18 @@ skill-fleet optimize [OPTIONS] PROGRAM
 
 ### Arguments
 
-| Argument | Type | Required | Description |
-|----------|------|----------|-------------|
-| `PROGRAM` | `string` | Yes | DSPy program name to optimize |
+| Argument  | Type     | Required | Description                   |
+| --------- | -------- | -------- | ----------------------------- |
+| `PROGRAM` | `string` | Yes      | DSPy program name to optimize |
 
 ### Options
 
-| Option | Short | Default | Description |
-|--------|-------|---------|-------------|
-| `--data` | `-d` | Required | Training data file |
-| `--optimizer` | `-O` | `miprov2` | Optimizer: `miprov2`, `gepa` |
-| `--rounds` | `-r` | `2` | Number of optimization rounds |
-| `--output` | `-o` | `optimized/` | Output directory |
+| Option        | Short | Default      | Description                   |
+| ------------- | ----- | ------------ | ----------------------------- |
+| `--data`      | `-d`  | Required     | Training data file            |
+| `--optimizer` | `-O`  | `miprov2`    | Optimizer: `miprov2`, `gepa`  |
+| `--rounds`    | `-r`  | `2`          | Number of optimization rounds |
+| `--output`    | `-o`  | `optimized/` | Output directory              |
 
 ### Examples
 
@@ -415,12 +417,12 @@ skill-fleet optimize SkillCreationProgram --data trainset.json --output my-optim
 
 These options work with all commands:
 
-| Option | Short | Environment Variable | Default | Description |
-|--------|-------|---------------------|---------|-------------|
-| `--api-url` | `-a` | `SKILL_FLEET_API_URL` | `http://localhost:8000` | API server URL |
-| `--user` | `-u` | `SKILL_FLEET_USER_ID` | `default` | User ID |
-| `--help` | `-h` | - | - | Show help message |
-| `--version` | `-V` | - | - | Show version |
+| Option      | Short | Environment Variable  | Default                 | Description       |
+| ----------- | ----- | --------------------- | ----------------------- | ----------------- |
+| `--api-url` | `-a`  | `SKILL_FLEET_API_URL` | `http://localhost:8000` | API server URL    |
+| `--user`    | `-u`  | `SKILL_FLEET_USER_ID` | `default`               | User ID           |
+| `--help`    | `-h`  | -                     | -                       | Show help message |
+| `--version` | `-V`  | -                     | -                       | Show version      |
 
 ### Examples
 

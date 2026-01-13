@@ -1,20 +1,35 @@
 """DSPy workflow for dynamic skill creation.
 
-This package provides:
-- TaxonomySkillCreator: Main orchestrator for skill creation
-- Pydantic models for structured outputs (models.py)
-- HITL models for human-in-the-loop feedback (models.py)
-- Feedback handlers including InteractiveHITLHandler (feedback.py)
-- Reward functions for quality assurance (rewards.py)
-- Evaluation metrics and data loading (evaluation.py)
-- MIPROv2/GEPA optimization (optimize.py)
+DEPRECATION NOTICE: This module is deprecated. Please import from:
+- skill_fleet.core.models
+- skill_fleet.core.creator
+- skill_fleet.core.hitl
+- skill_fleet.core.optimization
+
+This package re-exports components for backward compatibility.
 """
 
 from __future__ import annotations
 
-from .creator import TaxonomySkillCreator
-from .evaluation import load_trainset, skill_creation_metric
-from .feedback import (
+# Backward compat: allow `from skill_fleet.workflow.models import X`
+from skill_fleet.core import models
+
+# Re-export from new locations for backward compatibility
+from skill_fleet.core.creator import TaxonomySkillCreator
+from skill_fleet.core.dspy.modules.base import (
+    EditModule,
+    EditModuleQA,
+    GatherExamplesModule,
+    InitializeModule,
+    IterateModule,
+    PackageModule,
+    PackageModuleQA,
+    PlanModule,
+    PlanModuleQA,
+    UnderstandModule,
+    UnderstandModuleQA,
+)
+from skill_fleet.core.hitl import (
     AutoApprovalHandler,
     CLIFeedbackHandler,
     FeedbackHandler,
@@ -22,19 +37,37 @@ from .feedback import (
     WebhookFeedbackHandler,
     create_feedback_handler,
 )
-from .models import (
+from skill_fleet.core.models import (
+    Capability,
     ClarifyingQuestion,
     HITLRound,
     HITLSession,
     QuestionAnswer,
     QuestionOption,
 )
-from .optimize import load_optimized_program, optimize_with_gepa, optimize_with_miprov2
+from skill_fleet.core.optimization import (
+    load_optimized_program,
+    optimize_with_gepa,
+    optimize_with_miprov2,
+)
+from skill_fleet.core.optimization.evaluation import load_trainset, skill_creation_metric
 
 # Core workflow components
 __all__ = [
     # Main orchestrator
     "TaxonomySkillCreator",
+    # DSPy Modules (backward compat)
+    "EditModule",
+    "EditModuleQA",
+    "GatherExamplesModule",
+    "InitializeModule",
+    "IterateModule",
+    "PackageModule",
+    "PackageModuleQA",
+    "PlanModule",
+    "PlanModuleQA",
+    "UnderstandModule",
+    "UnderstandModuleQA",
     # Feedback handlers
     "FeedbackHandler",
     "AutoApprovalHandler",
@@ -48,6 +81,9 @@ __all__ = [
     "QuestionAnswer",
     "HITLRound",
     "HITLSession",
+    # Other models
+    "Capability",
+    "models",
     # Optimization functions
     "optimize_with_miprov2",
     "optimize_with_gepa",

@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from skill_fleet.workflow.optimizer import WorkflowOptimizer
+from skill_fleet.core.optimization import WorkflowOptimizer
 
 
 def test_optimizer_cache_hits_and_misses(tmp_path: Path) -> None:

@@ -3,7 +3,7 @@ import logging
 import pytest
 from pydantic import BaseModel
 
-from skill_fleet.workflow.modules import safe_float, safe_json_loads
+from skill_fleet.common.utils import safe_float, safe_json_loads
 
 
 class _PydanticExample(BaseModel):

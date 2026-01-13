@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from skill_fleet.workflow.rewards import (
+from skill_fleet.core.optimization.rewards import (
     capabilities_reward,
     combined_edit_reward,
     combined_package_reward,

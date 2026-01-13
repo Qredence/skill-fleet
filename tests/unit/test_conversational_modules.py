@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, patch
 import dspy
 import pytest
 
-from skill_fleet.workflow.conversational_modules import (
+from skill_fleet.core.dspy.conversational import (
     AssessReadinessModule,
     ConfirmUnderstandingModule,
     DeepUnderstandingModuleQA,

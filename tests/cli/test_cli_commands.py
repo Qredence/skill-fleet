@@ -3,9 +3,9 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from skill_fleet.cli.main import create_skill, validate_skill
 
 from skill_fleet.cli.app import app
+from skill_fleet.cli.main import create_skill, validate_skill
 
 
 @pytest.fixture

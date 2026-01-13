@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 from pathlib import Path
@@ -9,8 +10,8 @@ from pathlib import Path
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 
-from ...core.config.models import SkillCreationResult
-from ...workflow.programs import SkillCreationProgram
+from ...core.dspy import SkillCreationProgram
+from ...core.models import SkillCreationResult
 from ...taxonomy.manager import TaxonomyManager
 from ..jobs import JOBS, create_job, wait_for_hitl_response
 
@@ -23,6 +24,7 @@ class CreateSkillRequest(BaseModel):
 
     task_description: str
     user_id: str = "default"
+
 
 # Skills root directory (configurable via env var)
 SKILLS_ROOT = Path(os.environ.get("SKILL_FLEET_SKILLS_ROOT", "skills"))
@@ -161,12 +163,18 @@ async def run_skill_creation(job_id: str, task_description: str, user_id: str):
             raise
 
     try:
+        # Provide real taxonomy context to Phase 1 (better path selection + overlap analysis).
+        # The DSPy program contract expects JSON strings for these fields.
+        taxonomy_manager = TaxonomyManager(SKILLS_ROOT)
+        taxonomy_structure = taxonomy_manager.get_relevant_branches(task_description)
+        mounted_skills = taxonomy_manager.get_mounted_skills(user_id)
+
         program = SkillCreationProgram()
         result = await program.aforward(
             task_description=task_description,
             user_context={"user_id": user_id},
-            taxonomy_structure={},
-            existing_skills=[],
+            taxonomy_structure=json.dumps(taxonomy_structure),
+            existing_skills=json.dumps(mounted_skills),
             hitl_callback=hitl_callback,
         )
 

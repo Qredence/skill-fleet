@@ -1,6 +1,6 @@
 # HITL Interactions Reference
 
-**Last Updated**: 2026-01-12
+**Last Updated**: 2026-01-13
 
 ## Overview
 
@@ -12,12 +12,12 @@ Each interaction type serves a specific purpose in the skill creation workflow. 
 
 ## Interaction Types
 
-| Type | Phase | Purpose | Input | Actions |
-|------|-------|---------|-------|---------|
-| **ClarifyingQuestion** | 1 | Resolve ambiguities | Free text or options | proceed |
-| **Confirmation** | 1 | Verify understanding | Summary + path | proceed, revise, cancel |
-| **Preview** | 2 | Review generated content | Content preview | proceed, refine, cancel |
-| **Validation** | 3 | Review validation results | Validation report | proceed, refine, cancel |
+| Type                   | Phase | Purpose                   | Input                | Actions                 |
+| ---------------------- | ----- | ------------------------- | -------------------- | ----------------------- |
+| **ClarifyingQuestion** | 1     | Resolve ambiguities       | Free text or options | proceed                 |
+| **Confirmation**       | 1     | Verify understanding      | Summary + path       | proceed, revise, cancel |
+| **Preview**            | 2     | Review generated content  | Content preview      | proceed, refine, cancel |
+| **Validation**         | 3     | Review validation results | Validation report    | proceed, refine, cancel |
 
 ---
 
@@ -48,23 +48,26 @@ Generate focused clarifying questions to better understand user intent before ex
 }
 ```
 
+Note: Some workflows may return `questions` as a single markdown string with a numbered list.
+The CLI normalizes both formats and prompts one question at a time.
+
 ### Display Format (CLI)
 
+The CLI displays one question at a time, and when options are present it uses
+prompt-toolkit arrow-key selection (with an **Other (type my own)** free-text option).
+
 ```
-╭─ 🤔 Clarification Needed ─────────╮
-│ What level of detail should this     │
-│ skill cover?                         │
-│                                       │
-│ Options:                              │
-│   • beginner                          │
-│   • intermediate                      │
-│   • advanced                          │
-╰──────────────────────────────────────╯
+╭────────────────────────────── Question 1/1 ──────────────────────────────╮
+│ What level of detail should this skill cover?                             │
+╰──────────────────────────────────────────────────────────────────────────╯
+
+Select one option:  (arrow keys)
 ```
 
 ### User Response
 
 **Free-form:**
+
 ```python
 {
     "answers": {
@@ -74,6 +77,7 @@ Generate focused clarifying questions to better understand user intent before ex
 ```
 
 **Structured:**
+
 ```python
 {
     "answers": {
@@ -147,15 +151,16 @@ Proceed? (proceed/revise/cancel) [proceed]:
 
 ### User Actions
 
-| Action | Description | Follow-up |
-|--------|-------------|-----------|
-| `proceed` | Accept and continue | Proceed to Phase 2 |
-| `revise` | Request changes | Ask for feedback, restart Phase 1 |
-| `cancel` | Cancel job | Terminate workflow |
+| Action    | Description         | Follow-up                         |
+| --------- | ------------------- | --------------------------------- |
+| `proceed` | Accept and continue | Proceed to Phase 2                |
+| `revise`  | Request changes     | Ask for feedback, restart Phase 1 |
+| `cancel`  | Cancel job          | Terminate workflow                |
 
 ### Response Format
 
 **Proceed:**
+
 ```python
 {
     "action": "proceed"
@@ -163,6 +168,7 @@ Proceed? (proceed/revise/cancel) [proceed]:
 ```
 
 **Revise:**
+
 ```python
 {
     "action": "revise",
@@ -171,6 +177,7 @@ Proceed? (proceed/revise/cancel) [proceed]:
 ```
 
 **Cancel:**
+
 ```python
 {
     "action": "cancel"
@@ -255,15 +262,16 @@ Looks good? (proceed/refine/cancel) [proceed]:
 
 ### User Actions
 
-| Action | Description | Follow-up |
-|--------|-------------|-----------|
-| `proceed` | Accept content | Proceed to validation |
-| `refine` | Request improvements | Ask for feedback, refine content |
-| `cancel` | Cancel job | Terminate workflow |
+| Action    | Description          | Follow-up                        |
+| --------- | -------------------- | -------------------------------- |
+| `proceed` | Accept content       | Proceed to validation            |
+| `refine`  | Request improvements | Ask for feedback, refine content |
+| `cancel`  | Cancel job           | Terminate workflow               |
 
 ### Response Format
 
 **Proceed:**
+
 ```python
 {
     "action": "proceed"
@@ -271,6 +279,7 @@ Looks good? (proceed/refine/cancel) [proceed]:
 ```
 
 **Refine:**
+
 ```python
 {
     "action": "refine",
@@ -279,6 +288,7 @@ Looks good? (proceed/refine/cancel) [proceed]:
 ```
 
 **Cancel:**
+
 ```python
 {
     "action": "cancel"
@@ -355,15 +365,16 @@ Accept? (proceed/refine/cancel) [proceed]:
 
 ### User Actions
 
-| Action | Description | Follow-up |
-|--------|-------------|-----------|
-| `proceed` | Accept skill | Mark as completed, save to taxonomy |
-| `refine` | Request improvements | Refine based on feedback |
-| `cancel` | Cancel job | Terminate workflow |
+| Action    | Description          | Follow-up                           |
+| --------- | -------------------- | ----------------------------------- |
+| `proceed` | Accept skill         | Mark as completed, save to taxonomy |
+| `refine`  | Request improvements | Refine based on feedback            |
+| `cancel`  | Cancel job           | Terminate workflow                  |
 
 ### Response Format
 
 **Proceed:**
+
 ```python
 {
     "action": "proceed"
@@ -371,6 +382,7 @@ Accept? (proceed/refine/cancel) [proceed]:
 ```
 
 **Refine:**
+
 ```python
 {
     "action": "refine",
@@ -379,6 +391,7 @@ Accept? (proceed/refine/cancel) [proceed]:
 ```
 
 **Cancel:**
+
 ```python
 {
     "action": "cancel"
@@ -434,12 +447,12 @@ stateDiagram-v2
 
 ## Error Handling
 
-| Error | Handling |
-|-------|-----------|
-| **Timeout** | Cancel job, save error message |
-| **Invalid action** | Prompt user for valid action |
-| **Empty response** | Use default action (usually proceed) |
-| **Malformed response** | Ask user to re-submit |
+| Error                  | Handling                             |
+| ---------------------- | ------------------------------------ |
+| **Timeout**            | Cancel job, save error message       |
+| **Invalid action**     | Prompt user for valid action         |
+| **Empty response**     | Use default action (usually proceed) |
+| **Malformed response** | Ask user to re-submit                |
 
 ---
 

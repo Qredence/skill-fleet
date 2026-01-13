@@ -12,7 +12,7 @@ import logging
 import dspy
 
 from ..common.utils import safe_float, safe_json_loads
-from ..workflow.models import ClarifyingQuestion
+from ..core.models import ClarifyingQuestion
 from .signatures import (
     AssessReadiness,
     ConfirmUnderstandingBeforeCreation,

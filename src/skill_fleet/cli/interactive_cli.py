@@ -161,7 +161,7 @@ class InteractiveSkillCLI:
                     reasoning = response.data.get("reasoning", response.thinking_content)
                     if question_data:
                         # Parse ClarifyingQuestion from dict
-                        from ..workflow.models import ClarifyingQuestion
+                        from ..core.models import ClarifyingQuestion
 
                         if isinstance(question_data, dict):
                             question = ClarifyingQuestion(**question_data)

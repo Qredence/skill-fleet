@@ -1,13 +1,11 @@
 """Unit tests for FastAPI skill creation API.
 
-Tests the FastAPI endpoints in src/skill_fleet/api/app.py
-
-Based on: https://dspy.ai/tutorials/deployment/#deploying-with-fastapi
+Tests the FastAPI endpoints in src/skill_fleet/api/
 """
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -25,33 +23,6 @@ def client():
     return TestClient(app)
 
 
-@pytest.fixture
-def mock_agent():
-    """Mock ConversationalSkillAgent."""
-    with patch("skill_fleet.api.app.ConversationalSkillAgent") as mock:
-        yield mock
-
-
-# ============================================================================
-# Test Root Endpoint
-# ============================================================================
-
-
-class TestRootEndpoint:
-    """Tests for root endpoint."""
-
-    def test_root_returns_api_info(self, client):
-        """Test root endpoint returns API information."""
-        response = client.get("/")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert "message" in data
-        assert "docs" in data
-        assert "health" in data
-        assert "streaming" in data
-
-
 # ============================================================================
 # Test Health Endpoint
 # ============================================================================
@@ -60,230 +31,198 @@ class TestRootEndpoint:
 class TestHealthEndpoint:
     """Tests for health check endpoint."""
 
-    @patch("skill_fleet.api.app.dspy")
-    def test_health_returns_healthy_status(self, mock_dspy, client):
-        """Test health endpoint returns healthy status."""
-        mock_dspy.settings.async_max_workers = 4
-
+    def test_health_returns_ok_status(self, client):
+        """Test health endpoint returns ok status."""
         response = client.get("/health")
 
         assert response.status_code == 200
         data = response.json()
-        assert data["status"] == "healthy"
-        assert data["version"] == "1.0.0"
-        assert data["async_workers"] == 4
-
-    @patch("skill_fleet.api.app.dspy")
-    def test_health_with_custom_workers(self, mock_dspy, client):
-        """Test health endpoint reflects custom worker count."""
-        mock_dspy.settings.async_max_workers = 8
-
-        response = client.get("/health")
-
-        assert response.status_code == 200
-        assert response.json()["async_workers"] == 8
+        assert data["status"] == "ok"
+        assert data["version"] == "2.0.0"
 
 
 # ============================================================================
-# Test Create Skill Endpoint (Non-Streaming)
+# Test Skills Create Endpoint
 # ============================================================================
 
 
-class TestCreateSkillEndpoint:
-    """Tests for /api/v1/create-skill endpoint."""
+class TestSkillsCreateEndpoint:
+    """Tests for /api/v2/skills/create endpoint."""
 
-    @patch("skill_fleet.api.app._configure_llm")
-    @patch("skill_fleet.api.app.create_async_module")
-    @patch("skill_fleet.agent.agent.ConversationalSkillAgent")
-    def test_create_skill_success(
-        self, mock_agent_class, mock_create_async, mock_configure_llm, client
-    ):
-        """Test successful skill creation."""
-        # Setup mocks
-        mock_agent = MagicMock()
-        mock_agent_class.return_value = mock_agent
-        mock_async_agent = AsyncMock()
-        mock_async_agent.return_value = MagicMock(
-            toDict=lambda: {"skill_id": "test-skill", "content": "..."}
-        )
-        mock_create_async.return_value = mock_async_agent
-
-        # Make request
+    @patch("skill_fleet.api.routes.skills.run_skill_creation")
+    def test_create_skill_returns_job_id(self, mock_run, client):
+        """Test skill creation returns a job ID."""
         response = client.post(
-            "/api/v1/create-skill",
-            json={"task_description": "Create an OpenAPI skill"},
+            "/api/v2/skills/create",
+            json={"task_description": "Create an OpenAPI skill for REST endpoints"},
         )
 
         assert response.status_code == 200
         data = response.json()
-        assert data["status"] == "success"
-        assert data["data"]["skill_id"] == "test-skill"
-
-    @patch("skill_fleet.api.app._configure_llm")
-    @patch("skill_fleet.api.app.create_async_module")
-    @patch("skill_fleet.agent.agent.ConversationalSkillAgent")
-    def test_create_skill_with_stream_false(
-        self, mock_agent_class, mock_create_async, mock_configure_llm, client
-    ):
-        """Test skill creation with stream=false."""
-        mock_agent = MagicMock()
-        mock_agent_class.return_value = mock_agent
-        mock_async_agent = AsyncMock()
-        mock_async_agent.return_value = MagicMock(toDict=lambda: {"result": "ok"})
-        mock_create_async.return_value = mock_async_agent
-
-        response = client.post(
-            "/api/v1/create-skill",
-            json={"task_description": "Test skill creation", "stream": False},
-        )
-
-        assert response.status_code == 200
+        assert "job_id" in data
+        assert data["status"] == "accepted"
 
     def test_create_skill_missing_description(self, client):
         """Test skill creation fails without description."""
-        response = client.post("/api/v1/create-skill", json={})
+        response = client.post("/api/v2/skills/create", json={})
 
         assert response.status_code == 422  # Validation error
 
-    def test_create_skill_short_description(self, client):
-        """Test skill description must be at least 10 characters."""
-        response = client.post("/api/v1/create-skill", json={"task_description": "Short"})
+    @patch("skill_fleet.api.routes.skills.run_skill_creation")
+    def test_create_skill_empty_description(self, mock_run, client):
+        """Test skill creation fails with empty description."""
+        response = client.post(
+            "/api/v2/skills/create",
+            json={"task_description": ""},
+        )
+
+        assert response.status_code == 400
+        assert "task_description is required" in response.json()["detail"]
+
+    @patch("skill_fleet.api.routes.skills.run_skill_creation")
+    def test_create_skill_with_user_id(self, mock_run, client):
+        """Test skill creation with custom user_id."""
+        response = client.post(
+            "/api/v2/skills/create",
+            json={
+                "task_description": "Create a skill for Python async programming",
+                "user_id": "test-user-123",
+            },
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "job_id" in data
+
+
+# ============================================================================
+# Test HITL Endpoints
+# ============================================================================
+
+
+class TestHITLEndpoints:
+    """Tests for HITL interaction endpoints."""
+
+    def test_get_prompt_job_not_found(self, client):
+        """Test getting prompt for non-existent job returns 404."""
+        response = client.get("/api/v2/hitl/nonexistent-job-id/prompt")
+
+        assert response.status_code == 404
+        assert "Job not found" in response.json()["detail"]
+
+    def test_post_response_job_not_found(self, client):
+        """Test posting response to non-existent job returns 404."""
+        response = client.post(
+            "/api/v2/hitl/nonexistent-job-id/response",
+            json={"action": "proceed"},
+        )
+
+        assert response.status_code == 404
+        assert "Job not found" in response.json()["detail"]
+
+    @patch("skill_fleet.api.routes.skills.run_skill_creation")
+    def test_hitl_get_prompt_for_created_job(self, mock_run, client):
+        """Test getting HITL prompt for a created job."""
+        # Create a job (background task is mocked)
+        create_response = client.post(
+            "/api/v2/skills/create",
+            json={"task_description": "Create a skill for Docker best practices"},
+        )
+        assert create_response.status_code == 200
+        job_id = create_response.json()["job_id"]
+
+        # Get the prompt - job exists but may be in initial state
+        prompt_response = client.get(f"/api/v2/hitl/{job_id}/prompt")
+        assert prompt_response.status_code == 200
+        data = prompt_response.json()
+        assert "status" in data
+
+
+# ============================================================================
+# Test Taxonomy Endpoints
+# ============================================================================
+
+
+class TestTaxonomyEndpoints:
+    """Tests for taxonomy operation endpoints."""
+
+    def test_list_skills(self, client):
+        """Test listing skills from taxonomy."""
+        with patch("skill_fleet.api.routes.taxonomy.TaxonomyManager") as mock_manager:
+            mock_instance = MagicMock()
+            mock_instance.list_skills.return_value = []
+            mock_manager.return_value = mock_instance
+
+            response = client.get("/api/v2/taxonomy/")
+
+            assert response.status_code == 200
+            data = response.json()
+            assert "skills" in data
+            assert isinstance(data["skills"], list)
+
+
+# ============================================================================
+# Test Validation Endpoints
+# ============================================================================
+
+
+class TestValidationEndpoints:
+    """Tests for validation endpoints."""
+
+    def test_validate_skill_missing_path(self, client):
+        """Test validation fails without path."""
+        response = client.post("/api/v2/validation/validate", json={})
 
         assert response.status_code == 422  # Validation error
 
-    @patch("skill_fleet.api.app._configure_llm")
-    @patch("skill_fleet.api.app.create_async_module")
-    @patch("skill_fleet.agent.agent.ConversationalSkillAgent")
-    def test_create_skill_handles_exception(
-        self, mock_agent_class, mock_create_async, mock_configure_llm, client
-    ):
-        """Test skill creation handles exceptions gracefully."""
-        mock_agent_class.side_effect = Exception("Test error")
-
+    def test_validate_skill_empty_path(self, client):
+        """Test validation fails with empty path."""
         response = client.post(
-            "/api/v1/create-skill",
-            json={"task_description": "Create a test skill"},
+            "/api/v2/validation/validate",
+            json={"path": ""},
         )
 
-        assert response.status_code == 500
-        data = response.json()
-        assert "detail" in data
-        assert "Test error" in data["detail"]
+        assert response.status_code == 400
+        assert "path is required" in response.json()["detail"]
 
-
-# ============================================================================
-# Test Create Skill Stream Endpoint
-# ============================================================================
-
-
-class TestCreateSkillStreamEndpoint:
-    """Tests for /api/v1/create-skill/stream endpoint."""
-
-    @patch("skill_fleet.api.app._configure_llm")
-    @patch("skill_fleet.api.app.create_streaming_module")
-    @patch("skill_fleet.api.app.create_async_module")
-    @patch("skill_fleet.agent.agent.ConversationalSkillAgent")
-    def test_stream_returns_sse_headers(
-        self,
-        mock_agent_class,
-        mock_create_async,
-        mock_create_streaming,
-        mock_configure_llm,
-        client,
-    ):
-        """Test streaming endpoint returns correct headers."""
-        mock_agent = MagicMock()
-        mock_agent_class.return_value = mock_agent
-        mock_async_agent = MagicMock()
-        mock_create_async.return_value = mock_async_agent
-
-        # Mock streaming program that yields nothing
-        async def mock_stream(**kwargs):
-            return
-            yield  # Make this a generator (unreachable but required)
-
-        mock_streaming = MagicMock()
-        mock_streaming.return_value = mock_stream()
-        mock_create_streaming.return_value = mock_streaming
-
+    def test_validate_skill_absolute_path_rejected(self, client):
+        """Test validation rejects absolute paths."""
         response = client.post(
-            "/api/v1/create-skill/stream",
-            json={"task_description": "Create a test skill"},
+            "/api/v2/validation/validate",
+            json={"path": "/etc/passwd"},
         )
 
-        assert response.status_code == 200
-        assert response.headers["content-type"] == "text/event-stream; charset=utf-8"
-        assert response.headers["cache-control"] == "no-cache"
-        assert "connection" in response.headers
+        assert response.status_code == 400
+        assert "Invalid path" in response.json()["detail"]
 
-    @patch("skill_fleet.api.app._configure_llm")
-    @patch("skill_fleet.api.app.stream_dspy_response")
-    @patch("skill_fleet.api.app.create_streaming_module")
-    @patch("skill_fleet.api.app.create_async_module")
-    @patch("skill_fleet.agent.agent.ConversationalSkillAgent")
-    def test_stream_yields_sse_format(
-        self,
-        mock_agent_class,
-        mock_create_async,
-        mock_create_streaming,
-        mock_stream_dspy_response,
-        mock_configure_llm,
-        client,
-    ):
-        """Test streaming endpoint yields SSE formatted data."""
-        mock_agent = MagicMock()
-        mock_agent_class.return_value = mock_agent
-        mock_async_agent = MagicMock()
-        mock_create_async.return_value = mock_async_agent
-
-        # Mock streaming module (returned by create_streaming_module)
-        mock_streaming_module = MagicMock()
-
-        # Mock streaming response generator
-        async def mock_stream_response(**kwargs):
-            yield 'data: {"type": "status", "message": "Starting"}\n\n'
-            yield 'data: {"type": "reasoning", "chunk": "Thinking"}\n\n'
-            yield 'data: {"type": "prediction", "data": {}}\n\n'
-            yield "data: [DONE]\n\n"
-
-        mock_create_streaming.return_value = mock_streaming_module
-        mock_stream_dspy_response.return_value = mock_stream_response()
-
+    def test_validate_skill_path_traversal_rejected(self, client):
+        """Test validation rejects path traversal attempts."""
         response = client.post(
-            "/api/v1/create-skill/stream",
-            json={"task_description": "Test skill"},
+            "/api/v2/validation/validate",
+            json={"path": "../../../etc/passwd"},
         )
 
-        assert response.status_code == 200
+        assert response.status_code == 400
+        assert "Invalid path" in response.json()["detail"]
 
-        # Check SSE content
-        content = response.text
-        assert 'data: {"type": "status"' in content
-        assert "data: [DONE]" in content
+    def test_validate_skill_valid_path(self, client):
+        """Test validation with valid skill path."""
+        with patch("skill_fleet.api.routes.validation.SkillValidator") as mock_validator:
+            mock_instance = MagicMock()
+            mock_instance.validate_complete.return_value = {
+                "valid": True,
+                "issues": [],
+            }
+            mock_validator.return_value = mock_instance
 
-    @patch("skill_fleet.api.app._configure_llm")
-    @patch("skill_fleet.api.app.create_streaming_module")
-    @patch("skill_fleet.api.app.create_async_module")
-    @patch("skill_fleet.agent.agent.ConversationalSkillAgent")
-    def test_stream_handles_exception(
-        self,
-        mock_agent_class,
-        mock_create_async,
-        mock_create_streaming,
-        mock_configure_llm,
-        client,
-    ):
-        """Test streaming endpoint handles exceptions."""
-        mock_agent_class.side_effect = Exception("Stream error")
+            response = client.post(
+                "/api/v2/validation/validate",
+                json={"path": "general/testing"},
+            )
 
-        response = client.post(
-            "/api/v1/create-skill/stream",
-            json={"task_description": "Test skill"},
-        )
-
-        assert response.status_code == 500
-        data = response.json()
-        assert "Stream error" in data["detail"]
+            assert response.status_code == 200
+            data = response.json()
+            assert data["valid"] is True
 
 
 # ============================================================================
@@ -291,142 +230,37 @@ class TestCreateSkillStreamEndpoint:
 # ============================================================================
 
 
-class TestTaskRequest:
-    """Tests for TaskRequest pydantic model."""
+class TestCreateSkillRequest:
+    """Tests for CreateSkillRequest pydantic model."""
 
-    def test_valid_task_request(self):
-        """Test valid task request."""
-        from skill_fleet.api.app import TaskRequest
+    def test_valid_request(self):
+        """Test valid create skill request."""
+        from skill_fleet.api.routes.skills import CreateSkillRequest
 
-        request = TaskRequest(
-            task_description="Create an OpenAPI skill for REST endpoints",
-            stream=True,
+        request = CreateSkillRequest(
+            task_description="Create a skill for Python async programming",
+            user_id="test-user",
         )
 
-        assert request.task_description == "Create an OpenAPI skill for REST endpoints"
-        assert request.stream is True
+        assert request.task_description == "Create a skill for Python async programming"
+        assert request.user_id == "test-user"
 
-    def test_task_request_default_stream(self):
-        """Test stream defaults to True."""
-        from skill_fleet.api.app import TaskRequest
+    def test_default_user_id(self):
+        """Test user_id defaults to 'default'."""
+        from skill_fleet.api.routes.skills import CreateSkillRequest
 
-        request = TaskRequest(task_description="Test skill creation")
+        request = CreateSkillRequest(task_description="Test skill creation")
 
-        assert request.stream is True
-
-    def test_task_request_validation_too_short(self):
-        """Test task description must be at least 10 characters."""
-        from pydantic import ValidationError
-
-        from skill_fleet.api.app import TaskRequest
-
-        with pytest.raises(ValidationError):
-            TaskRequest(task_description="Short")
-
-    def test_task_request_validation_exact_min_length(self):
-        """Test task description with exactly 10 characters."""
-        from skill_fleet.api.app import TaskRequest
-
-        # 10 characters exactly
-        request = TaskRequest(task_description="1234567890")
-
-        assert request.task_description == "1234567890"
+        assert request.user_id == "default"
 
 
-# ============================================================================
-# Test Response Models
-# ============================================================================
+class TestValidateSkillRequest:
+    """Tests for ValidateSkillRequest pydantic model."""
 
+    def test_valid_request(self):
+        """Test valid validate skill request."""
+        from skill_fleet.api.routes.validation import ValidateSkillRequest
 
-class TestTaskResponse:
-    """Tests for TaskResponse pydantic model."""
+        request = ValidateSkillRequest(path="general/testing")
 
-    def test_task_response_with_data(self):
-        """Test task response with data."""
-        from skill_fleet.api.app import TaskResponse
-
-        response = TaskResponse(status="success", data={"skill_id": "test", "content": "..."})
-
-        assert response.status == "success"
-        assert response.data["skill_id"] == "test"
-
-    def test_task_response_without_data(self):
-        """Test task response without data."""
-        from skill_fleet.api.app import TaskResponse
-
-        response = TaskResponse(status="success")
-
-        assert response.status == "success"
-        assert response.data is None
-
-
-# ============================================================================
-# Test Startup/Shutdown Events
-# ============================================================================
-
-
-class TestLifecycleEvents:
-    """Tests for startup and shutdown events."""
-
-    @patch("skill_fleet.api.app._configure_llm")
-    @patch("skill_fleet.api.app.logger")
-    def test_startup_event(self, mock_logger, mock_configure_llm):
-        """Test startup event initializes resources."""
-        from fastapi.testclient import TestClient
-
-        # Startup runs automatically when TestClient is created
-        with TestClient(app):
-            pass  # Startup/shutdown tested
-
-    @patch("skill_fleet.api.app.logger")
-    def test_shutdown_event(self, mock_logger):
-        """Test shutdown event logs message."""
-        from fastapi.testclient import TestClient
-
-        with TestClient(app):
-            pass  # Shutdown happens on context exit
-
-
-# ============================================================================
-# Test Helper Functions
-# ============================================================================
-
-
-class TestStreamDspyResponse:
-    """Tests for stream_dspy_response generator function."""
-
-    @pytest.mark.asyncio
-    async def test_stream_dspy_response_yields_sse(self):
-        """Test stream_dspy_response yields SSE formatted chunks."""
-        from skill_fleet.api.app import stream_dspy_response
-        from skill_fleet.common.streaming import StubStatusMessage
-
-        # Mock streaming program
-        mock_status = StubStatusMessage("Test status")
-
-        async def mock_program(**kwargs):
-            yield mock_status
-            return
-
-        # Collect chunks
-        chunks = []
-        async for chunk in stream_dspy_response(mock_program):
-            chunks.append(chunk)
-
-        assert len(chunks) == 2  # status + [DONE]
-        assert '"type": "status"' in chunks[0]
-        assert '"message": "Test status"' in chunks[0]
-        assert chunks[1] == "data: [DONE]\n\n"
-
-    @pytest.mark.asyncio
-    async def test_stream_dspy_response_passes_kwargs(self):
-        """Test kwargs are passed to streaming program."""
-        from skill_fleet.api.app import stream_dspy_response
-
-        async def mock_program(**kwargs):
-            assert kwargs.get("task_description") == "Test task"
-            return
-            yield  # pylint: disable=unreachable
-
-        async for _ in stream_dspy_response(mock_program, task_description="Test task"):
-            pass
+        assert request.path == "general/testing"

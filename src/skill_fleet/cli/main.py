@@ -10,11 +10,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from ..core.creator import TaxonomySkillCreator
 from ..llm.dspy_config import configure_dspy
 from ..llm.fleet_config import load_fleet_config
 from ..taxonomy.manager import TaxonomyManager
 from ..validators.skill_validator import SkillValidator
-from ..workflow.creator import TaxonomySkillCreator
 
 
 def create_skill(args: Any) -> int:

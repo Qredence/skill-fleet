@@ -20,10 +20,10 @@ from typing import Any, cast
 import dspy
 
 from ..common.streaming import create_streaming_module, process_stream_sync
+from ..core.dspy.programs import SkillCreationProgram, SkillRevisionProgram
+from ..core.models import ChecklistState
+from ..core.tools import filesystem_research, web_search_research
 from ..taxonomy.manager import TaxonomyManager
-from ..workflow.models import ChecklistState
-from ..workflow.programs import SkillCreationProgram, SkillRevisionProgram
-from ..workflow.research.tools import filesystem_research, web_search_research
 from .modules import (
     AssessReadinessModule,
     ConfirmUnderstandingModule,
@@ -213,6 +213,10 @@ class ConversationalSkillAgent(dspy.Module):
         self.creation_program = SkillCreationProgram()
         self.revision_program = SkillRevisionProgram()
 
+        # Lazily-initialized core DSPy modules (cached to avoid per-call instantiation)
+        self._core_understand_module = None
+        self._core_plan_module = None
+
         # Initialize streaming versions of modules (for CLI usage)
         # These wrap the original modules with dspy.streamify for real-time thinking display
         self._streaming_interpret_intent = create_streaming_module(
@@ -266,12 +270,34 @@ class ConversationalSkillAgent(dspy.Module):
             async_mode=False,
         )
 
+    def _get_core_understand_module(self):
+        """Get a cached core `UnderstandModule` instance (lazy import).
+
+        We keep the import local to avoid circular import hazards while still
+        avoiding per-call module instantiation.
+        """
+
+        if self._core_understand_module is None:
+            from ..core.dspy.modules import UnderstandModule
+
+            self._core_understand_module = UnderstandModule()
+        return self._core_understand_module
+
+    def _get_core_plan_module(self):
+        """Get a cached core `PlanModule` instance (lazy import)."""
+
+        if self._core_plan_module is None:
+            from ..core.dspy.modules import PlanModule
+
+            self._core_plan_module = PlanModule()
+        return self._core_plan_module
+
     def _execute_with_streaming(
         self,
         streaming_module,
         thinking_callback=None,
         **kwargs,
-    ) -> tuple[dspy.Prediction, str]:
+    ) -> tuple[dict[str, Any], str]:
         """Execute a streaming module and return result + thinking content.
 
         Args:
@@ -284,8 +310,8 @@ class ConversationalSkillAgent(dspy.Module):
         Returns:
             Tuple of (prediction result, thinking content string)
         """
-        thinking_parts = []
-        prediction = None
+        thinking_parts: list[str] = []
+        prediction: Any = None
         # Use provided callback, or fall back to instance callback
         callback = thinking_callback or self.thinking_callback
 
@@ -304,7 +330,15 @@ class ConversationalSkillAgent(dspy.Module):
                 prediction = event["content"]
 
         thinking_content = "".join(thinking_parts)
-        return prediction, thinking_content
+        if isinstance(prediction, dspy.Prediction):
+            result = cast(dict[str, Any], prediction.labels())
+        elif isinstance(prediction, dict):
+            result = cast(dict[str, Any], prediction)
+        elif prediction is None:
+            result = {}
+        else:
+            result = {"value": prediction}
+        return result, thinking_content
 
     def respond(
         self, user_message: str, session: ConversationSession, capture_thinking: bool = True
@@ -319,9 +353,6 @@ class ConversationalSkillAgent(dspy.Module):
         Returns:
             AgentResponse with message, thinking content, and state updates
         """
-
-        # Extract thinking content if enabled (for Gemini 3)
-        thinking_content = ""
 
         try:
             # Handle empty/continue messages for automatic progression
@@ -372,8 +403,8 @@ class ConversationalSkillAgent(dspy.Module):
 
             # Add agent response to history
             session.messages.append({"role": "assistant", "content": response.message})
-            if thinking_content:
-                session.messages.append({"role": "thinking", "content": thinking_content})
+            if capture_thinking and response.thinking_content:
+                session.messages.append({"role": "thinking", "content": response.thinking_content})
 
             return response
 
@@ -391,7 +422,7 @@ class ConversationalSkillAgent(dspy.Module):
     ) -> AgentResponse:
         """Handle EXPLORING state - understanding intent and asking questions."""
         # Interpret user intent with streaming
-        lm = self.task_lms.get("skill_understand") if self.task_lms else dspy.settings.lm
+        lm = self.task_lms.get("skill_understand") or dspy.settings.lm
         with dspy.context(lm=lm):
             intent_result, thinking_content = self._execute_with_streaming(
                 self._streaming_interpret_intent,
@@ -495,7 +526,7 @@ class ConversationalSkillAgent(dspy.Module):
                 )
 
             # Assess readiness again
-            lm = self.task_lms.get("skill_understand") if self.task_lms else dspy.settings.lm
+            lm = self.task_lms.get("skill_understand") or dspy.settings.lm
             with dspy.context(lm=lm):
                 readiness = self.assess_readiness(
                     task_description=session.task_description,
@@ -771,7 +802,7 @@ class ConversationalSkillAgent(dspy.Module):
         research_findings = session.deep_understanding.get("research_findings", {})
 
         # Call DeepUnderstandingModule with streaming
-        lm = self.task_lms.get("skill_understand") if self.task_lms else dspy.settings.lm
+        lm = self.task_lms.get("skill_understand") or dspy.settings.lm
         with dspy.context(lm=lm):
             result, thinking = self._execute_with_streaming(
                 self._streaming_deep_understanding,
@@ -861,6 +892,11 @@ class ConversationalSkillAgent(dspy.Module):
 
     def _perform_research(self, research_needed: dict, session: ConversationSession) -> dict:
         """Perform research based on research_needed specification."""
+        # Defensive: deep understanding should be initialized by the time we do
+        # research, but keep this robust for future refactors.
+        if session.deep_understanding is None:
+            session.deep_understanding = {}
+
         research_type = research_needed.get("type", "web")  # "web", "filesystem", or "both"
         query = research_needed.get("query", "")
 
@@ -904,7 +940,7 @@ class ConversationalSkillAgent(dspy.Module):
 
     def _handle_reviewing(self, user_message: str, session: ConversationSession) -> AgentResponse:
         """Handle REVIEWING state - presenting skill for feedback."""
-        lm = self.task_lms.get("skill_validate") if self.task_lms else dspy.settings.lm
+        lm = self.task_lms.get("skill_validate") or dspy.settings.lm
         thinking_content = ""
         with dspy.context(lm=lm):
             feedback_result, feedback_thinking = self._execute_with_streaming(
@@ -1018,7 +1054,11 @@ class ConversationalSkillAgent(dspy.Module):
             session.state = ConversationState.REVIEWING
 
             # Present revised skill with streaming
-            lm = self.task_lms.get("skill_validate") or self.task_lms.get("skill_understand")
+            lm = (
+                self.task_lms.get("skill_validate")
+                or self.task_lms.get("skill_understand")
+                or dspy.settings.lm
+            )
             with dspy.context(lm=lm):
                 present_result, present_thinking = self._execute_with_streaming(
                     self._streaming_present_skill,
@@ -1101,12 +1141,10 @@ class ConversationalSkillAgent(dspy.Module):
         """
         # Need to get taxonomy path and skill metadata first
         # Use existing workflow to get these
-        lm = self.task_lms.get("skill_understand") if self.task_lms else dspy.settings.lm
+        lm = self.task_lms.get("skill_understand") or dspy.settings.lm
 
         # Quick understand to get taxonomy path
-        from ..workflow.modules import UnderstandModule
-
-        understand_module = UnderstandModule()
+        understand_module = self._get_core_understand_module()
         with dspy.context(lm=lm):
             understanding = understand_module(
                 task_description=session.task_description,
@@ -1120,9 +1158,7 @@ class ConversationalSkillAgent(dspy.Module):
         parent_skills = self.taxonomy.get_parent_skills(understanding["taxonomy_path"])
 
         # Quick plan to get metadata draft
-        from ..workflow.modules import PlanModule
-
-        plan_module = PlanModule()
+        plan_module = self._get_core_plan_module()
         with dspy.context(lm=lm):
             plan = plan_module(
                 task_intent=understanding["task_intent"],
@@ -1273,7 +1309,7 @@ class ConversationalSkillAgent(dspy.Module):
             }
 
             # Present for review with streaming
-            lm = self.task_lms.get("skill_validate") if self.task_lms else dspy.settings.lm
+            lm = self.task_lms.get("skill_validate") or dspy.settings.lm
             thinking_content = ""
             with dspy.context(lm=lm):
                 present_result, present_thinking = self._execute_with_streaming(
@@ -1449,7 +1485,8 @@ class ConversationalSkillAgent(dspy.Module):
                 raw_response = lm.client._last_response
                 if raw_response and hasattr(raw_response, "candidates"):
                     # Gemini response structure
-                    for candidate in raw_response.candidates:
+                    candidates = getattr(raw_response, "candidates", None)
+                    for candidate in cast(Any, candidates or []):
                         if hasattr(candidate, "content") and candidate.content:
                             content_str = str(candidate.content)
                             if hasattr(candidate.content, "thinking") or "thinking" in content_str:
@@ -1506,7 +1543,11 @@ class ConversationalSkillAgent(dspy.Module):
         skill_type = skill_metadata.get("type", "technique")
 
         # Use SuggestTestsModule to create scenarios with streaming
-        lm = self.task_lms.get("skill_validate") or self.task_lms.get("skill_understand")
+        lm = (
+            self.task_lms.get("skill_validate")
+            or self.task_lms.get("skill_understand")
+            or dspy.settings.lm
+        )
         thinking_content = ""
         with dspy.context(lm=lm):
             test_result, tests_thinking = self._execute_with_streaming(
@@ -1755,7 +1796,11 @@ class ConversationalSkillAgent(dspy.Module):
         skill_content = session.skill_draft.get("skill_content", "") if session.skill_draft else ""
 
         # Use VerifyTDDModule with streaming
-        lm = self.task_lms.get("skill_validate") or self.task_lms.get("skill_understand")
+        lm = (
+            self.task_lms.get("skill_validate")
+            or self.task_lms.get("skill_understand")
+            or dspy.settings.lm
+        )
         thinking_content = ""
         with dspy.context(lm=lm):
             verify_result, verify_thinking = self._execute_with_streaming(

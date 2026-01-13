@@ -8,7 +8,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from ..core import modules, programs
+from ..core.dspy import modules, programs
 from ..llm.dspy_config import configure_dspy
 from .discovery import discover_and_expose
 from .routes import hitl, skills, taxonomy, validation

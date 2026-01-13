@@ -19,6 +19,16 @@ def chat_command(
     ctx: typer.Context,
     task: str | None = typer.Argument(None, help="Optional task to run immediately"),
     auto_approve: bool = typer.Option(False, "--auto-approve", help="Skip interactive prompts"),
+    show_thinking: bool = typer.Option(
+        True,
+        "--show-thinking/--no-show-thinking",
+        help="Show rationale/thinking panels when available",
+    ),
+    force_plain_text: bool = typer.Option(
+        False,
+        "--force-plain-text",
+        help="Disable arrow-key dialogs and use plain-text prompts",
+    ),
 ):
     """Start an interactive guided session to build a skill (job + HITL)."""
     config = ctx.obj
@@ -86,6 +96,8 @@ def chat_command(
                     client=config.client,
                     job_id=job_id,
                     auto_approve=auto_approve,
+                    show_thinking=show_thinking,
+                    force_plain_text=force_plain_text,
                 )
 
                 status = prompt_data.get("status")

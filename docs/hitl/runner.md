@@ -1,6 +1,6 @@
 # HITL Runner
 
-**Last Updated**: 2026-01-12
+**Last Updated**: 2026-01-13
 **Location**: `src/skill_fleet/cli/hitl/runner.py`
 
 ## Overview
@@ -24,6 +24,9 @@ async def run_hitl_job(
     client: SkillFleetClient,
     job_id: str,
     auto_approve: bool = False,
+    ui: PromptUI | None = None,
+    show_thinking: bool = True,
+    force_plain_text: bool = False,
     poll_interval: float = HITL_POLL_INTERVAL,
 ) -> dict[str, Any]:
     """Poll and satisfy HITL prompts until the job reaches a terminal state.
@@ -33,6 +36,9 @@ async def run_hitl_job(
         client: HTTP client for API communication
         job_id: Job identifier to track
         auto_approve: Skip all prompts and auto-proceed
+        ui: Prompt UI implementation (prompt-toolkit when available, Rich fallback)
+        show_thinking: Show rationale panels when provided by the server
+        force_plain_text: Disable arrow-key dialogs (useful for limited terminals/CI)
         poll_interval: Seconds between polls (default: 2.0)
 
     Returns:
@@ -99,9 +105,13 @@ flowchart TD
 
 ### Clarify Handler
 
+Clarify prompts are normalized and displayed one question at a time.
+
+- If `questions` is a numbered markdown string, the runner splits it into individual questions.
+- Each question is rendered in its own panel for readability.
+
 ```python
 if interaction_type == "clarify":
-    questions = _render_questions(prompt_data.get("questions"))
     rationale = prompt_data.get("rationale", "")
 
     if rationale:
@@ -111,18 +121,14 @@ if interaction_type == "clarify":
             border_style="dim"
         ))
 
-    console.print(Panel(
-        Markdown(questions),
-        title="[bold yellow]🤔 Clarification Needed[/bold yellow]",
-        border_style="yellow"
-    ))
-
-    answers = Prompt.ask("[bold green]Your answers[/bold green] (or /cancel)", default="")
+    # The runner displays each question panel separately.
+    # Answers are collected one-at-a-time, then submitted as one combined response.
+    answer = await ui.ask_text("Your answer (or /cancel)", default="")
 
     if answers.strip().lower() in {"/cancel", "/exit", "/quit"}:
         await client.post_hitl_response(job_id, {"action": "cancel"})
     else:
-        await client.post_hitl_response(job_id, {"answers": {"response": answers}})
+        await client.post_hitl_response(job_id, {"answers": {"response": answer}})
 ```
 
 ### Confirm Handler
@@ -141,16 +147,15 @@ if interaction_type == "confirm":
     if path:
         console.print(f"[dim]Proposed path: {path}[/dim]")
 
-    action = Prompt.ask(
+    action = await ui.choose_one(
         "Proceed?",
-        choices=["proceed", "revise", "cancel"],
-        default="proceed",
-        show_choices=True,
+        [("proceed", "Proceed"), ("revise", "Revise"), ("cancel", "Cancel")],
+        default_id="proceed",
     )
 
     payload = {"action": action}
     if action == "revise":
-        payload["feedback"] = Prompt.ask("What should change?", default="")
+        payload["feedback"] = await ui.ask_text("What should change?", default="")
 
     await client.post_hitl_response(job_id, payload)
 ```
@@ -219,7 +224,7 @@ if interaction_type == "validate":
 
 ## Helper Functions
 
-### _render_questions()
+### \_render_questions()
 
 ```python
 def _render_questions(questions: object) -> str:
@@ -295,11 +300,11 @@ prompt_data = await run_hitl_job(
 
 The runner returns when the job reaches one of these states:
 
-| State | Meaning | Contains |
-|-------|---------|----------|
+| State         | Meaning                    | Contains                      |
+| ------------- | -------------------------- | ----------------------------- |
 | **completed** | Skill created successfully | `skill_content`, `saved_path` |
-| **failed** | Job failed | `error` message |
-| **cancelled** | User cancelled | Empty result |
+| **failed**    | Job failed                 | `error` message               |
+| **cancelled** | User cancelled             | Empty result                  |
 
 ## Error Handling
 
@@ -320,21 +325,21 @@ except Exception as e:
 
 ## Rich Panel Styling
 
-| Interaction | Border Style | Icon | Color |
-|-------------|--------------|------|-------|
-| **Clarify** | `yellow` | 🤔 | Yellow |
-| **Confirm** | `cyan` | 📋 | Cyan |
-| **Preview** | `blue` | 📝 | Blue |
-| **Validate (pass)** | `green` | ✅ | Green |
-| **Validate (fail)** | `red` | ⚠️ | Red |
+| Interaction         | Border Style | Icon | Color  |
+| ------------------- | ------------ | ---- | ------ |
+| **Clarify**         | `yellow`     | 🤔   | Yellow |
+| **Confirm**         | `cyan`       | 📋   | Cyan   |
+| **Preview**         | `blue`       | 📝   | Blue   |
+| **Validate (pass)** | `green`      | ✅   | Green  |
+| **Validate (fail)** | `red`        | ⚠️   | Red    |
 
 ## Performance Considerations
 
-| Setting | Effect | Recommendation |
-|----------|--------|----------------|
+| Setting           | Effect                              | Recommendation        |
+| ----------------- | ----------------------------------- | --------------------- |
 | **Poll interval** | Lower = faster response, higher CPU | 2.0 seconds (default) |
-| **Timeout** | How long to wait for user | 3600 seconds (1 hour) |
-| **Auto-approve** | Skips polling entirely | Use for CI/CD only |
+| **Timeout**       | How long to wait for user           | 3600 seconds (1 hour) |
+| **Auto-approve**  | Skips polling entirely              | Use for CI/CD only    |
 
 ## Testing
 

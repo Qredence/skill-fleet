@@ -15,7 +15,7 @@ Each step uses DSPy ChainOfThought for flexible reasoning within
 structured decision boundaries, with full reasoning trace capture.
 
 Usage:
-    >>> from skill_fleet.workflow.tracing import get_phase2_lm, ReasoningTracer
+    >>> from skill_fleet.core.tracing import get_phase2_lm, ReasoningTracer
     >>>
     >>> # Create tracer and module
     >>> tracer = ReasoningTracer(mode="cli")
@@ -33,12 +33,13 @@ Usage:
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import TYPE_CHECKING, Any
 
 import dspy
 
-from ...workflow.tracing.tracer import ReasoningTracer
+from ...core.tracing.tracer import ReasoningTracer
 from .signatures import (
     VALID_PRIORITIES,
     VALID_WEIGHTS,
@@ -156,12 +157,12 @@ class Phase2Scope(dspy.Module):
 
         # Normalize inputs
         if isinstance(phase1_output, dict):
-            phase1_json = str(phase1_output)
+            phase1_json = json.dumps(phase1_output)
         else:
             phase1_json = phase1_output or "{}"
 
         if isinstance(existing_taxonomy, dict):
-            taxonomy_json = str(existing_taxonomy)
+            taxonomy_json = json.dumps(existing_taxonomy)
         else:
             taxonomy_json = existing_taxonomy or "{}"
 
@@ -336,7 +337,7 @@ class Phase2Scope(dspy.Module):
             skill_metadata_dict = results["skill_metadata"]
 
         result = self.phase2_checkpoint(
-            skill_metadata=str(skill_metadata_dict),
+            skill_metadata=json.dumps(skill_metadata_dict),
             capabilities=results["capabilities"],
             dependencies=[],
             confirmed_type=results["confirmed_type"],
@@ -349,6 +350,213 @@ class Phase2Scope(dspy.Module):
         results["readiness_for_phase3"] = result.readiness_for_phase3
 
         # Capture checkpoint reasoning
+        self.tracer.trace(
+            phase="phase2",
+            step="checkpoint",
+            result=result,
+            inputs={"skill_metadata": skill_metadata_dict},
+        )
+
+        logger.info(
+            f"Phase 2 complete: checkpoint_passed={results['checkpoint_passed']}, "
+            f"score={results['checkpoint_score']:.2f}"
+        )
+
+        return results
+
+    async def aforward(
+        self,
+        phase1_output: dict | str = "",
+        parent_skills: list | str = "",
+        existing_taxonomy: dict | str = "",
+    ) -> dict[str, Any]:
+        """Asynchronously execute Phase 2 with reasoning capture.
+
+        Mirrors `forward()` but awaits DSPy sub-modules via `.acall()`.
+        """
+        results: dict[str, Any] = {}
+
+        # Normalize inputs
+        if isinstance(phase1_output, dict):
+            phase1_json = json.dumps(phase1_output)
+        else:
+            phase1_json = phase1_output or "{}"
+
+        if isinstance(existing_taxonomy, dict):
+            taxonomy_json = json.dumps(existing_taxonomy)
+        else:
+            taxonomy_json = existing_taxonomy or "{}"
+
+        # Extract key info from Phase 1
+        if isinstance(phase1_output, dict):
+            problem_statement = phase1_output.get("problem_statement", "")
+            phase1_type = phase1_output.get("skill_type", "technical")
+            phase1_rationale = phase1_output.get("type_rationale", "")
+        else:
+            problem_statement = ""
+            phase1_type = "technical"
+            phase1_rationale = ""
+
+        # ====================================================================
+        # Step 2.1: Confirm Skill Type
+        # ====================================================================
+        result = await self.confirm_type.acall(
+            phase1_type=phase1_type,
+            phase1_rationale=phase1_rationale,
+            problem_statement=problem_statement,
+        )
+        results["confirmed_type"] = result.confirmed_type
+        results["confirmation_confidence"] = result.confirmation_confidence
+
+        self.tracer.trace(
+            phase="phase2",
+            step="confirm_type",
+            result=result,
+            inputs={"phase1_type": phase1_type, "problem_statement": problem_statement},
+        )
+
+        # ====================================================================
+        # Step 2.2: Determine Weight
+        # ====================================================================
+        result = await self.determine_weight.acall(
+            proposed_capabilities=[],
+            estimated_documentation_lines=500,
+            planned_examples_count=2,
+        )
+        results["weight"] = result.weight
+        results["weight_justification"] = getattr(result, "weight_justification", "")
+
+        if results["weight"] not in VALID_WEIGHTS:
+            logger.warning(f"Invalid weight '{results['weight']}', must be one of {VALID_WEIGHTS}")
+
+        self.tracer.trace(
+            phase="phase2",
+            step="determine_weight",
+            result=result,
+            inputs={"estimated_documentation_lines": 500},
+        )
+
+        # ====================================================================
+        # Step 2.3: Decide Load Priority
+        # ====================================================================
+        result = await self.decide_load_priority.acall(
+            problem_statement=problem_statement,
+            skill_type=results["confirmed_type"],
+            is_core_foundation=False,
+            is_commonly_used=True,
+            is_experimental=False,
+        )
+        results["load_priority"] = result.load_priority
+        results["priority_justification"] = getattr(result, "priority_justification", "")
+
+        if results["load_priority"] not in VALID_PRIORITIES:
+            logger.warning(
+                f"Invalid load_priority '{results['load_priority']}', "
+                f"must be one of {VALID_PRIORITIES}"
+            )
+
+        self.tracer.trace(
+            phase="phase2",
+            step="decide_load_priority",
+            result=result,
+            inputs={
+                "problem_statement": problem_statement,
+                "skill_type": results["confirmed_type"],
+            },
+        )
+
+        # ====================================================================
+        # Step 2.4: Design Capabilities
+        # ====================================================================
+        if isinstance(phase1_output, dict):
+            key_requirements = phase1_output.get("key_requirements", [])
+        else:
+            key_requirements = []
+
+        result = await self.design_capabilities.acall(
+            problem_statement=problem_statement,
+            phase1_requirements=key_requirements,
+            target_count=5,
+        )
+        results["capabilities"] = list(getattr(result, "capabilities", []))
+        results["capability_count"] = getattr(result, "capability_count", 0)
+        results["atomicity_analysis"] = getattr(result, "atomicity_analysis", "")
+
+        self.tracer.trace(
+            phase="phase2",
+            step="design_capabilities",
+            result=result,
+            inputs={
+                "problem_statement": problem_statement,
+                "phase1_requirements": key_requirements,
+            },
+        )
+
+        # ====================================================================
+        # Step 2.5: Validate Dependencies
+        # ====================================================================
+        result = await self.validate_dependencies.acall(
+            proposed_dependencies=[],
+            existing_taxonomy=taxonomy_json,
+        )
+        results["dependencies_valid"] = result.dependencies_valid
+        results["validation_details"] = list(getattr(result, "validation_details", []))
+        results["suggested_revisions"] = list(getattr(result, "suggested_revisions", []))
+
+        self.tracer.trace(
+            phase="phase2",
+            step="validate_dependencies",
+            result=result,
+            inputs={"proposed_dependencies_count": 0},
+        )
+
+        # ====================================================================
+        # Step 2.6: Generate Skill Metadata
+        # ====================================================================
+        result = await self.generate_metadata.acall(
+            phase1_outputs=phase1_json,
+            confirmed_type=results["confirmed_type"],
+            weight=results["weight"],
+            load_priority=results["load_priority"],
+            capabilities=results["capabilities"],
+            dependencies=[],
+        )
+        results["skill_metadata"] = result.skill_metadata
+        results["resource_requirements"] = result.resource_requirements
+        results["compatibility_constraints"] = result.compatibility_constraints
+
+        self.tracer.trace(
+            phase="phase2",
+            step="generate_metadata",
+            result=result,
+            inputs={
+                "confirmed_type": results["confirmed_type"],
+                "weight": results["weight"],
+                "load_priority": results["load_priority"],
+            },
+        )
+
+        # ====================================================================
+        # Phase 2 Checkpoint
+        # ====================================================================
+        if hasattr(results["skill_metadata"], "model_dump"):
+            skill_metadata_dict = results["skill_metadata"].model_dump()
+        else:
+            skill_metadata_dict = results["skill_metadata"]
+
+        result = await self.phase2_checkpoint.acall(
+            skill_metadata=json.dumps(skill_metadata_dict),
+            capabilities=results["capabilities"],
+            dependencies=[],
+            confirmed_type=results["confirmed_type"],
+            weight=results["weight"],
+            load_priority=results["load_priority"],
+        )
+        results["checkpoint_passed"] = result.checkpoint_passed
+        results["checkpoint_score"] = result.checkpoint_score
+        results["validation_errors"] = list(getattr(result, "validation_errors", []))
+        results["readiness_for_phase3"] = result.readiness_for_phase3
+
         self.tracer.trace(
             phase="phase2",
             step="checkpoint",

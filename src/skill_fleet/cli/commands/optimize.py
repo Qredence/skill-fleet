@@ -8,14 +8,14 @@ from pathlib import Path
 import click
 import typer
 
-from ...workflow.optimize import (
+from ...core.dspy.programs import SkillCreationProgram
+from ...core.optimization.optimizer import (
     APPROVED_MODELS,
     optimize_with_gepa,
     optimize_with_miprov2,
     optimize_with_tracking,
     quick_evaluate,
 )
-from ...workflow.programs import SkillCreationProgram
 
 
 def optimize_command(

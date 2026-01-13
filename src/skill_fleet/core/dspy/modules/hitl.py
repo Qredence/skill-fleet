@@ -5,11 +5,14 @@ These modules wrap HITL signatures with appropriate DSPy module types:
 - ChainOfThought: For reasoning-heavy tasks
 
 All modules support async execution via aforward().
+
+Note:
+    DSPy discourages calling `.forward(...)` directly. For async execution we
+    prefer awaiting `.acall(...)` on the underlying DSPy primitives.
 """
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import Any
 
@@ -65,8 +68,21 @@ class ClarifyingQuestionsModule(dspy.Module):
         }
 
     async def aforward(self, *args, **kwargs) -> dict[str, Any]:
-        """Async version."""
-        return await asyncio.to_thread(self.forward, *args, **kwargs)
+        """Async version using DSPy `.acall(...)` (preferred)."""
+        task_description = kwargs.get("task_description") or args[0]
+        initial_analysis = kwargs.get("initial_analysis") or args[1]
+        ambiguities = kwargs.get("ambiguities") or args[2]
+
+        result = await self.generate_questions.acall(
+            task_description=task_description,
+            initial_analysis=initial_analysis,
+            ambiguities=ambiguities,
+        )
+        return {
+            "questions": result.questions,
+            "priority": result.priority,
+            "rationale": getattr(result, "rationale", ""),
+        }
 
 
 class ConfirmUnderstandingModule(dspy.Module):
@@ -107,8 +123,26 @@ class ConfirmUnderstandingModule(dspy.Module):
         }
 
     async def aforward(self, *args, **kwargs) -> dict[str, Any]:
-        """Async version."""
-        return await asyncio.to_thread(self.forward, *args, **kwargs)
+        """Async version using DSPy `.acall(...)` (preferred)."""
+        # Preserve positional/kw calling flexibility.
+        task_description = kwargs.get("task_description") or args[0]
+        user_clarifications = kwargs.get("user_clarifications") or args[1]
+        intent_analysis = kwargs.get("intent_analysis") or args[2]
+        taxonomy_path = kwargs.get("taxonomy_path") or args[3]
+        dependencies = kwargs.get("dependencies") or args[4]
+
+        result = await self.summarize.acall(
+            task_description=task_description,
+            user_clarifications=user_clarifications,
+            intent_analysis=intent_analysis,
+            taxonomy_path=taxonomy_path,
+            dependencies=dependencies,
+        )
+        return {
+            "summary": result.summary,
+            "key_assumptions": result.key_assumptions,
+            "confidence": result.confidence,
+        }
 
 
 # =============================================================================
@@ -141,8 +175,16 @@ class PreviewGeneratorModule(dspy.Module):
         }
 
     async def aforward(self, *args, **kwargs) -> dict[str, Any]:
-        """Async version."""
-        return await asyncio.to_thread(self.forward, *args, **kwargs)
+        """Async version using DSPy `.acall(...)` (preferred)."""
+        skill_content = kwargs.get("skill_content") or args[0]
+        metadata = kwargs.get("metadata") or args[1]
+
+        result = await self.generate_preview.acall(skill_content=skill_content, metadata=metadata)
+        return {
+            "preview": result.preview,
+            "highlights": result.highlights,
+            "potential_issues": result.potential_issues,
+        }
 
 
 class FeedbackAnalyzerModule(dspy.Module):
@@ -171,8 +213,19 @@ class FeedbackAnalyzerModule(dspy.Module):
         }
 
     async def aforward(self, *args, **kwargs) -> dict[str, Any]:
-        """Async version."""
-        return await asyncio.to_thread(self.forward, *args, **kwargs)
+        """Async version using DSPy `.acall(...)` (preferred)."""
+        user_feedback = kwargs.get("user_feedback") or args[0]
+        current_content = kwargs.get("current_content") or args[1]
+
+        result = await self.analyze.acall(
+            user_feedback=user_feedback, current_content=current_content
+        )
+        return {
+            "change_requests": result.change_requests,
+            "scope_change": result.scope_change,
+            "estimated_effort": result.estimated_effort,
+            "reasoning": getattr(result, "rationale", ""),
+        }
 
 
 # =============================================================================
@@ -208,8 +261,20 @@ class ValidationFormatterModule(dspy.Module):
         }
 
     async def aforward(self, *args, **kwargs) -> dict[str, Any]:
-        """Async version."""
-        return await asyncio.to_thread(self.forward, *args, **kwargs)
+        """Async version using DSPy `.acall(...)` (preferred)."""
+        validation_report = kwargs.get("validation_report") or args[0]
+        skill_content = kwargs.get("skill_content") or args[1]
+
+        result = await self.format_results.acall(
+            validation_report=validation_report,
+            skill_content=skill_content,
+        )
+        return {
+            "formatted_report": result.formatted_report,
+            "critical_issues": result.critical_issues,
+            "warnings": result.warnings,
+            "auto_fixable": result.auto_fixable,
+        }
 
 
 class RefinementPlannerModule(dspy.Module):
@@ -244,8 +309,22 @@ class RefinementPlannerModule(dspy.Module):
         }
 
     async def aforward(self, *args, **kwargs) -> dict[str, Any]:
-        """Async version."""
-        return await asyncio.to_thread(self.forward, *args, **kwargs)
+        """Async version using DSPy `.acall(...)` (preferred)."""
+        validation_issues = kwargs.get("validation_issues") or args[0]
+        user_feedback = kwargs.get("user_feedback") or args[1]
+        current_skill = kwargs.get("current_skill") or args[2]
+
+        result = await self.plan_refinement.acall(
+            validation_issues=validation_issues,
+            user_feedback=user_feedback,
+            current_skill=current_skill,
+        )
+        return {
+            "refinement_plan": result.refinement_plan,
+            "changes": result.changes,
+            "estimated_iterations": result.estimated_iterations,
+            "reasoning": getattr(result, "rationale", ""),
+        }
 
 
 # =============================================================================
@@ -281,8 +360,22 @@ class ReadinessAssessorModule(dspy.Module):
         }
 
     async def aforward(self, *args, **kwargs) -> dict[str, Any]:
-        """Async version."""
-        return await asyncio.to_thread(self.forward, *args, **kwargs)
+        """Async version using DSPy `.acall(...)` (preferred)."""
+        phase = kwargs.get("phase") or args[0]
+        collected_info = kwargs.get("collected_info") or args[1]
+        min_requirements = kwargs.get("min_requirements") or args[2]
+
+        result = await self.assess.acall(
+            phase=phase,
+            collected_info=collected_info,
+            min_requirements=min_requirements,
+        )
+        return {
+            "ready": result.ready,
+            "readiness_score": result.readiness_score,
+            "missing_info": result.missing_info,
+            "next_questions": result.next_questions,
+        }
 
 
 class HITLStrategyModule(dspy.Module):
@@ -316,5 +409,18 @@ class HITLStrategyModule(dspy.Module):
         }
 
     async def aforward(self, *args, **kwargs) -> dict[str, Any]:
-        """Async version."""
-        return await asyncio.to_thread(self.forward, *args, **kwargs)
+        """Async version using DSPy `.acall(...)` (preferred)."""
+        task_description = kwargs.get("task_description") or args[0]
+        task_complexity = kwargs.get("task_complexity") or args[1]
+        user_preferences = kwargs.get("user_preferences") or args[2]
+
+        result = await self.determine_strategy.acall(
+            task_description=task_description,
+            task_complexity=task_complexity,
+            user_preferences=user_preferences,
+        )
+        return {
+            "strategy": result.strategy,
+            "checkpoints": result.checkpoints,
+            "reasoning": getattr(result, "rationale", ""),
+        }

@@ -48,30 +48,53 @@ class SkillValidator:
         self.required_dirs = ["capabilities", "examples", "tests", "resources"]
         self._load_template_overrides()
 
-    def _is_safe_path_component(self, component: str) -> bool:
-        """Return True if the given string is a safe single path component.
+    def _resolve_existing_path_within_dir(
+        self, *, base_dir: Path, candidate: Path, label: str
+    ) -> tuple[Path | None, str | None]:
+        """Resolve a path and enforce it stays within base_dir.
 
-        A safe component:
-        - is non-empty
-        - does not contain path separators or traversal tokens
-        - matches the conservative _SAFE_PATH_PATTERN
+        This is defense-in-depth against path traversal and symlink escapes.
+        The caller should pass a *resolved* base_dir.
         """
-        if not component:
-            return False
-        # Disallow any explicit path separators to keep it a single component
-        if "/" in component or "\\" in component:
-            return False
-        # Disallow traversal-like segments
-        if component in {".", ".."} or ".." in component:
-            return False
-        return bool(self._SAFE_PATH_PATTERN.fullmatch(component))
+        if candidate.is_symlink():
+            return None, f"{label} must not be a symlink"
+
+        try:
+            resolved = candidate.resolve()
+        except FileNotFoundError:
+            return None, f"{label} not found"
+
+        try:
+            resolved.relative_to(base_dir)
+        except ValueError:
+            return None, f"{label} path not allowed"
+
+        return resolved, None
+
+    def _resolve_existing_path_within_skills_root(
+        self, *, candidate: Path, label: str
+    ) -> tuple[Path | None, str | None]:
+        """Resolve a path and enforce it stays within skills_root."""
+        skills_root_resolved = self.skills_root.resolve()
+        candidate_resolved, err = self._resolve_existing_path_within_dir(
+            base_dir=skills_root_resolved,
+            candidate=candidate,
+            label=label,
+        )
+        if err is not None:
+            return None, err
+        return candidate_resolved, None
 
     def _load_template_overrides(self) -> None:
         template_path = self.skills_root / "_templates" / "skill_template.json"
-        if not template_path.exists():
+        template_resolved, err = self._resolve_existing_path_within_skills_root(
+            candidate=template_path,
+            label="skill_template.json",
+        )
+        if err is not None:
             return
         try:
-            template = json.loads(template_path.read_text(encoding="utf-8"))
+            template = json.loads(template_resolved.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
             return
 
@@ -232,10 +255,14 @@ class SkillValidator:
         errors: list[str] = []
         warnings: list[str] = []
 
-        if not skill_md_path.exists():
-            return ValidationResult(False, ["SKILL.md not found"], [])
+        skill_md_resolved, err = self._resolve_existing_path_within_skills_root(
+            candidate=skill_md_path,
+            label="SKILL.md",
+        )
+        if err is not None:
+            return ValidationResult(False, [err], [])
 
-        content = skill_md_path.read_text(encoding="utf-8")
+        content = skill_md_resolved.read_text(encoding="utf-8")
 
         # Check for agentskills.io compliant frontmatter
         if not content.startswith("---"):
@@ -281,10 +308,14 @@ class SkillValidator:
         errors: list[str] = []
         warnings: list[str] = []
 
-        if not skill_md_path.exists():
-            return ValidationResult(False, ["SKILL.md not found"], [])
+        skill_md_resolved, err = self._resolve_existing_path_within_skills_root(
+            candidate=skill_md_path,
+            label="SKILL.md",
+        )
+        if err is not None:
+            return ValidationResult(False, [err], [])
 
-        content = skill_md_path.read_text(encoding="utf-8")
+        content = skill_md_resolved.read_text(encoding="utf-8")
 
         # Check for frontmatter
         if not content.startswith("---"):
@@ -360,15 +391,31 @@ class SkillValidator:
         errors: list[str] = []
         warnings: list[str] = []
 
-        if not examples_path.is_dir():
+        examples_resolved, err = self._resolve_existing_path_within_skills_root(
+            candidate=examples_path,
+            label="Examples directory",
+        )
+        if err is not None:
+            return ValidationResult(False, [err], [])
+        if not examples_resolved.is_dir():
             return ValidationResult(False, ["Examples directory not found"], [])
 
-        example_files = list(examples_path.glob("*.md"))
+        example_files = list(examples_resolved.glob("*.md"))
         if len(example_files) == 0:
             warnings.append("No example markdown files found")
         else:
             for example_file in example_files:
-                content = example_file.read_text(encoding="utf-8")
+                if example_file.is_symlink():
+                    warnings.append(f"Example {example_file.name} is a symlink and was skipped")
+                    continue
+                try:
+                    example_file_resolved = example_file.resolve()
+                    example_file_resolved.relative_to(examples_resolved)
+                except (FileNotFoundError, ValueError):
+                    warnings.append(f"Example {example_file.name} path not allowed and was skipped")
+                    continue
+
+                content = example_file_resolved.read_text(encoding="utf-8")
                 if "```" not in content:
                     warnings.append(f"Example {example_file.name} contains no code blocks")
 
@@ -421,13 +468,23 @@ class SkillValidator:
             results["errors"].append("Skill path not found")
             return results
 
-        metadata_path = skill_path / "metadata.json"
-        if not metadata_path.exists():
+        metadata_candidate = skill_path / "metadata.json"
+        metadata_resolved, err = self._resolve_existing_path_within_dir(
+            base_dir=skill_path,
+            candidate=metadata_candidate,
+            label="metadata.json",
+        )
+        if err is not None:
             results["passed"] = False
-            results["errors"].append("metadata.json not found")
+            results["errors"].append(err)
             return results
 
-        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        try:
+            metadata = json.loads(metadata_resolved.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            results["passed"] = False
+            results["errors"].append(f"Invalid JSON in metadata.json: {exc}")
+            return results
         meta_result = self.validate_metadata(metadata)
         results["checks"].append(
             {
@@ -524,31 +581,22 @@ class SkillValidator:
         - Cannot contain path separators (/ or \\)
         - Cannot contain null bytes
         - Cannot be "." or ".."
-        - Cannot contain consecutive dots or special traversal patterns
-        - Must be a simple filename/dirname (alphanumeric, underscore, hyphen, dot)
+        - Cannot contain ".." anywhere
+        - Must match _SAFE_PATH_PATTERN exactly
         """
         if not component:
             return False
 
-        # Check for null bytes
         if "\0" in component:
             return False
 
-        # Check for path separators
         if "/" in component or "\\" in component:
             return False
 
-        # Check for current/parent directory references
         if component in (".", ".."):
             return False
 
-        # Check for consecutive dots (to prevent ".." bypasses)
         if ".." in component:
             return False
 
-        # Check for valid characters: alphanumeric, hyphen, underscore, dot
-        # Allow dots for file extensions, but validate the pattern
-        if not self._SAFE_PATH_PATTERN.match(component):
-            return False
-
-        return True
+        return bool(self._SAFE_PATH_PATTERN.fullmatch(component))

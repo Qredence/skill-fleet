@@ -176,3 +176,87 @@ def test_path_injection_protection(temp_skills_root: Path) -> None:
     # Should fail due to invalid path component
     assert not results.passed
     assert any("Invalid required file" in error for error in results.errors)
+
+
+def test_validate_complete_blocks_metadata_symlink_escape(temp_skills_root: Path) -> None:
+    """Ensure metadata.json symlinks are rejected (avoid reading outside skills_root)."""
+    # Arrange
+    validator = SkillValidator(temp_skills_root)
+
+    skill_dir = temp_skills_root / "general/symlink_metadata"
+    skill_dir.mkdir(parents=True)
+    for dirname in ["capabilities", "examples", "tests", "resources"]:
+        (skill_dir / dirname).mkdir()
+
+    outside_file = temp_skills_root.parent / "outside-metadata.json"
+    outside_file.write_text(
+        json.dumps(
+            {
+                "skill_id": "general/symlink_metadata",
+                "version": "1.0.0",
+                "type": "technical",
+                "weight": "lightweight",
+                "load_priority": "on_demand",
+                "dependencies": [],
+                "capabilities": ["test"],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    metadata_link = skill_dir / "metadata.json"
+    try:
+        metadata_link.symlink_to(outside_file)
+    except (OSError, NotImplementedError):
+        pytest.skip("Symlinks not supported in this environment")
+
+    (skill_dir / "SKILL.md").write_text("# Test Skill\n\n## Overview\n", encoding="utf-8")
+
+    # Act
+    results = validator.validate_complete(skill_dir)
+
+    # Assert
+    assert results["passed"] is False
+    assert any("metadata.json must not be a symlink" in e for e in results["errors"])
+
+
+def test_validate_complete_blocks_skill_md_symlink_escape(temp_skills_root: Path) -> None:
+    """Ensure SKILL.md symlinks are rejected (avoid reading outside skills_root)."""
+    # Arrange
+    validator = SkillValidator(temp_skills_root)
+
+    skill_dir = temp_skills_root / "general/symlink_skill_md"
+    skill_dir.mkdir(parents=True)
+    for dirname in ["capabilities", "examples", "tests", "resources"]:
+        (skill_dir / dirname).mkdir()
+
+    (skill_dir / "metadata.json").write_text(
+        json.dumps(
+            {
+                "skill_id": "general/symlink_skill_md",
+                "version": "1.0.0",
+                "type": "technical",
+                "weight": "lightweight",
+                "load_priority": "on_demand",
+                "dependencies": [],
+                "capabilities": ["test"],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    outside_md = temp_skills_root.parent / "outside-skill.md"
+    outside_md.write_text("---\nname: x\ndescription: y\n---\n", encoding="utf-8")
+
+    skill_md_link = skill_dir / "SKILL.md"
+    try:
+        skill_md_link.symlink_to(outside_md)
+    except (OSError, NotImplementedError):
+        pytest.skip("Symlinks not supported in this environment")
+
+    # Act
+    results = validator.validate_complete(skill_dir)
+
+    # Assert
+    assert results["passed"] is False
+    assert any("SKILL.md must not be a symlink" in e for e in results["errors"])

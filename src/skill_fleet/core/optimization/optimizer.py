@@ -100,10 +100,10 @@ class OptimizationWrapper(dspy.Module):
         # Create minimal/dummy context for optimization
         def dummy_parent_getter(path: str) -> list[dict]:
             """Dummy parent skill getter for optimization context.
-            
+
             Args:
                 path: Path to get parent skills for (ignored)
-                
+
             Returns:
                 Empty list for optimization purposes
             """
@@ -501,10 +501,10 @@ def quick_evaluate(
     # Create minimal parent_skills_getter for evaluation
     def dummy_parent_getter(path: str) -> list:
         """Dummy parent skill getter for evaluation context.
-        
+
         Args:
             path: Path to get parent skills for (ignored)
-            
+
         Returns:
             Empty list for evaluation purposes
         """

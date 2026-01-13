@@ -34,8 +34,11 @@ def discover_and_expose(app: FastAPI, module_package: Any, prefix: str = "/api/v
     """Scan a package for DSPy modules and expose them as API endpoints."""
     router = APIRouter(prefix=prefix)
 
-    def create_endpoint(module_class: type, request_model: type[BaseModel], response_model: type[BaseModel]):
+    def create_endpoint(
+        module_class: type, request_model: type[BaseModel], response_model: type[BaseModel]
+    ):
         """Factory function to create endpoint with properly captured closure variables."""
+
         async def dynamic_endpoint(request: request_model):
             """Dynamically created endpoint for auto-exposed DSPy modules.
 
@@ -50,6 +53,7 @@ def discover_and_expose(app: FastAPI, module_package: Any, prefix: str = "/api/v
             # Execute
             result = instance(**request.dict())
             return result
+
         return dynamic_endpoint
 
     for name, obj in inspect.getmembers(module_package):

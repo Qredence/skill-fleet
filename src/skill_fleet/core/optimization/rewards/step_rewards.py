@@ -126,12 +126,12 @@ def metadata_completeness_reward(args, pred: dspy.Prediction) -> float:
         # For Pydantic models, convert to dict-like access
         def get_field(obj, field, default=None):
             """Get field value from object or dict with fallback.
-            
+
             Args:
                 obj: Object or dict to get field from
                 field: Field name to retrieve
                 default: Default value if field not found
-                
+
             Returns:
                 Field value or default if not found
             """
@@ -404,12 +404,12 @@ def validation_report_reward(args, pred: dspy.Prediction) -> float:
         # Get fields
         def get_field(obj, field, default=None):
             """Get field value from object or dict with fallback.
-            
+
             Args:
                 obj: Object or dict to get field from
                 field: Field name to retrieve
                 default: Default value if field not found
-                
+
             Returns:
                 Field value or default if not found
             """

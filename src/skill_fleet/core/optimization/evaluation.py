@@ -202,10 +202,10 @@ def metadata_metric(
     # Helper to get field from metadata (dict or object)
     def get_meta_field(field: str) -> Any:
         """Extract a field value from metadata that may be either a dict or object.
-        
+
         Args:
             field: The field name to extract
-            
+
         Returns:
             The field value if found, None otherwise
         """

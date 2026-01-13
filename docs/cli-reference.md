@@ -2,6 +2,15 @@
 
 Complete command-line interface reference for the skill-fleet system.
 
+> **Note (2026-01-13):** This document contains legacy command names from earlier
+> iterations of the CLI. For the current Typer CLI (`skill-fleet create/chat/list/...`)
+> see:
+>
+> - `docs/cli/commands.md`
+> - `docs/cli/interactive-chat.md`
+>
+> You can always confirm the live command surface via: `uv run skill-fleet --help`.
+
 ## Overview
 
 The `skill-fleet` CLI provides commands for creating, validating, migrating, and managing agent skills.
@@ -29,14 +38,17 @@ All commands support these global options:
 Create a new skill using the DSPy-powered 6-step workflow.
 
 **Usage:**
+
 ```bash
 uv run skill-fleet create-skill --task "TASK_DESCRIPTION" [OPTIONS]
 ```
 
 **Required Arguments:**
+
 - `--task TEXT` - Description of the skill to create
 
 **Optional Arguments:**
+
 - `--user-id TEXT` - ID of the user creating the skill (default: `default`)
 - `--max-iterations INT` - Maximum feedback loops (default: `3`)
 - `--auto-approve` - Skip HITL review and auto-approve if validation passes
@@ -45,6 +57,7 @@ uv run skill-fleet create-skill --task "TASK_DESCRIPTION" [OPTIONS]
 - `--json` - Output result as JSON
 
 **Examples:**
+
 ```bash
 # Basic skill creation with HITL review
 uv run skill-fleet create-skill --task "Create a Python async programming skill"
@@ -66,18 +79,22 @@ uv run skill-fleet create-skill --task "Create testing utilities" --user-id deve
 Validate a skill directory against taxonomy standards and agentskills.io compliance.
 
 **Usage:**
+
 ```bash
 uv run skill-fleet validate-skill PATH [OPTIONS]
 ```
 
 **Required Arguments:**
+
 - `PATH` - Path to the skill directory to validate
 
 **Optional Arguments:**
+
 - `--json` - Output result as JSON
 - `--strict` - Treat warnings as errors
 
 **What is Validated:**
+
 - Directory structure (metadata.json, SKILL.md, subdirectories)
 - Metadata completeness and format
 - YAML frontmatter compliance (agentskills.io)
@@ -87,6 +104,7 @@ uv run skill-fleet validate-skill PATH [OPTIONS]
 - Resource files presence
 
 **Examples:**
+
 ```bash
 # Validate a single skill
 uv run skill-fleet validate-skill skills/technical_skills/programming/languages/python/decorators
@@ -99,6 +117,7 @@ uv run skill-fleet validate-skill path/to/skill --strict
 ```
 
 **Exit Codes:**
+
 - `0` - Validation passed
 - `1` - Validation failed (or warnings in strict mode)
 
@@ -109,16 +128,19 @@ uv run skill-fleet validate-skill path/to/skill --strict
 Migrate existing skills to agentskills.io-compliant format with YAML frontmatter.
 
 **Usage:**
+
 ```bash
 uv run skill-fleet migrate [OPTIONS]
 ```
 
 **Optional Arguments:**
+
 - `--skills-root PATH` - Skills taxonomy root (default: `skills`)
 - `--dry-run` - Preview changes without writing to disk
 - `--json` - Output result as JSON
 
 **What it Does:**
+
 1. Scans all skill directories with `metadata.json`
 2. Generates kebab-case names from skill IDs
 3. Extracts or generates descriptions
@@ -127,12 +149,14 @@ uv run skill-fleet migrate [OPTIONS]
 6. Updates metadata.json with name and description
 
 **Safety Features:**
+
 - Idempotent (safe to run multiple times)
 - Skips already-compliant skills
 - Preserves existing content
 - Dry-run mode for preview
 
 **Examples:**
+
 ```bash
 # Migrate all skills
 uv run skill-fleet migrate
@@ -148,10 +172,12 @@ uv run skill-fleet migrate --json
 ```
 
 **Exit Codes:**
+
 - `0` - Migration successful (or all skills already compliant)
 - `1` - One or more migrations failed
 
 **Output:**
+
 ```
 ============================================================
 Migrating skills to agentskills.io format
@@ -180,15 +206,18 @@ Migration Summary:
 Generate `<available_skills>` XML for agent prompt injection following agentskills.io standard.
 
 **Usage:**
+
 ```bash
 uv run skill-fleet generate-xml [OPTIONS]
 ```
 
 **Optional Arguments:**
+
 - `--skills-root PATH` - Skills taxonomy root (default: `skills`)
 - `--output, -o PATH` - Output file (default: stdout)
 
 **Output Format:**
+
 ```xml
 <available_skills>
   <skill>
@@ -201,6 +230,7 @@ uv run skill-fleet generate-xml [OPTIONS]
 ```
 
 **Examples:**
+
 ```bash
 # Print to stdout
 uv run skill-fleet generate-xml
@@ -216,6 +246,7 @@ uv run skill-fleet generate-xml | xmllint --format -
 ```
 
 **Use Cases:**
+
 - Agent system prompt injection
 - Skill catalog generation
 - Documentation automation
@@ -228,18 +259,22 @@ uv run skill-fleet generate-xml | xmllint --format -
 Interactive user onboarding to create personalized skill profiles.
 
 **Usage:**
+
 ```bash
 uv run skill-fleet onboard --user-id USER_ID [OPTIONS]
 ```
 
 **Required Arguments:**
+
 - `--user-id TEXT` - Unique user identifier
 
 **Optional Arguments:**
+
 - `--skills-root PATH` - Skills taxonomy root
 - `--config PATH` - Path to configuration file
 
 **Examples:**
+
 ```bash
 # Start onboarding
 uv run skill-fleet onboard --user-id developer_123
@@ -255,18 +290,22 @@ uv run skill-fleet onboard --user-id analyst_456 --config custom_config.yaml
 View usage analytics and statistics for skills.
 
 **Usage:**
+
 ```bash
 uv run skill-fleet analytics --user-id USER_ID [OPTIONS]
 ```
 
 **Required Arguments:**
+
 - `--user-id TEXT` - User identifier
 
 **Optional Arguments:**
+
 - `--json` - Output as JSON
 - `--time-range TEXT` - Time range for analytics (e.g., `7d`, `30d`, `all`)
 
 **Examples:**
+
 ```bash
 # View analytics
 uv run skill-fleet analytics --user-id developer_123
@@ -283,6 +322,7 @@ uv run skill-fleet analytics --user-id developer_123 --time-range 30d
 ## Common Workflows
 
 ### New Skill Creation
+
 ```bash
 # 1. Create skill
 uv run skill-fleet create-skill --task "Create authentication utilities"
@@ -295,6 +335,7 @@ uv run skill-fleet generate-xml -o available_skills.xml
 ```
 
 ### Migrating Existing Skills
+
 ```bash
 # 1. Preview migration
 uv run skill-fleet migrate --dry-run
@@ -312,6 +353,7 @@ uv run skill-fleet generate-xml -o available_skills.xml
 ```
 
 ### CI/CD Integration
+
 ```bash
 # Create skill in automated pipeline
 uv run skill-fleet create-skill \
@@ -330,6 +372,7 @@ fi
 ```
 
 ### Bulk Validation
+
 ```bash
 # Validate all skills
 find skills -name "metadata.json" -type f | while read metadata; do
@@ -448,14 +491,14 @@ LM settings are resolved in the following order (highest to lowest priority):
 
 The system uses different LMs for different phases of skill creation:
 
-| Task | Purpose |
-|------|---------|
-| `skill_understand` | Task analysis and understanding |
-| `skill_plan` | Structure planning |
+| Task               | Purpose                               |
+| ------------------ | ------------------------------------- |
+| `skill_understand` | Task analysis and understanding       |
+| `skill_plan`       | Structure planning                    |
 | `skill_initialize` | Directory and metadata initialization |
-| `skill_edit` | Content generation |
-| `skill_package` | Validation and packaging |
-| `skill_validate` | Compliance checking |
+| `skill_edit`       | Content generation                    |
+| `skill_package`    | Validation and packaging              |
+| `skill_validate`   | Compliance checking                   |
 
 These are configured in `config/config.yaml` under the `model_tasks` section.
 

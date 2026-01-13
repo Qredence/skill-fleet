@@ -22,40 +22,21 @@ node_modules/
 .idea/vcs.xml
 .idea/inspectionProfiles/profiles_settings.xml
 .idea/inspectionProfiles/Project_Default.xml
-.letta/settings.json
-.letta/settings.local.json
+
 
 .idea/
 
-./!/.letta/Nameless Agent.af
 
-!/.letta/Nameless Agent (1).af
-
-!/.letta/Nameless Agent (2).af
-
-!/.letta/settings.json
-
-!/.letta/settings.local.json
-
-!/.letta/skills-agent-system.af
-.letta/Nameless Agent (1).af
 .gitignore
 .gitignore
 .gitignore
-.letta/settings.json
-.letta/settings.local.json
-.letta/Nameless Agent (2).af
-.letta/Nameless Agent.af
-.letta/skills-agent-system.af
-.letta/settings.local.json
-.letta/
+
 .vscode/extensions.json
 .vscode/settings.json
 .letta/
 .vscode/
-.letta/settings.local.json
-.letta/settings.local.json
-.junie/guidelines.md
+.claude/
+
 server.log
 .ai/mcp/mcp.json
 .junie/

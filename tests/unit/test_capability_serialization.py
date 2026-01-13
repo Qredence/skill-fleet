@@ -5,8 +5,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from skill_fleet.core.models import Capability
 from skill_fleet.core.dspy.modules import InitializeModule
+from skill_fleet.core.models import Capability
 
 
 def test_initialize_module_serializes_capabilities():

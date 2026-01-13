@@ -9,8 +9,8 @@ from pathlib import Path
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 
-from ...core.models import SkillCreationResult
 from ...core.dspy import SkillCreationProgram
+from ...core.models import SkillCreationResult
 from ...taxonomy.manager import TaxonomyManager
 from ..jobs import JOBS, create_job, wait_for_hitl_response
 

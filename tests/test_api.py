@@ -12,7 +12,6 @@ from fastapi.testclient import TestClient
 
 from skill_fleet.api.app import app
 
-
 # ============================================================================
 # Test Client Setup
 # ============================================================================

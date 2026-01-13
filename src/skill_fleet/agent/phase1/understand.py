@@ -14,7 +14,7 @@ Each step uses DSPy ChainOfThought for flexible reasoning within
 structured decision boundaries, with full reasoning trace capture.
 
 Usage:
-    >>> from skill_fleet.workflow.tracing import get_phase1_lm, ReasoningTracer
+    >>> from skill_fleet.core.tracing import get_phase1_lm, ReasoningTracer
     >>>
     >>> # Create tracer and module
     >>> tracer = ReasoningTracer(mode="cli")
@@ -32,12 +32,13 @@ Usage:
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import TYPE_CHECKING, Any
 
 import dspy
 
-from ...workflow.tracing.tracer import ReasoningTracer
+from ...core.tracing.tracer import ReasoningTracer
 from .signatures import (
     VALID_SKILL_TYPES,
     ClassifyDomain,
@@ -155,12 +156,12 @@ class Phase1Understand(dspy.Module):
 
         # Normalize inputs
         if isinstance(existing_skills, list):
-            existing_skills_json = str(existing_skills)
+            existing_skills_json = json.dumps(existing_skills)
         else:
             existing_skills_json = existing_skills or "[]"
 
         if isinstance(taxonomy_structure, dict):
-            taxonomy_json = str(taxonomy_structure)
+            taxonomy_json = json.dumps(taxonomy_structure)
         else:
             taxonomy_json = taxonomy_structure or "{}"
 
@@ -293,6 +294,165 @@ class Phase1Understand(dspy.Module):
         results["recommendations"] = list(getattr(result, "recommendations", []))
 
         # Capture checkpoint reasoning
+        self.tracer.trace(
+            phase="phase1",
+            step="checkpoint",
+            result=result,
+            inputs={"problem_statement": results["problem_statement"]},
+        )
+
+        logger.info(
+            f"Phase 1 complete: checkpoint_passed={results['checkpoint_passed']}, "
+            f"score={results['checkpoint_score']:.2f}"
+        )
+
+        return results
+
+    async def aforward(
+        self,
+        task_description: str,
+        existing_skills: list | str = "",
+        taxonomy_structure: dict | str = "",
+    ) -> dict[str, Any]:
+        """Asynchronously execute Phase 1 with reasoning capture.
+
+        DSPy supports async execution via `.acall()` on modules (see dspy.ai
+        async tutorial). This implementation mirrors `forward()` but awaits the
+        internal DSPy sub-modules.
+        """
+        results: dict[str, Any] = {}
+
+        # Normalize inputs
+        if isinstance(existing_skills, list):
+            existing_skills_json = json.dumps(existing_skills)
+        else:
+            existing_skills_json = existing_skills or "[]"
+
+        if isinstance(taxonomy_structure, dict):
+            taxonomy_json = json.dumps(taxonomy_structure)
+        else:
+            taxonomy_json = taxonomy_structure or "{}"
+
+        # ====================================================================
+        # Step 1.1: Extract Problem Statement
+        # ====================================================================
+        result = await self.extract_problem.acall(
+            task_description=task_description,
+            context="Skill creation request",
+        )
+        results["problem_statement"] = result.problem_statement
+        results["key_requirements"] = list(getattr(result, "key_requirements", []))
+        results["pain_points"] = list(getattr(result, "pain_points", []))
+
+        self.tracer.trace(
+            phase="phase1",
+            step="extract_problem",
+            result=result,
+            inputs={"task_description": task_description},
+        )
+
+        # ====================================================================
+        # Step 1.2: Decide Novelty
+        # ====================================================================
+        result = await self.decide_novelty.acall(
+            problem_statement=results["problem_statement"],
+            existing_skills=existing_skills_json,
+            taxonomy_search_results="{}",
+        )
+        results["is_new_skill"] = result.is_new_skill
+        results["target_skill_id"] = getattr(result, "target_skill_id", "")
+
+        self.tracer.trace(
+            phase="phase1",
+            step="decide_novelty",
+            result=result,
+            inputs={"problem_statement": results["problem_statement"]},
+        )
+
+        # ====================================================================
+        # Step 1.3: Detect Overlap
+        # ====================================================================
+        preliminary_type = self._preliminary_classify(results["problem_statement"])
+        result = await self.detect_overlap.acall(
+            problem_statement=results["problem_statement"],
+            proposed_domain=preliminary_type,
+            existing_skills_metadata="{}",
+        )
+        results["overlapping_skills"] = list(getattr(result, "overlapping_skills", []))
+        results["overlap_analysis"] = getattr(result, "overlap_analysis", "")
+        results["confidence_no_overlap"] = getattr(result, "confidence_no_overlap", 0.0)
+
+        self.tracer.trace(
+            phase="phase1",
+            step="detect_overlap",
+            result=result,
+            inputs={"problem_statement": results["problem_statement"]},
+        )
+
+        # ====================================================================
+        # Step 1.4: Classify Domain
+        # ====================================================================
+        result = await self.classify_domain.acall(
+            problem_statement=results["problem_statement"],
+            key_characteristics=results["key_requirements"],
+        )
+        results["skill_type"] = result.skill_type
+        results["type_confidence"] = result.type_confidence
+        results["type_rationale"] = getattr(result, "type_rationale", "")
+
+        if results["skill_type"] not in VALID_SKILL_TYPES:
+            logger.warning(
+                f"Invalid skill_type '{results['skill_type']}', must be one of {VALID_SKILL_TYPES}"
+            )
+
+        self.tracer.trace(
+            phase="phase1",
+            step="classify_domain",
+            result=result,
+            inputs={
+                "problem_statement": results["problem_statement"],
+                "key_characteristics": results["key_requirements"],
+            },
+        )
+
+        # ====================================================================
+        # Step 1.5: Propose Taxonomy Path
+        # ====================================================================
+        result = await self.propose_taxonomy_path.acall(
+            skill_type=results["skill_type"],
+            problem_statement=results["problem_statement"],
+            existing_taxonomy=taxonomy_json,
+        )
+        results["proposed_path"] = result.proposed_path
+        results["parent_skills"] = list(getattr(result, "parent_skills", []))
+        results["path_confidence"] = getattr(result, "path_confidence", 0.0)
+
+        self.tracer.trace(
+            phase="phase1",
+            step="propose_taxonomy_path",
+            result=result,
+            inputs={
+                "skill_type": results["skill_type"],
+                "problem_statement": results["problem_statement"],
+            },
+        )
+
+        # ====================================================================
+        # Phase 1 Checkpoint
+        # ====================================================================
+        result = await self.phase1_checkpoint.acall(
+            problem_statement=results["problem_statement"],
+            is_new_skill=results["is_new_skill"],
+            skill_type=results["skill_type"],
+            proposed_path=results["proposed_path"],
+            overlapping_skills=results["overlapping_skills"],
+            key_requirements=results["key_requirements"],
+        )
+        results["checkpoint_passed"] = result.checkpoint_passed
+        results["checkpoint_score"] = result.checkpoint_score
+        results["validation_errors"] = list(getattr(result, "validation_errors", []))
+        results["recommendations"] = list(getattr(result, "recommendations", []))
+
         self.tracer.trace(
             phase="phase1",
             step="checkpoint",

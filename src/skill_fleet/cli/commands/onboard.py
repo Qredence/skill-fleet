@@ -10,9 +10,9 @@ from rich.console import Console
 from rich.progress import Progress
 
 from ...common.paths import default_profiles_path, default_skills_root
+from ...core.creator import TaxonomySkillCreator
 from ...onboarding.bootstrap import SkillBootstrapper
 from ...taxonomy.manager import TaxonomyManager
-from ...core.creator import TaxonomySkillCreator
 from ..onboarding_cli import collect_onboarding_responses
 
 console = Console()

@@ -20,10 +20,10 @@ from typing import Any, cast
 import dspy
 
 from ..common.streaming import create_streaming_module, process_stream_sync
-from ..taxonomy.manager import TaxonomyManager
-from ..core.models import ChecklistState
 from ..core.dspy.programs import SkillCreationProgram, SkillRevisionProgram
+from ..core.models import ChecklistState
 from ..core.tools import filesystem_research, web_search_research
+from ..taxonomy.manager import TaxonomyManager
 from .modules import (
     AssessReadinessModule,
     ConfirmUnderstandingModule,

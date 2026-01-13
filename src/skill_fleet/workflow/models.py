@@ -8,25 +8,25 @@ from __future__ import annotations
 
 # Re-export all models from the new location
 from skill_fleet.core.models import (
+    # Capability Models
+    Capability,
+    CapabilityImplementation,
     # HITL Models
     ClarifyingQuestion,
+    DependencyAnalysis,
+    DependencyRef,
     HITLRound,
     HITLSession,
     QuestionAnswer,
     QuestionOption,
-    # Capability Models
-    Capability,
-    CapabilityImplementation,
+    # Results
+    SkillCreationResult,
     # Skill Metadata
     SkillMetadata,
     SkillSkeleton,
-    ValidationReport,
     # Task Analysis
     TaskIntent,
-    DependencyRef,
-    DependencyAnalysis,
-    # Results
-    SkillCreationResult,
+    ValidationReport,
 )
 
 __all__ = [

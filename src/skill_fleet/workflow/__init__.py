@@ -11,6 +11,9 @@ This package re-exports components for backward compatibility.
 
 from __future__ import annotations
 
+# Backward compat: allow `from skill_fleet.workflow.models import X`
+from skill_fleet.core import models
+
 # Re-export from new locations for backward compatibility
 from skill_fleet.core.creator import TaxonomySkillCreator
 from skill_fleet.core.dspy.modules.base import (
@@ -48,9 +51,6 @@ from skill_fleet.core.optimization import (
     optimize_with_miprov2,
 )
 from skill_fleet.core.optimization.evaluation import load_trainset, skill_creation_metric
-
-# Backward compat: allow `from skill_fleet.workflow.models import X`
-from skill_fleet.core import models
 
 # Core workflow components
 __all__ = [

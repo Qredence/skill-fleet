@@ -10,14 +10,14 @@ This module provides DSPy signature definitions for:
 
 # Import from base (legacy workflow signatures)
 from skill_fleet.core.dspy.signatures.base import (
-    GatherExamplesForSkill,
-    UnderstandTaskForSkill,
-    PlanSkillStructure,
-    InitializeSkillSkeleton,
     EditSkillContent,
-    PackageSkillForApproval,
-    IterateSkillWithFeedback,
+    GatherExamplesForSkill,
     GenerateDynamicFeedbackQuestions,
+    InitializeSkillSkeleton,
+    IterateSkillWithFeedback,
+    PackageSkillForApproval,
+    PlanSkillStructure,
+    UnderstandTaskForSkill,
 )
 
 __all__ = [

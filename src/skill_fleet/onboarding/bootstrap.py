@@ -4,8 +4,8 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
-from ..taxonomy.manager import TaxonomyManager
 from ..core.creator import TaxonomySkillCreator
+from ..taxonomy.manager import TaxonomyManager
 
 
 class SkillBootstrapper:

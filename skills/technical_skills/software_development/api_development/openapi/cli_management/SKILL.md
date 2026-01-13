@@ -147,14 +147,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       
-      - name: Install Tools
-        run: npm install -g @redocly/cli @stoplight/spectral-cli
+      - name: Install Dependencies
+        run: npm ci
       
       - name: Lint Specification
-        run: spectral lint openapi.yaml --fail-severity=warn
+        run: npx spectral lint openapi.yaml --fail-severity=warn
         
       - name: Bundle and Validate
-        run: redocly bundle openapi.yaml --output dist/openapi.json
+        run: npx redocly bundle openapi.yaml --output dist/openapi.json
         
       - name: Archive Production Spec
         uses: actions/upload-artifact@v3

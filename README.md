@@ -1,6 +1,6 @@
 # Skill Fleet
 
-A hierarchical, DSPy-powered capability platform that keeps AI agent knowledge modular, discoverable, and agentskills.io compliant. Skill Fleet uses FastAPI background jobs, DSPy programs, and a Typer CLI so that you can create, validate, and operate skills with confidence.
+A hierarchical, DSPy-powered capability platform that keeps AI agent knowledge modular, discoverable, and agentskills.io compliant. Skill Fleet uses a conversational agent, FastAPI background jobs, DSPy programs with MIPROv2/GEPA optimization, and a React/TypeScript frontend so that you can create, validate, and operate skills with confidence.
 
 ## Documentation Structure
 
@@ -27,28 +27,33 @@ cp .env.example .env
 ## Getting Started
 
 1. Start the API server (`uv run skill-fleet serve` or `--reload` in dev).
-2. Run `uv run skill-fleet create "...` or `uv run skill-fleet chat` to launch job + HITL workflows.
-3. Validate with `uv run skill-fleet validate skills/<path>` and migrate legacy skills via `uv run skill-fleet migrate --dry-run`.
-4. Generate `<available_skills>` XML (`uv run skill-fleet generate-xml`) and review analytics (`uv run skill-fleet analytics`).
+2. Run `uv run skill-fleet chat` (RECOMMENDED) or `uv run skill-fleet create "..."` to launch the conversational agent with 3-phase skill creation workflow.
+3. Optimize workflows with `uv run skill-fleet optimize --optimizer miprov2` or `--optimizer gepa`.
+4. Validate with `uv run skill-fleet validate skills/<path>` and migrate legacy skills via `uv run skill-fleet migrate --dry-run`.
+5. Generate `<available_skills>` XML (`uv run skill-fleet generate-xml`) and review analytics (`uv run skill-fleet analytics`).
 
 # Getting Started Highlights
 
 1. Start the API server (`uv run skill-fleet serve` or `--reload` in dev).
-2. Run `uv run skill-fleet create "...` or `uv run skill-fleet chat` to launch job + HITL workflows.
-3. Validate with `uv run skill-fleet validate skills/<path>` and migrate legacy skills via `uv run skill-fleet migrate --dry-run`.
-4. Generate `<available_skills>` XML (`uv run skill-fleet generate-xml`) and review analytics (`uv run skill-fleet analytics`).
+2. Run `uv run skill-fleet chat` (RECOMMENDED) or `uv run skill-fleet create "..."` to launch the conversational agent with 3-phase skill creation workflow.
+3. Optimize workflows with `uv run skill-fleet optimize --optimizer miprov2` or `--optimizer gepa`.
+4. Validate with `uv run skill-fleet validate skills/<path>` and migrate legacy skills via `uv run skill-fleet migrate --dry-run`.
+5. Generate `<available_skills>` XML (`uv run skill-fleet generate-xml`) and review analytics (`uv run skill-fleet analytics`).
 
 ## Core Commands
 
 | Command | Purpose |
 | --- | --- |
 | `uv run skill-fleet serve` | Run the FastAPI server (job + HITL endpoints). |
-| `uv run skill-fleet create "task"` | Create a skill via DSPy + HITL. |
-| `uv run skill-fleet chat` | Guided interactive session calling the same create + HITL loop. |
+| `uv run skill-fleet chat` | **RECOMMENDED**: Conversational agent with 3-phase skill creation workflow. |
+| `uv run skill-fleet create "task"` | Create a skill via DSPy + HITL (direct task mode). |
+| `uv run skill-fleet optimize` | Optimize DSPy workflows with MIPROv2 or GEPA. |
+| `uv run skill-fleet analytics` | View usage analytics and skill patterns. |
 | `uv run skill-fleet validate <skill>` | Check frontmatter/metadata compliance. |
 | `uv run skill-fleet migrate` | Upgrade legacy skills to the modern schema. |
 | `uv run skill-fleet generate-xml` | Produce agentskills.io `<available_skills>`. |
 | `uv run skill-fleet list` | Enumerate skills stored in `skills/`. |
+| `uv run skill-fleet onboard` | Run user onboarding workflow. |
 
 # Documentation Tree
 

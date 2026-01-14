@@ -8,15 +8,32 @@ Directory Structure:
 - tools/: External tools and integrations
 - optimization/: Optimization and evaluation logic
 - tracing/: Tracing infrastructure
+- config.py: Configuration validation with Pydantic
 - models.py: Unified data models
 - creator.py: Main entry point for skill creation
 
 Import Guidelines:
+- For config: from skill_fleet.core.config import ...
 - For models: from skill_fleet.core.models import ...
 - For DSPy components: from skill_fleet.core.dspy import ...
 - For HITL: from skill_fleet.core.hitl import ...
 """
 
+from skill_fleet.core.config import (
+    FleetConfig,
+    LegacyAliases,
+    ModelConfig,
+    ModelParameters,
+    ModelsConfig,
+    ModelType,
+    ReasoningEffort,
+    RoleConfig,
+    RolesConfig,
+    TaskConfig,
+    TasksConfig,
+    load_config,
+    validate_config,
+)
 from skill_fleet.core.models import (
     # Edit
     BestPractice,
@@ -69,6 +86,20 @@ from skill_fleet.core.models import (
 )
 
 __all__ = [
+    # Configuration
+    "load_config",
+    "validate_config",
+    "FleetConfig",
+    "ModelType",
+    "ReasoningEffort",
+    "ModelParameters",
+    "ModelConfig",
+    "ModelsConfig",
+    "RoleConfig",
+    "RolesConfig",
+    "TaskConfig",
+    "TasksConfig",
+    "LegacyAliases",
     # HITL Models
     "QuestionOption",
     "ClarifyingQuestion",

@@ -1,6 +1,6 @@
 [project]
 name = "skill-fleet"
-version = "0.1.0"
+version = "0.1.1"
 description = "Hierarchical skills taxonomy + DSPy workflow prototype"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -60,7 +60,9 @@ dev = [
 
 [dependency-groups]
 dev = [
+  "bandit[toml]>=1.8.0",
   "httpx>=0.28.1",
+  "pre-commit>=4.0.1",
   "pytest>=8.0.0",
   "pytest-asyncio>=1.3.0",
   "pytest-cov>=7.0.0",
@@ -94,3 +96,20 @@ ignore = ["E501"]
 # B008: Do not perform function call in default arguments
 # Standard pattern for CLI libraries (typer, click)
 "src/skill_fleet/cli/*.py" = ["B008"]
+
+[tool.bandit]
+# Bandit security linter configuration
+exclude_dirs = [
+  "tests",
+  ".venv",
+  "venv",
+  ".git",
+]
+skips = [
+  # Skip assert_used - we use assertions for internal consistency checks
+  "B101",
+  # Skip hardcoded_password_func - we use environment variables for secrets
+  "B105",
+  "B106",
+]
+assert_used = false

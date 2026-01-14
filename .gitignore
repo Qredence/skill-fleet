@@ -41,6 +41,7 @@ server.log
 .ai/mcp/mcp.json
 .junie/
 .ai/
+.factory/
 
 .github/BRANCH_PROTECTION.md
 .github/README.md

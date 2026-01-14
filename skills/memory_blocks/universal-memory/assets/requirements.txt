@@ -1,0 +1,13 @@
+# Universal Memory System Requirements
+# No required packages - uses Python standard library only
+
+# Optional: For semantic search (keyword search is built-in)
+sentence-transformers>=2.2.0
+
+# Optional: LLM provider SDKs (install as needed)
+openai>=1.0.0
+anthropic>=0.18.0
+google-generativeai>=0.3.0
+
+# Optional: For async examples
+aiohttp>=3.9.0

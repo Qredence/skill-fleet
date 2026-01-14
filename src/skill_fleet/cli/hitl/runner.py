@@ -27,6 +27,9 @@ from ..ui.prompts import (
 )
 from ..utils.constants import HITL_POLL_INTERVAL
 
+# Import handler registry for new interaction types
+from .handlers import get_handler
+
 
 def _render_questions(questions: object) -> str:
     if isinstance(questions, str):
@@ -159,6 +162,14 @@ async def run_hitl_job(
                 await client.post_hitl_response(job_id, {"action": "proceed"})
             continue
 
+        # Check if there's a registered handler for this interaction type
+        # (new types: deep_understanding, tdd_red, tdd_green, tdd_refactor)
+        handler = get_handler(interaction_type, console, ui)
+        if handler:
+            await handler.handle(job_id, prompt_data, client)
+            continue
+
+        # Existing inline handlers for: clarify, confirm, preview, validate
         if interaction_type == "clarify":
             rationale = prompt_data.get("rationale", "")
             if show_thinking and rationale:

@@ -379,6 +379,7 @@ For workflow internals, see [`docs/architecture/skill-creation-workflow.md`](arc
 
 | Topic | Description |
 |-------|-------------|
+| **[README](../README.md)** | Project overview, quick start, and differentiation |
 | **[DSPy Documentation](dspy/)** | 3-phase workflow, signatures, modules, programs, optimization |
 | **[API Documentation](api/)** | REST API endpoints, schemas, jobs, middleware |
 | **[CLI Documentation](cli/)** | Command reference, interactive chat, architecture |

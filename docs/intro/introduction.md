@@ -25,56 +25,46 @@ docs/
 ├── intro/
 │   └── introduction.md         # This page
 ├── getting-started/
-│   ├── index.md                # Installation, CLI/API, templates, validation
-│   ├── installation.md         # Installation guide
-│   └── first-skill.md          # Tutorial: Your first skill
-├── dspy/                       # NEW: DSPy architecture & usage
+│   └── index.md                # Installation, CLI/API, templates, validation
+├── dspy/                       # DSPy architecture & usage
 │   ├── index.md                 # DSPy overview
 │   ├── signatures.md            # All DSPy signatures
 │   ├── modules.md               # All DSPy modules
 │   ├── programs.md              # DSPy programs
 │   └── optimization.md          # MIPROv2, GEPA, caching
-├── api/                        # NEW: FastAPI REST API
+├── api/                        # FastAPI REST API
 │   ├── index.md                 # API overview
 │   ├── endpoints.md             # REST endpoint reference
 │   ├── schemas.md               # Request/response models
 │   ├── middleware.md            # CORS, error handling
 │   └── jobs.md                  # Background jobs
-├── cli/                        # NEW: CLI documentation
+├── cli/                        # CLI documentation
 │   ├── index.md                 # CLI overview
 │   ├── commands.md              # Command reference
 │   ├── interactive-chat.md      # Chat mode guide
 │   └── architecture.md          # CLI internals
-├── llm/                        # NEW: LLM configuration
+├── llm/                        # LLM configuration
 │   ├── index.md                 # Configuration overview
 │   ├── providers.md             # Provider setup
 │   ├── dspy-config.md           # Centralized config
 │   └── task-models.md           # Task-specific models
-├── hitl/                       # NEW: HITL system
+├── hitl/                       # HITL system
 │   ├── index.md                 # HITL overview
 │   ├── callbacks.md             # Callback interface
 │   ├── interactions.md          # Interaction types
 │   └── runner.md                # HITL runner
 ├── concepts/
 │   ├── concept-guide.md         # Concepts overview
-│   ├── developer-reference.md  # DSPy workflows, HITL, taxonomy concepts
-│   ├── taxonomy-system.md       # NEW: Taxonomy deep dive
-│   └── agentskills-io.md        # NEW: agentskills.io standard
-├── reference/
-│   ├── api-reference.md         # FastAPI + programmatic surface
-│   ├── cli-reference.md          # Command reference
-│   └── python-api.md            # NEW: Pure Python API
+│   └── developer-reference.md   # DSPy workflows, HITL, taxonomy concepts
 ├── agentskills-compliance.md   # Schema/validation
+├── api-reference.md            # FastAPI + programmatic surface
+├── cli-reference.md            # Command reference
 ├── overview.md                 # High-level architecture and taxonomy
 ├── architecture/
-│   ├── skill-creation-workflow.md # 3-phase workflow
-│   ├── system-architecture.md   # NEW: Overall architecture
-│   └── data-flow.md             # NEW: Data flow diagrams
+│   └── skill-creation-workflow.md # 3-phase workflow
 └── development/
     ├── CONTRIBUTING.md         # Contribution guide
-    ├── ARCHITECTURE_DECISIONS.md # Design decisions
-    ├── testing.md               # NEW: Testing guide
-    └── extending.md             # NEW: Extension guide
+    └── ARCHITECTURE_DECISIONS.md # Design decisions
 ```
 
 ## Next Steps

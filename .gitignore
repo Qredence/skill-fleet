@@ -49,3 +49,5 @@ server.log
 .github/README.md
 .github/QUICKSTART.md
 .codex/skills/initializing-memory/SKILL.md
+!/.claude/skills/
+.output.txt

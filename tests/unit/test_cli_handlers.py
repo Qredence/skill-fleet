@@ -98,7 +98,9 @@ class TestDeepUnderstandingHandler:
         # Handlers call: client.post_hitl_response(job_id, payload)
         # call_args[0] is positional args tuple
         assert client.post_hitl_response.call_args[0][0] == "job_123"
-        assert client.post_hitl_response.call_args[0][1]["action"] == "proceed"  # skip maps to proceed
+        assert (
+            client.post_hitl_response.call_args[0][1]["action"] == "proceed"
+        )  # skip maps to proceed
 
     @pytest.mark.asyncio
     async def test_handle_with_proceed_action_collects_full_response(self):
@@ -120,7 +122,9 @@ class TestDeepUnderstandingHandler:
         handler.ui = MagicMock()
         handler.ui.choose_one = AsyncMock(return_value="proceed")
         # Handler calls ask_text 3 times: answer, problem, goals
-        handler.ui.ask_text = AsyncMock(side_effect=["Flaky tests", "Flaky tests", "reliability, speed"])
+        handler.ui.ask_text = AsyncMock(
+            side_effect=["Flaky tests", "Flaky tests", "reliability, speed"]
+        )
 
         await handler.handle("job_456", prompt_data, client)
 

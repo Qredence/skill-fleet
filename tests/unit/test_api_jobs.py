@@ -5,27 +5,22 @@ the features they test.
 """
 
 import json
-from datetime import UTC, datetime
-from pathlib import Path
-from unittest.mock import patch
-
-import pytest
-from pydantic import ValidationError
+from datetime import datetime
 
 from skill_fleet.api.jobs import (
-    create_job,
-    get_job,
-    save_job_session,
-    load_job_session,
-    delete_job_session,
-    list_saved_sessions,
-    cleanup_old_sessions,
     SESSION_DIR,
+    cleanup_old_sessions,
+    create_job,
+    delete_job_session,
+    get_job,
+    list_saved_sessions,
+    load_job_session,
+    save_job_session,
 )
 from skill_fleet.api.schemas import (
-    TDDWorkflowState,
     DeepUnderstandingState,
     JobState,
+    TDDWorkflowState,
 )
 
 
@@ -312,6 +307,7 @@ class TestSessionPersistence:
 
         # Clear from memory
         from skill_fleet.api.jobs import JOBS
+
         JOBS.clear()
 
         # Act
@@ -346,6 +342,7 @@ class TestSessionPersistence:
 
         # Clear from memory
         from skill_fleet.api.jobs import JOBS
+
         JOBS.clear()
 
         # Act
@@ -418,7 +415,6 @@ class TestSessionPersistence:
 
         job_id_2 = create_job()
         save_job_session(job_id_2)
-        session_file_2 = SESSION_DIR / f"{job_id_2}.json"
 
         # Both sessions exist
         assert len(list_saved_sessions()) == 2

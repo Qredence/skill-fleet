@@ -8,7 +8,6 @@ features migrated from ConversationalSkillAgent.
 """
 
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi import HTTPException
@@ -19,10 +18,8 @@ from skill_fleet.api.jobs import (
 )
 from skill_fleet.api.schemas import (
     DeepUnderstandingState,
-    JobState,
     TDDWorkflowState,
 )
-from skill_fleet.api.routes import hitl as hitl_routes
 
 
 class TestDeepUnderstandingInteractionType:
@@ -43,7 +40,7 @@ class TestDeepUnderstandingInteractionType:
         job.status = "pending_hitl"
 
         # Act - Mock the get_job to return our test job
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(HTTPException):
             # This would normally return prompt data, but for testing we'll
             # verify the structure through get_prompt
             raise HTTPException(status_code=500, detail="Test setup")
@@ -407,9 +404,7 @@ class TestHitlRouteIntegration:
 
         # Act - Simulate response processing
         job.hitl_response = response
-        job.tdd_workflow.rationalizations_identified = response.get(
-            "rationalizations", []
-        )
+        job.tdd_workflow.rationalizations_identified = response.get("rationalizations", [])
         job.updated_at = datetime.now(UTC)
 
         # Assert

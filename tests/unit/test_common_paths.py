@@ -5,8 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
-
 from skill_fleet.common.paths import (
     _first_existing,
     _iter_parents,
@@ -179,12 +177,8 @@ class TestDefaultConfigPath:
         isolated.mkdir()
 
         with patch("skill_fleet.common.paths.Path.cwd", return_value=isolated):
-            with patch(
-                "skill_fleet.common.paths.find_repo_root", return_value=None
-            ):
-                with patch(
-                    "skill_fleet.common.paths._package_root", return_value=isolated
-                ):
+            with patch("skill_fleet.common.paths.find_repo_root", return_value=None):
+                with patch("skill_fleet.common.paths._package_root", return_value=isolated):
                     result = default_config_path()
 
         # Should return cwd-based fallback
@@ -213,12 +207,8 @@ class TestDefaultProfilesPath:
         isolated.mkdir()
 
         with patch("skill_fleet.common.paths.Path.cwd", return_value=isolated):
-            with patch(
-                "skill_fleet.common.paths.find_repo_root", return_value=None
-            ):
-                with patch(
-                    "skill_fleet.common.paths._package_root", return_value=isolated
-                ):
+            with patch("skill_fleet.common.paths.find_repo_root", return_value=None):
+                with patch("skill_fleet.common.paths._package_root", return_value=isolated):
                     result = default_profiles_path()
 
         assert result == isolated / "config" / "profiles" / "bootstrap_profiles.json"
@@ -244,12 +234,8 @@ class TestDefaultSkillsRoot:
         isolated.mkdir()
 
         with patch("skill_fleet.common.paths.Path.cwd", return_value=isolated):
-            with patch(
-                "skill_fleet.common.paths.find_repo_root", return_value=None
-            ):
-                with patch(
-                    "skill_fleet.common.paths._package_root", return_value=isolated
-                ):
+            with patch("skill_fleet.common.paths.find_repo_root", return_value=None):
+                with patch("skill_fleet.common.paths._package_root", return_value=isolated):
                     result = default_skills_root()
 
         assert result == isolated / "skills"

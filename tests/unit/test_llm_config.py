@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch  # noqa: F401
 
 import pytest
 
@@ -258,9 +258,7 @@ class TestResolveTaskLm:
                     }
                 },
             },
-            "tasks": {
-                "some_task": {}
-            },
+            "tasks": {"some_task": {}},
             "roles": {},
         }
 

@@ -18,6 +18,7 @@ from typing import Any
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
+from rich.status import Status
 
 from ..ui.prompts import (
     PromptUI,
@@ -142,16 +143,34 @@ async def run_hitl_job(
     """
     ui = ui or get_default_ui(force_plain_text=force_plain_text)
 
+    spinner: Status | None = None
+    current_interval = float(poll_interval)
+
     while True:
         prompt_data = await client.get_hitl_prompt(job_id)
         status = prompt_data.get("status")
 
         if status in {"completed", "failed", "cancelled"}:
+            if spinner is not None:
+                spinner.stop()
+                spinner = None
             return prompt_data
 
         if status != "pending_hitl":
-            await asyncio.sleep(poll_interval)
+            message = f"[dim]Workflow running… ({status})[/dim]"
+            if spinner is None:
+                spinner = console.status(message, spinner="dots")
+                spinner.start()
+            else:
+                spinner.update(message)
+            await asyncio.sleep(current_interval)
+            current_interval = min(max(poll_interval, 0.5) * 5.0, current_interval * 1.25)
             continue
+
+        if spinner is not None:
+            spinner.stop()
+            spinner = None
+        current_interval = float(poll_interval)
 
         interaction_type = prompt_data.get("type")
 

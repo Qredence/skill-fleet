@@ -52,4 +52,31 @@ class SkillFleetClient:
         """List all skills from the taxonomy."""
         response = await self.client.get("/api/v2/taxonomy/")
         response.raise_for_status()
-        return response.json().get("skills", [])
+        payload = response.json()
+        if isinstance(payload, dict) and isinstance(payload.get("skills"), list):
+            return payload["skills"]
+        return []
+
+    async def get_job(self, job_id: str) -> dict[str, Any]:
+        """Fetch job status and any persisted artifacts/results."""
+        response = await self.client.get(f"/api/v2/jobs/{job_id}")
+        if response.status_code == 404:
+            raise ValueError(f"Job {job_id} not found.")
+        response.raise_for_status()
+        return response.json()
+
+    async def promote_draft(
+        self,
+        job_id: str,
+        *,
+        overwrite: bool = True,
+        delete_draft: bool = False,
+        force: bool = False,
+    ) -> dict[str, Any]:
+        """Promote a draft created by a job into the real taxonomy."""
+        response = await self.client.post(
+            f"/api/v2/drafts/{job_id}/promote",
+            json={"overwrite": overwrite, "delete_draft": delete_draft, "force": force},
+        )
+        response.raise_for_status()
+        return response.json()

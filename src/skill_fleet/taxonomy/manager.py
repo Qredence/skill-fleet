@@ -31,21 +31,18 @@ def skill_id_to_name(skill_id: str) -> str:
     """Convert path-style skill_id to kebab-case name per agentskills.io spec.
 
     Examples:
-        'technical_skills/programming/languages/python/decorators' -> 'python-decorators'
+        'technical_skills/programming/languages/python/python-decorators' -> 'python-decorators'
         '_core/reasoning' -> 'core-reasoning'
         'mcp_capabilities/tool_integration' -> 'tool-integration'
 
-    The name is derived from the last 1-2 path segments to keep it concise.
+    The name must match the skill directory name, so it is derived from the
+    last path segment only.
     """
     # Remove leading underscores from path segments
     parts = [p.lstrip("_") for p in skill_id.split("/")]
 
-    # Take last 1-2 meaningful segments
-    if len(parts) >= 2:
-        # Use last two segments for context (e.g., 'python/decorators' -> 'python-decorators')
-        name_parts = parts[-2:]
-    else:
-        name_parts = parts[-1:]
+    # Take the last segment (directory name) for spec compliance.
+    name_parts = parts[-1:]
 
     # Convert underscores to hyphens and join
     name = "-".join(p.replace("_", "-") for p in name_parts)
@@ -468,27 +465,6 @@ class TaxonomyManager:
             "name": name,
             "description": description[:1024],  # Enforce max length
         }
-
-        # Add category for hierarchical discovery
-        if metadata.get("category"):
-            frontmatter["category"] = metadata["category"]
-        elif metadata.get("skill_id"):
-            # Derive category from skill_id path
-            skill_id = metadata["skill_id"]
-            if "/" in skill_id:
-                frontmatter["category"] = "/".join(skill_id.split("/")[:-1])
-
-        # Add keywords for search/discovery
-        if metadata.get("keywords"):
-            frontmatter["keywords"] = metadata["keywords"]
-
-        # Add scope for differentiation
-        if metadata.get("scope"):
-            frontmatter["scope"] = metadata["scope"]
-
-        # Add see_also for cross-referencing
-        if metadata.get("see_also"):
-            frontmatter["see_also"] = metadata["see_also"]
 
         # Add optional extended metadata
         extended_meta = {}

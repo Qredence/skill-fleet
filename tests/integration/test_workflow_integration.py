@@ -54,8 +54,8 @@ async def test_workflow_with_real_llm():
 @pytest.mark.anyio
 async def test_capability_serialization():
     """Specifically test that Capability objects are properly serialized."""
-    from skill_fleet.core.models import Capability
     from skill_fleet.core.dspy.modules import InitializeModule
+    from skill_fleet.core.models import Capability
 
     # Create module
     module = InitializeModule()

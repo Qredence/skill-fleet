@@ -1,7 +1,6 @@
 """Global pytest configuration and fixtures."""
 
 import os
-from unittest.mock import patch
 
 # Set development environment for all tests to allow wildcard CORS
 # and other development-friendly defaults.

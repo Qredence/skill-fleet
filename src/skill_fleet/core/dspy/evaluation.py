@@ -31,7 +31,12 @@ import yaml
 
 from ...common.paths import default_config_path
 from ...llm.dspy_config import configure_dspy
-from .metrics import SkillQualityScores, assess_skill_quality, parse_skill_content, skill_quality_metric
+from .metrics import (
+    SkillQualityScores,
+    assess_skill_quality,
+    parse_skill_content,
+    skill_quality_metric,
+)
 
 logger = logging.getLogger(__name__)
 

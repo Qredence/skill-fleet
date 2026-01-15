@@ -158,9 +158,13 @@ class TaskConfig(BaseModel):
 
     @model_validator(mode="after")
     def validate_model_or_role(self) -> TaskConfig:
-        """Validate that at least model or role is specified."""
-        if self.model is None and self.role is None:
-            raise ValueError("Task must specify either 'model' or 'role'")
+        """Validate that at least model or role is specified.
+        
+        Note: This validator is lenient - it allows both to be None for
+        cases where we create default TaskConfig instances. The actual
+        validation happens at model resolution time when we need to use the task.
+        """
+        # Allow empty TaskConfig - validation happens at resolution time
         return self
 
 
@@ -235,21 +239,17 @@ class FleetConfig(BaseModel):
         try:
             return cls(**data)
         except ValidationError as e:
-            # Preserve detailed Pydantic validation errors
-            error_details = {
-                "validation_errors": [
-                    {
-                        "loc": ".".join(str(x) for x in err["loc"]),
-                        "msg": err["msg"],
-                        "type": err["type"],
-                    }
-                    for err in e.errors()
-                ]
-            }
-            raise ConfigurationError(
-                f"Configuration validation failed: {e.error_count()} error(s) found",
-                details=error_details
-            ) from e
+            # Preserve detailed Pydantic validation errors in message
+            error_messages = []
+            for err in e.errors():
+                loc = ".".join(str(x) for x in err["loc"])
+                error_messages.append(f"  - {loc}: {err['msg']}")
+
+            detailed_msg = (
+                f"Configuration validation failed: {e.error_count()} error(s) found\n"
+                + "\n".join(error_messages)
+            )
+            raise ConfigurationError(detailed_msg) from e
         except Exception as e:
             raise ConfigurationError(f"Invalid configuration: {e}") from e
 

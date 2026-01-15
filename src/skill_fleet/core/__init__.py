@@ -21,7 +21,6 @@ Import Guidelines:
 
 from skill_fleet.core.config import (
     FleetConfig,
-    LegacyAliases,
     ModelConfig,
     ModelParameters,
     ModelsConfig,
@@ -99,7 +98,6 @@ __all__ = [
     "RolesConfig",
     "TaskConfig",
     "TasksConfig",
-    "LegacyAliases",
     # HITL Models
     "QuestionOption",
     "ClarifyingQuestion",

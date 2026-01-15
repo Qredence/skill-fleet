@@ -16,6 +16,12 @@ from .schemas import DeepUnderstandingState, JobState, TDDWorkflowState
 logger = logging.getLogger(__name__)
 
 
+def _sanitize_for_log(value: Any) -> str:
+    """Remove newline characters from values before logging to prevent log injection."""
+    text = str(value)
+    return text.replace("\r", "").replace("\n", "")
+
+
 # In-memory job store (use Redis in production)
 JOBS: dict[str, JobState] = {}
 _HITL_RESPONSE_WAITERS: dict[str, asyncio.Future[dict[str, Any]]] = {}
@@ -100,17 +106,21 @@ def save_job_session(job_id: str) -> bool:
     """
     job = JOBS.get(job_id)
     if not job:
-        logger.warning(f"Cannot save session: job {job_id} not found")
+        logger.warning("Cannot save session: job %s not found", _sanitize_for_log(job_id))
         return False
 
     try:
         session_file = SESSION_DIR / f"{job_id}.json"
         session_data = job.model_dump(mode="json", exclude_none=True)
         session_file.write_text(json.dumps(session_data, indent=2, default=str), encoding="utf-8")
-        logger.debug(f"Saved session for job {job_id}")
+        logger.debug("Saved session for job %s", _sanitize_for_log(job_id))
         return True
     except Exception as e:
-        logger.error(f"Failed to save session for job {job_id}: {e}")
+        logger.error(
+            "Failed to save session for job %s: %s",
+            _sanitize_for_log(job_id),
+            _sanitize_for_log(e),
+        )
         return False
 
 
@@ -144,11 +154,15 @@ def load_job_session(job_id: str) -> JobState | None:
             job.deep_understanding = DeepUnderstandingState(**deep_data)
 
         JOBS[job_id] = job
-        logger.info(f"Loaded session for job {job_id}")
+        logger.info("Loaded session for job %s", _sanitize_for_log(job_id))
         return job
 
     except Exception as e:
-        logger.error(f"Failed to load session for job {job_id}: {e}")
+        logger.error(
+            "Failed to load session for job %s: %s",
+            _sanitize_for_log(job_id),
+            _sanitize_for_log(e),
+        )
         return None
 
 

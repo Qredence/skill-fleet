@@ -10,6 +10,23 @@ The **Agentic Skills System** is a hierarchical, dynamic capability framework th
 
 ---
 
+## ✅ Current State (2026-01-15)
+
+- **API-first execution**: FastAPI is the canonical surface for running DSPy workflows; the CLI (`skill-fleet create/chat/...`) is a thin API client.
+- **Draft-first persistence**: jobs write drafts under `skills/_drafts/<job_id>/...`; promotion into the taxonomy is explicit via:
+  - `uv run skill-fleet promote <job_id>`, or
+  - `POST /api/v2/drafts/{job_id}/promote`
+- **Job persistence caveat**: by default, job state is stored in-memory; a server restart may cause `GET /api/v2/hitl/{job_id}/prompt` to return 404.
+- **Known runtime warnings (observed locally)**:
+  - Pydantic serializer warnings for streaming/chat payloads (shape mismatches can indicate version drift between producer/consumer models).
+- **CLI UX footguns (observed locally)**:
+  - Rich `MarkupError` can occur if an exception message includes markup-like tags (e.g. `[/Input Credentials/]`); workaround: `--force-plain-text` or `SKILL_FLEET_FORCE_PLAIN_TEXT=1`.
+  - “Action/choice” prompts are only available when the API returns structured `options`; otherwise questions fall back to free-text.
+- **Skill quality**: validation can pass “with warnings” (e.g., insufficient examples, plan mismatches). Always review drafts before promotion.
+- **Where to look**: `docs/api/endpoints.md`, `docs/cli/interactive-chat.md`, `plans/2026-01-12-cli-chat-ux.md`.
+
+---
+
 ## 🏗️ Architecture Overview
 
 ### Core Components
@@ -819,5 +836,5 @@ uv run ruff format .
 
 ---
 
-**Last Updated**: 2026-01-12
+**Last Updated**: 2026-01-15
 **Maintainer**: skill-fleet team

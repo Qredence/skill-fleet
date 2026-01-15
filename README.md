@@ -41,25 +41,28 @@ cp .env.example .env
 # 3. Start the API server
 uv run skill-fleet serve
 
-# 4. Create a skill (in a new terminal)
+# 4. Create a skill (in a new terminal; the CLI is an API client)
 uv run skill-fleet chat "Create a Python decorators skill"
 ```
 
 **What happens next:**
 
-The conversational agent guides you through a 3-phase workflow:
+The conversational agent guides you through a 3-phase workflow (as an async job on the FastAPI server):
 
 1. **Understanding**: "I'll help you create a Python decorators skill. Should this focus on basic decorators, class-based decorators, or both?"
 2. **Generation**: Creates the skill with YAML frontmatter, capabilities, examples, and tests
-3. **Validation**: Runs compliance checks and saves to `skills/technical_skills/programming/languages/python/decorators/`
+3. **Validation**: Runs compliance checks and writes a **draft** under `skills/_drafts/<job_id>/...`
 
-**Result**: A production-ready skill with agentskills.io-compliant metadata, ready to be deployed.
+**Result**: A draft skill you can review before promotion.
 
 ```bash
-# 5. Verify your skill
+# 5. Verify your current taxonomy (promoted skills only)
 uv run skill-fleet list
 
-# 6. Generate XML for agent integration
+# 6. Promote the draft into the taxonomy when ready
+uv run skill-fleet promote <job_id>
+
+# 7. Generate XML for agent integration
 uv run skill-fleet generate-xml -o available_skills.xml
 ```
 
@@ -111,11 +114,15 @@ This ensures skills are discoverable, interoperable, and machine-readable.
 ### Architecture Overview
 
 ```
-User Request → Conversational Agent → DSPy 3-Phase Workflow → Taxonomy Storage
+User Request → Conversational Agent → DSPy 3-Phase Workflow → Drafts (skills/_drafts/<job_id>/...)
                     ↓                           ↓                      ↓
               HITL Feedback              MIPROv2/GEPA           Validation
 
 FastAPI Server ← Background Jobs ← Optimization Cache
+        ↓
+  Promote (CLI or API)
+        ↓
+ Taxonomy Storage
 ```
 
 ## Core Commands
@@ -125,6 +132,7 @@ FastAPI Server ← Background Jobs ← Optimization Cache
 | `uv run skill-fleet serve` | Start FastAPI server | Required for create/chat/list |
 | `uv run skill-fleet chat` | **Recommended**: Conversational skill creation | Most skill creation workflows |
 | `uv run skill-fleet create "task"` | Direct skill creation | CI/CD pipelines, scripting |
+| `uv run skill-fleet promote <job_id>` | Promote a draft into the taxonomy | After reviewing a draft |
 | `uv run skill-fleet optimize --optimizer miprov2` | Optimize DSPy workflows | Improving skill quality |
 | `uv run skill-fleet validate <path>` | Validate skill compliance | Quality checks before commit |
 | `uv run skill-fleet generate-xml` | Generate agentskills.io XML | Agent integration |

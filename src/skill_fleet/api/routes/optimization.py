@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 # In-memory storage for optimization jobs (in production, use Redis/DB)
 _optimization_jobs: dict[str, dict[str, Any]] = {}
+_jobs_lock = asyncio.Lock()
 
 
 def _default_optimized_root() -> Path:
@@ -146,13 +147,14 @@ async def start_optimization(
         )
 
     # Initialize job status
-    _optimization_jobs[job_id] = {
-        "status": "pending",
-        "progress": 0.0,
-        "message": "Job queued",
-        "result": None,
-        "error": None,
-    }
+    async with _jobs_lock:
+        _optimization_jobs[job_id] = {
+            "status": "pending",
+            "progress": 0.0,
+            "message": "Job queued",
+            "result": None,
+            "error": None,
+        }
 
     # Start background task
     background_tasks.add_task(
@@ -176,9 +178,10 @@ async def _run_optimization(
 ) -> None:
     """Run optimization in background."""
     try:
-        _optimization_jobs[job_id]["status"] = "running"
-        _optimization_jobs[job_id]["message"] = "Loading training data..."
-        _optimization_jobs[job_id]["progress"] = 0.1
+        async with _jobs_lock:
+            _optimization_jobs[job_id]["status"] = "running"
+            _optimization_jobs[job_id]["message"] = "Loading training data..."
+            _optimization_jobs[job_id]["progress"] = 0.1
 
         # Load training examples from paths
         training_examples = []
@@ -200,19 +203,22 @@ async def _run_optimization(
                 )
 
         if not training_examples:
-            _optimization_jobs[job_id]["status"] = "failed"
-            _optimization_jobs[job_id]["error"] = "No valid training examples found"
+            async with _jobs_lock:
+                _optimization_jobs[job_id]["status"] = "failed"
+                _optimization_jobs[job_id]["error"] = "No valid training examples found"
             return
 
-        _optimization_jobs[job_id]["message"] = f"Loaded {len(training_examples)} training examples"
-        _optimization_jobs[job_id]["progress"] = 0.2
+        async with _jobs_lock:
+            _optimization_jobs[job_id]["message"] = f"Loaded {len(training_examples)} training examples"
+            _optimization_jobs[job_id]["progress"] = 0.2
 
         # Initialize optimizer with configure_lm=False since the optimize_with_* methods
         # handle LM configuration internally using dspy.context() for async safety
         optimizer = SkillOptimizer(configure_lm=False)
 
-        _optimization_jobs[job_id]["message"] = f"Running {request.optimizer} optimization..."
-        _optimization_jobs[job_id]["progress"] = 0.3
+        async with _jobs_lock:
+            _optimization_jobs[job_id]["message"] = f"Running {request.optimizer} optimization..."
+            _optimization_jobs[job_id]["progress"] = 0.3
 
         # Run optimization (this is CPU/GPU intensive)
         # Note: In production, this should be run in a separate process/worker
@@ -232,7 +238,8 @@ async def _run_optimization(
                 max_labeled_demos=request.max_labeled_demos,
             )
 
-        _optimization_jobs[job_id]["progress"] = 0.9
+        async with _jobs_lock:
+            _optimization_jobs[job_id]["progress"] = 0.9
 
         # Save if requested
         if request.save_path:
@@ -242,36 +249,41 @@ async def _run_optimization(
 
             if hasattr(result, "save"):
                 result.save(str(save_file))
-                _optimization_jobs[job_id]["message"] = (
-                    f"Optimization complete. Saved to {save_file}"
-                )
+                message = f"Optimization complete. Saved to {save_file}"
             else:
-                _optimization_jobs[job_id]["message"] = "Optimization complete (save not supported)"
+                message = "Optimization complete (save not supported)"
 
-        _optimization_jobs[job_id]["status"] = "completed"
-        _optimization_jobs[job_id]["progress"] = 1.0
-        _optimization_jobs[job_id]["result"] = {
-            "optimizer": request.optimizer,
-            "training_examples_count": len(training_examples),
-            "save_path": request.save_path,
-        }
+            async with _jobs_lock:
+                _optimization_jobs[job_id]["message"] = message
+
+        async with _jobs_lock:
+            _optimization_jobs[job_id]["status"] = "completed"
+            _optimization_jobs[job_id]["progress"] = 1.0
+            _optimization_jobs[job_id]["result"] = {
+                "optimizer": request.optimizer,
+                "training_examples_count": len(training_examples),
+                "save_path": request.save_path,
+            }
 
     except Exception as e:
         logger.error(f"Optimization job {job_id} failed: {e}", exc_info=True)
-        _optimization_jobs[job_id]["status"] = "failed"
-        _optimization_jobs[job_id]["error"] = str(e)
+        async with _jobs_lock:
+            _optimization_jobs[job_id]["status"] = "failed"
+            _optimization_jobs[job_id]["error"] = str(e)
 
 
 @router.get("/status/{job_id}", response_model=OptimizationStatus)
 async def get_optimization_status(job_id: str) -> OptimizationStatus:
     """Get the status of an optimization job."""
-    if job_id not in _optimization_jobs:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Optimization job {job_id} not found",
-        )
+    async with _jobs_lock:
+        if job_id not in _optimization_jobs:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Optimization job {job_id} not found",
+            )
 
-    job = _optimization_jobs[job_id]
+        job = _optimization_jobs[job_id].copy()  # Copy to avoid holding lock during response
+    
     return OptimizationStatus(
         job_id=job_id,
         status=job["status"],
@@ -338,13 +350,15 @@ async def cancel_optimization(job_id: str) -> dict[str, str]:
 
     Note: Running jobs cannot be cancelled, only removed from tracking.
     """
-    if job_id not in _optimization_jobs:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Optimization job {job_id} not found",
-        )
+    async with _jobs_lock:
+        if job_id not in _optimization_jobs:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Optimization job {job_id} not found",
+            )
 
-    job = _optimization_jobs.pop(job_id)
+        job = _optimization_jobs.pop(job_id)
+    
     return {
         "job_id": job_id,
         "previous_status": job["status"],

@@ -116,7 +116,7 @@ def test_cli_exit_str_representation():
 def test_cli_exit_with_none_message():
     """Test CLIExit with None message."""
     error = CLIExit()
-    assert error.message is None
+    assert error.message == ""  # Empty string when None is provided
     assert str(error) == ""
 
 

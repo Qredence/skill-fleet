@@ -112,4 +112,3 @@ skips = [
   "B105",
   "B106",
 ]
-assert_used = false

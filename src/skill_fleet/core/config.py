@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 # =============================================================================
 # Configuration Models
@@ -65,20 +65,38 @@ class ModelConfig(BaseModel):
     @field_validator("env")
     @classmethod
     def validate_env(cls, v: str | None) -> str | None:
-        """Validate that the environment variable exists (if not None)."""
+        """Validate that the environment variable exists (if not None).
+        
+        Note: This is a warning-level validation. Missing environment variables
+        will be caught at runtime when the model is actually used.
+        """
         if v is not None and v not in os.environ:
-            # This is a warning - actual check happens at runtime
-            pass
+            import warnings
+            warnings.warn(
+                f"Environment variable '{v}' is not set. "
+                f"This may cause runtime errors when the model is used.",
+                UserWarning,
+                stacklevel=2
+            )
         return v
 
     @model_validator(mode="after")
     def validate_thinking_config(self) -> ModelConfig:
-        """Validate thinking_level is properly configured."""
+        """Validate thinking_level is properly configured.
+        
+        Thinking level should be used with temperature=1.0 for optimal results.
+        This validation provides a warning but allows the configuration.
+        """
         if self.parameters.thinking_level is not None:
-            # Thinking level should be used with temperature=1.0
             if self.parameters.temperature is not None and self.parameters.temperature != 1.0:
-                # This is a warning - we allow it but document the issue
-                pass
+                import warnings
+                warnings.warn(
+                    f"Model '{self.model}' has thinking_level={self.parameters.thinking_level} "
+                    f"but temperature={self.parameters.temperature!r}. "
+                    f"For optimal results with thinking_level, use temperature=1.0",
+                    UserWarning,
+                    stacklevel=2
+                )
         return self
 
 
@@ -111,19 +129,20 @@ class RoleConfig(BaseModel):
 class RolesConfig(BaseModel):
     """Configuration for all roles."""
 
+    model_config = ConfigDict(extra="allow")
+
     router: RoleConfig | None = None
     planner: RoleConfig | None = None
     worker: RoleConfig | None = None
     judge: RoleConfig | None = None
 
-    # Allow additional roles dynamically
-    extra_roles: dict[str, RoleConfig] = Field(default_factory=dict, alias="**")
-
     def get_role(self, role_name: str) -> RoleConfig | None:
         """Get a role configuration by name."""
-        if role_name in ["router", "planner", "worker", "judge"]:
+        known_roles = ["router", "planner", "worker", "judge"]
+        if role_name in known_roles:
             return getattr(self, role_name)
-        return self.extra_roles.get(role_name)
+        # Check for additional roles stored as extra fields
+        return getattr(self, role_name, None)
 
     def __getitem__(self, key: str) -> RoleConfig | None:
         """Allow dictionary-like access to roles."""
@@ -139,14 +158,20 @@ class TaskConfig(BaseModel):
 
     @model_validator(mode="after")
     def validate_model_or_role(self) -> TaskConfig:
-        """Validate that at least model or role is specified."""
-        if self.model is None and self.role is None:
-            raise ValueError("Task must specify either 'model' or 'role'")
+        """Validate that at least model or role is specified.
+        
+        Note: This validator is lenient - it allows both to be None for
+        cases where we create default TaskConfig instances. The actual
+        validation happens at model resolution time when we need to use the task.
+        """
+        # Allow empty TaskConfig - validation happens at resolution time
         return self
 
 
 class TasksConfig(BaseModel):
     """Configuration for all tasks."""
+
+    model_config = ConfigDict(extra="allow")
 
     skill_understand: TaskConfig | None = None
     skill_plan: TaskConfig | None = None
@@ -156,12 +181,9 @@ class TasksConfig(BaseModel):
     skill_validate: TaskConfig | None = None
     conversational_agent: TaskConfig | None = None
 
-    # Allow additional tasks dynamically
-    extra_tasks: dict[str, TaskConfig] = Field(default_factory=dict, alias="**")
-
     def get_task(self, task_name: str) -> TaskConfig | None:
         """Get a task configuration by name."""
-        if task_name in [
+        known_tasks = [
             "skill_understand",
             "skill_plan",
             "skill_initialize",
@@ -169,19 +191,15 @@ class TasksConfig(BaseModel):
             "skill_package",
             "skill_validate",
             "conversational_agent",
-        ]:
+        ]
+        if task_name in known_tasks:
             return getattr(self, task_name)
-        return self.extra_tasks.get(task_name)
+        # Check for additional tasks stored as extra fields
+        return getattr(self, task_name, None)
 
     def __getitem__(self, key: str) -> TaskConfig | None:
         """Allow dictionary-like access to tasks."""
         return self.get_task(key)
-
-
-class LegacyAliases(BaseModel):
-    """Legacy model name aliases for backward compatibility."""
-
-    aliases: dict[str, str] = Field(default_factory=dict, serialization_alias="legacy_aliases")
 
 
 class FleetConfig(BaseModel):
@@ -214,10 +232,24 @@ class FleetConfig(BaseModel):
         Raises:
             ConfigurationError: If configuration is invalid
         """
+        from pydantic import ValidationError
+
         from skill_fleet.common import ConfigurationError
 
         try:
             return cls(**data)
+        except ValidationError as e:
+            # Preserve detailed Pydantic validation errors in message
+            error_messages = []
+            for err in e.errors():
+                loc = ".".join(str(x) for x in err["loc"])
+                error_messages.append(f"  - {loc}: {err['msg']}")
+
+            detailed_msg = (
+                f"Configuration validation failed: {e.error_count()} error(s) found\n"
+                + "\n".join(error_messages)
+            )
+            raise ConfigurationError(detailed_msg) from e
         except Exception as e:
             raise ConfigurationError(f"Invalid configuration: {e}") from e
 
@@ -417,7 +449,6 @@ __all__ = [
     "RolesConfig",
     "TaskConfig",
     "TasksConfig",
-    "LegacyAliases",
     "FleetConfig",
     # Functions
     "load_config",

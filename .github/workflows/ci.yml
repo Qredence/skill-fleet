@@ -111,14 +111,25 @@ jobs:
         run: uv pip install pip-audit safety bandit[toml]
 
       - name: Run Bandit security linter
-        run: uv run bandit -r src/skill_fleet -f json -o bandit-report.json || true
+        run: |
+          echo "### Bandit Security Scan Results ###"
+          uv run bandit -r src/skill_fleet -f json -o bandit-report.json || true
         continue-on-error: true
 
       - name: Display Bandit results
         run: |
           if [ -f bandit-report.json ]; then
-            echo "### Bandit Security Scan Results ###"
-            uv run bandit -r src/skill_fleet || true
+            # Display concise summary from JSON report if jq is available
+            if command -v jq >/dev/null 2>&1; then
+              echo "Bandit findings (summary):"
+              cat bandit-report.json | jq '.results[] | {filename, line_number, issue_severity, issue_confidence, issue_text}' || cat bandit-report.json
+            else
+              # Fallback: show raw JSON
+              echo "Bandit findings (raw JSON):"
+              cat bandit-report.json
+            fi
+          else
+            echo "bandit-report.json not found; skipping Bandit results display."
           fi
 
       - name: Run pip-audit for dependency vulnerabilities

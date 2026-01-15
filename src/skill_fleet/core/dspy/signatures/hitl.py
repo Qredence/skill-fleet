@@ -50,6 +50,31 @@ class GenerateClarifyingQuestions(dspy.Signature):
     )
 
 
+class GenerateHITLQuestions(dspy.Signature):
+    """Generate HITL clarification questions from gathered requirements.
+
+    This is a simpler signature used during the initial HITL clarification
+    checkpoint when ambiguities are detected in the requirements gathering phase.
+
+    Takes the JSON-serialized requirements and original task description,
+    and generates focused questions to resolve ambiguities.
+    """
+
+    # Inputs
+    requirements: str = dspy.InputField(
+        desc="JSON string of gathered requirements including domain, category, ambiguities, etc."
+    )
+    task: str = dspy.InputField(desc="Original user task description")
+
+    # Outputs
+    questions: str = dspy.OutputField(
+        desc="Focused clarifying questions to resolve ambiguities (2-4 questions, numbered list)"
+    )
+    rationale: str = dspy.OutputField(
+        desc="Brief explanation of why these questions are important for skill creation"
+    )
+
+
 class SummarizeUnderstanding(dspy.Signature):
     """Summarize understanding of user intent for confirmation.
 

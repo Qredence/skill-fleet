@@ -34,6 +34,7 @@ from .modules.hitl import (
 from .modules.phase1_understanding import Phase1UnderstandingModule
 from .modules.phase2_generation import Phase2GenerationModule
 from .modules.phase3_validation import Phase3ValidationModule
+from .signatures.hitl import GenerateHITLQuestions
 
 logger = logging.getLogger(__name__)
 
@@ -141,9 +142,8 @@ class SkillCreationProgram(dspy.Module):
                 requirements = await self.phase1.gather_requirements.aforward(task_description)
 
                 if requirements["ambiguities"]:
-                    # Generate focused questions
-                    hitl_module = dspy.ChainOfThought("requirements, task -> questions")
-                    # Note: Using dspy.settings.lm if not provided
+                    # Generate focused questions using class-based signature
+                    hitl_module = dspy.ChainOfThought(GenerateHITLQuestions)
                     q_result = await hitl_module.acall(
                         requirements=json.dumps(requirements),
                         task=task_description,

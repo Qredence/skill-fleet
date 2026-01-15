@@ -301,6 +301,7 @@ class Phase1UnderstandingModule(dspy.Module):
                         skill_metadata.taxonomy_path = aligned_path
         except Exception:
             # Best-effort: do not fail Phase 1 if alignment fails.
+            # This is a non-critical operation for taxonomy path normalization.
             pass
 
         return {

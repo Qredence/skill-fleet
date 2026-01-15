@@ -253,6 +253,7 @@ def _simple_file_search(query: str, workspace_path: Path, max_results: int) -> d
                                 )
                                 break
                     except Exception:
+                        # Skip files that cannot be read or parsed
                         pass
 
         # Also search for Markdown files

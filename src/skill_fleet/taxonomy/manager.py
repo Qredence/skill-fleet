@@ -538,7 +538,8 @@ class TaxonomyManager:
                 try:
                     self._load_skill_dir_metadata(skill_dir.parent)
                 except Exception:
-                    pass  # Skip invalid skills
+                    # Skip invalid skills - they may have malformed metadata
+                    pass
 
     def _xml_escape(self, text: str) -> str:
         """Escape special XML characters."""

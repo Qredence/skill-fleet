@@ -148,17 +148,24 @@ class TestTaxonomyEndpoints:
 
     def test_list_skills(self, client):
         """Test listing skills from taxonomy."""
-        with patch("skill_fleet.api.routes.taxonomy.TaxonomyManager") as mock_manager:
-            mock_instance = MagicMock()
-            mock_instance.list_skills.return_value = []
-            mock_manager.return_value = mock_instance
+        # Use dependency override for the TaxonomyManager dependency
+        from skill_fleet.api.dependencies import get_taxonomy_manager
 
+        mock_manager = MagicMock()
+        mock_manager.metadata_cache = {}
+        mock_manager._ensure_all_skills_loaded = MagicMock()
+
+        app.dependency_overrides[get_taxonomy_manager] = lambda: mock_manager
+        try:
             response = client.get("/api/v2/taxonomy/")
 
             assert response.status_code == 200
             data = response.json()
             assert "skills" in data
             assert isinstance(data["skills"], list)
+            assert "total" in data
+        finally:
+            app.dependency_overrides.clear()
 
 
 # ============================================================================
@@ -209,9 +216,12 @@ class TestValidationEndpoints:
         """Test validation with valid skill path."""
         with patch("skill_fleet.api.routes.validation.SkillValidator") as mock_validator:
             mock_instance = MagicMock()
+            # Return format matching ValidationResponse model
             mock_instance.validate_complete.return_value = {
-                "valid": True,
-                "issues": [],
+                "passed": True,
+                "checks": [{"name": "metadata", "status": "pass", "messages": []}],
+                "warnings": [],
+                "errors": [],
             }
             mock_validator.return_value = mock_instance
 
@@ -222,7 +232,10 @@ class TestValidationEndpoints:
 
             assert response.status_code == 200
             data = response.json()
-            assert data["valid"] is True
+            assert data["passed"] is True
+            assert "checks" in data
+            assert "warnings" in data
+            assert "errors" in data
 
 
 # ============================================================================

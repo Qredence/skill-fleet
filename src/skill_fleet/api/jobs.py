@@ -194,7 +194,11 @@ def delete_job_session(job_id: str) -> bool:
             return True
         return False
     except Exception as e:
-        logger.error(f"Failed to delete session for job {job_id}: {e}")
+        logger.error(
+            "Failed to delete session for job %s: %s",
+            _sanitize_for_log(job_id),
+            _sanitize_for_log(e),
+        )
         return False
 
 

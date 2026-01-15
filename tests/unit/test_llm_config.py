@@ -15,6 +15,7 @@ from skill_fleet.llm.fleet_config import (
     _get_registry_entry,
     _model_provider,
     _resolve_task_lm,
+    build_lm_for_task,
     load_fleet_config,
     resolve_model_key,
 )
@@ -140,6 +141,11 @@ class TestModelProvider:
         assert _model_provider("gemini:gemini-2.0-flash") == "gemini"
         assert _model_provider("openai:gpt-4-turbo") == "openai"
         assert _model_provider("anthropic:claude-3-opus") == "anthropic"
+
+    def test_extracts_provider_from_litellm_model_key(self):
+        """Test extracting provider from provider/model (LiteLLM) format."""
+        assert _model_provider("gemini/gemini-3-flash-preview") == "gemini"
+        assert _model_provider("openai/gpt-4o-mini") == "openai"
 
     def test_returns_key_if_no_colon(self):
         """Test returning full key if no colon separator."""
@@ -335,3 +341,38 @@ class TestTaskLMResolution:
 
         with pytest.raises(AttributeError):
             resolution.model_key = "new_value"
+
+
+class TestBuildLmForTask:
+    """Tests for build_lm_for_task function."""
+
+    def test_builds_valid_gemini_model_from_litellm_registry_key(self):
+        """Ensure provider/model keys don't produce triple-segment model strings."""
+        config = {
+            "models": {
+                "default": "gemini/gemini-3-flash-preview",
+                "registry": {
+                    "gemini/gemini-3-flash-preview": {
+                        "model": "gemini-3-flash-preview",
+                        "model_type": "chat",
+                        "env": "GOOGLE_API_KEY",
+                        "env_fallback": "LITELLM_API_KEY",
+                        "timeout": 60,
+                        "parameters": {"temperature": 1.0, "max_tokens": 8192},
+                    },
+                },
+            },
+            "roles": {},
+            "tasks": {"skill_understand": {"model": "gemini/gemini-3-flash-preview"}},
+        }
+
+        with patch.dict(os.environ, {"GOOGLE_API_KEY": "test"}, clear=True):
+            with patch("skill_fleet.llm.fleet_config.dspy.LM") as mock_lm:
+                mock_lm.return_value = MagicMock()
+                build_lm_for_task(config, "skill_understand")
+
+                assert mock_lm.called
+                dspy_model = mock_lm.call_args.args[0]
+                assert dspy_model == "gemini/gemini-3-flash-preview"
+                assert dspy_model != "gemini/gemini-3-flash-preview/gemini-3-flash-preview"
+                assert mock_lm.call_args.kwargs["api_key"] == "test"

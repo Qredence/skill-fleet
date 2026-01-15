@@ -1,0 +1,43 @@
+{
+  "skill_id": "technical_skills/web_development/frontend/react/react-vite-production-setup",
+  "name": "react-vite-production-setup",
+  "description": "A comprehensive workflow for initializing and configuring a production-ready React SPA using Vite, TypeScript, Tailwind CSS, and TanStack Query with a feature-based architecture.",
+  "version": "1.0.0",
+  "type": "technical",
+  "weight": "medium",
+  "load_priority": "task_specific",
+  "dependencies": [
+    "technical_skills/web_development/languages/typescript",
+    "technical_skills/web_development/frontend/react/core",
+    "technical_skills/web_development/tooling/node_package_managers"
+  ],
+  "capabilities": [],
+  "category": "technical_skills/web_development/frontend/react",
+  "keywords": [
+    "vite-config",
+    "path-aliases",
+    "query-client",
+    "feature-based-structure",
+    "code-splitting"
+  ],
+  "scope": "Covers project initialization, Vite/PostCSS/TS configuration, and directory organization. Does not cover UI component implementation, authentication, or CI/CD pipelines.",
+  "see_also": [
+    "technical_skills/web_development/frontend/state_management/tanstack_query",
+    "technical_skills/web_development/frontend/styling/tailwind_css"
+  ],
+  "tags": [
+    "vite",
+    "react",
+    "typescript",
+    "tailwind-css",
+    "tanstack-query",
+    "frontend-architecture"
+  ],
+  "created_at": "2026-01-15T07:58:21.466651+00:00",
+  "last_modified": "2026-01-15T07:58:21.466651+00:00",
+  "evolution": {
+    "created_by": "skill-fleet-api",
+    "workflow": "SkillCreationProgram",
+    "validation_score": 0.92
+  }
+}

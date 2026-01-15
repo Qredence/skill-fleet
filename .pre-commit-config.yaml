@@ -37,7 +37,7 @@ repos:
       - id: detect-private-key
       # Sort requirements files
       - id: sort-requirements
-      # Prevent committing to main/master branch
+      # Prevent committing to the main / master branch
       - id: no-commit-to-branch
         args: [--branch, main, --branch, master]
 

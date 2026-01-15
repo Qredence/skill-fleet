@@ -253,13 +253,13 @@ To run these scenarios and document failures:
 
 Based on common patterns, agents might rationalize:
 
-| Rationalization | Reality |
-|----------------|---------|
-| "The tutorial did it this way" | Tutorials skip production concerns |
-| "It works in development" | Production has different load patterns |
-| "I'll add proper cleanup later" | Later never comes, production leaks connections |
-| "Requests is fine for simple cases" | Blocking kills async performance |
-| "I can fix tests after" | Tests after don't catch async issues |
-| "This is a simple endpoint" | Simple endpoints become complex |
+| Rationalization                     | Reality                                         |
+|-------------------------------------|-------------------------------------------------|
+| "The tutorial did it this way"      | Tutorials skip production concerns              |
+| "It works in development"           | Production has different load patterns          |
+| "I'll add proper cleanup later"     | Later never comes, production leaks connections |
+| "Requests is fine for simple cases" | Blocking kills async performance                |
+| "I can fix tests after"             | Tests after don't catch async issues            |
+| "This is a simple endpoint"         | Simple endpoints become complex                 |
 
 These rationalizations will inform the "Common Mistakes" and anti-patterns section in the skill.

@@ -531,7 +531,7 @@ class TestModelResolution:
             model_key, model_config, params = config.get_model_config("skill_understand")
             assert model_key == "env-model"
         finally:
-            del os.environ["FLEET_MODEL_SKILL_UNDERSTAND"]
+            os.environ.pop("FLEET_MODEL_SKILL_UNDERSTAND", None)
 
     def test_model_resolution_model_not_in_registry(self):
         """Test error when resolved model not in registry."""
@@ -612,7 +612,7 @@ class TestParameterMerging:
             _, _, merged = config.get_model_config("unknown_task")
             assert merged.temperature == 1.5
         finally:
-            del os.environ["DSPY_TEMPERATURE"]
+            os.environ.pop("DSPY_TEMPERATURE", None)
 
     def test_parameter_merging_invalid_env_temperature(self):
         """Test error when DSPY_TEMPERATURE is invalid."""
@@ -628,7 +628,7 @@ class TestParameterMerging:
             with pytest.raises(ConfigurationError, match="DSPY_TEMPERATURE must be a valid float"):
                 config.get_model_config("unknown_task")
         finally:
-            del os.environ["DSPY_TEMPERATURE"]
+            os.environ.pop("DSPY_TEMPERATURE", None)
 
 
 class TestConvenienceFunctions:

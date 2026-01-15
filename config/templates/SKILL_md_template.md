@@ -120,6 +120,21 @@ metadata:
 
 **Core principle:** {{core_principle}}
 
+## Capabilities
+
+{{!-- List 3-8 concrete, testable capabilities. Prefer short verb phrases. --}}
+
+- {{capability_1}}
+- {{capability_2}}
+- {{capability_3}}
+
+## Dependencies
+
+{{!-- List prerequisite skills/tools AND why they matter. Keep it scannable. --}}
+
+- {{dependency_1}} — {{why_dependency_1}}
+- {{dependency_2}} — {{why_dependency_2}}
+
 ## When to Use
 
 {{!-- Optional: Include decision flowchart for non-obvious decisions
@@ -190,6 +205,18 @@ digraph when_to_use {
 >   {{/each}}
 >   {{/if}}
 
+## Usage Examples
+
+{{!-- Include at least 1–3 runnable examples with fenced code blocks. --}}
+
+### {{example_title}}
+
+{{example_description}}
+
+```{{language}}
+{{example_code}}
+```
+
 ## Common Mistakes
 
 | Mistake | Why It's Wrong | Fix |
@@ -223,11 +250,11 @@ digraph when_to_use {
 ## Validation
 
 ```bash
-# agentskills.io spec compliance
-skills-ref validate ./{{skill_name_kebab}}
+# Validate the skill directory
+uv run skill-fleet validate path/to/{{skill_name_kebab}}
 
-# skill-fleet project validation
-uv run skills-fleet validate-skill path/to/{{skill_name_kebab}}
+# Ensure skills are discoverable (optional)
+uv run skill-fleet generate-xml
 ```
 
 **Authoring process:** See `writing-skills` for TDD-based skill creation checklist.

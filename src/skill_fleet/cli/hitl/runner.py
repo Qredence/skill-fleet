@@ -140,7 +140,6 @@ async def run_hitl_job(
         if status in {"completed", "failed", "cancelled"}:
             if spinner is not None:
                 spinner.stop()
-                spinner = None
             return prompt_data
 
         if status != "pending_hitl":

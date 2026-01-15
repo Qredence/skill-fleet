@@ -98,6 +98,7 @@ async def promote_draft(
         try:
             TaxonomyManager(skills_root)._ensure_all_skills_loaded()
         except Exception:
+            # Taxonomy update is optional, continue even if it fails
             pass
 
         job.promoted = True

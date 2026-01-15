@@ -219,8 +219,10 @@ def cleanup_old_sessions(max_age_hours: float = 24.0) -> int:
                     session_file.unlink()
                     cleaned += 1
                 except Exception:
+                    # Ignore errors when deleting individual files
                     pass
     except Exception:
+        # Ignore errors during cleanup (e.g., directory doesn't exist)
         pass
 
     if cleaned > 0:

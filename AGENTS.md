@@ -23,7 +23,8 @@ The **Agentic Skills System** is a hierarchical, dynamic capability framework th
   - Rich `MarkupError` can occur if an exception message includes markup-like tags (e.g. `[/Input Credentials/]`); workaround: `--force-plain-text` or `SKILL_FLEET_FORCE_PLAIN_TEXT=1`.
   - “Action/choice” prompts are only available when the API returns structured `options`; otherwise questions fall back to free-text.
 - **Skill quality**: validation can pass “with warnings” (e.g., insufficient examples, plan mismatches). Always review drafts before promotion.
-- **Where to look**: `docs/api/endpoints.md`, `docs/cli/interactive-chat.md`, `plans/2026-01-12-cli-chat-ux.md`.
+- **Calibrated Evaluation**: Automated quality assessment is now integrated into the workflow, using metrics calibrated against golden skills from Obra/superpowers (scores > 0.8 are target).
+- **Where to look**: `docs/api/endpoints.md`, `docs/cli/interactive-chat.md`, `docs/dspy/evaluation.md`, `plans/2026-01-15-skill-creation-hardening.md`.
 
 ---
 
@@ -41,7 +42,11 @@ The **Agentic Skills System** is a hierarchical, dynamic capability framework th
      - `modules/`: Phase 1 (Understanding), Phase 2 (Generation), Phase 3 (Validation)
      - `signatures/`: DSPy signatures for each phase
      - `programs/`: SkillCreationProgram, SkillRevisionProgram, QuickSkillProgram
+     - `evaluation.py`: Integration with DSPy Evaluate and quality metrics
      - `skill_creator.py`: Main 3-phase orchestrator
+   - **Evaluation & Metrics** (`dspy/metrics/`): Multi-dimensional quality assessment
+     - `skill_quality.py`: Calibrated metrics (Obra/superpowers standards)
+     - Penalty multipliers for missing critical elements (core principles, Iron Laws)
    - **Optimization** (`optimization/`): DSPy workflow optimization
      - MIPROv2 optimizer for prompt tuning
      - GEPA optimizer for reflective prompt evolution
@@ -60,12 +65,13 @@ The **Agentic Skills System** is a hierarchical, dynamic capability framework th
 4. **CLI** (`src/skill_fleet/cli/`)
    - Primary interface for skill creation, validation, and migration
    - Built with Typer for a clean, typed command-line interface
-   - **Commands** (`commands/`): Modular command files (create, chat, optimize, analytics, etc.)
+   - **Commands** (`commands/`): Modular command files (create, chat, evaluate, promote, etc.)
    - **Interactive CLI** (`interactive_cli.py`): Rich-based chat interface
    - **PromptUI** (`ui/prompts.py`): Abstraction for interactive prompts
 
 5. **API Layer** (`src/skill_fleet/api/`)
    - FastAPI REST API with async background jobs
+   - **Routes** (`routes/`): skills, taxonomy, validation, evaluation, drafts, optimization
    - Auto-discovery system for DSPy modules (`discovery.py`)
    - Jobs system for long-running operations (`jobs.py`)
    - Quality-assured program versions with Refine/BestOfN
@@ -124,6 +130,26 @@ description: Comprehensive guide to Python's asyncio framework, including corout
 
 [Skill content follows...]
 ```
+
+---
+
+## 📏 Calibrated Evaluation
+
+### Quality Standards
+The system uses multi-dimensional metrics calibrated against **Obra/superpowers** and **Anthropics** standards.
+
+1. **Structure Completeness**: Frontmatter, Overview, "When to Use", Quick Reference.
+2. **Pattern Quality**: Mandatory inclusion of Anti-patterns (❌) and Production patterns (✅).
+3. **Practical Value**: Common Mistakes, Red Flags, and Real-world Impact sections.
+4. **Obra Indicators**: 
+   - **Core Principle**: A strong, imperative statement of the skill's essence.
+   - **Iron Law**: Mandatory rules (e.g., "NO X WITHOUT Y").
+   - **Contrast**: Explicit Good/Bad or ❌/✅ paired examples.
+
+### Scoring & Penalties
+- **Target Score**: > 0.8 is considered high quality.
+- **Penalty Multipliers**: Scores are penalized (e.g., 0.7x multiplier) if critical elements like "Core Principle" or "Good/Bad Contrast" are missing.
+- **Calibration**: Metrics are regularly tuned against "golden skills" in `config/training/gold_skills.json`.
 
 ---
 
@@ -237,6 +263,7 @@ Different workflow phases use different LM configurations:
 - `skill_edit`: Content generation (medium temperature)
 - `skill_package`: Validation and packaging (low temperature)
 - `skill_validate`: Compliance checking (minimal temperature)
+- `skill_evaluate`: Quality assessment (minimal temperature)
 - `conversational_agent`: Conversational interface (uses skill_understand as default)
 
 ### Workflow Optimization
@@ -398,22 +425,28 @@ src/skill_fleet/
 │   │   ├── hitl.py              # HITL feedback endpoints
 │   │   ├── skills.py            # Skill creation endpoints
 │   │   ├── taxonomy.py          # Taxonomy management endpoints
-│   │   └── validation.py        # Validation endpoints
+│   │   ├── validation.py        # Validation endpoints
+│   │   ├── evaluation.py        # Quality evaluation endpoints
+│   │   ├── drafts.py            # Draft promotion and lifecycle
+│   │   ├── optimization.py      # Workflow optimization endpoints
+│   │   └── jobs.py              # Job management endpoints
 │   └── schemas/                 # Pydantic request/response models
 ├── cli/
 │   ├── app.py                   # Main Typer application
 │   ├── interactive_cli.py       # Rich-based conversational interface
 │   ├── onboarding_cli.py        # Onboarding workflow CLI
 │   ├── client.py                # API client for CLI commands
-│   ├── commands/                # Modular command files (12 commands)
+│   ├── commands/                # Modular command files (12 files, 13 commands)
 │   │   ├── analytics.py         # Usage analytics command
 │   │   ├── chat.py              # Conversational agent command
 │   │   ├── create.py            # Skill creation command
+│   │   ├── evaluate.py          # Skill evaluation (single and batch)
 │   │   ├── generate_xml.py      # XML generation command
 │   │   ├── list_skills.py       # Skills listing command
 │   │   ├── migrate.py           # Format migration command
 │   │   ├── onboard.py           # User onboarding command
 │   │   ├── optimize.py          # DSPy optimization command
+│   │   ├── promote.py           # Draft promotion command
 │   │   ├── serve.py             # API server command
 │   │   └── validate.py          # Skill validation command
 │   ├── hitl/
@@ -444,7 +477,12 @@ src/skill_fleet/
 │   │   │   ├── base.py
 │   │   │   ├── chat.py          # Chat signatures
 │   │   │   └── hitl.py          # HITL signatures
+│   │   ├── metrics/             # Quality metrics
+│   │   │   └── skill_quality.py # Calibrated assessment logic
+│   │   ├── training/            # Training data and gold standards
+│   │   │   └── gold_standards.py
 │   │   ├── programs.py          # SkillCreationProgram, SkillRevisionProgram
+│   │   ├── evaluation.py        # SkillEvaluator (DSPy Evaluate wrapper)
 │   │   ├── conversational.py    # Conversational DSPy modules
 │   │   └── skill_creator.py     # 3-phase orchestrator
 │   ├── optimization/            # DSPy optimization
@@ -467,7 +505,7 @@ src/skill_fleet/
 │   ├── dspy_config.py           # Centralized DSPy configuration
 │   └── fleet_config.py          # LLM provider configuration
 ├── onboarding/
-│   └── workflow.py              # User onboarding workflow
+│   └── bootstrap.py             # User onboarding bootstrap logic
 ├── taxonomy/
 │   └── manager.py               # Taxonomy management
 ├── ui/                          # React/TypeScript frontend
@@ -700,6 +738,14 @@ DSPY_TEMPERATURE=0.7
 3. Run the API server, then test with `uv run skill-fleet create "Test task"`
 4. Validate output format and quality (and run unit tests)
 
+### Adding a New Evaluation Metric
+
+1. Define metric logic in `src/skill_fleet/core/dspy/metrics/skill_quality.py`
+2. Update `SkillQualityScores` dataclass if adding new scoring dimensions
+3. Update `compute_overall_score` with appropriate weights and penalty multipliers
+4. Add tests in `tests/unit/test_evaluation_metrics.py`
+5. (Optional) Update `config/training/quality_criteria.yaml` if externalized
+
 ### Adding a New Validator
 
 1. Create validator in `validators/`
@@ -732,6 +778,13 @@ uv run skill-fleet chat
 
 # Create a skill (HITL by default)
 uv run skill-fleet create "Your task description"
+
+# Evaluate skill quality
+uv run skill-fleet evaluate skills/general/testing
+uv run skill-fleet evaluate-batch skills/technical_skills/programming/python/*
+
+# Promote a draft to taxonomy
+uv run skill-fleet promote <job_id>
 
 # Optimize workflow (DSPy MIPROv2 or GEPA)
 uv run skill-fleet optimize --optimizer miprov2

@@ -2,15 +2,93 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
 
 from ..jobs import get_job, notify_hitl_response
 
 router = APIRouter()
 
 
-@router.get("/{job_id}/prompt")
-async def get_prompt(job_id: str):
+class HITLPromptResponse(BaseModel):
+    """Response model for HITL prompt endpoint.
+
+    This model contains all possible fields across different interaction types.
+    Fields are optional since different interaction types use different subsets.
+    """
+
+    # Core status fields
+    status: str = Field(..., description="Job status (pending, running, pending_hitl, completed, failed)")
+    type: str | None = Field(default=None, description="HITL interaction type (clarify, confirm, preview, validate, etc.)")
+
+    # Phase 1: Clarification
+    questions: Any | None = Field(default=None, description="Clarifying questions for the user")
+    rationale: str | None = Field(default=None, description="Rationale for asking questions")
+
+    # Phase 1: Confirmation
+    summary: str | None = Field(default=None, description="Understanding summary for confirmation")
+    path: str | None = Field(default=None, description="Proposed taxonomy path")
+
+    # Phase 2: Preview
+    content: str | None = Field(default=None, description="Preview content")
+    highlights: list[str] | None = Field(default=None, description="Content highlights")
+
+    # Phase 3: Validation
+    report: str | None = Field(default=None, description="Validation report")
+    passed: bool | None = Field(default=None, description="Whether validation passed")
+
+    # Result data
+    skill_content: str | None = Field(default=None, description="Generated skill content")
+
+    # Draft-first lifecycle
+    intended_taxonomy_path: str | None = Field(default=None, description="Intended path in taxonomy")
+    draft_path: str | None = Field(default=None, description="Path to draft skill")
+    final_path: str | None = Field(default=None, description="Final path after promotion")
+    promoted: bool | None = Field(default=None, description="Whether draft was promoted")
+    saved_path: str | None = Field(default=None, description="Alias of final_path")
+
+    # Validation summary
+    validation_passed: bool | None = Field(default=None, description="Overall validation result")
+    validation_status: str | None = Field(default=None, description="Validation status string")
+    validation_score: float | None = Field(default=None, description="Validation score")
+    error: str | None = Field(default=None, description="Error message if failed")
+
+    # Deep understanding fields
+    question: str | None = Field(default=None, description="Current deep understanding question")
+    research_performed: list[Any] | None = Field(default=None, description="Research performed")
+    current_understanding: str | None = Field(default=None, description="Current understanding summary")
+    readiness_score: float | None = Field(default=None, description="Readiness score")
+    questions_asked: list[Any] | None = Field(default=None, description="Questions already asked")
+
+    # TDD red phase fields
+    test_requirements: str | None = Field(default=None, description="Test requirements")
+    acceptance_criteria: list[str] | None = Field(default=None, description="Acceptance criteria")
+    checklist_items: list[Any] | None = Field(default=None, description="TDD checklist items")
+    rationalizations_identified: list[str] | None = Field(default=None, description="Identified rationalizations")
+
+    # TDD green phase fields
+    failing_test: str | None = Field(default=None, description="Currently failing test")
+    test_location: str | None = Field(default=None, description="Test file location")
+    minimal_implementation_hint: str | None = Field(default=None, description="Implementation hint")
+    phase: str | None = Field(default=None, description="Current TDD phase")
+
+    # TDD refactor phase fields
+    refactor_opportunities: list[str] | None = Field(default=None, description="Refactoring opportunities")
+    code_smells: list[str] | None = Field(default=None, description="Detected code smells")
+    coverage_report: str | None = Field(default=None, description="Test coverage report")
+
+
+class HITLResponseResult(BaseModel):
+    """Response model for HITL response submission."""
+
+    status: str = Field(..., description="Response status (accepted, ignored)")
+    detail: str | None = Field(default=None, description="Additional details")
+
+
+@router.get("/{job_id}/prompt", response_model=HITLPromptResponse)
+async def get_prompt(job_id: str) -> HITLPromptResponse:
     """Retrieve the current HITL prompt for a job."""
     job = get_job(job_id)
     if not job:
@@ -94,12 +172,26 @@ async def get_prompt(job_id: str):
             }
         )
 
-    return response
+    return HITLPromptResponse(**response)
 
 
-@router.post("/{job_id}/response")
-async def post_response(job_id: str, response: dict):
-    """Submit a response to an HITL prompt."""
+@router.post("/{job_id}/response", response_model=HITLResponseResult)
+async def post_response(job_id: str, response: dict) -> HITLResponseResult:
+    """Submit a response to an HITL prompt.
+
+    The response format depends on the interaction type:
+    - clarify: {"answers": {"response": "..."}}
+    - confirm/preview/validate: {"action": "proceed|revise|cancel", "feedback": "..."}
+    - deep_understanding: {"action": "proceed|cancel", "answer": "...", "problem": "...", "goals": [...]}
+    - tdd_*: {"action": "proceed|revise|cancel", "feedback": "..."}
+
+    Args:
+        job_id: The job ID to respond to
+        response: Response data (format depends on interaction type)
+
+    Returns:
+        HITLResponseResult indicating if response was accepted or ignored
+    """
     job = get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -107,7 +199,9 @@ async def post_response(job_id: str, response: dict):
     # Only accept responses when the job is actively waiting for HITL. This avoids
     # late/stale responses accidentally being consumed by a *future* HITL prompt.
     if job.status != "pending_hitl":
-        return {"status": "ignored", "detail": f"No HITL prompt pending (status={job.status})"}
+        return HITLResponseResult(
+            status="ignored", detail=f"No HITL prompt pending (status={job.status})"
+        )
 
     # Store the response
     job.hitl_response = response
@@ -154,4 +248,4 @@ async def post_response(job_id: str, response: dict):
 
     save_job_session(job_id)
 
-    return {"status": "accepted"}
+    return HITLResponseResult(status="accepted")

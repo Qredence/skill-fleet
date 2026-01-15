@@ -4,16 +4,17 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import re
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
+from ...common.security import sanitize_taxonomy_path
 from ...core.dspy import SkillCreationProgram
 from ...core.models import SkillCreationResult
 from ...taxonomy.manager import TaxonomyManager
+from ..dependencies import get_drafts_root, get_skills_root
 from ..jobs import JOBS, create_job, save_job_session, wait_for_hitl_response
 
 logger = logging.getLogger(__name__)
@@ -23,13 +24,15 @@ router = APIRouter()
 class CreateSkillRequest(BaseModel):
     """Request body for creating a new skill."""
 
-    task_description: str
-    user_id: str = "default"
+    task_description: str = Field(..., description="Description of the skill to create")
+    user_id: str = Field(default="default", description="User ID for context")
 
 
-# Skills root directory (configurable via env var)
-SKILLS_ROOT = Path(os.environ.get("SKILL_FLEET_SKILLS_ROOT", "skills"))
-DRAFTS_ROOT = SKILLS_ROOT / "_drafts"
+class CreateSkillResponse(BaseModel):
+    """Response model for skill creation."""
+
+    job_id: str = Field(..., description="Unique identifier for the background job")
+    status: str = Field(default="accepted", description="Initial job status")
 
 
 _FENCE_START_RE = re.compile(r"^\s*```(?P<lang>[a-zA-Z0-9_+-]*)\s*$")
@@ -176,9 +179,17 @@ def _extract_usage_example_code_blocks(skill_md: str) -> dict[str, str]:
     return examples
 
 
-def _ensure_draft_root(job_id: str) -> Path:
-    """Ensure the per-job draft root exists (with its own taxonomy_meta.json)."""
-    job_root = DRAFTS_ROOT / job_id
+def _ensure_draft_root(drafts_root: Path, job_id: str) -> Path:
+    """Ensure the per-job draft root exists (with its own taxonomy_meta.json).
+
+    Args:
+        drafts_root: Base directory for drafts
+        job_id: Unique job identifier
+
+    Returns:
+        Path to the job-specific draft root
+    """
+    job_root = drafts_root / job_id
     job_root.mkdir(parents=True, exist_ok=True)
     meta_path = job_root / "taxonomy_meta.json"
     if not meta_path.exists():
@@ -198,10 +209,14 @@ def _ensure_draft_root(job_id: str) -> Path:
     return job_root
 
 
-def _save_skill_to_draft(*, job_id: str, result: SkillCreationResult) -> str | None:
+def _save_skill_to_draft(
+    *, drafts_root: Path, job_id: str, result: SkillCreationResult
+) -> str | None:
     """Save a completed skill to the draft area.
 
     Args:
+        drafts_root: Base directory for drafts
+        job_id: Unique job identifier
         result: SkillCreationResult from the workflow
 
     Returns:
@@ -212,7 +227,7 @@ def _save_skill_to_draft(*, job_id: str, result: SkillCreationResult) -> str | N
         return None
 
     try:
-        draft_root = _ensure_draft_root(job_id)
+        draft_root = _ensure_draft_root(drafts_root, job_id)
         manager = TaxonomyManager(draft_root)
 
         # Extract metadata for registration
@@ -221,29 +236,8 @@ def _save_skill_to_draft(*, job_id: str, result: SkillCreationResult) -> str | N
             metadata.taxonomy_path if hasattr(metadata, "taxonomy_path") else metadata.skill_id
         )
 
-        # Sanitize the provided taxonomy path to avoid path traversal or
-        # accidental writes outside of the configured SKILLS_ROOT. We only
-        # allow a simple relative path composed of alphanumeric, hyphen,
-        # underscore and forward-slash segments (no .. segments, no absolute
-        # paths). If the provided path is unsafe, reject the save.
-        def _sanitize_taxonomy_path(path: str) -> str | None:
-            if not path:
-                return None
-            # Reject absolute paths and parent-directory traversal
-            if path.startswith("/") or ".." in path:
-                return None
-            # Normalize and ensure it remains within SKILLS_ROOT when joined
-            normalized = Path(path).as_posix().strip("/")
-            # Simple character whitelist for each path segment
-            for segment in normalized.split("/"):
-                if not segment:
-                    return None
-                # allow letters, numbers, hyphen, underscore
-                if not all(c.isalnum() or c in "-_" for c in segment):
-                    return None
-            return normalized
-
-        safe_taxonomy_path = _sanitize_taxonomy_path(taxonomy_path)
+        # Use centralized path sanitization to prevent traversal attacks
+        safe_taxonomy_path = sanitize_taxonomy_path(taxonomy_path)
         if not safe_taxonomy_path:
             logger.error("Unsafe taxonomy path provided by workflow: %s", taxonomy_path)
             return None
@@ -324,7 +318,13 @@ def _save_skill_to_draft(*, job_id: str, result: SkillCreationResult) -> str | N
         return None
 
 
-async def run_skill_creation(job_id: str, task_description: str, user_id: str):
+async def run_skill_creation(
+    job_id: str,
+    task_description: str,
+    user_id: str,
+    skills_root: Path,
+    drafts_root: Path,
+):
     """Execute the end-to-end skill creation workflow as a background job.
 
     This coroutine is intended to be scheduled via FastAPI's ``BackgroundTasks``
@@ -332,6 +332,13 @@ async def run_skill_creation(job_id: str, task_description: str, user_id: str):
     retrieves the corresponding job record from the global ``JOBS`` registry
     using ``job_id`` and drives the full lifecycle of a single skill creation
     request.
+
+    Args:
+        job_id: Unique identifier for this job
+        task_description: User's description of the skill to create
+        user_id: User identifier for context
+        skills_root: Root directory for skills taxonomy
+        drafts_root: Root directory for draft skills
     """
 
     job = JOBS[job_id]
@@ -363,7 +370,7 @@ async def run_skill_creation(job_id: str, task_description: str, user_id: str):
     try:
         # Provide real taxonomy context to Phase 1 (better path selection + overlap analysis).
         # The DSPy program contract expects JSON strings for these fields.
-        taxonomy_manager = TaxonomyManager(SKILLS_ROOT)
+        taxonomy_manager = TaxonomyManager(skills_root)
         taxonomy_structure = taxonomy_manager.get_relevant_branches(task_description)
         mounted_skills = taxonomy_manager.get_mounted_skills(user_id)
 
@@ -393,7 +400,9 @@ async def run_skill_creation(job_id: str, task_description: str, user_id: str):
 
             # Draft-first: save to skills/_drafts/<job_id>/... and require explicit promotion.
             if result.status == "completed" and result.skill_content:
-                draft_path = _save_skill_to_draft(job_id=job_id, result=result)
+                draft_path = _save_skill_to_draft(
+                    drafts_root=drafts_root, job_id=job_id, result=result
+                )
                 if draft_path:
                     job.draft_path = draft_path
                     logger.info("Job %s completed; draft saved to: %s", job_id, draft_path)
@@ -408,16 +417,36 @@ async def run_skill_creation(job_id: str, task_description: str, user_id: str):
         save_job_session(job_id)
 
 
-@router.post("/create")
+@router.post("/create", response_model=CreateSkillResponse)
 async def create(
     request: CreateSkillRequest,
     background_tasks: BackgroundTasks,
-):
-    """Initiate a new skill creation job."""
+) -> CreateSkillResponse:
+    """Initiate a new skill creation job.
+
+    Creates a background job that executes the 3-phase skill creation workflow:
+    1. Understanding & Planning (with HITL clarification)
+    2. Content Generation (with HITL preview)
+    3. Validation & Refinement (with HITL review)
+
+    The job runs asynchronously. Use the returned job_id to poll for status
+    via GET /api/v2/hitl/{job_id}/prompt.
+    """
     if not request.task_description:
         raise HTTPException(status_code=400, detail="task_description is required")
 
-    job_id = create_job()
-    background_tasks.add_task(run_skill_creation, job_id, request.task_description, request.user_id)
+    # Get paths from dependencies (called directly since we're in a background task context)
+    skills_root = get_skills_root()
+    drafts_root = get_drafts_root(skills_root)
 
-    return {"job_id": job_id, "status": "accepted"}
+    job_id = create_job()
+    background_tasks.add_task(
+        run_skill_creation,
+        job_id,
+        request.task_description,
+        request.user_id,
+        skills_root,
+        drafts_root,
+    )
+
+    return CreateSkillResponse(job_id=job_id, status="accepted")

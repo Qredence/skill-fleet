@@ -11,9 +11,10 @@ import shutil
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ...taxonomy.manager import TaxonomyManager
+from ..dependencies import SkillsRoot
 from ..jobs import delete_job_session, get_job, save_job_session
 
 router = APIRouter()
@@ -22,19 +23,49 @@ router = APIRouter()
 class PromoteDraftRequest(BaseModel):
     """Request model for promoting a draft."""
 
-    overwrite: bool = True
-    delete_draft: bool = False
-    force: bool = False
+    overwrite: bool = Field(default=True, description="Overwrite existing skill if present")
+    delete_draft: bool = Field(default=False, description="Delete draft after promotion")
+    force: bool = Field(default=False, description="Force promotion even if validation failed")
+
+
+class PromoteDraftResponse(BaseModel):
+    """Response model for draft promotion."""
+
+    job_id: str = Field(..., description="The job ID that was promoted")
+    status: str = Field(default="promoted", description="Promotion status")
+    final_path: str = Field(..., description="Final path where the skill was saved")
 
 
 def _safe_rmtree(path: Path) -> None:
+    """Safely remove a directory tree if it exists."""
     if path.exists():
         shutil.rmtree(path)
 
 
-@router.post("/{job_id}/promote")
-async def promote_draft(job_id: str, request: PromoteDraftRequest):
-    """Validate and promote a job draft into the real taxonomy."""
+@router.post("/{job_id}/promote", response_model=PromoteDraftResponse)
+async def promote_draft(
+    job_id: str,
+    request: PromoteDraftRequest,
+    skills_root: SkillsRoot,
+) -> PromoteDraftResponse:
+    """Validate and promote a job draft into the real taxonomy.
+
+    This endpoint moves a draft skill from the staging area into the
+    production taxonomy. The draft must have been created by a completed
+    skill creation job.
+
+    Args:
+        job_id: The job ID whose draft should be promoted
+        request: Promotion options (overwrite, delete_draft, force)
+        skills_root: Root directory for skills (injected)
+
+    Returns:
+        PromoteDraftResponse with the final path
+
+    Raises:
+        HTTPException: 404 if job not found, 400 if job not completed or no draft,
+                      409 if target exists and overwrite=false, 500 on promotion failure
+    """
     job = get_job(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -50,17 +81,6 @@ async def promote_draft(job_id: str, request: PromoteDraftRequest):
             status_code=400,
             detail="Draft failed validation. Pass force=true to promote anyway.",
         )
-
-    skills_root = Path("skills")
-    try:
-        # Derive skills root from the draft path (…/skills/_drafts/...)
-        draft_path = Path(job.draft_path)
-        for parent in draft_path.parents:
-            if parent.name == "skills":
-                skills_root = parent
-                break
-    except Exception:
-        pass
 
     target_dir = skills_root / job.intended_taxonomy_path
 
@@ -92,11 +112,11 @@ async def promote_draft(job_id: str, request: PromoteDraftRequest):
 
         save_job_session(job_id)
 
-        return {
-            "job_id": job_id,
-            "status": "promoted",
-            "final_path": job.final_path,
-        }
+        return PromoteDraftResponse(
+            job_id=job_id,
+            status="promoted",
+            final_path=job.final_path,
+        )
     except HTTPException:
         raise
     except Exception as e:

@@ -28,6 +28,7 @@ dependencies = [
   "typing-extensions>=4.0",
   "uvicorn[standard]>=0.31.1",
   "prompt-toolkit>=3.0.52",
+  "ty>=0.0.12",
 ]
 classifiers = [
   "Development Status :: 3 - Alpha",

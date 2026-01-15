@@ -593,8 +593,18 @@ class SkillCreationResult(BaseModel):
     skill_content: str | None = Field(default=None, description="Generated SKILL.md content")
     metadata: SkillMetadata | None = Field(default=None, description="Skill metadata")
     validation_report: ValidationReport | None = Field(default=None)
+    quality_assessment: dict | None = Field(
+        default=None, description="Quality assessment from Phase 3 validation"
+    )
     error: str | None = Field(default=None)
     timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
+
+    # Extra files for subdirectory content (from Phase 2 generation)
+    extra_files: dict | None = Field(
+        default=None,
+        description="Additional files for skill subdirectories: usage_examples, best_practices, "
+        "test_cases, capability_implementations, scripts, assets, etc.",
+    )
 
     # Workflow version fields (step-based, optional for backward compatibility)
     understanding: UnderstandingResult | None = Field(default=None)

@@ -1,6 +1,6 @@
 # CLI Documentation
 
-**Last Updated**: 2026-01-12
+**Last Updated**: 2026-01-14
 **Location**: `src/skill_fleet/cli/`
 
 ## Overview
@@ -13,19 +13,20 @@ The CLI uses a **client-server architecture**. Commands communicate with a runni
 
 ## Installation
 
-The CLI is installed as part of the skills-fleet package:
+For local development, run CLI commands via `uv run` from the repo root:
 
 ```bash
-# Using uv
-uv pip install -e .
+# Install Python deps (incl. CLI + dev tools)
+uv sync --group dev
 
-# Or using pip
-pip install -e .
+# Run via the project environment
+uv run skill-fleet --help
 ```
 
-Verify installation:
+If you want a globally-installed `skill-fleet` binary, you can also install the package editable (optional):
+
 ```bash
-skill-fleet --help
+uv pip install -e .
 ```
 
 ## Quick Start
@@ -49,12 +50,22 @@ uv run skill-fleet create "Create a Python async/await programming skill"
 uv run skill-fleet chat
 ```
 
+## Drafts & Promotion
+
+Skill creation is **draft-first**:
+
+- The API writes drafts under `skills/_drafts/<job_id>/...`.
+- Promote into the taxonomy when ready:
+  - `uv run skill-fleet promote <job_id>`
+  - (API) `POST /api/v2/drafts/{job_id}/promote`
+
 ## Command Reference
 
 | Command | Description | Usage |
 |---------|-------------|-------|
 | **create** | Create a skill (one-shot) | `skill-fleet create "task"` |
 | **chat** | Interactive chat mode | `skill-fleet chat` |
+| **promote** | Promote a draft into taxonomy | `skill-fleet promote <job_id>` |
 | **list** | List all skills | `skill-fleet list` |
 | **validate** | Validate a skill | `skill-fleet validate <path>` |
 | **serve** | Start API server | `skill-fleet serve` |

@@ -1,0 +1,138 @@
+# Quality Criteria for Skill Evaluation
+# This file defines the rubric used to assess skill quality during
+# evaluation and optimization.
+
+version: "1.0"
+
+# Quality thresholds for pass/fail determination
+thresholds:
+  minimum_quality: 0.6   # Below this = failed
+  target_quality: 0.8    # Good quality target
+  excellent_quality: 0.9 # Excellent/gold-standard
+
+# Metric weights for overall score calculation
+# All weights should sum to 1.0
+metric_weights:
+  pattern_count: 0.15
+  has_anti_patterns: 0.10
+  has_key_insights: 0.10
+  has_real_world_impact: 0.10
+  has_quick_reference: 0.10
+  has_common_mistakes: 0.10
+  has_red_flags: 0.05
+  frontmatter_completeness: 0.15
+  code_examples_quality: 0.15
+
+# Detailed criteria definitions
+criteria:
+  # Structure criteria
+  frontmatter:
+    description: "YAML frontmatter completeness"
+    required_fields:
+      - name
+      - description
+    recommended_fields:
+      - metadata.skill_id
+      - metadata.version
+      - metadata.type
+      - metadata.weight
+    optional_fields:
+      - license
+      - compatibility
+      - keywords
+      - see_also
+    scoring:
+      has_name: 0.2
+      has_description: 0.2
+      description_starts_with_use_when: 0.1
+      has_metadata_skill_id: 0.1
+      has_metadata_version: 0.1
+      has_metadata_type: 0.05
+      has_metadata_weight: 0.05
+      has_optional_fields: 0.2  # Distributed across optional fields
+
+  sections:
+    description: "Required and recommended sections in skill body"
+    required:
+      - overview
+      - when_to_use
+      - core_patterns
+    recommended:
+      - quick_reference
+      - common_mistakes
+      - red_flags
+    optional:
+      - real_world_impact
+      - validation
+
+  # Pattern criteria
+  patterns:
+    description: "Quality of patterns in the skill"
+    target_count: 5  # Target number of patterns
+    minimum_count: 2 # Minimum acceptable
+    requirements:
+      - anti_pattern_example  # ❌ Common mistake
+      - production_pattern    # ✅ Correct approach
+      - key_insight          # Summary of critical learning
+
+  # Code quality criteria
+  code_examples:
+    description: "Quality of code examples"
+    requirements:
+      - language_specification  # Code blocks should specify language
+      - no_placeholders        # No TODO, pass, NotImplementedError
+      - substantial_length     # At least 3 lines per block
+      - copy_paste_ready       # Should work when copied
+
+# Quality indicators from excellent skills (FastAPI example)
+excellence_indicators:
+  - "Rich YAML frontmatter with metadata"
+  - "Clear Overview with core principle"
+  - "When to Use / When NOT to use sections"
+  - "Quick Reference table (Problem → Solution → Keywords)"
+  - "5+ Core Patterns with ❌/✅ examples"
+  - "Key Insight after each pattern"
+  - "Common Mistakes table"
+  - "Red Flags section"
+  - "Real-World Impact with quantified benefits"
+  - "Executable code examples"
+
+# Anti-patterns to avoid (from analysis)
+anti_patterns:
+  - "Placeholder files (empty README.md)"
+  - "Non-executable test descriptions"
+  - "Missing Key Insights after patterns"
+  - "No Real-World Impact section"
+  - "Description that summarizes workflow instead of triggering conditions"
+  - "Narrative storytelling instead of reusable patterns"
+  - "Multi-language dilution (one excellent example is better)"
+  - "Generic labels (helper1, step2) instead of semantic names"
+
+# Checklist for manual review
+manual_review_checklist:
+  structure:
+    - "YAML frontmatter with name and description"
+    - "Description starts with 'Use when...'"
+    - "Description does NOT summarize workflow"
+    - "Overview with core principle (1-2 sentences)"
+    - "When to Use / When NOT to use sections"
+    - "Quick Reference table"
+  
+  patterns:
+    - "5+ Core Patterns"
+    - "Each pattern has ❌ anti-pattern example"
+    - "Each pattern has ✅ production pattern"
+    - "Each pattern has Key Insight"
+  
+  practical_value:
+    - "Common Mistakes table"
+    - "Red Flags section"
+    - "Real-World Impact with quantified benefits"
+  
+  code_quality:
+    - "No placeholder files"
+    - "No narrative storytelling"
+    - "One excellent example per pattern"
+    - "Code examples are copy-paste ready"
+    - "Labels have semantic meaning"
+    - "Total SKILL.md under 500 lines (or split to references)"

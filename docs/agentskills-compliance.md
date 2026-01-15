@@ -4,7 +4,9 @@ This guide explains how the skill-fleet system implements the [agentskills.io](h
 
 ## Overview
 
-The agentskills.io specification provides a standardized format for defining agent skills that can be discovered, validated, and integrated across different agentic systems. Skills-fleet has been updated to be fully compliant with this specification.
+The agentskills.io specification provides a standardized format for defining agent skills that can be discovered, validated, and integrated across different agentic systems.
+
+**Note:** skill-fleet is aligning newly generated skills to match the published spec requirements; some legacy skills may require migration (directory/name alignment) to be strictly spec-compliant.
 
 ## What is agentskills.io?
 
@@ -25,6 +27,7 @@ Per the agentskills.io spec, every skill must have:
 
 - **`name`**: Kebab-case identifier (1-64 characters, lowercase alphanumeric + hyphens)
   - Example: `python-decorators`, `fastapi-development`, `code-quality-analysis`
+  - **Must match the skill directory name** (the directory that contains `SKILL.md`)
 - **`description`**: Human-readable description (1-1024 characters)
 
 ### Optional Fields
@@ -41,7 +44,7 @@ Per the agentskills.io spec, every skill must have:
 name: python-decorators
 description: Ability to design, implement, and apply higher-order functions to extend or modify the behavior of functions and classes in Python.
 metadata:
-  skill_id: technical_skills/programming/languages/python/decorators
+  skill_id: technical_skills/programming/languages/python/python-decorators
   version: 1.0.0
   type: technical
   weight: medium
@@ -62,18 +65,20 @@ Kebab-case uses lowercase letters with hyphens separating words:
 
 ### Name Generation
 
-The system automatically generates kebab-case names from path-style skill IDs using the `skill_id_to_name()` function:
+The system automatically generates kebab-case names from path-style skill IDs using the `skill_id_to_name()` function.
+
+Because the spec requires the `name` to match the skill directory name, the function derives the name from the **last path segment**:
 
 ```python
 # Examples:
-'technical_skills/programming/languages/python/decorators' → 'python-decorators'
+'technical_skills/programming/languages/python/python-decorators' → 'python-decorators'
 '_core/reasoning' → 'core-reasoning'
 'mcp_capabilities/tool_integration' → 'tool-integration'
 'task_focus_areas/debug_fix' → 'debug-fix'
 ```
 
 **Algorithm:**
-1. Takes the last 1-2 path segments for context
+1. Takes the last path segment (directory name)
 2. Removes leading underscores
 3. Converts underscores to hyphens
 4. Returns lowercase kebab-case name

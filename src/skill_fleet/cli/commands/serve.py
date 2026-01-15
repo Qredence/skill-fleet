@@ -10,7 +10,7 @@ console = Console()
 
 def serve_command(
     port: int = typer.Option(8000, "--port", "-p", help="Port to run the API server on"),
-    host: str = typer.Option("0.0.0.0", "--host", help="Host to bind the server to"),
+    host: str = typer.Option("127.0.0.1", "--host", help="Host to bind the server to"),
     reload: bool = typer.Option(
         False, "--reload", "-r", help="Enable auto-reload on file changes (dev mode)"
     ),

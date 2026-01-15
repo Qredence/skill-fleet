@@ -34,6 +34,7 @@ from .modules.hitl import (
 from .modules.phase1_understanding import Phase1UnderstandingModule
 from .modules.phase2_generation import Phase2GenerationModule
 from .modules.phase3_validation import Phase3ValidationModule
+from .signatures.hitl import GenerateHITLQuestions
 
 logger = logging.getLogger(__name__)
 
@@ -89,9 +90,15 @@ def _load_skill_md_template() -> str | None:
 class SkillCreationProgram(dspy.Module):
     """Complete 3-phase skill creation orchestrator with integrated HITL."""
 
-    def __init__(self, quality_assured: bool = True, hitl_enabled: bool = True):
+    def __init__(
+        self,
+        quality_assured: bool = True,
+        hitl_enabled: bool = True,
+        load_optimized: bool = True,
+    ):
         super().__init__()
         self.hitl_enabled = hitl_enabled
+        self._optimized_loaded = False
 
         # Phase Orchestrators
         self.phase1 = Phase1UnderstandingModule()
@@ -107,6 +114,47 @@ class SkillCreationProgram(dspy.Module):
         self.validation_formatter = ValidationFormatterModule()
         self.refinement_planner = RefinementPlannerModule()
 
+        # Try to load optimized program if available
+        if load_optimized:
+            self._try_load_optimized()
+
+    def _try_load_optimized(self) -> bool:
+        """Try to load an optimized version of this program.
+
+        Looks for optimized programs in config/optimized/ directory.
+        Returns True if an optimized program was loaded.
+        """
+        optimized_dir = find_repo_root(Path.cwd())
+        if not optimized_dir:
+            optimized_dir = find_repo_root(Path(__file__).resolve())
+        if not optimized_dir:
+            return False
+
+        optimized_path = optimized_dir / "config" / "optimized"
+        if not optimized_path.exists():
+            return False
+
+        # Look for optimized program files (prefer newest)
+        candidates = sorted(optimized_path.glob("skill_creator*.json"), reverse=True)
+        if not candidates:
+            return False
+
+        try:
+            # Load the most recent optimized program
+            program_file = candidates[0]
+            self.load(str(program_file))
+            self._optimized_loaded = True
+            logger.info(f"Loaded optimized program from {program_file}")
+            return True
+        except Exception as e:
+            logger.warning(f"Failed to load optimized program: {e}")
+            return False
+
+    @property
+    def is_optimized(self) -> bool:
+        """Check if this program is using optimized weights."""
+        return self._optimized_loaded
+
     async def aforward(
         self,
         task_description: str,
@@ -114,6 +162,7 @@ class SkillCreationProgram(dspy.Module):
         taxonomy_structure: str,
         existing_skills: str,
         hitl_callback: Callable[[str, dict[str, Any]], Any] | None = None,
+        progress_callback: Callable[[str, str], None] | None = None,
         **kwargs,
     ) -> SkillCreationResult:
         """Execute the 3-phase skill creation workflow with HITL.
@@ -124,6 +173,7 @@ class SkillCreationProgram(dspy.Module):
             taxonomy_structure: Current taxonomy tree
             existing_skills: List of existing skills
             hitl_callback: Async callback for human interaction
+            progress_callback: Callback for progress updates (phase, message)
 
         Returns:
             SkillCreationResult with content and metadata
@@ -133,17 +183,24 @@ class SkillCreationProgram(dspy.Module):
             # PHASE 1: UNDERSTANDING & PLANNING
             # ============================================================
             logger.info("Starting Phase 1: Understanding & Planning")
+            if progress_callback:
+                progress_callback(
+                    "understanding", "Starting Phase 1: Analyzing task requirements..."
+                )
 
             # HITL 1.1: Clarification (if needed)
             user_clarifications = ""
             if self.hitl_enabled and hitl_callback:
                 # Initial analysis for clarification
+                if progress_callback:
+                    progress_callback(
+                        "understanding", "Gathering initial requirements from task description..."
+                    )
                 requirements = await self.phase1.gather_requirements.aforward(task_description)
 
                 if requirements["ambiguities"]:
-                    # Generate focused questions
-                    hitl_module = dspy.ChainOfThought("requirements, task -> questions")
-                    # Note: Using dspy.settings.lm if not provided
+                    # Generate focused questions using class-based signature
+                    hitl_module = dspy.ChainOfThought(GenerateHITLQuestions)
                     q_result = await hitl_module.acall(
                         requirements=json.dumps(requirements),
                         task=task_description,
@@ -170,12 +227,21 @@ class SkillCreationProgram(dspy.Module):
                         )
 
             # Execute Phase 1 analysis
+            if progress_callback:
+                progress_callback(
+                    "understanding",
+                    "Analyzing intent, finding taxonomy path, and checking dependencies...",
+                )
             p1_result = await self.phase1.aforward(
                 task_description=task_description,
                 user_context=str(user_context),
                 taxonomy_structure=taxonomy_structure,
                 existing_skills=existing_skills,
             )
+            if progress_callback:
+                progress_callback(
+                    "understanding", "Phase 1 complete. Preparing confirmation summary..."
+                )
 
             # HITL 1.2: Confirmation
             if self.hitl_enabled and hitl_callback:
@@ -200,12 +266,15 @@ class SkillCreationProgram(dspy.Module):
                     dependencies=dependencies,
                 )
 
-                # Confirm with user
+                # Confirm with user - include rationale/thinking for transparency
                 confirmation = await hitl_callback(
                     "confirm",
                     {
                         "summary": summary["summary"],
                         "path": p1_result["taxonomy"]["recommended_path"],
+                        "rationale": p1_result["plan"].get("rationale", "")
+                        or p1_result["taxonomy"].get("path_rationale", ""),
+                        "key_assumptions": summary.get("key_assumptions", []),
                     },
                 )
 
@@ -229,6 +298,8 @@ class SkillCreationProgram(dspy.Module):
             # PHASE 2: CONTENT GENERATION
             # ============================================================
             logger.info("Starting Phase 2: Content Generation")
+            if progress_callback:
+                progress_callback("generation", "Starting Phase 2: Preparing content generation...")
 
             generation_instructions = p1_result["plan"]["generation_instructions"]
             skill_md_template = _load_skill_md_template()
@@ -241,6 +312,10 @@ class SkillCreationProgram(dspy.Module):
                 )
 
             # Execute Phase 2 generation
+            if progress_callback:
+                progress_callback(
+                    "generation", "Generating SKILL.md content, examples, and best practices..."
+                )
             p2_result = await self.phase2.aforward(
                 skill_metadata=p1_result["plan"]["skill_metadata"],
                 content_plan=p1_result["plan"]["content_plan"],
@@ -248,6 +323,8 @@ class SkillCreationProgram(dspy.Module):
                 parent_skills_content="",  # TODO: Fetch parent content if needed
                 dependency_summaries=str(p1_result["dependencies"]),
             )
+            if progress_callback:
+                progress_callback("generation", "Content generated. Preparing preview...")
 
             # HITL 2.1: Preview & Feedback
             if self.hitl_enabled and hitl_callback:
@@ -256,9 +333,14 @@ class SkillCreationProgram(dspy.Module):
                     metadata=str(p1_result["plan"]["skill_metadata"]),
                 )
 
-                # Show preview to user
+                # Show preview to user - include rationale/thinking for transparency
                 feedback = await hitl_callback(
-                    "preview", {"content": preview["preview"], "highlights": preview["highlights"]}
+                    "preview",
+                    {
+                        "content": preview["preview"],
+                        "highlights": preview["highlights"],
+                        "rationale": p2_result.get("rationale", ""),
+                    },
                 )
 
                 if isinstance(feedback, dict) and feedback.get("action") == "cancel":
@@ -285,8 +367,14 @@ class SkillCreationProgram(dspy.Module):
             # PHASE 3: VALIDATION & REFINEMENT
             # ============================================================
             logger.info("Starting Phase 3: Validation & Refinement")
+            if progress_callback:
+                progress_callback("validation", "Starting Phase 3: Validating skill content...")
 
             # Execute Phase 3
+            if progress_callback:
+                progress_callback(
+                    "validation", "Checking agentskills.io compliance and content quality..."
+                )
             p3_result = await self.phase3.aforward(
                 skill_content=p2_result["skill_content"],
                 skill_metadata=p1_result["plan"]["skill_metadata"],
@@ -294,35 +382,64 @@ class SkillCreationProgram(dspy.Module):
                 validation_rules="Standard agentskills.io compliance",
                 target_level=p1_result["requirements"]["target_level"],
             )
+            if progress_callback:
+                progress_callback("validation", "Validation complete. Preparing final report...")
 
             # HITL 3.1: Final Validation Review
             if self.hitl_enabled and hitl_callback:
-                report = await self.validation_formatter.aforward(
-                    validation_report=str(p3_result["validation_report"]),
-                    skill_content=p3_result["refined_content"],
-                )
-
-                final_decision = await hitl_callback(
-                    "validate",
-                    {
-                        "report": report["formatted_report"],
-                        "passed": p3_result["validation_report"].passed,
-                    },
-                )
-
-                if isinstance(final_decision, dict) and final_decision.get("action") == "cancel":
-                    return SkillCreationResult(status="cancelled")
-
-                if isinstance(final_decision, dict) and final_decision.get("action") == "refine":
-                    # Manual refinement request
-                    p3_result = await self.phase3.aforward(
+                max_rounds = 3
+                rounds_used = 0
+                while True:
+                    report = await self.validation_formatter.aforward(
+                        validation_report=str(p3_result["validation_report"]),
                         skill_content=p3_result["refined_content"],
-                        skill_metadata=p1_result["plan"]["skill_metadata"],
-                        content_plan=p1_result["plan"]["content_plan"],
-                        validation_rules="Standard agentskills.io compliance",
-                        user_feedback=final_decision.get("feedback", ""),
-                        target_level=p1_result["requirements"]["target_level"],
                     )
+
+                    final_decision = await hitl_callback(
+                        "validate",
+                        {
+                            "report": report["formatted_report"],
+                            "passed": p3_result["validation_report"].passed,
+                        },
+                    )
+
+                    if (
+                        isinstance(final_decision, dict)
+                        and final_decision.get("action") == "cancel"
+                    ):
+                        return SkillCreationResult(status="cancelled")
+
+                    if (
+                        isinstance(final_decision, dict)
+                        and final_decision.get("action") == "refine"
+                    ):
+                        rounds_used += 1
+                        if rounds_used >= max_rounds:
+                            return SkillCreationResult(
+                                status="failed",
+                                error="Validation refinement exceeded maximum iterations",
+                            )
+
+                        # Manual refinement request
+                        p3_result = await self.phase3.aforward(
+                            skill_content=p3_result["refined_content"],
+                            skill_metadata=p1_result["plan"]["skill_metadata"],
+                            content_plan=p1_result["plan"]["content_plan"],
+                            validation_rules="Standard agentskills.io compliance",
+                            user_feedback=final_decision.get("feedback", ""),
+                            target_level=p1_result["requirements"]["target_level"],
+                        )
+                        continue
+
+                    # proceed (or unknown action)
+                    break
+
+            # Build extra_files from Phase 2 results for subdirectory content
+            extra_files = {
+                "usage_examples": p2_result.get("usage_examples", []),
+                "best_practices": p2_result.get("best_practices", []),
+                "integration_tests": p2_result.get("test_cases", []),
+            }
 
             return SkillCreationResult(
                 status="completed",
@@ -330,6 +447,7 @@ class SkillCreationProgram(dspy.Module):
                 metadata=p1_result["plan"]["skill_metadata"],
                 validation_report=p3_result["validation_report"],
                 quality_assessment=p3_result["quality_assessment"],
+                extra_files=extra_files,
             )
 
         except Exception as e:

@@ -14,11 +14,13 @@ from .client import SkillFleetClient
 from .commands.analytics import analytics_command
 from .commands.chat import chat_command
 from .commands.create import create_command
+from .commands.evaluate import evaluate_batch_command, evaluate_command
 from .commands.generate_xml import generate_xml_command
 from .commands.list_skills import list_command
 from .commands.migrate import migrate_command
 from .commands.onboard import onboard_command
 from .commands.optimize import optimize_command
+from .commands.promote import promote_command
 from .commands.serve import serve_command
 from .commands.validate import validate_command
 
@@ -73,6 +75,9 @@ app.command(name="analytics")(analytics_command)
 app.command(name="migrate")(migrate_command)
 app.command(name="generate-xml")(generate_xml_command)
 app.command(name="optimize")(optimize_command)
+app.command(name="promote")(promote_command)
+app.command(name="evaluate")(evaluate_command)
+app.command(name="evaluate-batch")(evaluate_batch_command)
 
 if __name__ == "__main__":
     app()

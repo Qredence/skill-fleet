@@ -104,7 +104,7 @@ This repo is configured to use **Gemini 3** models via `config/config.yaml`:
 ## Optimization
 
 The workflow supports automatic optimization using DSPy's `MIPROv2` and `GEPA` optimizers.
-Run `skills-fleet optimize` to tune the prompts against the `workflow/data/trainset.json`.
+Run `skills-fleet optimize` to tune the prompts against the `config/training/trainset.json`.
 
 ---
 

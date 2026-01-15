@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING, Any, Literal
 import dspy
 
 if TYPE_CHECKING:
-    from .programs import SkillCreationProgram
+    from ..dspy.programs import SkillCreationProgram
 
 logger = logging.getLogger(__name__)
 
@@ -133,8 +133,8 @@ class OptimizationWrapper(dspy.Module):
 
 def optimize_with_miprov2(
     program: SkillCreationProgram,
-    trainset_path: str | Path = "workflow/data/trainset.json",
-    output_path: str | Path = "workflow/optimized/miprov2/",
+    trainset_path: str | Path = "config/training/trainset.json",
+    output_path: str | Path = "config/optimized/miprov2/",
     model: str = DEFAULT_MODEL,
     auto: Literal["light", "medium", "heavy"] = "medium",
     max_bootstrapped_demos: int = 4,
@@ -220,8 +220,8 @@ def optimize_with_miprov2(
 
 def optimize_with_gepa(
     program: SkillCreationProgram,
-    trainset_path: str | Path = "workflow/data/trainset.json",
-    output_path: str | Path = "workflow/optimized/gepa/",
+    trainset_path: str | Path = "config/training/trainset.json",
+    output_path: str | Path = "config/optimized/gepa/",
     model: str = DEFAULT_MODEL,
     reflection_model: str = REFLECTION_MODEL,
     auto: Literal["light", "medium", "heavy"] = "medium",
@@ -308,7 +308,7 @@ def optimize_with_gepa(
 
 
 def load_optimized_program(
-    path: str | Path = "workflow/optimized/miprov2/",
+    path: str | Path = "config/optimized/miprov2/",
 ) -> dspy.Module:
     """Load a previously optimized program.
 
@@ -370,8 +370,8 @@ def save_program_state(
 
 def optimize_with_tracking(
     program: SkillCreationProgram,
-    trainset_path: str | Path = "workflow/data/trainset.json",
-    output_path: str | Path = "workflow/optimized/tracked/",
+    trainset_path: str | Path = "config/training/trainset.json",
+    output_path: str | Path = "config/optimized/tracked/",
     optimizer_type: Literal["miprov2", "gepa"] = "miprov2",
     model: str = DEFAULT_MODEL,
     experiment_name: str = "skills-fleet-optimization",
@@ -467,7 +467,7 @@ def optimize_with_tracking(
 
 def quick_evaluate(
     program: SkillCreationProgram,
-    trainset_path: str | Path = "workflow/data/trainset.json",
+    trainset_path: str | Path = "config/training/trainset.json",
     model: str = DEFAULT_MODEL,
     n_examples: int | None = None,
 ) -> dict:
@@ -548,12 +548,12 @@ def main():
     )
     parser.add_argument(
         "--trainset",
-        default="workflow/data/trainset.json",
+        default="config/training/trainset.json",
         help="Path to training data",
     )
     parser.add_argument(
         "--output",
-        default="workflow/optimized/",
+        default="config/optimized/",
         help="Output directory",
     )
     parser.add_argument(
@@ -576,7 +576,7 @@ def main():
     args = parser.parse_args()
 
     # Import program
-    from .programs import SkillCreationProgram
+    from ..dspy.programs import SkillCreationProgram
 
     program = SkillCreationProgram()
 

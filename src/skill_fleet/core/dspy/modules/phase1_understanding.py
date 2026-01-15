@@ -41,9 +41,18 @@ class RequirementsGathererModule(dspy.Module):
             "rationale": getattr(result, "rationale", ""),
         }
 
-    async def aforward(self, *args, **kwargs) -> dict[str, Any]:
-        """Asynchronous forward pass."""
-        return await asyncio.to_thread(self.forward, *args, **kwargs)
+    async def aforward(self, task_description: str) -> dict[str, Any]:
+        """Asynchronous forward pass (preferred)."""
+        result = await self.gather.acall(task_description=task_description)
+        return {
+            "domain": result.domain,
+            "category": result.category,
+            "target_level": result.target_level,
+            "topics": result.topics,
+            "constraints": result.constraints,
+            "ambiguities": result.ambiguities,
+            "rationale": getattr(result, "rationale", ""),
+        }
 
 
 class IntentAnalyzerModule(dspy.Module):
@@ -64,9 +73,18 @@ class IntentAnalyzerModule(dspy.Module):
             "rationale": getattr(result, "rationale", ""),
         }
 
-    async def aforward(self, *args, **kwargs) -> dict[str, Any]:
-        """Asynchronous forward pass."""
-        return await asyncio.to_thread(self.forward, *args, **kwargs)
+    async def aforward(self, task_description: str, user_context: str) -> dict[str, Any]:
+        """Asynchronous forward pass (preferred)."""
+        result = await self.analyze.acall(
+            task_description=task_description, user_context=user_context
+        )
+        return {
+            "task_intent": result.task_intent,
+            "skill_type": result.skill_type,
+            "scope": result.scope,
+            "success_criteria": result.success_criteria,
+            "rationale": getattr(result, "rationale", ""),
+        }
 
 
 class TaxonomyPathFinderModule(dspy.Module):
@@ -94,9 +112,23 @@ class TaxonomyPathFinderModule(dspy.Module):
             "rationale": getattr(result, "rationale", ""),
         }
 
-    async def aforward(self, *args, **kwargs) -> dict[str, Any]:
-        """Asynchronous forward pass."""
-        return await asyncio.to_thread(self.forward, *args, **kwargs)
+    async def aforward(
+        self, task_description: str, taxonomy_structure: str, existing_skills: list[str]
+    ) -> dict[str, Any]:
+        """Asynchronous forward pass (preferred)."""
+        result = await self.find_path.acall(
+            task_description=task_description,
+            taxonomy_structure=taxonomy_structure,
+            existing_skills=existing_skills,
+        )
+        return {
+            "recommended_path": result.recommended_path,
+            "alternative_paths": result.alternative_paths,
+            "path_rationale": result.path_rationale,
+            "new_directories": result.new_directories,
+            "confidence": result.confidence,
+            "rationale": getattr(result, "rationale", ""),
+        }
 
 
 class DependencyAnalyzerModule(dspy.Module):
@@ -123,9 +155,22 @@ class DependencyAnalyzerModule(dspy.Module):
             "missing_prerequisites": result.missing_prerequisites,
         }
 
-    async def aforward(self, *args, **kwargs) -> dict[str, Any]:
-        """Asynchronous forward pass."""
-        return await asyncio.to_thread(self.forward, *args, **kwargs)
+    async def aforward(
+        self, task_description: str, task_intent: str, taxonomy_path: str, existing_skills: str
+    ) -> dict[str, Any]:
+        """Asynchronous forward pass (preferred)."""
+        result = await self.analyze.acall(
+            task_description=task_description,
+            task_intent=task_intent,
+            taxonomy_path=taxonomy_path,
+            existing_skills=existing_skills,
+        )
+        return {
+            "dependency_analysis": result.dependency_analysis,
+            "prerequisite_skills": result.prerequisite_skills,
+            "complementary_skills": result.complementary_skills,
+            "missing_prerequisites": result.missing_prerequisites,
+        }
 
 
 class PlanSynthesizerModule(dspy.Module):
@@ -159,9 +204,28 @@ class PlanSynthesizerModule(dspy.Module):
             "rationale": getattr(result, "rationale", ""),
         }
 
-    async def aforward(self, *args, **kwargs) -> dict[str, Any]:
-        """Asynchronous forward pass."""
-        return await asyncio.to_thread(self.forward, *args, **kwargs)
+    async def aforward(
+        self,
+        intent_analysis: str,
+        taxonomy_analysis: str,
+        dependency_analysis: str,
+        user_confirmation: str = "",
+    ) -> dict[str, Any]:
+        """Asynchronous forward pass (preferred)."""
+        result = await self.synthesize.acall(
+            intent_analysis=intent_analysis,
+            taxonomy_analysis=taxonomy_analysis,
+            dependency_analysis=dependency_analysis,
+            user_confirmation=user_confirmation,
+        )
+        return {
+            "skill_metadata": result.skill_metadata,
+            "content_plan": result.content_plan,
+            "generation_instructions": result.generation_instructions,
+            "success_criteria": result.success_criteria,
+            "estimated_length": result.estimated_length,
+            "rationale": getattr(result, "rationale", ""),
+        }
 
 
 class Phase1UnderstandingModule(dspy.Module):
@@ -216,6 +280,30 @@ class Phase1UnderstandingModule(dspy.Module):
             dependency_analysis=str(deps_result),
             user_confirmation=user_confirmation,
         )
+
+        # agentskills.io: frontmatter `name` must match the skill directory name.
+        # Ensure the taxonomy path leaf matches the planned kebab-case name so newly
+        # generated skills are spec-compliant by construction.
+        try:
+            skill_metadata = plan.get("skill_metadata")
+            skill_name = getattr(skill_metadata, "name", "") if skill_metadata is not None else ""
+            recommended_path = str(taxonomy_result.get("recommended_path", "")).strip().strip("/")
+            if skill_name and recommended_path:
+                leaf = recommended_path.split("/")[-1]
+                if leaf != skill_name:
+                    parent = "/".join(recommended_path.split("/")[:-1])
+                    aligned_path = f"{parent}/{skill_name}" if parent else skill_name
+                    taxonomy_result["recommended_path"] = aligned_path
+                    # Keep metadata aligned with the chosen on-disk path.
+                    if hasattr(skill_metadata, "skill_id"):
+                        skill_metadata.skill_id = aligned_path
+                    if hasattr(skill_metadata, "taxonomy_path"):
+                        skill_metadata.taxonomy_path = aligned_path
+        except Exception:
+            # Best-effort: do not fail Phase 1 if alignment fails.
+            # This is a non-critical operation for taxonomy path normalization.
+            pass
+
         return {
             "requirements": requirements,
             "intent": intent_result,

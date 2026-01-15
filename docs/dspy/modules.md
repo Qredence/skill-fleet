@@ -1,7 +1,7 @@
 # DSPy Modules Reference
 
-**Last Updated**: 2026-01-12
-**Location**: `src/skill_fleet/core/modules/`
+**Last Updated**: 2026-01-15
+**Location**: `src/skill_fleet/core/dspy/modules/`
 
 ## Overview
 
@@ -795,8 +795,92 @@ The `aforward()` methods use `asyncio.to_thread()` to run DSPy's synchronous ope
 | Iterative improvement | `dspy.Refine` | Comparison-based refinement |
 | Maximizing quality | `dspy.BestOfN` | Generate N candidates, pick best |
 
+## Metrics Module
+
+**File**: `src/skill_fleet/core/dspy/metrics/skill_quality.py`
+
+The metrics module provides quality assessment functions for evaluating generated skills.
+
+### assess_skill_quality
+
+Main entry point for skill quality evaluation.
+
+```python
+from skill_fleet.core.dspy.metrics import assess_skill_quality, SkillQualityScores
+
+scores: SkillQualityScores = assess_skill_quality(skill_content)
+print(f"Overall: {scores.overall_score}")
+print(f"Issues: {scores.issues}")
+```
+
+**Input:**
+```python
+skill_content: str  # Raw SKILL.md content
+weights: dict[str, float] | None = None  # Optional custom weights
+```
+
+**Output:**
+```python
+SkillQualityScores(
+    # Structure scores
+    frontmatter_completeness: float,
+    has_overview: bool,
+    has_when_to_use: bool,
+    has_quick_reference: bool,
+    
+    # Pattern scores
+    pattern_count: int,
+    has_anti_patterns: bool,
+    has_production_patterns: bool,
+    has_key_insights: bool,
+    
+    # Practical value scores
+    has_common_mistakes: bool,
+    has_red_flags: bool,
+    has_real_world_impact: bool,
+    
+    # Code quality scores
+    code_examples_count: int,
+    code_examples_quality: float,
+    
+    # Obra/superpowers quality indicators
+    has_core_principle: bool,
+    has_strong_guidance: bool,
+    has_good_bad_contrast: bool,
+    description_quality: float,
+    
+    # Overall
+    overall_score: float,
+    issues: list[str],
+    strengths: list[str],
+)
+```
+
+### skill_quality_metric
+
+DSPy-compatible metric function for use with optimizers.
+
+```python
+from skill_fleet.core.dspy.metrics import skill_quality_metric
+from dspy.teleprompt import MIPROv2
+
+optimizer = MIPROv2(
+    metric=skill_quality_metric,
+    auto="medium",
+)
+```
+
+`★ Insight ─────────────────────────────────────`
+The metrics are calibrated against golden skills from [Obra/superpowers](https://github.com/obra/superpowers). A penalty multiplier is applied for missing critical elements (core principle, strong guidance, good/bad contrast), ensuring stricter scoring that differentiates excellent skills from mediocre ones.
+`─────────────────────────────────────────────────`
+
+See [Evaluation Documentation](evaluation.md) for detailed metrics information.
+
+---
+
 ## See Also
 
 - **[Signatures Documentation](signatures.md)** - Input/output contracts
 - **[Programs Documentation](programs.md)** - Module orchestration
+- **[Evaluation Documentation](evaluation.md)** - Quality metrics and assessment
 - **[DSPy Overview](index.md)** - Architecture and concepts

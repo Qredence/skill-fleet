@@ -107,10 +107,44 @@ jobs:
       - name: Install dependencies
         run: uv sync --group dev
 
-      - name: Check for known vulnerabilities
+      - name: Install security scanning tools
+        run: uv pip install pip-audit safety bandit[toml]
+
+      - name: Run Bandit security linter
+        run: uv run bandit -r src/skill_fleet -f json -o bandit-report.json || true
+        continue-on-error: true
+
+      - name: Display Bandit results
         run: |
-          uv pip list
-          echo "Security scan completed - consider adding pip-audit or safety in the future"
+          if [ -f bandit-report.json ]; then
+            echo "### Bandit Security Scan Results ###"
+            uv run bandit -r src/skill_fleet || true
+          fi
+
+      - name: Run pip-audit for dependency vulnerabilities
+        run: uv run pip-audit --desc || true
+
+      - name: Run safety check
+        run: |
+          if [ -f "requirements.txt" ]; then
+            uv run safety check --file requirements.txt || true
+          else
+            echo "No requirements.txt found, checking uv lock file"
+            uv pip list > /tmp/requirements.txt && uv run safety check --file /tmp/requirements.txt || true
+          fi
+
+      - name: Check for secrets in code
+        run: |
+          echo "Checking for potential secrets..."
+          if grep -r -i -E "(api[_-]?key|secret|password|token)\s*=\s*['\"][^'\"]{16,}" src/ --exclude-dir=__pycache__; then
+            echo "⚠️  Warning: Potential secrets found in source code"
+            exit 1
+          else
+            echo "✅ No obvious secrets detected"
+          fi
+
+      - name: Summary
+        run: echo "✅ Security scanning completed"
 
   all-checks:
     name: All Checks Passed

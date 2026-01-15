@@ -1,0 +1,73 @@
+# pre-commit hooks configuration for Skills Fleet
+# See https://pre-commit.com for more information
+
+repos:
+  # Ruff - Fast Python linter and formatter (replaces flake8, black, isort)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.0
+    hooks:
+      # Run the linter
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        types_or: [python, pyi, jupyter]
+      # Run the formatter
+      - id: ruff-format
+        types_or: [python, pyi, jupyter]
+
+  # General pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      # Check for files that contain merge conflict markers
+      - id: check-merge-conflict
+      # Check for files with names that conflict on case-insensitive filesystems
+      - id: check-case-conflict
+      # Ensure that a file is either empty, or ends with one newline
+      - id: end-of-file-fixer
+      # Remove trailing whitespace from lines
+      - id: trailing-whitespace
+      # Check YAML files for valid syntax
+      - id: check-yaml
+        args: [--unsafe]
+      # Check TOML files for valid syntax
+      - id: check-toml
+      # Check JSON files for valid syntax
+      - id: check-json
+      # Detect the presence of private keys
+      - id: detect-private-key
+      # Sort requirements files
+      - id: sort-requirements
+      # Prevent committing to the main / master branch
+      - id: no-commit-to-branch
+        args: [--branch, main, --branch, master]
+
+  # Security checks
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.8.0
+    hooks:
+      - id: bandit
+        args: [-r, src/skill_fleet, -c, pyproject.toml]
+        additional_dependencies: ["bandit[toml]"]
+
+  # Custom hooks using uv
+  - repo: local
+    hooks:
+      # Run pytest with coverage
+      - id: pytest
+        name: pytest with coverage
+        entry: uv run pytest --cov=src/skill_fleet --cov-report=term-missing
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      # Validate skills
+      - id: skill-validation
+        name: skill validation
+        entry: uv run skill-fleet validate skills/
+        language: system
+        pass_filenames: false
+        always_run: true
+
+# Global configuration
+default_stages: [pre-commit]
+fail_fast: false

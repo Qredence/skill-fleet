@@ -60,9 +60,18 @@ def _get_env_value(primary: str | None, fallback: str | None = None) -> str | No
 
 
 def _model_provider(model_key: str) -> str:
-    if ":" not in model_key:
-        return model_key
-    return model_key.split(":", 1)[0]
+    """Extract provider name from a model registry key.
+
+    Supports both:
+    - Fleet-style keys: `provider:model`
+    - LiteLLM-style keys: `provider/model`
+    """
+
+    if ":" in model_key:
+        return model_key.split(":", 1)[0]
+    if "/" in model_key:
+        return model_key.split("/", 1)[0]
+    return model_key
 
 
 def _get_registry_entry(config: dict[str, Any], model_key: str) -> dict[str, Any]:

@@ -470,6 +470,8 @@ class SkillValidator:
             warnings.append("No example markdown files found")
         else:
             for example_file in example_files:
+                if example_file.name.lower() == "readme.md":
+                    continue
                 if example_file.is_symlink():
                     warnings.append(f"Example {example_file.name} is a symlink and was skipped")
                     continue

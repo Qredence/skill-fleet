@@ -1,10 +1,15 @@
-"""Workflow caching and optimization helpers."""
+"""Workflow caching and optimization helpers.
+
+Note: This module uses pickle for caching workflow results. The cached data
+is generated and consumed by the same application, not from untrusted sources.
+The MD5 hash is used only for cache key generation (non-cryptographic purpose).
+"""
 
 from __future__ import annotations
 
 import hashlib
 import json
-import pickle
+import pickle  # nosec B403 - Used for internal caching only, not untrusted data
 from pathlib import Path
 from typing import Any
 
@@ -18,13 +23,20 @@ class WorkflowOptimizer:
         self.hit_rate = {"hits": 0, "misses": 0}
 
     def cache_key(self, step: str, inputs: dict[str, Any]) -> str:
-        """Generate a cache key from step name and inputs."""
+        """Generate a cache key from step name and inputs.
+
+        Note: MD5 is used for cache key generation only (non-cryptographic).
+        """
         payload = json.dumps(inputs, sort_keys=True, default=str)
-        digest = hashlib.md5(f"{step}::{payload}".encode()).hexdigest()
+        # MD5 is sufficient for cache keys (not used for security)
+        digest = hashlib.md5(f"{step}::{payload}".encode(), usedforsecurity=False).hexdigest()  # nosec B324
         return digest
 
     def get_cached(self, step: str, inputs: dict[str, Any]) -> Any | None:
-        """Retrieve cached result if available, otherwise return None."""
+        """Retrieve cached result if available, otherwise return None.
+
+        Note: Only loads pickle files created by this application.
+        """
         key = self.cache_key(step, inputs)
         cache_file = self.cache_dir / f"{key}.pkl"
         if not cache_file.exists():
@@ -33,7 +45,8 @@ class WorkflowOptimizer:
         try:
             with cache_file.open("rb") as handle:
                 self.hit_rate["hits"] += 1
-                return pickle.load(handle)
+                # Only loading our own cached data, not untrusted input
+                return pickle.load(handle)  # nosec B301
         except Exception:
             self.hit_rate["misses"] += 1
             return None

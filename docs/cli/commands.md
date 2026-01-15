@@ -1,6 +1,6 @@
 # CLI Commands Reference
 
-**Last Updated**: 2026-01-13
+**Last Updated**: 2026-01-14
 
 ## Overview
 
@@ -122,6 +122,45 @@ stateDiagram-v2
     Idle --> Prompt: Create another?
     Prompt --> [*]: No
     Prompt --> Idle: Yes
+```
+
+---
+
+## promote
+
+Promote a completed job’s draft into the taxonomy.
+
+```bash
+skill-fleet promote [OPTIONS] JOB_ID
+```
+
+### Arguments
+
+| Argument | Type     | Required | Description            |
+| -------- | -------- | -------- | ---------------------- |
+| `JOB_ID` | `string` | Yes      | Job ID to promote      |
+
+### Options
+
+| Option                         | Default | Description                                           |
+| ------------------------------ | ------- | ----------------------------------------------------- |
+| `--overwrite/--no-overwrite`   | `true`  | Overwrite existing skill at the intended taxonomy path |
+| `--delete-draft`               | `false` | Delete the draft directory after successful promotion  |
+| `--force`                      | `false` | Promote even if workflow validation failed             |
+
+Tip: `--api-url/-a` and `--user/-u` are global options available on all commands.
+
+### Examples
+
+```bash
+# Promote a draft created by chat/create
+skill-fleet promote 6f1198b1-5791-4981-986e-7ad8188724ac
+
+# Keep the existing taxonomy entry (do not overwrite)
+skill-fleet promote 6f1198b1-5791-4981-986e-7ad8188724ac --no-overwrite
+
+# Promote a failed-validation draft (use sparingly; review content first)
+skill-fleet promote 6f1198b1-5791-4981-986e-7ad8188724ac --force
 ```
 
 ---

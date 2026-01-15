@@ -1,6 +1,6 @@
 # Interactive Chat Mode
 
-**Last Updated**: 2026-01-13
+**Last Updated**: 2026-01-14
 **Command**: `skill-fleet chat`
 
 ## Overview
@@ -14,14 +14,14 @@ Chat mode uses the same underlying API as the `create` command, but wraps it in 
 ## Starting Chat Mode
 
 ```bash
-# Start chat mode
-skill-fleet chat
+# Start chat mode (recommended from repo root)
+uv run skill-fleet chat
 
 # Start with an initial task
-skill-fleet chat "Create a Python async skill"
+uv run skill-fleet chat "Create a Python async skill"
 
 # Auto-approve mode (no HITL prompts)
-skill-fleet chat --auto-approve
+uv run skill-fleet chat --auto-approve
 ```
 
 ## Chat Interface
@@ -88,8 +88,9 @@ Your answer (or /cancel):
 
 **Response:** One question is shown at a time. You can answer in free-form text or `/cancel`.
 
-If the question includes multi-choice options, the CLI uses prompt-toolkit to let you
-select with arrow keys (and supports an **“Other (type my own)”** free-text option).
+If (and only if) the API returns structured `options`, the CLI can use prompt-toolkit dialogs to
+select with arrow keys (and supports an **“Other (type my own)”** free-text option). If no
+`options` are provided, the CLI falls back to free-text answers.
 
 ---
 
@@ -176,6 +177,23 @@ You can also force plain-text prompts via environment variable:
 
 - `SKILL_FLEET_FORCE_PLAIN_TEXT=1`
 
+## Drafts & Promotion
+
+Skill creation is **draft-first**:
+
+- Drafts are written under `skills/_drafts/<job_id>/...` when the job completes.
+- Promote into the taxonomy when ready:
+  - `uv run skill-fleet promote <job_id>`
+  - (API) `POST /api/v2/drafts/{job_id}/promote`
+
+Until you promote, the draft will not appear in `skill-fleet list` and will not be included in generated XML.
+
+## Known Issues (Observed Locally, 2026-01-14)
+
+- **Rich MarkupError**: if an exception message includes markup-like tags (e.g. `[/Input Credentials/]`), Rich can raise `MarkupError` while printing the error. Workaround: `--force-plain-text` or `SKILL_FLEET_FORCE_PLAIN_TEXT=1`.
+- **Job state is in-memory**: if the server restarts, the CLI may error with “job not found” while polling HITL prompts.
+- **Quality “PASS with warnings”**: validation may pass but still recommend fixes (e.g., example density, plan alignment). Review the draft before promoting.
+
 ## Session Example
 
 ```bash
@@ -211,7 +229,9 @@ Proceed? (proceed/revise/cancel) [proceed]: proceed
 ... (workflow continues)
 
 ✨ Skill Creation Completed!
-📁 Skill saved to: skills/technical_skills/python/decorators
+📝 Draft saved to: skills/_drafts/<job_id>/technical_skills/python/decorators
+Promote when ready: skill-fleet promote abc-123-def
+If the draft failed workflow validation, promotion is blocked unless you pass `--force`.
 
 Create another skill? (y/n) [n]: y
 
@@ -252,6 +272,24 @@ Make sure the server is running:
 ```
 
 **Solution:** Start the server in a separate terminal.
+
+### Job Not Found (Server Restart)
+
+If the server restarts mid-job, `skill-fleet chat` may raise an error like:
+
+- `Job <job_id> not found. The server may have restarted and lost the job state.`
+
+**Solution:** Re-run the request (new job) or avoid restarting the server during long-running jobs.
+
+### Rich MarkupError
+
+If you see `MarkupError` while printing an error message, run with:
+
+- `uv run skill-fleet chat --force-plain-text`
+
+or set:
+
+- `SKILL_FLEET_FORCE_PLAIN_TEXT=1`
 
 ### Job Timeout
 

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import Any
 
@@ -63,17 +62,30 @@ class ContentGeneratorModule(dspy.Module):
             "rationale": getattr(result, "rationale", ""),
         }
 
-    async def aforward(self, *args, **kwargs) -> dict[str, Any]:
-        """Async wrapper for content generation.
-
-        Args:
-            *args: Positional arguments passed to forward method
-            **kwargs: Keyword arguments passed to forward method
-
-        Returns:
-            dict: Generated content from async execution
-        """
-        return await asyncio.to_thread(self.forward, *args, **kwargs)
+    async def aforward(
+        self,
+        skill_metadata: Any,
+        content_plan: str,
+        generation_instructions: str,
+        parent_skills_content: str,
+        dependency_summaries: str,
+    ) -> dict[str, Any]:
+        """Async wrapper for content generation (preferred)."""
+        result = await self.generate.acall(
+            skill_metadata=skill_metadata,
+            content_plan=content_plan,
+            generation_instructions=generation_instructions,
+            parent_skills_content=parent_skills_content,
+            dependency_summaries=dependency_summaries,
+        )
+        return {
+            "skill_content": result.skill_content,
+            "usage_examples": result.usage_examples,
+            "best_practices": result.best_practices,
+            "test_cases": result.test_cases,
+            "estimated_reading_time": result.estimated_reading_time,
+            "rationale": getattr(result, "rationale", ""),
+        }
 
 
 class FeedbackIncorporatorModule(dspy.Module):
@@ -115,9 +127,27 @@ class FeedbackIncorporatorModule(dspy.Module):
             "rationale": getattr(result, "rationale", ""),
         }
 
-    async def aforward(self, *args, **kwargs) -> dict[str, Any]:
-        """Async wrapper for feedback incorporation."""
-        return await asyncio.to_thread(self.forward, *args, **kwargs)
+    async def aforward(
+        self,
+        current_content: str,
+        user_feedback: str,
+        change_requests: str,
+        skill_metadata: Any,
+    ) -> dict[str, Any]:
+        """Async wrapper for feedback incorporation (preferred)."""
+        result = await self.incorporate.acall(
+            current_content=current_content,
+            user_feedback=user_feedback,
+            change_requests=change_requests,
+            skill_metadata=skill_metadata,
+        )
+        return {
+            "refined_content": result.refined_content,
+            "changes_made": result.changes_made,
+            "unaddressed_feedback": result.unaddressed_feedback,
+            "improvement_score": result.improvement_score,
+            "rationale": getattr(result, "rationale", ""),
+        }
 
 
 class Phase2GenerationModule(dspy.Module):

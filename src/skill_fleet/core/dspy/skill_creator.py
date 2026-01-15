@@ -297,32 +297,46 @@ class SkillCreationProgram(dspy.Module):
 
             # HITL 3.1: Final Validation Review
             if self.hitl_enabled and hitl_callback:
-                report = await self.validation_formatter.aforward(
-                    validation_report=str(p3_result["validation_report"]),
-                    skill_content=p3_result["refined_content"],
-                )
-
-                final_decision = await hitl_callback(
-                    "validate",
-                    {
-                        "report": report["formatted_report"],
-                        "passed": p3_result["validation_report"].passed,
-                    },
-                )
-
-                if isinstance(final_decision, dict) and final_decision.get("action") == "cancel":
-                    return SkillCreationResult(status="cancelled")
-
-                if isinstance(final_decision, dict) and final_decision.get("action") == "refine":
-                    # Manual refinement request
-                    p3_result = await self.phase3.aforward(
+                max_rounds = 3
+                rounds_used = 0
+                while True:
+                    report = await self.validation_formatter.aforward(
+                        validation_report=str(p3_result["validation_report"]),
                         skill_content=p3_result["refined_content"],
-                        skill_metadata=p1_result["plan"]["skill_metadata"],
-                        content_plan=p1_result["plan"]["content_plan"],
-                        validation_rules="Standard agentskills.io compliance",
-                        user_feedback=final_decision.get("feedback", ""),
-                        target_level=p1_result["requirements"]["target_level"],
                     )
+
+                    final_decision = await hitl_callback(
+                        "validate",
+                        {
+                            "report": report["formatted_report"],
+                            "passed": p3_result["validation_report"].passed,
+                        },
+                    )
+
+                    if isinstance(final_decision, dict) and final_decision.get("action") == "cancel":
+                        return SkillCreationResult(status="cancelled")
+
+                    if isinstance(final_decision, dict) and final_decision.get("action") == "refine":
+                        rounds_used += 1
+                        if rounds_used >= max_rounds:
+                            return SkillCreationResult(
+                                status="failed",
+                                error="Validation refinement exceeded maximum iterations",
+                            )
+
+                        # Manual refinement request
+                        p3_result = await self.phase3.aforward(
+                            skill_content=p3_result["refined_content"],
+                            skill_metadata=p1_result["plan"]["skill_metadata"],
+                            content_plan=p1_result["plan"]["content_plan"],
+                            validation_rules="Standard agentskills.io compliance",
+                            user_feedback=final_decision.get("feedback", ""),
+                            target_level=p1_result["requirements"]["target_level"],
+                        )
+                        continue
+
+                    # proceed (or unknown action)
+                    break
 
             return SkillCreationResult(
                 status="completed",

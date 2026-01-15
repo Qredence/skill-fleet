@@ -35,4 +35,3 @@ description: Use when testing explicit name behavior.
 
     result = evaluator.evaluate_skill(skill_content=content, skill_name="caller-provided-name")
     assert result.skill_name == "caller-provided-name"
-

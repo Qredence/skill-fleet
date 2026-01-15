@@ -209,7 +209,9 @@ async def _run_optimization(
             return
 
         async with _jobs_lock:
-            _optimization_jobs[job_id]["message"] = f"Loaded {len(training_examples)} training examples"
+            _optimization_jobs[job_id]["message"] = (
+                f"Loaded {len(training_examples)} training examples"
+            )
             _optimization_jobs[job_id]["progress"] = 0.2
 
         # Initialize optimizer with configure_lm=False since the optimize_with_* methods
@@ -283,7 +285,7 @@ async def get_optimization_status(job_id: str) -> OptimizationStatus:
             )
 
         job = _optimization_jobs[job_id].copy()  # Copy to avoid holding lock during response
-    
+
     return OptimizationStatus(
         job_id=job_id,
         status=job["status"],
@@ -358,7 +360,7 @@ async def cancel_optimization(job_id: str) -> dict[str, str]:
             )
 
         job = _optimization_jobs.pop(job_id)
-    
+
     return {
         "job_id": job_id,
         "previous_status": job["status"],

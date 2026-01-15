@@ -39,7 +39,12 @@ def optimize_command(
         ),
     ),
     trainset: str = typer.Option(
-        str(Path(__file__).parent.parent.parent.parent.parent / "config" / "training" / "trainset.json"),
+        str(
+            Path(__file__).parent.parent.parent.parent.parent
+            / "config"
+            / "training"
+            / "trainset.json"
+        ),
         "--trainset",
         help="Path to training data JSON",
     ),

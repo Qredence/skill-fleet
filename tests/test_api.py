@@ -371,10 +371,11 @@ class TestOptimizationEndpoints:
         )
 
         assert optimization_routes._optimization_jobs[job_id]["status"] == "completed"
-        assert saved["path"] == repo_root / "config" / "optimized" / "my_program" / "program" / "state.json"
         assert (
-            repo_root / "config" / "optimized" / "my_program" / "program"
-        ).exists()
+            saved["path"]
+            == repo_root / "config" / "optimized" / "my_program" / "program" / "state.json"
+        )
+        assert (repo_root / "config" / "optimized" / "my_program" / "program").exists()
         optimization_routes._optimization_jobs.pop(job_id, None)
 
 

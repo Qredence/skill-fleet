@@ -22,6 +22,15 @@ Agentic systems fail when they cannot **reliably compose, reuse, and audit** the
 
 Instead of a monolithic prompt or ad‑hoc tool chain, the system stores skills as **structured folders and metadata** inside a taxonomy. A DSPy‑based workflow then **creates new skills from tasks** and **registers them** in the taxonomy with validation and traceability.
 
+`★ Draft-First Execution (Current) ───────────────`
+Skill creation runs as a FastAPI background job and is **draft-first**:
+
+- Jobs write drafts under `skills/_drafts/<job_id>/...` once content exists.
+- Promotion into the taxonomy is explicit (`skill-fleet promote <job_id>` or `POST /api/v2/drafts/{job_id}/promote`).
+
+This design keeps the taxonomy stable and makes review/iteration the default before “publishing” a new skill.
+`─────────────────────────────────────────────────`
+
 ## Primary Use Cases
 
 - **Skill bootstrapping**: generate a new skill from a user task and store it in the taxonomy.

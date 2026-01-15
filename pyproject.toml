@@ -81,6 +81,11 @@ include = ["src/skill_fleet/config/**"]
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "integration: marks tests as integration tests (may require LLM access)",
+    "slow: marks tests as slow running",
+]
 
 [tool.ruff]
 src = ["src", "skills"]

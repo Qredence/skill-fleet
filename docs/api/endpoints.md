@@ -1,6 +1,6 @@
 # API Endpoints Reference
 
-**Last Updated**: 2026-01-12
+**Last Updated**: 2026-01-15
 **Base URL**: `http://localhost:8000/api/v2`
 
 ## Overview
@@ -364,6 +364,277 @@ Content-Type: application/json
 - Required fields present (`name`, `description`)
 - Name format: 1-64 chars, kebab-case
 - Description length: 1-1024 chars
+
+---
+
+## Evaluation Endpoints
+
+Quality assessment endpoints using DSPy metrics calibrated against [Obra/superpowers](https://github.com/obra/superpowers) golden skills.
+
+### POST /api/v2/evaluation/evaluate
+
+Evaluate a skill's quality at the specified path.
+
+**Request:**
+```http
+POST /api/v2/evaluation/evaluate
+Content-Type: application/json
+
+{
+    "path": "technical_skills/programming/web_frameworks/python/fastapi",
+    "weights": null
+}
+```
+
+**Parameters:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `path` | `string` | Yes | Taxonomy-relative path to the skill |
+| `weights` | `object` | No | Custom metric weights for scoring |
+
+**Response (200 OK):**
+```json
+{
+    "overall_score": 0.855,
+    "frontmatter_completeness": 0.9,
+    "has_overview": true,
+    "has_when_to_use": true,
+    "has_quick_reference": true,
+    "pattern_count": 9,
+    "has_anti_patterns": true,
+    "has_production_patterns": true,
+    "has_key_insights": true,
+    "has_common_mistakes": true,
+    "has_red_flags": true,
+    "has_real_world_impact": true,
+    "code_examples_count": 15,
+    "code_examples_quality": 0.9,
+    "quality_indicators": {
+        "has_core_principle": true,
+        "has_strong_guidance": false,
+        "has_good_bad_contrast": true,
+        "description_quality": 0.85
+    },
+    "issues": ["Missing strong guidance (imperative rules)"],
+    "strengths": ["Excellent pattern coverage (9 patterns)", "..."]
+}
+```
+
+---
+
+### POST /api/v2/evaluation/evaluate-content
+
+Evaluate raw SKILL.md content directly (useful for testing before saving).
+
+**Request:**
+```http
+POST /api/v2/evaluation/evaluate-content
+Content-Type: application/json
+
+{
+    "content": "---\nname: my-skill\ndescription: Use when...\n---\n\n# My Skill\n...",
+    "weights": null
+}
+```
+
+**Response:** Same format as `/evaluate`.
+
+---
+
+### POST /api/v2/evaluation/evaluate-batch
+
+Evaluate multiple skills in batch.
+
+**Request:**
+```http
+POST /api/v2/evaluation/evaluate-batch
+Content-Type: application/json
+
+{
+    "paths": [
+        "technical_skills/programming/web_frameworks/python/fastapi",
+        "technical_skills/programming/languages/python/async"
+    ],
+    "weights": null
+}
+```
+
+**Response (200 OK):**
+```json
+{
+    "results": [
+        {
+            "path": "technical_skills/.../fastapi",
+            "overall_score": 0.855,
+            "issues_count": 1,
+            "strengths_count": 16,
+            "error": null
+        }
+    ],
+    "average_score": 0.78,
+    "total_evaluated": 2,
+    "total_errors": 0
+}
+```
+
+---
+
+### GET /api/v2/evaluation/metrics-info
+
+Get information about evaluation metrics and default weights.
+
+**Response (200 OK):**
+```json
+{
+    "description": "Skill quality metrics calibrated against Obra/superpowers golden skills",
+    "reference": "https://github.com/obra/superpowers/tree/main/skills",
+    "default_weights": {
+        "pattern_count": {"weight": 0.10, "description": "Number of patterns (target: 5+)"},
+        "has_core_principle": {"weight": 0.10, "description": "Has 'Core principle:' statement"},
+        "has_strong_guidance": {"weight": 0.08, "description": "Has Iron Law / imperative rules"}
+    },
+    "penalty_multipliers": {
+        "0_critical": 0.70,
+        "1_critical": 0.85,
+        "2_critical": 0.95,
+        "3_critical": 1.00
+    },
+    "critical_elements": ["has_core_principle", "has_strong_guidance", "has_good_bad_contrast"]
+}
+```
+
+---
+
+## Optimization Endpoints
+
+DSPy program optimization using MIPROv2 and BootstrapFewShot optimizers.
+
+### POST /api/v2/optimization/start
+
+Start an optimization job (runs in background).
+
+**Request:**
+```http
+POST /api/v2/optimization/start
+Content-Type: application/json
+
+{
+    "optimizer": "miprov2",
+    "training_paths": [
+        "technical_skills/programming/web_frameworks/python/fastapi"
+    ],
+    "auto": "medium",
+    "max_bootstrapped_demos": 4,
+    "max_labeled_demos": 4,
+    "save_path": "skill_creator_optimized.json"
+}
+```
+
+**Parameters:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `optimizer` | `string` | No | `miprov2` or `bootstrap_fewshot` (default: `miprov2`) |
+| `training_paths` | `array` | No | Paths to gold-standard skills for training |
+| `auto` | `string` | No | MIPROv2 setting: `light`, `medium`, `heavy` (default: `medium`) |
+| `max_bootstrapped_demos` | `int` | No | Max auto-generated demos (default: 4) |
+| `max_labeled_demos` | `int` | No | Max human-curated demos (default: 4) |
+| `save_path` | `string` | No | Path to save optimized program |
+
+**Response (202 Accepted):**
+```json
+{
+    "job_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+    "status": "pending",
+    "message": "Optimization job started. Check status with GET /optimization/status/{job_id}"
+}
+```
+
+---
+
+### GET /api/v2/optimization/status/{job_id}
+
+Get the status of an optimization job.
+
+**Response (200 OK):**
+```json
+{
+    "job_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+    "status": "running",
+    "progress": 0.5,
+    "message": "Running miprov2 optimization...",
+    "result": null,
+    "error": null
+}
+```
+
+**Status Values:**
+| Status | Description |
+|--------|-------------|
+| `pending` | Job queued, not yet started |
+| `running` | Optimization in progress |
+| `completed` | Optimization finished successfully |
+| `failed` | Optimization failed (check `error` field) |
+
+---
+
+### GET /api/v2/optimization/optimizers
+
+List available optimizers and their parameters.
+
+**Response (200 OK):**
+```json
+[
+    {
+        "name": "miprov2",
+        "description": "MIPROv2 optimizer - Multi-stage Instruction Proposal and Optimization",
+        "parameters": {
+            "auto": {"type": "string", "options": ["light", "medium", "heavy"], "default": "medium"},
+            "max_bootstrapped_demos": {"type": "integer", "default": 4},
+            "max_labeled_demos": {"type": "integer", "default": 4}
+        }
+    },
+    {
+        "name": "bootstrap_fewshot",
+        "description": "BootstrapFewShot optimizer - Simple few-shot learning with bootstrapping",
+        "parameters": {...}
+    }
+]
+```
+
+---
+
+### GET /api/v2/optimization/config
+
+Get current optimization configuration from `config.yaml`.
+
+**Response (200 OK):**
+```json
+{
+    "optimization": {
+        "default_optimizer": "miprov2",
+        "miprov2": {"auto": "medium", "num_threads": 4}
+    },
+    "evaluation": {
+        "num_threads": 8,
+        "thresholds": {"minimum_quality": 0.6, "target_quality": 0.8}
+    }
+}
+```
+
+---
+
+### DELETE /api/v2/optimization/jobs/{job_id}
+
+Cancel or remove an optimization job.
+
+**Response (200 OK):**
+```json
+{
+    "job_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+    "previous_status": "running",
+    "message": "Job removed from tracking"
+}
+```
 
 ---
 

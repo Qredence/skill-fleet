@@ -1,10 +1,12 @@
 # DSPy Optimization
 
-**Last Updated**: 2026-01-12
+**Last Updated**: 2026-01-15
 
 ## Overview
 
 DSPy provides built-in optimizers for improving prompt quality and reducing costs through intelligent caching. This guide covers how skills-fleet leverages DSPy optimization features.
+
+Skills Fleet uses an **API-first approach** for optimization, with endpoints available at `/api/v2/optimization`. For quality assessment, see [Evaluation Documentation](evaluation.md).
 
 `★ Insight ─────────────────────────────────────`
 DSPy optimizers work by "learning" from examples. They analyze a training set of input/output pairs and automatically adjust prompts to maximize performance. This replaces manual prompt engineering with data-driven optimization.
@@ -12,12 +14,12 @@ DSPy optimizers work by "learning" from examples. They analyze a training set of
 
 ## Optimization Techniques
 
-| Technique | Purpose | Cost | Quality Gain |
-|-----------|---------|------|--------------|
-| **MIPROv2** | Multi-step instruction optimization | High | Significant |
-| **GEPA** | Guided evolution with prompt assembly | Medium | Moderate |
-| **Caching** | Response caching to reduce LLM calls | None | Neutral |
-| **BestOfN** | Generate N candidates, pick best | High (N×) | Moderate |
+| Technique   | Purpose                               | Cost      | Quality Gain |
+|-------------|---------------------------------------|-----------|--------------|
+| **MIPROv2** | Multi-step instruction optimization   | High      | Significant  |
+| **GEPA**    | Guided evolution with prompt assembly | Medium    | Moderate     |
+| **Caching** | Response caching to reduce LLM calls  | None      | Neutral      |
+| **BestOfN** | Generate N candidates, pick best      | High (N×) | Moderate     |
 
 ---
 
@@ -85,15 +87,15 @@ optimized_program.save("optimized_program.json")
 
 ### Configuration Parameters
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `metric` | Required | Evaluation function (gold, pred) → score |
-| `num_threads` | `1` | Parallel optimization threads |
-| `num_trials` | `10` | Optimization trials per round |
-| `max_labeled_demos` | `4` | Max few-shot examples per module |
-| `max_rounds` | `2` | Optimization rounds |
-| `max_bootstrapped_demos` | `8` | Max generated examples |
-| `teacher_settings` | `None` | LM settings for generating traces |
+| Parameter                | Default  | Description                              |
+|--------------------------|----------|------------------------------------------|
+| `metric`                 | Required | Evaluation function (gold, pred) → score |
+| `num_threads`            | `1`      | Parallel optimization threads            |
+| `num_trials`             | `10`     | Optimization trials per round            |
+| `max_labeled_demos`      | `4`      | Max few-shot examples per module         |
+| `max_rounds`             | `2`      | Optimization rounds                      |
+| `max_bootstrapped_demos` | `8`      | Max generated examples                   |
+| `teacher_settings`       | `None`   | LM settings for generating traces        |
 
 ### Training Set Format
 
@@ -181,11 +183,11 @@ lm = configure_dspy()
 
 ### Cache Behavior
 
-| Scenario | Cache Behavior |
-|----------|---------------|
-| **Exact input match** | Return cached response immediately |
-| **Similar input** | No cache hit (exact match required) |
-| **Cache miss** | Call LLM and store response |
+| Scenario              | Cache Behavior                      |
+|-----------------------|-------------------------------------|
+| **Exact input match** | Return cached response immediately  |
+| **Similar input**     | No cache hit (exact match required) |
+| **Cache miss**        | Call LLM and store response         |
 
 ### Cache Invalidation
 
@@ -277,14 +279,14 @@ def reward_fn(prediction, trace=None):
 
 ## Workflow Optimization
 
-Skills Fleet's workflow system (`src/skill_fleet/workflow/`) provides additional optimization capabilities.
+Skills Fleet's workflow system (distributed in `src/skill_fleet/core/dspy/`) provides additional optimization capabilities.
 
 ### Optimization Command
 
 ```bash
 uv run skill-fleet optimize \
-    --training-data workflow/data/trainset.json \
-    --output optimized_program.json \
+    --training-data config/training/trainset.json \
+    --output config/optimized/ \
     --optimizer miprov2 \
     --rounds 2
 ```
@@ -315,11 +317,11 @@ uv run skill-fleet optimize \
 
 Different models for different optimization phases:
 
-| Phase | Recommended Model | Rationale |
-|-------|-------------------|-----------|
-| **Profiling** | Fast model (Flash) | Quick data collection |
+| Phase            | Recommended Model   | Rationale                     |
+|------------------|---------------------|-------------------------------|
+| **Profiling**    | Fast model (Flash)  | Quick data collection         |
 | **Optimization** | Capable model (Pro) | Better instruction generation |
-| **Evaluation** | Target model | Real-world performance |
+| **Evaluation**   | Target model        | Real-world performance        |
 
 ### Parallel Optimization
 
@@ -352,12 +354,12 @@ cost = (
 
 ### Metrics to Track
 
-| Metric | Description | Target |
-|--------|-------------|--------|
-| **Accuracy** | Correct predictions / total | > 0.9 |
-| **Latency** | Time per optimization round | < 5 min |
-| **Cost** | LLM API costs | Budget permitting |
-| **Quality Score** | Custom quality metric | Improving |
+| Metric            | Description                 | Target            |
+|-------------------|-----------------------------|-------------------|
+| **Accuracy**      | Correct predictions / total | > 0.9             |
+| **Latency**       | Time per optimization round | < 5 min           |
+| **Cost**          | LLM API costs               | Budget permitting |
+| **Quality Score** | Custom quality metric       | Improving         |
 
 ### Logging
 
@@ -390,23 +392,73 @@ logger.info(f"Best instructions: {best_instructions}")
 # Run optimization
 uv run skill-fleet optimize \
     --program SkillCreationProgram \
-    --data workflow/data/trainset.json \
+    --data config/training/trainset.json \
     --optimizer miprov2 \
     --rounds 2 \
     --trials 10 \
-    --output optimized/
+    --output config/optimized/
 
 # Use optimized program
 uv run skill-fleet create-skill \
     --task "Create a skill" \
-    --program optimized/skill_creator.json
+    --program config/optimized/skill_creator.json
 ```
+
+---
+
+## API Endpoints
+
+Skills Fleet provides REST API endpoints for optimization:
+
+### POST /api/v2/optimization/start
+
+Start an optimization job (runs in background).
+
+```json
+{
+    "optimizer": "miprov2",
+    "training_paths": [
+        "technical_skills/programming/web_frameworks/python/fastapi"
+    ],
+    "auto": "medium",
+    "max_bootstrapped_demos": 4,
+    "max_labeled_demos": 4,
+    "save_path": "skill_creator_optimized.json"
+}
+```
+
+### GET /api/v2/optimization/status/{job_id}
+
+Check optimization job status and progress.
+
+```json
+{
+    "job_id": "abc-123",
+    "status": "running",
+    "progress": 0.5,
+    "message": "Running miprov2 optimization..."
+}
+```
+
+### GET /api/v2/optimization/optimizers
+
+List available optimizers and their parameters.
+
+### GET /api/v2/optimization/config
+
+Get current optimization configuration from `config.yaml`.
+
+### DELETE /api/v2/optimization/jobs/{job_id}
+
+Cancel or remove an optimization job.
 
 ---
 
 ## See Also
 
 - **[DSPy Overview](index.md)** - Architecture and concepts
+- **[Evaluation Documentation](evaluation.md)** - Quality metrics and assessment
 - **[Modules Documentation](modules.md)** - Module implementations
 - **[Programs Documentation](programs.md)** - Program orchestration
+- **[API Endpoints](../api/endpoints.md)** - Full API reference
 - **[LLM Configuration](../llm/dspy-config.md)** - Model setup for optimization

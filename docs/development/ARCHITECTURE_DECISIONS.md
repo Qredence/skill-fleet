@@ -41,7 +41,7 @@ Use [DSPy](https://github.com/stanfordnlp/dspy) as the primary framework for:
 ### Consequences
 
 - All LLM interactions go through DSPy modules (`dspy.Module`, `dspy.Signature`)
-- Prompt optimization requires training data in `workflow/data/` directory
+- Prompt optimization requires training data in `config/training/` directory
 - Developers need to learn DSPy's programming model
 - Quality assurance uses DSPy's Refine and BestOfN patterns
 - Workflow is defined in `SkillCreationProgram` which chains 6 DSPy modules

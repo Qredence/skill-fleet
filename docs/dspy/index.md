@@ -1,6 +1,6 @@
 # DSPy in Skills Fleet
 
-**Last Updated**: 2026-01-12
+**Last Updated**: 2026-01-15
 
 ## Overview
 
@@ -85,7 +85,7 @@ Validates and iteratively refines:
 ## File Organization
 
 ```
-src/skill_fleet/core/
+src/skill_fleet/core/dspy/
 ├── signatures/           # DSPy signatures (input/output contracts)
 │   ├── phase1_understanding.py
 │   ├── phase2_generation.py
@@ -97,11 +97,22 @@ src/skill_fleet/core/
 │   ├── phase2_generation.py
 │   ├── phase3_validation.py
 │   └── hitl.py
-├── programs/             # DSPy programs (orchestrators)
-│   ├── skill_creator.py
-│   └── conversational.py
-└── config/
-    └── models.py         # Pydantic models for type safety
+├── metrics/              # Quality metrics for evaluation
+│   ├── __init__.py
+│   └── skill_quality.py  # Multi-dimensional skill quality assessment
+├── training/             # Training data management
+│   ├── __init__.py
+│   └── gold_standards.py # Gold-standard skill loader
+├── evaluation.py         # DSPy Evaluate integration
+├── optimization.py       # MIPROv2/BootstrapFewShot optimizers
+├── skill_creator.py      # Main skill creation program
+└── conversational.py     # Conversational agent program
+
+config/
+├── config.yaml           # Main LLM configuration
+└── training/
+    ├── gold_skills.json      # Curated excellent skills
+    └── quality_criteria.yaml # Quality scoring rubric
 ```
 
 ## Key DSPy Concepts in Skills Fleet
@@ -197,13 +208,29 @@ result = module.forward(input="...")
 Async support is critical for the CLI and API servers. The `aforward()` methods use `asyncio.to_thread()` to run synchronous DSPy operations in thread pools, enabling concurrent requests without blocking the event loop.
 `─────────────────────────────────────────────────`
 
-## Optimization
+## Evaluation & Optimization
+
+Skills Fleet includes comprehensive evaluation and optimization capabilities:
+
+### Evaluation
+
+Quality metrics calibrated against golden skills from [Obra/superpowers](https://github.com/obra/superpowers):
+
+- **Multi-dimensional scoring**: Pattern count, code quality, structure completeness
+- **Obra quality indicators**: Core principle, strong guidance, good/bad contrast
+- **Penalty multipliers**: Stricter scoring for missing critical elements
+- **API-first**: Available via `/api/v2/evaluation` endpoints
+
+See [Evaluation Documentation](evaluation.md) for details.
+
+### Optimization
 
 DSPy provides built-in optimizers:
 
 - **MIPROv2**: Multi-step instruction optimization with profiling
-- **GEPA**: Guided Evolution with Prompt Assembly
+- **BootstrapFewShot**: Simple few-shot learning with bootstrapping
 - **Caching**: Automatic caching of LM responses
+- **API-first**: Available via `/api/v2/optimization` endpoints
 
 See [Optimization Documentation](optimization.md) for details.
 
@@ -249,10 +276,11 @@ with dspy.context(lm=edit_lm):
 - **[Signatures Documentation](signatures.md)** - All DSPy signatures
 - **[Modules Documentation](modules.md)** - All DSPy modules
 - **[Programs Documentation](programs.md)** - Orchestrator programs
-- **[Optimization Documentation](optimization.md)** - MIPROv2, GEPA, caching
+- **[Evaluation Documentation](evaluation.md)** - Quality metrics and assessment
+- **[Optimization Documentation](optimization.md)** - MIPROv2, BootstrapFewShot, caching
 
 ## Related Documentation
 
 - **[LLM Configuration](../llm/dspy-config.md)** - Centralized DSPy configuration
 - **[HITL System](../hitl/)** - Human-in-the-Loop interactions
-- **[API Endpoints](../api/endpoints.md)** - REST API usage
+- **[API Endpoints](../api/endpoints.md)** - REST API usage (includes evaluation & optimization)

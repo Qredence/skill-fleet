@@ -279,6 +279,7 @@ def _save_skill_to_draft(
             metadata=meta_dict,
             content=result.skill_content,
             evolution=evolution,
+            extra_files=result.extra_files,
             overwrite=True,
         )
 
@@ -367,6 +368,11 @@ async def run_skill_creation(
             job.error = "HITL interaction timed out (user took too long to respond)"
             raise
 
+    def progress_callback(phase: str, message: str) -> None:
+        """Update job state with progress information for CLI display."""
+        job.current_phase = phase
+        job.progress_message = message
+
     try:
         # Provide real taxonomy context to Phase 1 (better path selection + overlap analysis).
         # The DSPy program contract expects JSON strings for these fields.
@@ -381,6 +387,7 @@ async def run_skill_creation(
             taxonomy_structure=json.dumps(taxonomy_structure),
             existing_skills=json.dumps(mounted_skills),
             hitl_callback=hitl_callback,
+            progress_callback=progress_callback,
         )
 
         if result.status == "failed":

@@ -12,7 +12,6 @@ commands stay consistent.
 from __future__ import annotations
 
 import asyncio
-import re
 from typing import Any
 
 from rich.console import Console
@@ -33,13 +32,18 @@ from .handlers import get_handler
 
 
 def _render_questions(questions: object) -> str:
+    """Render questions to a displayable string.
+
+    Now expects pre-structured questions from the server (StructuredQuestion format).
+    """
     if isinstance(questions, str):
         return questions
     if isinstance(questions, list):
         lines: list[str] = []
         for idx, q in enumerate(questions, 1):
             if isinstance(q, dict):
-                text = q.get("question") or q.get("text") or str(q)
+                # Server returns StructuredQuestion with 'text' field
+                text = q.get("text") or q.get("question") or str(q)
             else:
                 text = str(q)
             lines.append(f"{idx}. {text}")
@@ -48,60 +52,42 @@ def _render_questions(questions: object) -> str:
 
 
 def _normalize_questions(questions: object) -> list[object]:
-    """Normalize HITL `questions` into a list.
+    """Pass through pre-structured questions from the server.
 
-    The API may return:
-    - a single string
-    - a list of dicts/strings
-    - None
+    The server now normalizes questions via normalize_questions() in api/schemas/hitl.py.
+    This function is kept for backward compatibility but does minimal processing.
+
+    The API returns:
+    - None -> empty list
+    - list[StructuredQuestion] -> pass through as list of dicts
     """
-
-    def _split_numbered(text: str) -> list[str]:
-        text = text.strip()
-        if not text:
-            return []
-
-        # If it looks like a numbered list ("1. ...\n2. ..."), split it.
-        matches = list(re.finditer(r"(?m)^\s*\d+\.\s+", text))
-        if len(matches) <= 1:
-            return [text]
-
-        parts: list[str] = []
-        for i, m in enumerate(matches):
-            start = m.start()
-            end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
-            chunk = text[start:end].strip()
-            chunk = re.sub(r"^\s*\d+\.\s*", "", chunk)
-            if chunk:
-                parts.append(chunk)
-        return parts
-
     if questions is None:
         return []
-    if isinstance(questions, str):
-        return _split_numbered(questions)
     if isinstance(questions, list):
-        normalized: list[object] = []
-        for q in questions:
-            if isinstance(q, str):
-                normalized.extend(_split_numbered(q))
-            else:
-                normalized.append(q)
-        return normalized
+        return questions
+    # Fallback for unexpected formats (shouldn't happen with new API)
     return [questions]
 
 
 def _question_text(question: object) -> str:
+    """Extract question text from a StructuredQuestion dict.
+
+    Server returns StructuredQuestion with 'text' field.
+    """
     if isinstance(question, str):
         return question
     if isinstance(question, dict):
-        return str(question.get("question") or question.get("text") or question)
+        # StructuredQuestion uses 'text' as primary field
+        return str(question.get("text") or question.get("question") or question)
     return str(question)
 
 
 def _question_options(question: object) -> tuple[list[tuple[str, str]], bool]:
-    """Return (choices, allows_multiple) for a structured question payload."""
+    """Extract options from a StructuredQuestion dict.
 
+    Server returns StructuredQuestion with 'options' (list of QuestionOption)
+    and 'allows_multiple' fields.
+    """
     if not isinstance(question, dict):
         return ([], False)
 
@@ -112,9 +98,10 @@ def _question_options(question: object) -> tuple[list[tuple[str, str]], bool]:
     choices: list[tuple[str, str]] = []
     for opt in raw_options:
         if isinstance(opt, dict):
+            # QuestionOption has 'id', 'label', 'description' fields
             opt_id = str(opt.get("id") or opt.get("value") or "")
             label = str(opt.get("label") or opt.get("text") or opt_id)
-            desc = str(opt.get("description") or "")
+            desc = opt.get("description")
             if desc:
                 label = f"{label} — {desc}"
             if opt_id:
@@ -157,7 +144,16 @@ async def run_hitl_job(
             return prompt_data
 
         if status != "pending_hitl":
-            message = f"[dim]Workflow running… ({status})[/dim]"
+            # Build progress message from API response
+            current_phase = prompt_data.get("current_phase", "")
+            progress_message = prompt_data.get("progress_message", "")
+            
+            if progress_message:
+                phase_label = f"[cyan]{current_phase}[/cyan]: " if current_phase else ""
+                message = f"[dim]{phase_label}{progress_message}[/dim]"
+            else:
+                message = f"[dim]Workflow running… ({status})[/dim]"
+            
             if spinner is None:
                 spinner = console.status(message, spinner="dots")
                 spinner.start()
@@ -275,8 +271,19 @@ async def run_hitl_job(
             continue
 
         if interaction_type == "confirm":
+            rationale = prompt_data.get("rationale", "")
+            if show_thinking and rationale:
+                console.print(
+                    Panel(
+                        Markdown(rationale) if "**" in rationale else rationale,
+                        title="[dim]💭 Reasoning[/dim]",
+                        border_style="dim",
+                    )
+                )
+
             summary = prompt_data.get("summary", "")
             path = prompt_data.get("path", "")
+            key_assumptions = prompt_data.get("key_assumptions", [])
             console.print(
                 Panel(
                     Markdown(summary) if summary else "No summary available.",
@@ -286,6 +293,10 @@ async def run_hitl_job(
             )
             if path:
                 console.print(f"[dim]Proposed path: {path}[/dim]")
+            if key_assumptions:
+                console.print("[dim]Key assumptions:[/dim]")
+                for assumption in key_assumptions:
+                    console.print(f"  • {assumption}")
             action = await ui.choose_one(
                 "Proceed?",
                 [("proceed", "Proceed"), ("revise", "Revise"), ("cancel", "Cancel")],
@@ -298,6 +309,16 @@ async def run_hitl_job(
             continue
 
         if interaction_type == "preview":
+            rationale = prompt_data.get("rationale", "")
+            if show_thinking and rationale:
+                console.print(
+                    Panel(
+                        Markdown(rationale) if "**" in rationale else rationale,
+                        title="[dim]💭 Generation Reasoning[/dim]",
+                        border_style="dim",
+                    )
+                )
+
             content = prompt_data.get("content", "")
             highlights = prompt_data.get("highlights", [])
             console.print(

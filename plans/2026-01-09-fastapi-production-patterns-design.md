@@ -20,14 +20,14 @@ Complex dependency injection scenarios?
 
 ## Quick Reference
 
-| Problem | Solution | Location |
-|---------|----------|----------|
-| DB connections not closing on shutdown | Use `lifespan` context manager with `engine.dispose()` | Database Lifecycle |
-| Pool exhaustion under load | Set `pool_size`, `max_overflow`, create engine in lifespan | Database Lifecycle |
-| Tests pass isolation but fail in parallel | Use async fixtures with proper isolation | Async Testing |
-| PATCH partial updates not validating | Use `Optional` fields with `exclude_unset=True` | Partial Updates |
-| Converting sync utilities to async | Replace blocking libraries with async equivalents | Conversion Pattern |
-| Long operations timeout HTTP | Use `BackgroundTasks` or Celery | Background Tasks |
+| Problem                                   | Solution                                                   | Location           |
+|-------------------------------------------|------------------------------------------------------------|--------------------|
+| DB connections not closing on shutdown    | Use `lifespan` context manager with `engine.dispose()`     | Database Lifecycle |
+| Pool exhaustion under load                | Set `pool_size`, `max_overflow`, create engine in lifespan | Database Lifecycle |
+| Tests pass isolation but fail in parallel | Use async fixtures with proper isolation                   | Async Testing      |
+| PATCH partial updates not validating      | Use `Optional` fields with `exclude_unset=True`            | Partial Updates    |
+| Converting sync utilities to async        | Replace blocking libraries with async equivalents          | Conversion Pattern |
+| Long operations timeout HTTP              | Use `BackgroundTasks` or Celery                            | Background Tasks   |
 
 ## Core Patterns
 

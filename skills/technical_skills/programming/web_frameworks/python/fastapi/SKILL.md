@@ -48,14 +48,14 @@ digraph when_to_use {
 
 ## Quick Reference
 
-| Problem | Solution | Keywords |
-|---------|----------|----------|
-| DB connections not closing on shutdown | Use `lifespan` context manager with `engine.dispose()` | connection leak, too many connections, pool exhaustion |
-| Pool exhaustion under load | Set `pool_size`, `max_overflow`, create engine in lifespan | connection timeout, concurrent requests, workers |
-| Tests pass isolation but fail in parallel | Use async fixtures with proper isolation | flaky tests, test bleeding, async test |
-| PATCH partial updates not validating | Use `Optional` fields with `exclude_unset=True` | partial updates, None overwriting, PATCH |
-| Converting sync utilities to async | Replace blocking libraries with async equivalents | blocking, async conversion, requests to httpx |
-| Long operations timeout HTTP | Use `BackgroundTasks` or Celery | timeout, long running, background |
+| Problem                                   | Solution                                                   | Keywords                                               |
+|-------------------------------------------|------------------------------------------------------------|--------------------------------------------------------|
+| DB connections not closing on shutdown    | Use `lifespan` context manager with `engine.dispose()`     | connection leak, too many connections, pool exhaustion |
+| Pool exhaustion under load                | Set `pool_size`, `max_overflow`, create engine in lifespan | connection timeout, concurrent requests, workers       |
+| Tests pass isolation but fail in parallel | Use async fixtures with proper isolation                   | flaky tests, test bleeding, async test                 |
+| PATCH partial updates not validating      | Use `Optional` fields with `exclude_unset=True`            | partial updates, None overwriting, PATCH               |
+| Converting sync utilities to async        | Replace blocking libraries with async equivalents          | blocking, async conversion, requests to httpx          |
+| Long operations timeout HTTP              | Use `BackgroundTasks` or Celery                            | timeout, long running, background                      |
 
 ## Core Patterns
 
@@ -229,14 +229,14 @@ async def payment_endpoint(
 
 **Sync → Async library mapping:**
 
-| Sync Library | Async Replacement |
-|--------------|-------------------|
-| `requests` | `httpx.AsyncClient` |
-| `sqlalchemy` | `sqlalchemy.ext.asyncio` |
-| `time.sleep()` | `asyncio.sleep()` |
-| `open()` | `aiofiles` |
-| `subprocess` | `asyncio.create_subprocess` |
-| `redis` | `aioredis` |
+| Sync Library   | Async Replacement           |
+|----------------|-----------------------------|
+| `requests`     | `httpx.AsyncClient`         |
+| `sqlalchemy`   | `sqlalchemy.ext.asyncio`    |
+| `time.sleep()` | `asyncio.sleep()`           |
+| `open()`       | `aiofiles`                  |
+| `subprocess`   | `asyncio.create_subprocess` |
+| `redis`        | `aioredis`                  |
 
 **Pattern:**
 ```python
@@ -386,12 +386,12 @@ fastapi run main.py --workers 4
 
 **CLI Command Reference:**
 
-| Command | Purpose | Auto-reload |
-|---------|---------|-------------|
-| `fastapi dev main.py` | Development server | ✅ Yes |
-| `fastapi run main.py` | Production server | ❌ No |
-| `fastapi dev main.py --port 8080` | Custom port | ✅ Yes |
-| `fastapi run main.py --workers 4` | Multiple workers | ❌ No |
+| Command                           | Purpose            | Auto-reload |
+|-----------------------------------|--------------------|-------------|
+| `fastapi dev main.py`             | Development server | ✅ Yes       |
+| `fastapi run main.py`             | Production server  | ❌ No        |
+| `fastapi dev main.py --port 8080` | Custom port        | ✅ Yes       |
+| `fastapi run main.py --workers 4` | Multiple workers   | ❌ No        |
 
 **Key benefits:**
 - Unified CLI for development and production
@@ -424,16 +424,16 @@ fastapi deploy
 
 ## Common Mistakes
 
-| Mistake | Why It's Wrong | Fix |
-|---------|----------------|-----|
-| Creating DB engine at import time | Connections never close, workers leak connections | Create in `lifespan`, dispose in shutdown |
-| Using `requests` in async endpoints | Blocks entire event loop | Use `httpx.AsyncClient` |
-| Forgetting `exclude_unset=True` | Optional fields become `None` and overwrite data | Use `exclude_unset=True` for PATCH |
-| Sync fixtures with async tests | Tests hang or fail mysteriously | Use `@pytest.mark.asyncio` with async fixtures |
-| Global state for dependencies | Can't test, hard to manage lifecycle | Use `Depends()` with yield |
-| Not setting `pool_recycle` | Database closes idle connections, causing errors | Set `pool_recycle=3600` or similar |
-| Using `run_in_executor` as band-aid | Still blocks threads, doesn't scale | Proper async conversion |
-| Missing `max_overflow` parameter | Pool can't burst under load, requests queue | Set `max_overflow=20` or similar |
+| Mistake                             | Why It's Wrong                                    | Fix                                            |
+|-------------------------------------|---------------------------------------------------|------------------------------------------------|
+| Creating DB engine at import time   | Connections never close, workers leak connections | Create in `lifespan`, dispose in shutdown      |
+| Using `requests` in async endpoints | Blocks entire event loop                          | Use `httpx.AsyncClient`                        |
+| Forgetting `exclude_unset=True`     | Optional fields become `None` and overwrite data  | Use `exclude_unset=True` for PATCH             |
+| Sync fixtures with async tests      | Tests hang or fail mysteriously                   | Use `@pytest.mark.asyncio` with async fixtures |
+| Global state for dependencies       | Can't test, hard to manage lifecycle              | Use `Depends()` with yield                     |
+| Not setting `pool_recycle`          | Database closes idle connections, causing errors  | Set `pool_recycle=3600` or similar             |
+| Using `run_in_executor` as band-aid | Still blocks threads, doesn't scale               | Proper async conversion                        |
+| Missing `max_overflow` parameter    | Pool can't burst under load, requests queue       | Set `max_overflow=20` or similar               |
 
 ## Real-World Impact
 

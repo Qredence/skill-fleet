@@ -11,15 +11,15 @@ Converting synchronous Python code to async, replacing blocking operations with 
 
 ## Library Mapping
 
-| Sync Library | Async Replacement | Notes |
-|--------------|-------------------|-------|
-| `requests` | `httpx.AsyncClient` | HTTP calls |
-| `sqlalchemy` | `sqlalchemy.ext.asyncio` | Database operations |
-| `time.sleep()` | `asyncio.sleep()` | Delays |
-| `open()` | `aiofiles` | File I/O |
-| `subprocess` | `asyncio.create_subprocess` | Process spawning |
-| `redis` | `aioredis` | Redis operations |
-| `motor` | `pymongo` | MongoDB async |
+| Sync Library   | Async Replacement           | Notes               |
+|----------------|-----------------------------|---------------------|
+| `requests`     | `httpx.AsyncClient`         | HTTP calls          |
+| `sqlalchemy`   | `sqlalchemy.ext.asyncio`    | Database operations |
+| `time.sleep()` | `asyncio.sleep()`           | Delays              |
+| `open()`       | `aiofiles`                  | File I/O            |
+| `subprocess`   | `asyncio.create_subprocess` | Process spawning    |
+| `redis`        | `aioredis`                  | Redis operations    |
+| `motor`        | `pymongo`                   | MongoDB async       |
 
 ## Pattern: Sync → Async
 

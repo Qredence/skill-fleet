@@ -49,6 +49,10 @@ class JobState(BaseModel):
     result: Any | None = None
     error: str | None = None
 
+    # Progress tracking for CLI display
+    current_phase: str | None = None  # "understanding", "generation", "validation"
+    progress_message: str | None = None  # Detailed progress message for CLI
+
     # Draft-first lifecycle
     intended_taxonomy_path: str | None = None
     draft_path: str | None = None

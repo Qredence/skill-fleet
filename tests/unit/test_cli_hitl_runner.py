@@ -100,13 +100,22 @@ async def test_run_hitl_job_confirm_uses_choice_ui():
 
 
 @pytest.mark.asyncio
-async def test_run_hitl_job_clarify_splits_numbered_markdown_string():
-    # Arrange
+async def test_run_hitl_job_clarify_handles_structured_questions():
+    """Test that CLI correctly handles pre-structured questions from the server.
+
+    With the API-first architecture, the server normalizes questions before returning.
+    The API returns list[StructuredQuestion] with 'text' field instead of raw strings.
+    """
+    # Arrange - Server returns pre-structured questions (StructuredQuestion format)
     prompts = [
         {
             "status": "pending_hitl",
             "type": "clarify",
-            "questions": """1. **First:** One?\n2. **Second:** Two?\n3. **Third:** Three?""",
+            "questions": [
+                {"text": "**First:** One?"},
+                {"text": "**Second:** Two?"},
+                {"text": "**Third:** Three?"},
+            ],
         },
         {"status": "completed"},
     ]

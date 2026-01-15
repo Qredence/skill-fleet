@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from ..jobs import get_job, notify_hitl_response
+from ..schemas import StructuredQuestion, normalize_questions
 
 router = APIRouter()
 
@@ -23,13 +24,21 @@ class HITLPromptResponse(BaseModel):
     status: str = Field(..., description="Job status (pending, running, pending_hitl, completed, failed)")
     type: str | None = Field(default=None, description="HITL interaction type (clarify, confirm, preview, validate, etc.)")
 
-    # Phase 1: Clarification
-    questions: Any | None = Field(default=None, description="Clarifying questions for the user")
+    # Progress tracking for CLI display
+    current_phase: str | None = Field(default=None, description="Current workflow phase (understanding, generation, validation)")
+    progress_message: str | None = Field(default=None, description="Detailed progress message for CLI display")
+
+    # Phase 1: Clarification (questions are normalized server-side for thin client)
+    questions: list[StructuredQuestion] | None = Field(
+        default=None,
+        description="Clarifying questions for the user (pre-structured for CLI consumption)"
+    )
     rationale: str | None = Field(default=None, description="Rationale for asking questions")
 
     # Phase 1: Confirmation
     summary: str | None = Field(default=None, description="Understanding summary for confirmation")
     path: str | None = Field(default=None, description="Proposed taxonomy path")
+    key_assumptions: list[str] | None = Field(default=None, description="Key assumptions made during understanding")
 
     # Phase 2: Preview
     content: str | None = Field(default=None, description="Preview content")
@@ -97,15 +106,23 @@ async def get_prompt(job_id: str) -> HITLPromptResponse:
     # Extract all possible HITL data fields
     hitl_data = job.hitl_data or {}
 
+    # Normalize questions server-side (API-first: CLI is a thin client)
+    raw_questions = hitl_data.get("questions")
+    normalized_questions = normalize_questions(raw_questions) if raw_questions else None
+
     response = {
         "status": job.status,
         "type": job.hitl_type,
-        # Phase 1: Clarification
-        "questions": hitl_data.get("questions"),
+        # Progress tracking for CLI display
+        "current_phase": job.current_phase,
+        "progress_message": job.progress_message,
+        # Phase 1: Clarification (pre-structured for CLI consumption)
+        "questions": normalized_questions,
         "rationale": hitl_data.get("rationale"),
         # Phase 1: Confirmation
         "summary": hitl_data.get("summary"),
         "path": hitl_data.get("path"),
+        "key_assumptions": hitl_data.get("key_assumptions"),
         # Phase 2: Preview
         "content": hitl_data.get("content"),
         "highlights": hitl_data.get("highlights"),

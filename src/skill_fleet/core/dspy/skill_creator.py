@@ -115,6 +115,7 @@ class SkillCreationProgram(dspy.Module):
         taxonomy_structure: str,
         existing_skills: str,
         hitl_callback: Callable[[str, dict[str, Any]], Any] | None = None,
+        progress_callback: Callable[[str, str], None] | None = None,
         **kwargs,
     ) -> SkillCreationResult:
         """Execute the 3-phase skill creation workflow with HITL.
@@ -125,6 +126,7 @@ class SkillCreationProgram(dspy.Module):
             taxonomy_structure: Current taxonomy tree
             existing_skills: List of existing skills
             hitl_callback: Async callback for human interaction
+            progress_callback: Callback for progress updates (phase, message)
 
         Returns:
             SkillCreationResult with content and metadata
@@ -134,11 +136,15 @@ class SkillCreationProgram(dspy.Module):
             # PHASE 1: UNDERSTANDING & PLANNING
             # ============================================================
             logger.info("Starting Phase 1: Understanding & Planning")
+            if progress_callback:
+                progress_callback("understanding", "Starting Phase 1: Analyzing task requirements...")
 
             # HITL 1.1: Clarification (if needed)
             user_clarifications = ""
             if self.hitl_enabled and hitl_callback:
                 # Initial analysis for clarification
+                if progress_callback:
+                    progress_callback("understanding", "Gathering initial requirements from task description...")
                 requirements = await self.phase1.gather_requirements.aforward(task_description)
 
                 if requirements["ambiguities"]:
@@ -170,12 +176,16 @@ class SkillCreationProgram(dspy.Module):
                         )
 
             # Execute Phase 1 analysis
+            if progress_callback:
+                progress_callback("understanding", "Analyzing intent, finding taxonomy path, and checking dependencies...")
             p1_result = await self.phase1.aforward(
                 task_description=task_description,
                 user_context=str(user_context),
                 taxonomy_structure=taxonomy_structure,
                 existing_skills=existing_skills,
             )
+            if progress_callback:
+                progress_callback("understanding", "Phase 1 complete. Preparing confirmation summary...")
 
             # HITL 1.2: Confirmation
             if self.hitl_enabled and hitl_callback:
@@ -200,12 +210,15 @@ class SkillCreationProgram(dspy.Module):
                     dependencies=dependencies,
                 )
 
-                # Confirm with user
+                # Confirm with user - include rationale/thinking for transparency
                 confirmation = await hitl_callback(
                     "confirm",
                     {
                         "summary": summary["summary"],
                         "path": p1_result["taxonomy"]["recommended_path"],
+                        "rationale": p1_result["plan"].get("rationale", "")
+                        or p1_result["taxonomy"].get("path_rationale", ""),
+                        "key_assumptions": summary.get("key_assumptions", []),
                     },
                 )
 
@@ -229,6 +242,8 @@ class SkillCreationProgram(dspy.Module):
             # PHASE 2: CONTENT GENERATION
             # ============================================================
             logger.info("Starting Phase 2: Content Generation")
+            if progress_callback:
+                progress_callback("generation", "Starting Phase 2: Preparing content generation...")
 
             generation_instructions = p1_result["plan"]["generation_instructions"]
             skill_md_template = _load_skill_md_template()
@@ -241,6 +256,8 @@ class SkillCreationProgram(dspy.Module):
                 )
 
             # Execute Phase 2 generation
+            if progress_callback:
+                progress_callback("generation", "Generating SKILL.md content, examples, and best practices...")
             p2_result = await self.phase2.aforward(
                 skill_metadata=p1_result["plan"]["skill_metadata"],
                 content_plan=p1_result["plan"]["content_plan"],
@@ -248,6 +265,8 @@ class SkillCreationProgram(dspy.Module):
                 parent_skills_content="",  # TODO: Fetch parent content if needed
                 dependency_summaries=str(p1_result["dependencies"]),
             )
+            if progress_callback:
+                progress_callback("generation", "Content generated. Preparing preview...")
 
             # HITL 2.1: Preview & Feedback
             if self.hitl_enabled and hitl_callback:
@@ -256,9 +275,14 @@ class SkillCreationProgram(dspy.Module):
                     metadata=str(p1_result["plan"]["skill_metadata"]),
                 )
 
-                # Show preview to user
+                # Show preview to user - include rationale/thinking for transparency
                 feedback = await hitl_callback(
-                    "preview", {"content": preview["preview"], "highlights": preview["highlights"]}
+                    "preview",
+                    {
+                        "content": preview["preview"],
+                        "highlights": preview["highlights"],
+                        "rationale": p2_result.get("rationale", ""),
+                    },
                 )
 
                 if isinstance(feedback, dict) and feedback.get("action") == "cancel":
@@ -285,8 +309,12 @@ class SkillCreationProgram(dspy.Module):
             # PHASE 3: VALIDATION & REFINEMENT
             # ============================================================
             logger.info("Starting Phase 3: Validation & Refinement")
+            if progress_callback:
+                progress_callback("validation", "Starting Phase 3: Validating skill content...")
 
             # Execute Phase 3
+            if progress_callback:
+                progress_callback("validation", "Checking agentskills.io compliance and content quality...")
             p3_result = await self.phase3.aforward(
                 skill_content=p2_result["skill_content"],
                 skill_metadata=p1_result["plan"]["skill_metadata"],
@@ -294,6 +322,8 @@ class SkillCreationProgram(dspy.Module):
                 validation_rules="Standard agentskills.io compliance",
                 target_level=p1_result["requirements"]["target_level"],
             )
+            if progress_callback:
+                progress_callback("validation", "Validation complete. Preparing final report...")
 
             # HITL 3.1: Final Validation Review
             if self.hitl_enabled and hitl_callback:
@@ -344,12 +374,20 @@ class SkillCreationProgram(dspy.Module):
                     # proceed (or unknown action)
                     break
 
+            # Build extra_files from Phase 2 results for subdirectory content
+            extra_files = {
+                "usage_examples": p2_result.get("usage_examples", []),
+                "best_practices": p2_result.get("best_practices", []),
+                "integration_tests": p2_result.get("test_cases", []),
+            }
+
             return SkillCreationResult(
                 status="completed",
                 skill_content=p3_result["refined_content"],
                 metadata=p1_result["plan"]["skill_metadata"],
                 validation_report=p3_result["validation_report"],
                 quality_assessment=p3_result["quality_assessment"],
+                extra_files=extra_files,
             )
 
         except Exception as e:

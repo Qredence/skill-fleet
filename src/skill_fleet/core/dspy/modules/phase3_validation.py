@@ -9,6 +9,7 @@ import dspy
 import yaml
 
 from ....common.async_utils import run_async
+from ..metrics import assess_skill_quality
 from ..signatures.phase3_validation import (
     AssessSkillQuality,
     RefineSkillFromFeedback,
@@ -226,11 +227,37 @@ class SkillRefinerModule(dspy.Module):
 
 
 class QualityAssessorModule(dspy.Module):
-    """Assess skill quality and audience alignment."""
+    """Assess skill quality and audience alignment.
 
-    def __init__(self):
+    Combines LLM-based assessment with deterministic metrics from the
+    skill_quality module for more consistent and calibrated scoring.
+    """
+
+    def __init__(self, use_deterministic_metrics: bool = True):
         super().__init__()
         self.assess = dspy.ChainOfThought(AssessSkillQuality)
+        self.use_deterministic_metrics = use_deterministic_metrics
+
+    def _get_deterministic_assessment(self, skill_content: str) -> dict[str, Any]:
+        """Get deterministic quality metrics for skill content.
+
+        Args:
+            skill_content: The SKILL.md content to assess
+
+        Returns:
+            dict: Deterministic quality metrics
+        """
+        scores = assess_skill_quality(skill_content)
+        return {
+            "deterministic_score": scores.overall_score,
+            "pattern_count": scores.pattern_count,
+            "has_core_principle": scores.has_core_principle,
+            "has_strong_guidance": scores.has_strong_guidance,
+            "has_good_bad_contrast": scores.has_good_bad_contrast,
+            "code_examples_count": scores.code_examples_count,
+            "deterministic_issues": scores.issues,
+            "deterministic_strengths": scores.strengths,
+        }
 
     def forward(self, skill_content: str, skill_metadata: Any, target_level: str) -> dict[str, Any]:
         """Assess the overall quality of skill content.
@@ -248,7 +275,8 @@ class QualityAssessorModule(dspy.Module):
             skill_metadata=skill_metadata,
             target_level=target_level,
         )
-        return {
+
+        assessment = {
             "quality_score": result.quality_score,
             "strengths": result.strengths,
             "weaknesses": result.weaknesses,
@@ -256,6 +284,15 @@ class QualityAssessorModule(dspy.Module):
             "audience_alignment": result.audience_alignment,
             "rationale": getattr(result, "rationale", ""),
         }
+
+        # Add deterministic metrics if enabled
+        if self.use_deterministic_metrics:
+            deterministic = self._get_deterministic_assessment(skill_content)
+            assessment["deterministic_metrics"] = deterministic
+            # Use deterministic score as the primary score (more consistent)
+            assessment["calibrated_score"] = deterministic["deterministic_score"]
+
+        return assessment
 
     async def aforward(
         self, skill_content: str, skill_metadata: Any, target_level: str
@@ -266,7 +303,8 @@ class QualityAssessorModule(dspy.Module):
             skill_metadata=skill_metadata,
             target_level=target_level,
         )
-        return {
+
+        assessment = {
             "quality_score": result.quality_score,
             "strengths": result.strengths,
             "weaknesses": result.weaknesses,
@@ -274,6 +312,15 @@ class QualityAssessorModule(dspy.Module):
             "audience_alignment": result.audience_alignment,
             "rationale": getattr(result, "rationale", ""),
         }
+
+        # Add deterministic metrics if enabled
+        if self.use_deterministic_metrics:
+            deterministic = self._get_deterministic_assessment(skill_content)
+            assessment["deterministic_metrics"] = deterministic
+            # Use deterministic score as the primary score (more consistent)
+            assessment["calibrated_score"] = deterministic["deterministic_score"]
+
+        return assessment
 
 
 class Phase3ValidationModule(dspy.Module):

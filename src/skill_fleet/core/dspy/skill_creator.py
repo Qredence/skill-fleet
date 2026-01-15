@@ -90,9 +90,15 @@ def _load_skill_md_template() -> str | None:
 class SkillCreationProgram(dspy.Module):
     """Complete 3-phase skill creation orchestrator with integrated HITL."""
 
-    def __init__(self, quality_assured: bool = True, hitl_enabled: bool = True):
+    def __init__(
+        self,
+        quality_assured: bool = True,
+        hitl_enabled: bool = True,
+        load_optimized: bool = True,
+    ):
         super().__init__()
         self.hitl_enabled = hitl_enabled
+        self._optimized_loaded = False
 
         # Phase Orchestrators
         self.phase1 = Phase1UnderstandingModule()
@@ -107,6 +113,47 @@ class SkillCreationProgram(dspy.Module):
         self.feedback_analyzer = FeedbackAnalyzerModule()
         self.validation_formatter = ValidationFormatterModule()
         self.refinement_planner = RefinementPlannerModule()
+
+        # Try to load optimized program if available
+        if load_optimized:
+            self._try_load_optimized()
+
+    def _try_load_optimized(self) -> bool:
+        """Try to load an optimized version of this program.
+
+        Looks for optimized programs in config/optimized/ directory.
+        Returns True if an optimized program was loaded.
+        """
+        optimized_dir = find_repo_root(Path.cwd())
+        if not optimized_dir:
+            optimized_dir = find_repo_root(Path(__file__).resolve())
+        if not optimized_dir:
+            return False
+
+        optimized_path = optimized_dir / "config" / "optimized"
+        if not optimized_path.exists():
+            return False
+
+        # Look for optimized program files (prefer newest)
+        candidates = sorted(optimized_path.glob("skill_creator*.json"), reverse=True)
+        if not candidates:
+            return False
+
+        try:
+            # Load the most recent optimized program
+            program_file = candidates[0]
+            self.load(str(program_file))
+            self._optimized_loaded = True
+            logger.info(f"Loaded optimized program from {program_file}")
+            return True
+        except Exception as e:
+            logger.warning(f"Failed to load optimized program: {e}")
+            return False
+
+    @property
+    def is_optimized(self) -> bool:
+        """Check if this program is using optimized weights."""
+        return self._optimized_loaded
 
     async def aforward(
         self,
@@ -137,14 +184,18 @@ class SkillCreationProgram(dspy.Module):
             # ============================================================
             logger.info("Starting Phase 1: Understanding & Planning")
             if progress_callback:
-                progress_callback("understanding", "Starting Phase 1: Analyzing task requirements...")
+                progress_callback(
+                    "understanding", "Starting Phase 1: Analyzing task requirements..."
+                )
 
             # HITL 1.1: Clarification (if needed)
             user_clarifications = ""
             if self.hitl_enabled and hitl_callback:
                 # Initial analysis for clarification
                 if progress_callback:
-                    progress_callback("understanding", "Gathering initial requirements from task description...")
+                    progress_callback(
+                        "understanding", "Gathering initial requirements from task description..."
+                    )
                 requirements = await self.phase1.gather_requirements.aforward(task_description)
 
                 if requirements["ambiguities"]:
@@ -177,7 +228,10 @@ class SkillCreationProgram(dspy.Module):
 
             # Execute Phase 1 analysis
             if progress_callback:
-                progress_callback("understanding", "Analyzing intent, finding taxonomy path, and checking dependencies...")
+                progress_callback(
+                    "understanding",
+                    "Analyzing intent, finding taxonomy path, and checking dependencies...",
+                )
             p1_result = await self.phase1.aforward(
                 task_description=task_description,
                 user_context=str(user_context),
@@ -185,7 +239,9 @@ class SkillCreationProgram(dspy.Module):
                 existing_skills=existing_skills,
             )
             if progress_callback:
-                progress_callback("understanding", "Phase 1 complete. Preparing confirmation summary...")
+                progress_callback(
+                    "understanding", "Phase 1 complete. Preparing confirmation summary..."
+                )
 
             # HITL 1.2: Confirmation
             if self.hitl_enabled and hitl_callback:
@@ -257,7 +313,9 @@ class SkillCreationProgram(dspy.Module):
 
             # Execute Phase 2 generation
             if progress_callback:
-                progress_callback("generation", "Generating SKILL.md content, examples, and best practices...")
+                progress_callback(
+                    "generation", "Generating SKILL.md content, examples, and best practices..."
+                )
             p2_result = await self.phase2.aforward(
                 skill_metadata=p1_result["plan"]["skill_metadata"],
                 content_plan=p1_result["plan"]["content_plan"],
@@ -314,7 +372,9 @@ class SkillCreationProgram(dspy.Module):
 
             # Execute Phase 3
             if progress_callback:
-                progress_callback("validation", "Checking agentskills.io compliance and content quality...")
+                progress_callback(
+                    "validation", "Checking agentskills.io compliance and content quality..."
+                )
             p3_result = await self.phase3.aforward(
                 skill_content=p2_result["skill_content"],
                 skill_metadata=p1_result["plan"]["skill_metadata"],

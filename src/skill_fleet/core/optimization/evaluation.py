@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 def load_trainset(
-    path: str | Path = "workflow/data/trainset.json",
+    path: str | Path = "config/training/trainset.json",
 ) -> list[dspy.Example]:
     """Load training examples from JSON file.
 
@@ -41,12 +41,7 @@ def load_trainset(
 
     path = Path(path)
     if not path.exists():
-        # Try relative to workflow module
-        module_path = Path(__file__).parent / "data" / "trainset.json"
-        if module_path.exists():
-            path = module_path
-        else:
-            raise FileNotFoundError(f"Training set not found at {path}")
+        raise FileNotFoundError(f"Training set not found at {path}")
 
     data = json.loads(path.read_text())
 

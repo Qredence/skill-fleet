@@ -147,13 +147,13 @@ async def run_hitl_job(
             # Build progress message from API response
             current_phase = prompt_data.get("current_phase", "")
             progress_message = prompt_data.get("progress_message", "")
-            
+
             if progress_message:
                 phase_label = f"[cyan]{current_phase}[/cyan]: " if current_phase else ""
                 message = f"[dim]{phase_label}{progress_message}[/dim]"
             else:
                 message = f"[dim]Workflow running… ({status})[/dim]"
-            
+
             if spinner is None:
                 spinner = console.status(message, spinner="dots")
                 spinner.start()

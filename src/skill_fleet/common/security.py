@@ -56,6 +56,66 @@ def sanitize_taxonomy_path(path: str) -> str | None:
     return normalized
 
 
+def sanitize_relative_file_path(path: str) -> str | None:
+    """Sanitize a relative file path to prevent traversal attacks.
+
+    Validates and normalizes a relative path to ensure it:
+    - Is not empty
+    - Is not absolute
+    - Does not contain Windows-style separators
+    - Contains only safe path components (alphanumeric, dot, hyphen, underscore)
+    - Does not contain "." or ".." components
+
+    This is intended for user-controlled paths that are later joined onto a fixed
+    server-side root directory.
+    """
+    if not path:
+        return None
+
+    if "\0" in path:
+        return None
+
+    # Reject absolute paths (POSIX). On POSIX, Windows-style absolute paths will
+    # generally contain backslashes or drive prefixes; we reject backslashes below.
+    if path.startswith("/"):
+        return None
+
+    # Reject Windows separators to avoid ambiguous normalization across platforms.
+    if "\\" in path:
+        return None
+
+    normalized = Path(path).as_posix().strip("/")
+    if not normalized:
+        return None
+
+    for segment in normalized.split("/"):
+        if not is_safe_path_component(segment):
+            return None
+
+    return normalized
+
+
+def resolve_path_within_root(root: Path, relative_path: str) -> Path:
+    """Resolve a sanitized relative path under a root directory.
+
+    Returns an absolute path and raises ValueError if the resolved path escapes
+    the given root directory (including via `..` segments or symlink traversal).
+    """
+    sanitized = sanitize_relative_file_path(relative_path)
+    if not sanitized:
+        raise ValueError("Invalid relative path")
+
+    root_resolved = root.resolve()
+    candidate = (root_resolved / sanitized).resolve(strict=False)
+
+    try:
+        candidate.relative_to(root_resolved)
+    except ValueError as e:
+        raise ValueError(f"Path must be within {root_resolved}") from e
+
+    return candidate
+
+
 def is_safe_path_component(component: str) -> bool:
     """Validate that a single path component is safe.
 
@@ -99,4 +159,9 @@ def is_safe_path_component(component: str) -> bool:
     return all(c.isalnum() or c in "._-" for c in component)
 
 
-__all__ = ["sanitize_taxonomy_path", "is_safe_path_component"]
+__all__ = [
+    "is_safe_path_component",
+    "resolve_path_within_root",
+    "sanitize_relative_file_path",
+    "sanitize_taxonomy_path",
+]

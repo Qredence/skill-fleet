@@ -21,24 +21,35 @@ class HITLPromptResponse(BaseModel):
     """
 
     # Core status fields
-    status: str = Field(..., description="Job status (pending, running, pending_hitl, completed, failed)")
-    type: str | None = Field(default=None, description="HITL interaction type (clarify, confirm, preview, validate, etc.)")
+    status: str = Field(
+        ..., description="Job status (pending, running, pending_hitl, completed, failed)"
+    )
+    type: str | None = Field(
+        default=None,
+        description="HITL interaction type (clarify, confirm, preview, validate, etc.)",
+    )
 
     # Progress tracking for CLI display
-    current_phase: str | None = Field(default=None, description="Current workflow phase (understanding, generation, validation)")
-    progress_message: str | None = Field(default=None, description="Detailed progress message for CLI display")
+    current_phase: str | None = Field(
+        default=None, description="Current workflow phase (understanding, generation, validation)"
+    )
+    progress_message: str | None = Field(
+        default=None, description="Detailed progress message for CLI display"
+    )
 
     # Phase 1: Clarification (questions are normalized server-side for thin client)
     questions: list[StructuredQuestion] | None = Field(
         default=None,
-        description="Clarifying questions for the user (pre-structured for CLI consumption)"
+        description="Clarifying questions for the user (pre-structured for CLI consumption)",
     )
     rationale: str | None = Field(default=None, description="Rationale for asking questions")
 
     # Phase 1: Confirmation
     summary: str | None = Field(default=None, description="Understanding summary for confirmation")
     path: str | None = Field(default=None, description="Proposed taxonomy path")
-    key_assumptions: list[str] | None = Field(default=None, description="Key assumptions made during understanding")
+    key_assumptions: list[str] | None = Field(
+        default=None, description="Key assumptions made during understanding"
+    )
 
     # Phase 2: Preview
     content: str | None = Field(default=None, description="Preview content")
@@ -52,7 +63,9 @@ class HITLPromptResponse(BaseModel):
     skill_content: str | None = Field(default=None, description="Generated skill content")
 
     # Draft-first lifecycle
-    intended_taxonomy_path: str | None = Field(default=None, description="Intended path in taxonomy")
+    intended_taxonomy_path: str | None = Field(
+        default=None, description="Intended path in taxonomy"
+    )
     draft_path: str | None = Field(default=None, description="Path to draft skill")
     final_path: str | None = Field(default=None, description="Final path after promotion")
     promoted: bool | None = Field(default=None, description="Whether draft was promoted")
@@ -67,7 +80,9 @@ class HITLPromptResponse(BaseModel):
     # Deep understanding fields
     question: str | None = Field(default=None, description="Current deep understanding question")
     research_performed: list[Any] | None = Field(default=None, description="Research performed")
-    current_understanding: str | None = Field(default=None, description="Current understanding summary")
+    current_understanding: str | None = Field(
+        default=None, description="Current understanding summary"
+    )
     readiness_score: float | None = Field(default=None, description="Readiness score")
     questions_asked: list[Any] | None = Field(default=None, description="Questions already asked")
 
@@ -75,7 +90,9 @@ class HITLPromptResponse(BaseModel):
     test_requirements: str | None = Field(default=None, description="Test requirements")
     acceptance_criteria: list[str] | None = Field(default=None, description="Acceptance criteria")
     checklist_items: list[Any] | None = Field(default=None, description="TDD checklist items")
-    rationalizations_identified: list[str] | None = Field(default=None, description="Identified rationalizations")
+    rationalizations_identified: list[str] | None = Field(
+        default=None, description="Identified rationalizations"
+    )
 
     # TDD green phase fields
     failing_test: str | None = Field(default=None, description="Currently failing test")
@@ -84,7 +101,9 @@ class HITLPromptResponse(BaseModel):
     phase: str | None = Field(default=None, description="Current TDD phase")
 
     # TDD refactor phase fields
-    refactor_opportunities: list[str] | None = Field(default=None, description="Refactoring opportunities")
+    refactor_opportunities: list[str] | None = Field(
+        default=None, description="Refactoring opportunities"
+    )
     code_smells: list[str] | None = Field(default=None, description="Detected code smells")
     coverage_report: str | None = Field(default=None, description="Test coverage report")
 

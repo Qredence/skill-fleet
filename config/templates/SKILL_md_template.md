@@ -236,6 +236,20 @@ digraph when_to_use {
   {{/each}}
   {{/if}}
 
+## Strong Guidance
+
+{{!-- Iron Law style rules – imperative statements that MUST be followed --}}
+
+{{#if strong_guidance}}
+{{#each strong_guidance}}
+- **{{this}}**
+{{/each}}
+{{else}}
+- **NO [action] WITHOUT [prerequisite]** — [explanation]
+- **ALWAYS [action]** — [explanation]
+- **NEVER [action]** — [explanation]
+{{/if}}
+
 ## Red Flags
 
 {{#each red_flags}}

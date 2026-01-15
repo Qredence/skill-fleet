@@ -1,0 +1,45 @@
+{
+  "version": "1.0",
+  "skills": [
+    {
+      "skill_id": "technical/programming/web-frameworks/python/fastapi",
+      "task_description": "Create a high-quality FastAPI production-ready skill with lifecycle management, async database patterns, and testing strategies.",
+      "skill_path": "skills/technical_skills/programming/web_frameworks/python/fastapi/SKILL.md",
+      "quality_score": 0.855,
+      "source": "local",
+      "metadata": {
+        "curated": true
+      }
+    },
+    {
+      "skill_id": "technical_skills/web_development/frontend/react/vite-tailwind-setup",
+      "task_description": "Create a modern React frontend setup skill using Vite and Tailwind CSS, focusing on build optimization and developer experience.",
+      "skill_path": "skills/technical_skills/web_development/frontend/react/vite/SKILL.md",
+      "quality_score": 0.758,
+      "source": "local",
+      "metadata": {
+        "curated": true
+      }
+    },
+    {
+      "skill_id": "technical_skills/web_development/frontend/react/react-vite-production-setup",
+      "task_description": "Create a production-ready React setup with Vite, including advanced patterns and performance considerations.",
+      "skill_path": "skills/technical_skills/web_development/frontend/react/react-vite-production-setup/SKILL.md",
+      "quality_score": 0.720,
+      "source": "local",
+      "metadata": {
+        "curated": true
+      }
+    },
+    {
+      "skill_id": "technical_skills/programming/languages/python/decorators",
+      "task_description": "Create a comprehensive Python decorators skill with preserving metadata, parameterized factories, and async support.",
+      "skill_path": "skills/technical_skills/programming/languages/python/decorators/SKILL.md",
+      "quality_score": 0.930,
+      "source": "local",
+      "metadata": {
+        "curated": true
+      }
+    }
+  ]
+}

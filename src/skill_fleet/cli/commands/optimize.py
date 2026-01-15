@@ -39,12 +39,12 @@ def optimize_command(
         ),
     ),
     trainset: str = typer.Option(
-        str(Path(__file__).parent.parent.parent / "workflow" / "data" / "trainset.json"),
+        str(Path(__file__).parent.parent.parent.parent.parent / "config" / "training" / "trainset.json"),
         "--trainset",
         help="Path to training data JSON",
     ),
     output: str = typer.Option(
-        str(Path(__file__).parent.parent.parent / "workflow" / "optimized"),
+        str(Path(__file__).parent.parent.parent.parent.parent / "config" / "optimized"),
         "--output",
         help="Output directory for optimized program",
     ),

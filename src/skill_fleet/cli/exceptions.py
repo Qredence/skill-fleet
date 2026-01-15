@@ -167,6 +167,7 @@ class APIError(CLIError, BaseAPIError):
             enhanced_message = f"{message} (HTTP {status_code})"
 
         # Initialize base classes
+        CLIError.__init__(self, enhanced_message)
         BaseAPIError.__init__(self, enhanced_message)
         self.exit_code = EXIT_NETWORK_ERROR
         self.suggestion = suggestion

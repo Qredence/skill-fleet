@@ -313,10 +313,16 @@ class SkillCreationProgram(dspy.Module):
                         },
                     )
 
-                    if isinstance(final_decision, dict) and final_decision.get("action") == "cancel":
+                    if (
+                        isinstance(final_decision, dict)
+                        and final_decision.get("action") == "cancel"
+                    ):
                         return SkillCreationResult(status="cancelled")
 
-                    if isinstance(final_decision, dict) and final_decision.get("action") == "refine":
+                    if (
+                        isinstance(final_decision, dict)
+                        and final_decision.get("action") == "refine"
+                    ):
                         rounds_used += 1
                         if rounds_used >= max_rounds:
                             return SkillCreationResult(

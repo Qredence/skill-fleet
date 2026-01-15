@@ -65,9 +65,7 @@ class JobState(BaseModel):
 
     # Enhanced features from ConversationalSkillAgent
     tdd_workflow: TDDWorkflowState = Field(default_factory=TDDWorkflowState)
-    deep_understanding: DeepUnderstandingState = Field(
-        default_factory=DeepUnderstandingState
-    )
+    deep_understanding: DeepUnderstandingState = Field(default_factory=DeepUnderstandingState)
     multi_skill_queue: list[str] = Field(default_factory=list)
     current_skill_index: int = 0
     task_description_refined: str = ""

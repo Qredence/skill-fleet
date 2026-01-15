@@ -257,7 +257,9 @@ class QualityAssessorModule(dspy.Module):
             "rationale": getattr(result, "rationale", ""),
         }
 
-    async def aforward(self, skill_content: str, skill_metadata: Any, target_level: str) -> dict[str, Any]:
+    async def aforward(
+        self, skill_content: str, skill_metadata: Any, target_level: str
+    ) -> dict[str, Any]:
         """Async wrapper for quality assessment (preferred)."""
         result = await self.assess.acall(
             skill_content=skill_content,

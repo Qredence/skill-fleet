@@ -58,4 +58,3 @@ def promote_command(
             await config.client.close()
 
     asyncio.run(_run())
-

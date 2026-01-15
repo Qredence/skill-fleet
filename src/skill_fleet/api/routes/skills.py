@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 import logging
 import os
-from pathlib import Path
 import re
+from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel
@@ -309,7 +309,9 @@ def _save_skill_to_draft(*, job_id: str, result: SkillCreationResult) -> str | N
                         for filename, content in examples.items():
                             (examples_dir / filename).write_text(content, encoding="utf-8")
             except Exception:
-                logger.warning("Failed to extract skill artifacts (assets/examples) for %s", full_path)
+                logger.warning(
+                    "Failed to extract skill artifacts (assets/examples) for %s", full_path
+                )
 
             logger.info("Draft saved successfully to: %s", full_path)
             return str(full_path)

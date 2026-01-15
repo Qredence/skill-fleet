@@ -75,7 +75,9 @@ class IntentAnalyzerModule(dspy.Module):
 
     async def aforward(self, task_description: str, user_context: str) -> dict[str, Any]:
         """Asynchronous forward pass (preferred)."""
-        result = await self.analyze.acall(task_description=task_description, user_context=user_context)
+        result = await self.analyze.acall(
+            task_description=task_description, user_context=user_context
+        )
         return {
             "task_intent": result.task_intent,
             "skill_type": result.skill_type,

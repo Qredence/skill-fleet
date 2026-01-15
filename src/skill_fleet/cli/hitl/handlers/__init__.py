@@ -74,6 +74,7 @@ class DeepUnderstandingHandler(InteractionHandler):
         prompt_data: dict[str, Any],
         client: Any,
     ) -> None:
+        """Handle deep understanding interaction and post response to API."""
         question = prompt_data.get("question", "")
         research = prompt_data.get("research_performed", [])
         current = prompt_data.get("current_understanding", "")
@@ -129,9 +130,7 @@ class DeepUnderstandingHandler(InteractionHandler):
                     "What are your goals? (comma-separated, optional)", default=""
                 )
                 goals = (
-                    [g.strip() for g in goals_input.split(",") if g.strip()]
-                    if goals_input
-                    else []
+                    [g.strip() for g in goals_input.split(",") if g.strip()] if goals_input else []
                 )
 
                 await client.post_hitl_response(
@@ -166,6 +165,7 @@ class TDDRedHandler(InteractionHandler):
         prompt_data: dict[str, Any],
         client: Any,
     ) -> None:
+        """Handle TDD red phase interaction and post response to API."""
         requirements = prompt_data.get("test_requirements", "")
         acceptance = prompt_data.get("acceptance_criteria", [])
         checklist = prompt_data.get("checklist_items", [])
@@ -186,7 +186,7 @@ class TDDRedHandler(InteractionHandler):
 
         if checklist:
             self.console.print("[dim]Checklist:[/dim]")
-            for i, item in enumerate(checklist, 1):
+            for _i, item in enumerate(checklist, 1):
                 text = item.get("text", item) if isinstance(item, dict) else item
                 done = item.get("done", False) if isinstance(item, dict) else False
                 self.console.print(f"  {'☑' if done else '☐'} {text}")
@@ -208,9 +208,7 @@ class TDDRedHandler(InteractionHandler):
 
         payload: dict[str, object] = {"action": action}
         if action == "revise":
-            payload["feedback"] = await self.ui.ask_text(
-                "What should change?", default=""
-            )
+            payload["feedback"] = await self.ui.ask_text("What should change?", default="")
         await client.post_hitl_response(job_id, payload)
 
 
@@ -232,6 +230,7 @@ class TDDGreenHandler(InteractionHandler):
         prompt_data: dict[str, Any],
         client: Any,
     ) -> None:
+        """Handle TDD green phase interaction and post response to API."""
         failing_test = prompt_data.get("failing_test", "")
         test_location = prompt_data.get("test_location", "")
         hint = prompt_data.get("minimal_implementation_hint", "")
@@ -262,9 +261,7 @@ class TDDGreenHandler(InteractionHandler):
 
         payload: dict[str, object] = {"action": action}
         if action == "revise":
-            payload["feedback"] = await self.ui.ask_text(
-                "What needs adjustment?", default=""
-            )
+            payload["feedback"] = await self.ui.ask_text("What needs adjustment?", default="")
         await client.post_hitl_response(job_id, payload)
 
 
@@ -287,6 +284,7 @@ class TDDRefactorHandler(InteractionHandler):
         prompt_data: dict[str, Any],
         client: Any,
     ) -> None:
+        """Handle TDD refactor phase interaction and post response to API."""
         opportunities = prompt_data.get("refactor_opportunities", [])
         code_smells = prompt_data.get("code_smells", [])
         coverage = prompt_data.get("coverage_report", "")
@@ -305,9 +303,7 @@ class TDDRefactorHandler(InteractionHandler):
 
         self.console.print(
             Panel(
-                "\n".join(str(p) for p in content_parts)
-                if content_parts
-                else "Ready to refactor.",
+                "\n".join(str(p) for p in content_parts) if content_parts else "Ready to refactor.",
                 title="[bold blue]🔵 TDD Refactor Phase: Clean Up Code[/bold blue]",
                 border_style="blue",
             )
@@ -330,9 +326,7 @@ class TDDRefactorHandler(InteractionHandler):
 
         payload: dict[str, object] = {"action": action}
         if action == "revise":
-            payload["feedback"] = await self.ui.ask_text(
-                "What still needs work?", default=""
-            )
+            payload["feedback"] = await self.ui.ask_text("What still needs work?", default="")
         await client.post_hitl_response(job_id, payload)
 
 

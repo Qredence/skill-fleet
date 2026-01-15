@@ -199,7 +199,9 @@ class FleetConfig(BaseModel):
     models: ModelsConfig
     roles: RolesConfig = Field(default_factory=RolesConfig)
     tasks: TasksConfig = Field(default_factory=TasksConfig)
-    legacy_aliases: dict[str, str] = Field(default_factory=dict, serialization_alias="legacy_aliases")
+    legacy_aliases: dict[str, str] = Field(
+        default_factory=dict, serialization_alias="legacy_aliases"
+    )
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> FleetConfig:

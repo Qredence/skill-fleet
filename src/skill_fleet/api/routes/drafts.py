@@ -20,7 +20,8 @@ router = APIRouter()
 
 
 class PromoteDraftRequest(BaseModel):
-    '''Request model for promoting a draft.'''
+    """Request model for promoting a draft."""
+
     overwrite: bool = True
     delete_draft: bool = False
     force: bool = False
@@ -100,4 +101,3 @@ async def promote_draft(job_id: str, request: PromoteDraftRequest):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Promotion failed: {e}") from e
-

@@ -50,7 +50,9 @@ def create_command(
             if status == "completed":
                 validation_passed = prompt_data.get("validation_passed")
                 if validation_passed is False:
-                    console.print("\n[bold yellow]✨ Skill Creation Completed (validation failed)[/bold yellow]")
+                    console.print(
+                        "\n[bold yellow]✨ Skill Creation Completed (validation failed)[/bold yellow]"
+                    )
                 else:
                     console.print("\n[bold green]✨ Skill Creation Completed![/bold green]")
 
@@ -64,7 +66,9 @@ def create_command(
                     console.print(f"[bold cyan]📁 Skill saved to:[/bold cyan] {final_path}")
                 elif draft_path:
                     console.print(f"[bold cyan]📝 Draft saved to:[/bold cyan] {draft_path}")
-                    console.print(f"[dim]Promote when ready:[/dim] `uv run skill-fleet promote {job_id}`")
+                    console.print(
+                        f"[dim]Promote when ready:[/dim] `uv run skill-fleet promote {job_id}`"
+                    )
 
                 validation_score = prompt_data.get("validation_score")
                 if validation_passed is not None:
@@ -95,7 +99,9 @@ def create_command(
 
             console.print(Text(f"Job ended with status: {status}", style="yellow"))
         except httpx.HTTPStatusError as e:
-            console.print(Text(f"HTTP Error: {e.response.status_code} - {e.response.text}", style="red"))
+            console.print(
+                Text(f"HTTP Error: {e.response.status_code} - {e.response.text}", style="red")
+            )
         except ValueError as e:
             console.print(Text(f"Error: {e}", style="red"))
         except Exception as e:

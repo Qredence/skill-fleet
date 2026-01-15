@@ -21,4 +21,3 @@ async def get_job_state(job_id: str):
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
     return job.model_dump(mode="json", exclude_none=True)
-

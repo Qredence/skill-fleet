@@ -124,11 +124,15 @@ class ConfigError(CLIError, ConfigurationError):
             config_key: Optional configuration key that caused the error
             suggestion: Optional helpful suggestion (default: "Check your configuration file")
         """
+        # Initialize CLIError to set up CLI-specific base state
+        CLIError.__init__(
+            self,
+            message,
+            exit_code=EXIT_CONFIG_ERROR,
+            suggestion=suggestion,
+        )
         # Initialize ConfigurationError properly
         ConfigurationError.__init__(self, message, config_key=config_key)
-        # Add CLI-specific attributes
-        self.exit_code = EXIT_CONFIG_ERROR
-        self.suggestion = suggestion
 
 
 class APIError(CLIError, BaseAPIError):

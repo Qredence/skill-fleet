@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from ..core.dspy import modules, programs
 from ..llm.dspy_config import configure_dspy
 from .discovery import discover_and_expose
-from .routes import hitl, skills, taxonomy, validation
+from .routes import drafts, hitl, jobs, skills, taxonomy, validation
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +63,8 @@ def create_app() -> FastAPI:
     # Include static routers
     app.include_router(skills.router, prefix="/api/v2/skills", tags=["skills"])
     app.include_router(hitl.router, prefix="/api/v2/hitl", tags=["hitl"])
+    app.include_router(jobs.router, prefix="/api/v2/jobs", tags=["jobs"])
+    app.include_router(drafts.router, prefix="/api/v2/drafts", tags=["drafts"])
     app.include_router(taxonomy.router, prefix="/api/v2/taxonomy", tags=["taxonomy"])
     app.include_router(validation.router, prefix="/api/v2/validation", tags=["validation"])
 

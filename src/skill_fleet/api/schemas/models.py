@@ -48,7 +48,20 @@ class JobState(BaseModel):
     hitl_response: dict[str, Any] | None = None
     result: Any | None = None
     error: str | None = None
-    saved_path: str | None = None  # Path where skill was saved
+
+    # Draft-first lifecycle
+    intended_taxonomy_path: str | None = None
+    draft_path: str | None = None
+    final_path: str | None = None
+    promoted: bool = False
+
+    # Validation summary (derived from result.validation_report when available)
+    validation_passed: bool | None = None
+    validation_status: str | None = None
+    validation_score: float | None = None
+
+    # Backward compatibility
+    saved_path: str | None = None  # Alias of final_path after promotion
 
     # Enhanced features from ConversationalSkillAgent
     tdd_workflow: TDDWorkflowState = Field(default_factory=TDDWorkflowState)

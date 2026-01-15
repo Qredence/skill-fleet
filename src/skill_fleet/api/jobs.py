@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 # In-memory job store (use Redis in production)
 JOBS: dict[str, JobState] = {}
+_HITL_RESPONSE_WAITERS: dict[str, asyncio.Future[dict[str, Any]]] = {}
 
 
 def create_job() -> str:
@@ -33,22 +34,49 @@ def get_job(job_id: str) -> JobState | None:
 
 
 async def wait_for_hitl_response(job_id: str, timeout: float = 3600.0) -> dict[str, Any]:
-    """Wait for user to provide HITL response via API."""
+    """Wait for user to provide HITL response via API.
+
+    This uses an event-driven waiter instead of polling to avoid:
+    - unnecessary latency (poll interval)
+    - duplicate prompts in clients that poll immediately after POSTing a response
+
+    Falls back to the legacy in-memory `job.hitl_response` field if a response
+    was already set before the waiter was registered (rare, but safe).
+    """
     job = JOBS[job_id]
-    start_time = asyncio.get_event_loop().time()
 
-    while job.hitl_response is None:
-        if asyncio.get_event_loop().time() - start_time > timeout:
-            raise TimeoutError("HITL response timed out")
-        await asyncio.sleep(1)
+    # Fast-path: response already present (legacy behavior / rare races).
+    if job.hitl_response is not None:
+        response = job.hitl_response
+        job.hitl_response = None
+        job.updated_at = datetime.now(UTC)
+        return response
 
-    response = job.hitl_response
-    job.hitl_response = None  # Clear for next interaction
+    loop = asyncio.get_running_loop()
+    waiter: asyncio.Future[dict[str, Any]] = loop.create_future()
+    _HITL_RESPONSE_WAITERS[job_id] = waiter
 
-    # Update timestamp when response received
+    try:
+        response = await asyncio.wait_for(waiter, timeout=timeout)
+    except TimeoutError as exc:
+        raise TimeoutError("HITL response timed out") from exc
+    finally:
+        # Only clear if we're still the active waiter for this job.
+        if _HITL_RESPONSE_WAITERS.get(job_id) is waiter:
+            _HITL_RESPONSE_WAITERS.pop(job_id, None)
+
+    # Clear for next interaction and update timestamp when response received.
+    job.hitl_response = None
     job.updated_at = datetime.now(UTC)
-
     return response
+
+
+def notify_hitl_response(job_id: str, response: dict[str, Any]) -> None:
+    """Notify the in-flight HITL waiter (if any) that a response arrived."""
+    waiter = _HITL_RESPONSE_WAITERS.get(job_id)
+    if waiter is None or waiter.done():
+        return
+    waiter.set_result(response)
 
 
 # =============================================================================

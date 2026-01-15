@@ -6,6 +6,7 @@ import json
 import logging
 import os
 from pathlib import Path
+import re
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel
@@ -13,7 +14,7 @@ from pydantic import BaseModel
 from ...core.dspy import SkillCreationProgram
 from ...core.models import SkillCreationResult
 from ...taxonomy.manager import TaxonomyManager
-from ..jobs import JOBS, create_job, wait_for_hitl_response
+from ..jobs import JOBS, create_job, save_job_session, wait_for_hitl_response
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -28,23 +29,191 @@ class CreateSkillRequest(BaseModel):
 
 # Skills root directory (configurable via env var)
 SKILLS_ROOT = Path(os.environ.get("SKILL_FLEET_SKILLS_ROOT", "skills"))
+DRAFTS_ROOT = SKILLS_ROOT / "_drafts"
 
 
-def _save_skill_to_taxonomy(result: SkillCreationResult) -> str | None:
-    """Save a completed skill to the taxonomy.
+_FENCE_START_RE = re.compile(r"^\s*```(?P<lang>[a-zA-Z0-9_+-]*)\s*$")
+_HEADING_BACKTICK_RE = re.compile(r"^\s{0,3}#{2,6}\s+`(?P<name>[^`]+)`\s*$")
+
+
+def _safe_single_filename(candidate: str) -> str | None:
+    """Return a safe single-path filename or None.
+
+    LLM output is untrusted; keep this strict to prevent path traversal.
+    """
+
+    name = candidate.strip()
+    if not name:
+        return None
+    if "/" in name or "\\" in name:
+        return None
+    if name.startswith("."):
+        return None
+    if not all(c.isalnum() or c in "._-" for c in name):
+        return None
+    return name
+
+
+def _extract_named_file_code_blocks(skill_md: str) -> dict[str, str]:
+    """Extract code blocks that are explicitly labeled with a backticked filename heading.
+
+    Example:
+        ### `pytest.ini`
+        ```ini
+        ...
+        ```
+    """
+
+    assets: dict[str, str] = {}
+    lines = skill_md.splitlines()
+    i = 0
+    while i < len(lines):
+        m = _HEADING_BACKTICK_RE.match(lines[i])
+        if not m:
+            i += 1
+            continue
+
+        raw_name = m.group("name")
+        filename = _safe_single_filename(raw_name)
+        if not filename:
+            i += 1
+            continue
+
+        # Scan forward until we find the next fenced block (allow brief prose between).
+        j = i + 1
+        fence_line = None
+        while j < len(lines):
+            if lines[j].lstrip().startswith("#"):
+                break
+            if _FENCE_START_RE.match(lines[j]):
+                fence_line = j
+                break
+            j += 1
+        if fence_line is None:
+            i += 1
+            continue
+
+        j = fence_line + 1
+        body: list[str] = []
+        while j < len(lines) and not lines[j].strip().startswith("```"):
+            body.append(lines[j])
+            j += 1
+
+        if j < len(lines) and lines[j].strip().startswith("```"):
+            assets[filename] = "\n".join(body).rstrip() + "\n"
+            i = j + 1
+            continue
+
+        i += 1
+
+    return assets
+
+
+def _extract_usage_example_code_blocks(skill_md: str) -> dict[str, str]:
+    """Extract fenced code blocks under the '## Usage Examples' section.
+
+    Writes as simple `example_N.<ext>` files (best-effort).
+    """
+
+    lines = skill_md.splitlines()
+    start = None
+    for idx, line in enumerate(lines):
+        if line.strip() == "## Usage Examples":
+            start = idx + 1
+            break
+    if start is None:
+        return {}
+
+    end = len(lines)
+    for idx in range(start, len(lines)):
+        # Stop at the next section at the same/higher level.
+        if lines[idx].startswith("#") and lines[idx].lstrip().startswith("## "):
+            end = idx
+            break
+
+    section = lines[start:end]
+
+    ext_for_lang = {
+        "python": "py",
+        "py": "py",
+        "bash": "sh",
+        "sh": "sh",
+        "zsh": "sh",
+        "shell": "sh",
+        "ini": "ini",
+        "toml": "toml",
+        "yaml": "yml",
+        "yml": "yml",
+        "json": "json",
+    }
+
+    examples: dict[str, str] = {}
+    i = 0
+    example_idx = 0
+    while i < len(section):
+        fence = _FENCE_START_RE.match(section[i])
+        if not fence:
+            i += 1
+            continue
+
+        lang = (fence.group("lang") or "").lower()
+        i += 1
+        body: list[str] = []
+        while i < len(section) and not section[i].strip().startswith("```"):
+            body.append(section[i])
+            i += 1
+
+        if i < len(section) and section[i].strip().startswith("```"):
+            example_idx += 1
+            ext = ext_for_lang.get(lang, "txt")
+            filename = f"example_{example_idx}.{ext}"
+            examples[filename] = "\n".join(body).rstrip() + "\n"
+            i += 1
+            continue
+
+        i += 1
+
+    return examples
+
+
+def _ensure_draft_root(job_id: str) -> Path:
+    """Ensure the per-job draft root exists (with its own taxonomy_meta.json)."""
+    job_root = DRAFTS_ROOT / job_id
+    job_root.mkdir(parents=True, exist_ok=True)
+    meta_path = job_root / "taxonomy_meta.json"
+    if not meta_path.exists():
+        meta_path.write_text(
+            json.dumps(
+                {
+                    "total_skills": 0,
+                    "generation_count": 0,
+                    "statistics": {"by_type": {}, "by_weight": {}, "by_priority": {}},
+                    "last_updated": "",
+                },
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+    return job_root
+
+
+def _save_skill_to_draft(*, job_id: str, result: SkillCreationResult) -> str | None:
+    """Save a completed skill to the draft area.
 
     Args:
         result: SkillCreationResult from the workflow
 
     Returns:
-        Path where skill was saved, or None if save failed
+        Path where the draft skill was saved, or None if save failed
     """
     if not result.skill_content or not result.metadata:
         logger.warning("Cannot save skill: missing content or metadata")
         return None
 
     try:
-        manager = TaxonomyManager(SKILLS_ROOT)
+        draft_root = _ensure_draft_root(job_id)
+        manager = TaxonomyManager(draft_root)
 
         # Extract metadata for registration
         metadata = result.metadata
@@ -79,21 +248,26 @@ def _save_skill_to_taxonomy(result: SkillCreationResult) -> str | None:
             logger.error("Unsafe taxonomy path provided by workflow: %s", taxonomy_path)
             return None
 
-        # Never overwrite an existing skill via the API auto-save path.
-        if manager.skill_exists(safe_taxonomy_path):
-            full_path = SKILLS_ROOT / safe_taxonomy_path
-            logger.info(f"Skill already exists; skipping save: {full_path}")
-            return str(full_path)
-
-        # Build metadata dict for register_skill
+        # Build metadata dict for register_skill.
+        #
+        # Important: preserve workflow-produced metadata (capabilities, load_priority, etc.)
+        # so deterministic validators and downstream tooling see the same intent the DSPy
+        # planner produced.
         meta_dict = {
             "skill_id": metadata.skill_id,
             "name": metadata.name,
             "description": metadata.description,
             "version": metadata.version,
             "type": metadata.type,
-            "tags": metadata.tags if hasattr(metadata, "tags") else [],
-            "dependencies": metadata.dependencies if hasattr(metadata, "dependencies") else [],
+            "weight": getattr(metadata, "weight", "medium"),
+            "load_priority": getattr(metadata, "load_priority", "on_demand"),
+            "dependencies": getattr(metadata, "dependencies", []) or [],
+            "capabilities": getattr(metadata, "capabilities", []) or [],
+            "category": getattr(metadata, "category", ""),
+            "keywords": getattr(metadata, "keywords", []) or [],
+            "scope": getattr(metadata, "scope", ""),
+            "see_also": getattr(metadata, "see_also", []) or [],
+            "tags": getattr(metadata, "tags", []) or [],
         }
 
         # Evolution tracking
@@ -105,24 +279,46 @@ def _save_skill_to_taxonomy(result: SkillCreationResult) -> str | None:
             else None,
         }
 
-        # Register the skill (saves SKILL.md and metadata.json)
+        # Register the skill (writes SKILL.md + metadata.json + standard subdirs)
         success = manager.register_skill(
             path=safe_taxonomy_path,
             metadata=meta_dict,
             content=result.skill_content,
             evolution=evolution,
+            overwrite=True,
         )
 
         if success:
-            full_path = SKILLS_ROOT / safe_taxonomy_path
-            logger.info(f"Skill saved successfully to: {full_path}")
+            full_path = draft_root / safe_taxonomy_path
+            try:
+                skill_md_path = full_path / "SKILL.md"
+                if skill_md_path.exists():
+                    skill_md = skill_md_path.read_text(encoding="utf-8")
+                    assets = _extract_named_file_code_blocks(skill_md)
+                    examples = _extract_usage_example_code_blocks(skill_md)
+
+                    if assets:
+                        assets_dir = full_path / "assets"
+                        assets_dir.mkdir(parents=True, exist_ok=True)
+                        for filename, content in assets.items():
+                            (assets_dir / filename).write_text(content, encoding="utf-8")
+
+                    if examples:
+                        examples_dir = full_path / "examples"
+                        examples_dir.mkdir(parents=True, exist_ok=True)
+                        for filename, content in examples.items():
+                            (examples_dir / filename).write_text(content, encoding="utf-8")
+            except Exception:
+                logger.warning("Failed to extract skill artifacts (assets/examples) for %s", full_path)
+
+            logger.info("Draft saved successfully to: %s", full_path)
             return str(full_path)
         else:
-            logger.error(f"Failed to register skill at path: {taxonomy_path}")
+            logger.error("Failed to register draft skill at path: %s", taxonomy_path)
             return None
 
     except Exception as e:
-        logger.error(f"Error saving skill to taxonomy: {e}", exc_info=True)
+        logger.error(f"Error saving skill to draft: {e}", exc_info=True)
         return None
 
 
@@ -184,24 +380,37 @@ async def run_skill_creation(job_id: str, task_description: str, user_id: str):
         else:
             job.status = result.status
             job.result = result
+            if result.metadata is not None:
+                job.intended_taxonomy_path = (
+                    result.metadata.taxonomy_path or result.metadata.skill_id
+                )
+            if result.validation_report is not None:
+                job.validation_passed = bool(result.validation_report.passed)
+                job.validation_status = str(result.validation_report.status)
+                job.validation_score = float(result.validation_report.score)
 
-            # Auto-save completed skills to taxonomy
+            # Draft-first: save to skills/_drafts/<job_id>/... and require explicit promotion.
             if result.status == "completed" and result.skill_content:
-                saved_path = _save_skill_to_taxonomy(result)
-                if saved_path:
-                    job.saved_path = saved_path
-                    logger.info(f"Job {job_id} completed and skill saved to: {saved_path}")
+                draft_path = _save_skill_to_draft(job_id=job_id, result=result)
+                if draft_path:
+                    job.draft_path = draft_path
+                    logger.info("Job %s completed; draft saved to: %s", job_id, draft_path)
                 else:
-                    logger.warning(f"Job {job_id} completed but skill could not be saved")
+                    logger.warning("Job %s completed but draft could not be saved", job_id)
 
     except Exception as e:
         logger.error(f"Job {job_id} failed: {e}", exc_info=True)
         job.status = "failed"
         job.error = str(e)
+    finally:
+        save_job_session(job_id)
 
 
 @router.post("/create")
-async def create(request: CreateSkillRequest, background_tasks: BackgroundTasks):
+async def create(
+    request: CreateSkillRequest,
+    background_tasks: BackgroundTasks,
+):
     """Initiate a new skill creation job."""
     if not request.task_description:
         raise HTTPException(status_code=400, detail="task_description is required")

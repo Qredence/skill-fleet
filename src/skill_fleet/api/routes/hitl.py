@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 
-from ..jobs import get_job
+from ..jobs import get_job, notify_hitl_response
 
 router = APIRouter()
 
@@ -36,7 +36,16 @@ async def get_prompt(job_id: str):
         "passed": hitl_data.get("passed"),
         # Result data
         "skill_content": job.result.skill_content if job.result else None,
-        "saved_path": job.saved_path,  # Path where skill was saved
+        # Draft-first lifecycle
+        "intended_taxonomy_path": job.intended_taxonomy_path,
+        "draft_path": job.draft_path,
+        "final_path": job.final_path,
+        "promoted": job.promoted,
+        "saved_path": job.saved_path,  # Alias of final_path after promotion
+        # Validation summary
+        "validation_passed": job.validation_passed,
+        "validation_status": job.validation_status,
+        "validation_score": job.validation_score,
         "error": job.error,
     }
 
@@ -87,8 +96,19 @@ async def post_response(job_id: str, response: dict):
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
+    # Only accept responses when the job is actively waiting for HITL. This avoids
+    # late/stale responses accidentally being consumed by a *future* HITL prompt.
+    if job.status != "pending_hitl":
+        return {"status": "ignored", "detail": f"No HITL prompt pending (status={job.status})"}
+
     # Store the response
     job.hitl_response = response
+
+    # Immediately release any in-flight waiter so the background job can resume.
+    notify_hitl_response(job_id, response)
+
+    # Update status eagerly so polling clients don't re-render the same prompt.
+    job.status = "running"
 
     # Update deep_understanding state if provided
     if job.hitl_type == "deep_understanding":

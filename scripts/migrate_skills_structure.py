@@ -63,8 +63,8 @@ def main():
         try:
             shutil.move(str(source_path), str(dest_path))
             migrated_count += 1
-        except Exception as e:
-            print(f"ERROR moving {skill_id}: {e}")
+        except (shutil.Error, OSError) as e:
+            logging.error("ERROR moving %s: %s", skill_id, e)
             errors.append(f"{skill_id}: {e}")
 
     print(f"\nMigration complete. Moved {migrated_count} skills.")

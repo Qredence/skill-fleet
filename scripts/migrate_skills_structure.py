@@ -63,8 +63,8 @@ def main():
         try:
             shutil.move(str(source_path), str(dest_path))
             migrated_count += 1
-        except Exception as e:
-            print(f"ERROR moving {skill_id}: {e}")
+        except (shutil.Error, OSError) as e:
+            logging.error("ERROR moving %s: %s", skill_id, e)
             errors.append(f"{skill_id}: {e}")
 
     print(f"\nMigration complete. Moved {migrated_count} skills.")
@@ -102,8 +102,8 @@ def remove_empty_dirs(path):
                 if not any(p.iterdir()):
                     p.rmdir()
                     print(f"Removed empty dir: {p.relative_to(path.parent.parent)}")
-            except OSError:
-                pass
+            except OSError as e:
+                print(f"Error removing directory {p.relative_to(path.parent.parent)}: {e}")
 
 
 if __name__ == "__main__":

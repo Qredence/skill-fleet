@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   build:
@@ -46,6 +47,27 @@ jobs:
         with:
           name: dist
           path: dist/
+
+      - name: Request OIDC token for PyPI
+        id: request-oidc
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const core = require('@actions/core');
+            try {
+              const token = await core.getIDToken('api://pypi');
+              core.setOutput('token', token);
+            } catch (err) {
+              core.warning('Failed to obtain OIDC token: ' + err.message);
+              core.setOutput('token', '');
+            }
+      - name: Publish distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@v1.13.0
+        with:
+          user: __token__
+          # The action accepts either an API token or an OIDC-backed ephemeral token. Use OIDC token if present, otherwise fall back to stored secret.
+          password: ${{ steps.request-oidc.outputs.token || secrets.PYPI_API_TOKEN }}
+          packages-dir: dist/
 
       - name: Create Release
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2

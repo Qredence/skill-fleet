@@ -5,7 +5,7 @@ description = "Hierarchical skills taxonomy + DSPy workflow prototype"
 readme = "README.md"
 requires-python = ">=3.12"
 authors = [{ name = "Qredence" }]
-license = { text = "Proprietary" }
+license = { text = "Apache-2.0" }
 keywords = ["agents", "skills", "dspy", "fastapi", "cli", "workflow"]
 dependencies = [
   "asyncpg>=0.31.0",
@@ -33,7 +33,7 @@ dependencies = [
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
-  "License :: Other/Proprietary License",
+  "License :: OSI Approved :: Apache Software License",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.12",

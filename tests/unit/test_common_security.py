@@ -6,7 +6,6 @@ path traversal attacks and ensure paths remain within expected boundaries.
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import pytest

@@ -6,6 +6,7 @@ import json
 import logging
 import re
 from pathlib import Path
+from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel, Field
@@ -14,7 +15,7 @@ from ...common.security import sanitize_taxonomy_path
 from ...core.dspy import SkillCreationProgram
 from ...core.models import SkillCreationResult
 from ...taxonomy.manager import TaxonomyManager
-from ..dependencies import get_drafts_root, get_skills_root
+from ..dependencies import TaxonomyManagerDep, get_drafts_root, get_skills_root
 from ..jobs import JOBS, create_job, save_job_session, wait_for_hitl_response
 
 logger = logging.getLogger(__name__)
@@ -33,6 +34,62 @@ class CreateSkillResponse(BaseModel):
 
     job_id: str = Field(..., description="Unique identifier for the background job")
     status: str = Field(default="accepted", description="Initial job status")
+
+
+class SkillDetailResponse(BaseModel):
+    """Detailed information about a skill."""
+
+    skill_id: str
+    name: str
+    description: str
+    version: str
+    type: str
+    metadata: dict[str, Any]
+    content: str | None = None
+
+
+@router.get("/{path:path}", response_model=SkillDetailResponse)
+async def get_skill(path: str, manager: TaxonomyManagerDep) -> SkillDetailResponse:
+    """Get details for a skill by its path or ID (supports aliases)."""
+    # 1. Resolve Location (Handles Aliases + Legacy Paths via Manager)
+    try:
+        canonical_path = manager.resolve_skill_location(path)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=f"Skill '{path}' not found") from e
+
+    # 2. Load Metadata
+    meta = manager.get_skill_metadata(canonical_path) or manager._try_load_skill_by_id(
+        canonical_path
+    )
+    if not meta:
+        raise HTTPException(status_code=404, detail="Skill metadata not found")
+
+    # 3. Load Content
+    content = None
+    if meta.path.name == "metadata.json":
+        md_path = meta.path.parent / "SKILL.md"
+        if md_path.exists():
+            content = md_path.read_text(encoding="utf-8")
+
+    # Convert dataclass to dict for response
+    # We need to construct metadata dict safely
+    meta_dict = {
+        "weight": meta.weight,
+        "load_priority": meta.load_priority,
+        "dependencies": meta.dependencies,
+        "capabilities": meta.capabilities,
+        "always_loaded": meta.always_loaded,
+    }
+
+    return SkillDetailResponse(
+        skill_id=meta.skill_id,
+        name=meta.name,
+        description=meta.description,
+        version=meta.version,
+        type=meta.type,
+        metadata=meta_dict,
+        content=content,
+    )
 
 
 _FENCE_START_RE = re.compile(r"^\s*```(?P<lang>[a-zA-Z0-9_+-]*)\s*$")

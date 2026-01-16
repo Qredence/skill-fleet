@@ -1,11 +1,14 @@
 """User onboarding and skill bootstrapping."""
 
 import json
+import logging
 from datetime import UTC, datetime
 from pathlib import Path
 
 from ..core.creator import TaxonomySkillCreator
 from ..taxonomy.manager import TaxonomyManager
+
+logger = logging.getLogger(__name__)
 
 
 class SkillBootstrapper:
@@ -36,16 +39,16 @@ class SkillBootstrapper:
         Returns:
             Dict with user profile and mounted skills
         """
-        print(f"🎯 Onboarding user: {user_id}")
+        logger.info(f"Onboarding user: {user_id}")
 
         # Analyze responses to determine profile
         profile = self.analyze_responses(responses)
-        print(f"📊 Profile identified: {profile['primaryRole']}")
+        logger.info(f"Profile identified: {profile['primaryRole']}")
 
         # Generate skill plan
         skill_plan = self.generate_skill_plan(profile)
-        print(
-            f"📋 Skill plan: {len(skill_plan['required'])} required, "
+        logger.info(
+            f"Skill plan: {len(skill_plan['required'])} required, "
             f"{len(skill_plan['onDemand'])} on-demand"
         )
 

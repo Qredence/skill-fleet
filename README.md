@@ -64,6 +64,8 @@ Create your first skill in under 2 minutes:
    uv run skill-fleet promote <job_id>
    ```
 
+**Note**: Taxonomy v0.2 uses simplified paths (e.g., `python/decorators` instead of `technical_skills/programming/languages/python/decorators`). Legacy paths still resolve with deprecation warnings.
+
 ## Core Commands
 
 | Command | Description |
@@ -87,13 +89,19 @@ skill-fleet/
 │   ├── cli/            # Typer-based CLI (fleet-agent)
 │   ├── core/           # Core logic (DSPy programs, tools, models)
 │   ├── llm/            # LLM configuration and DSPy setup
-│   ├── taxonomy/       # Skill taxonomy management
+│   ├── taxonomy/       # Skill taxonomy management & index
 │   ├── validators/     # Skill validation logic
-│   └── workflow/       # DSPy-powered skill creation workflow
-├── skills/             # Hierarchical skills taxonomy storage
+│   └── onboarding/     # User onboarding & skill bootstrapping
+├── skills/             # Simplified 2-level taxonomy (category/skill)
+│   ├── taxonomy_index.json  # Canonical paths & alias mappings
+│   ├── python/          # Python-related skills
+│   ├── devops/          # DevOps & containerization skills
+│   ├── testing/         # Testing framework skills
+│   ├── web/             # Web development skills
+│   └── ...             # Other categories
 ├── tests/              # Unit and integration tests
 ├── config/             # Configuration files (config.yaml, templates)
-├── scripts/            # Utility and maintenance scripts
+├── scripts/            # Utility, migration & maintenance scripts
 └── docs/               # Comprehensive documentation
 ```
 

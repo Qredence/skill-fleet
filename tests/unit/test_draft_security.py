@@ -6,7 +6,6 @@ in the promote_draft endpoint.
 
 from __future__ import annotations
 
-import os
 import shutil
 from pathlib import Path
 from unittest.mock import Mock, patch

@@ -1,1 +1,0 @@
-{"apis": [], "tools": ["docker-ce", "dive", "trivy"], "files": ["Dockerfile", ".dockerignore", "docker-compose.yml"], "environment": ["DOCKER_BUILDKIT=1"]}

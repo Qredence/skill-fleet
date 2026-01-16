@@ -1,6 +1,0 @@
-{
-  "name": "test_resource_limit_validation",
-  "description": "Validate resource limit configuration schema.",
-  "input_data": "{'cpu_limit': '1.0', 'memory_limit': '1G'}",
-  "expected_result": "Boolean True for valid schema, or Error message for missing 'limits' key."
-}

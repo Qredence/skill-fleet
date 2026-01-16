@@ -7,12 +7,23 @@
 ### Key Facts
 
 - **Language**: Python 3.12+ (primary), TypeScript/React (optional TUI)
-- **Project Type**: AI/LLM framework with CLI and API
+- **Project Type**: AI/LLM framework with CLI, API, and TUI
 - **Size**: ~56 Python files, ~63 skill directories, 145 tests
 - **Package Manager**: [uv](https://github.com/astral-sh/uv) (Python), bun (optional, for TUI)
 - **LLM Framework**: DSPy with Google Gemini 3 Flash as default model
 - **Testing**: pytest with asyncio support
 - **Linting**: ruff (replaces flake8, black, isort)
+
+## Current State (2026-01-16)
+
+**Taxonomy v0.2 migration completed** - simplified 2-level taxonomy with canonical path resolution and alias support.
+
+- **API-first execution**: FastAPI is the canonical surface for running DSPy workflows; the CLI (`skill-fleet create/chat/...`) is a thin API client.
+- **Draft-first persistence**: jobs write drafts under `skills/_drafts/<job_id>/...`; promotion into the taxonomy is explicit via `uv run skill-fleet promote <job_id>` or the API.
+- **Evaluation**: Calibration with Obra/superpowers standards implemented.
+- **Known Issues**:
+  - Job state is in-memory (loss on restart).
+  - Rich `MarkupError` with certain special characters in CLI output.
 
 ## Build & Validation Workflow
 
@@ -55,8 +66,8 @@ uv run ruff check .
 - Always run BEFORE making commits
 - Auto-fix issues with: `uv run ruff check --fix .`
 - Format code with: `uv run ruff format .`
-- Configured in `pyproject.toml` (line 52-67)
-- Excludes `skills/**` directory (line 56)
+- Configured in `pyproject.toml`
+- Excludes `skills/**` directory
 
 **3. Run Tests (~10-30 seconds)**
 
@@ -76,13 +87,13 @@ uv run pytest --cov=src/skill_fleet
 
 - Tests are in `tests/unit/` and `tests/integration/`
 - Some integration tests require API keys (GOOGLE_API_KEY)
-- Expected: 143 passed, 2 failed integration tests (require real LLM)
+- Expected: 143 passed, 2 failed integration tests (require real LLM) without keys
 
 **4. Validate Skills**
 
 ```bash
 # Validate a specific skill
-uv run skill-fleet validate-skill skills/general/testing
+uv run skill-fleet validate skills/general/testing
 
 # Migrate skills to agentskills.io format (dry-run first!)
 uv run skill-fleet migrate --dry-run
@@ -108,7 +119,7 @@ This verifies: old imports, build success, test pass, CLI entrypoint, directory 
 
 ```
 skill-fleet/
-├── .github/                    # GitHub workflows (Junie CI)
+├── .github/                    # GitHub workflows (Junie CI) & Copilot Instructions
 ├── src/skill_fleet/           # Main Python package (56 files)
 │   ├── agent/                 # Conversational agent for interactive skill creation
 │   ├── analytics/             # Usage tracking and recommendations
@@ -119,6 +130,7 @@ skill-fleet/
 │   │   └── onboarding_cli.py
 │   ├── common/                # Shared utilities (safe_json_loads, etc.)
 │   ├── config/                # Packaged config defaults
+│   ├── core/                  # Unified core architecture (DSPy, models, tools)
 │   ├── llm/                   # LLM configuration
 │   │   ├── dspy_config.py    # Centralized DSPy setup (IMPORTANT)
 │   │   └── fleet_config.py   # LLM provider configs
@@ -127,13 +139,9 @@ skill-fleet/
 │   ├── ui/                    # TypeScript/React TUI (optional)
 │   ├── validators/            # agentskills.io compliance validators
 │   │   └── skill_validator.py # Core validation logic
-│   └── workflow/              # DSPy-based skill generation
-│       ├── creator.py         # Main 6-step workflow orchestrator
-│       ├── modules.py         # DSPy modules
-│       ├── programs.py        # DSPy programs
-│       └── signatures.py      # DSPy signatures for each workflow step
+│   └── workflow/              # DEPRECATED: Consolidated into core/
 ├── skills/                    # Skills taxonomy (63 directories)
-│   └── [8-level hierarchy]    # general/, development/, business/, etc.
+│   └── [taxonomy hierarchy]   # general/, development/, business/, etc.
 ├── tests/                     # Test suite (145 tests)
 │   ├── unit/                  # Unit tests
 │   └── integration/           # Integration tests (require API keys)
@@ -151,17 +159,17 @@ skill-fleet/
 
 **pyproject.toml**
 
-- Project metadata (lines 1-7)
-- Dependencies including DSPy, LiteLLM, FastAPI (lines 7-27)
-- Dev dependencies: pytest, ruff, httpx (lines 32-37)
-- Entry point: `skill-fleet` CLI (lines 29-30)
-- pytest configuration (lines 48-50)
-- ruff linting rules (lines 52-67)
+- Project metadata
+- Dependencies including DSPy, LiteLLM, FastAPI
+- Dev dependencies: pytest, ruff, httpx
+- Entry point: `skill-fleet` CLI
+- pytest configuration
+- ruff linting rules
 
 **config/config.yaml**
 
 - Default LLM: `gemini/gemini-3-flash-preview`
-- Task-specific model configurations (lines 52-96)
+- Task-specific model configurations
 - Temperature and reasoning effort per task type
 - Requires: `GOOGLE_API_KEY` environment variable
 
@@ -198,7 +206,7 @@ description: A concise description (1-2 sentences)
 **Validation:**
 
 ```bash
-uv run skill-fleet validate-skill path/to/skill
+uv run skill-fleet validate path/to/skill
 ```
 
 ### DSPy Configuration
@@ -239,7 +247,7 @@ Each step uses a different DSPy module with task-specific LM configuration.
 
 1. Create command file in `src/skill_fleet/cli/`
 2. Define command using Typer decorators
-3. Register in `src/skill_fleet/cli/main.py`
+3. Register in `src/skill_fleet/cli/app.py`
 4. Add tests in `tests/cli/` (if directory exists, else `tests/`)
 5. Update `docs/cli-reference.md`
 6. Run: `uv run skill-fleet [new-command] --help` to verify
@@ -255,9 +263,10 @@ Each step uses a different DSPy module with task-specific LM configuration.
 ### Working with Skills
 
 1. **Never manually edit all skills** - use migration tools
-2. **Always validate** after manual edits: `uv run skill-fleet validate-skill path/to/skill`
+2. **Always validate** after manual edits: `uv run skill-fleet validate path/to/skill`
 3. **Preview changes** with `--dry-run` flag
 4. **Regenerate XML** after skill changes: `uv run skill-fleet generate-xml -o available_skills.xml`
+5. **Use Kebab-Case**: Always use `my-skill-name`, never `my_skill` or `MySkill`.
 
 ## Known Issues & Gotchas
 
@@ -290,13 +299,10 @@ description: Description here
 **Wrong**: `My Skill`, `my_skill`, `MySkill`
 **Correct**: `my-skill` (kebab-case only)
 
-### 5. Test Failures on First Run
+### 5. API vs CLI
 
-**Expected**: 2 integration tests may fail without valid `GOOGLE_API_KEY` or due to network/firewall blocks
-
-- `test_workflow_with_real_llm`
-- `test_capability_serialization`
-  **Action**: This is normal. Unit tests (143) should pass. See "Network/Firewall Limitations" for details on common network blocks.
+**Note**: The CLI is a wrapper around the API logic in `src/skill_fleet/api` and `src/skill_fleet/core`.
+**Best Practice**: When adding features, implement them in `core` or `api` first, then expose via CLI.
 
 ### 6. Ruff Linting Noise
 
@@ -308,19 +314,7 @@ description: Description here
 **Symptom**: Stale LLM responses or errors about cache
 **Solution**: Clear cache with `rm -rf .dspy_cache/` or `rm -rf ~/.cache/dspy/`
 
-### 8. TUI Dependencies (Optional)
-
-The TUI is optional. If you see bun/TypeScript errors, you can skip TUI development:
-
-```bash
-# Only if working on TUI
-bun install
-bun run tui
-```
-
-Most development doesn't require TUI.
-
-### 9. Network/Firewall Limitations
+### 8. Network/Firewall Limitations
 
 **Symptom**: DNS resolution failures, connection timeouts during setup or tests
 **Blocked Domains**:
@@ -333,8 +327,6 @@ Most development doesn't require TUI.
 - **For uv availability**: uv must be pre-installed in the environment by admins before the firewall is enabled
 - **For tiktoken errors**: These are typically in integration tests that also require `GOOGLE_API_KEY`. Expected: 2 integration tests may fail with network errors
 - **In CI/CD**: Configure Actions setup steps before firewall is enabled, or add domains to the custom allowlist in repository's Copilot settings (admin only)
-
-**Note**: Network restrictions are environment-specific. Local development typically has no firewall blocks.
 
 ## CI/CD Pipeline
 
@@ -358,7 +350,7 @@ uv run ruff format .
 uv run pytest
 
 # 3. Validate skills (if you modified any)
-uv run skill-fleet validate-skill path/to/modified/skill
+uv run skill-fleet validate path/to/modified/skill
 
 # 4. Check for common issues
 git status  # Ensure no unexpected files (.venv/, .dspy_cache/, etc.)
@@ -442,8 +434,8 @@ uv run pytest -v                 # Verbose test output
 
 # CLI usage
 uv run skill-fleet --help        # Show all commands
-uv run skill-fleet create-skill --task "..." --auto-approve
-uv run skill-fleet validate-skill path/to/skill
+uv run skill-fleet create "Skill description"
+uv run skill-fleet validate path/to/skill
 uv run skill-fleet migrate --dry-run
 uv run skill-fleet generate-xml -o available_skills.xml
 
@@ -466,9 +458,9 @@ uv run skill-fleet --help        # Test CLI entrypoint
 
 6. **Check Git Status**: Before committing, ensure `.venv/`, `.dspy_cache/`, and other build artifacts aren't staged.
 
-7. **Read AGENTS.md**: For deeper technical details, see `/home/runner/work/skill-fleet/skill-fleet/AGENTS.md`
+7. **Read AGENTS.md**: For deeper technical details, see `AGENTS.md` in the root.
 
-8. **Validate Skills**: After editing skills, always run validation: `uv run skill-fleet validate-skill path/to/skill`
+8. **Validate Skills**: After editing skills, always run validation: `uv run skill-fleet validate path/to/skill`
 
 9. **Use Common Utilities**: Import from `skill_fleet.common.utils` for safe JSON parsing and utility functions.
 
@@ -487,4 +479,4 @@ uv run skill-fleet --help        # Test CLI entrypoint
 
 ## Last Updated
 
-2026-01-11
+2026-01-16

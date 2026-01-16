@@ -24,7 +24,10 @@ class TestSanitizeTaxonomyPath:
 
     def test_accepts_valid_taxonomy_path(self):
         """Test that valid taxonomy paths are accepted."""
-        assert sanitize_taxonomy_path("technical_skills/programming/python") == "technical_skills/programming/python"
+        assert (
+            sanitize_taxonomy_path("technical_skills/programming/python")
+            == "technical_skills/programming/python"
+        )
         assert sanitize_taxonomy_path("general/testing") == "general/testing"
         assert sanitize_taxonomy_path("business/analytics") == "business/analytics"
 
@@ -64,8 +67,14 @@ class TestSanitizeTaxonomyPath:
 
     def test_accepts_hyphens_and_underscores(self):
         """Test that hyphens and underscores are accepted."""
-        assert sanitize_taxonomy_path("python-advanced/web_development") == "python-advanced/web_development"
-        assert sanitize_taxonomy_path("data-science/machine_learning") == "data-science/machine_learning"
+        assert (
+            sanitize_taxonomy_path("python-advanced/web_development")
+            == "python-advanced/web_development"
+        )
+        assert (
+            sanitize_taxonomy_path("data-science/machine_learning")
+            == "data-science/machine_learning"
+        )
 
 
 class TestSanitizeRelativeFilePath:
@@ -117,11 +126,11 @@ class TestResolvePathWithinRoot:
         """Test that valid paths within root are resolved correctly."""
         root = tmp_path / "root"
         root.mkdir()
-        
+
         # Create a subdirectory
         subdir = root / "subdir"
         subdir.mkdir()
-        
+
         result = resolve_path_within_root(root, "subdir")
         assert result == subdir.resolve()
 
@@ -129,7 +138,7 @@ class TestResolvePathWithinRoot:
         """Test that paths escaping root via .. are rejected."""
         root = tmp_path / "root"
         root.mkdir()
-        
+
         with pytest.raises(ValueError, match="Invalid relative path"):
             resolve_path_within_root(root, "../escape")
 
@@ -137,7 +146,7 @@ class TestResolvePathWithinRoot:
         """Test that absolute paths are rejected."""
         root = tmp_path / "root"
         root.mkdir()
-        
+
         with pytest.raises(ValueError, match="Invalid relative path"):
             resolve_path_within_root(root, "/etc/passwd")
 
@@ -145,11 +154,11 @@ class TestResolvePathWithinRoot:
         """Test that nested paths within root are handled correctly."""
         root = tmp_path / "root"
         root.mkdir()
-        
+
         # Create nested structure
         nested = root / "a" / "b" / "c"
         nested.mkdir(parents=True)
-        
+
         result = resolve_path_within_root(root, "a/b/c")
         assert result == nested.resolve()
 
@@ -157,18 +166,18 @@ class TestResolvePathWithinRoot:
         """Test that symlinks escaping root are detected."""
         root = tmp_path / "root"
         root.mkdir()
-        
+
         # Create directory outside root
         outside = tmp_path / "outside"
         outside.mkdir()
-        
+
         # Create symlink from inside root to outside
         symlink = root / "symlink"
         try:
             symlink.symlink_to(outside, target_is_directory=True)
         except OSError:
             pytest.skip("Symlinks not supported on this platform")
-        
+
         # The symlink itself exists within root, but resolves outside
         with pytest.raises(ValueError, match="Path escapes root"):
             resolve_path_within_root(root, "symlink")
@@ -177,7 +186,7 @@ class TestResolvePathWithinRoot:
         """Test that empty paths are rejected."""
         root = tmp_path / "root"
         root.mkdir()
-        
+
         with pytest.raises(ValueError, match="Invalid relative path"):
             resolve_path_within_root(root, "")
 
@@ -185,7 +194,7 @@ class TestResolvePathWithinRoot:
         """Test that Windows separators are rejected."""
         root = tmp_path / "root"
         root.mkdir()
-        
+
         with pytest.raises(ValueError, match="Invalid relative path"):
             resolve_path_within_root(root, "path\\to\\file")
 
@@ -252,7 +261,7 @@ class TestSecurityEdgeCases:
         """Test that Unicode normalization doesn't allow escapes."""
         root = tmp_path / "root"
         root.mkdir()
-        
+
         # Try various Unicode representations that might normalize to ..
         # Most should be rejected by the character validation
         with pytest.raises(ValueError):
@@ -262,7 +271,7 @@ class TestSecurityEdgeCases:
         """Test that null byte injection is prevented."""
         root = tmp_path / "root"
         root.mkdir()
-        
+
         with pytest.raises(ValueError):
             resolve_path_within_root(root, "safe\x00../../../etc/passwd")
 
@@ -270,7 +279,7 @@ class TestSecurityEdgeCases:
         """Test that mixed separators don't bypass validation."""
         root = tmp_path / "root"
         root.mkdir()
-        
+
         with pytest.raises(ValueError):
             resolve_path_within_root(root, "path\\..\\escape")
 
@@ -278,7 +287,7 @@ class TestSecurityEdgeCases:
         """Test that URL-encoded traversal is rejected."""
         root = tmp_path / "root"
         root.mkdir()
-        
+
         # %2e%2e should not work
         with pytest.raises(ValueError):
             resolve_path_within_root(root, "%2e%2e/escape")
@@ -287,7 +296,7 @@ class TestSecurityEdgeCases:
         """Test that very long paths are handled safely."""
         root = tmp_path / "root"
         root.mkdir()
-        
+
         # Create a very long but valid path
         long_segment = "a" * 255  # Max filename length on most systems
         # This should work or raise an OS error, not a security error

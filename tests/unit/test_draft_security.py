@@ -12,7 +12,7 @@ from unittest.mock import Mock
 import pytest
 from fastapi import HTTPException
 
-from skill_fleet.api.jobs import JobState, create_job
+from skill_fleet.api.jobs import create_job
 from skill_fleet.api.routes.drafts import promote_draft, PromoteDraftRequest
 
 

@@ -328,6 +328,14 @@ class TestSessionPersistence:
         # Assert
         assert restored is None
 
+    def test_load_job_session_rejects_path_traversal(self):
+        """Test that load_job_session rejects traversal-style job IDs."""
+        # Act
+        restored = load_job_session("../evil")
+
+        # Assert
+        assert restored is None
+
     def test_load_job_session_restores_nested_models(self):
         """Test that load_job_session properly restores TDD and deep understanding models."""
         # Arrange

@@ -10,6 +10,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+# Local imports
+from ..common.security import resolve_path_within_root
+
 # Import Pydantic models from schemas per FastAPI best practices
 from .schemas import DeepUnderstandingState, JobState, TDDWorkflowState
 
@@ -52,8 +55,13 @@ def create_job() -> str:
 
 
 def get_job(job_id: str) -> JobState | None:
-    """Retrieve a job by its ID."""
-    return JOBS.get(job_id)
+    """Retrieve a job by its ID, loading from disk if necessary."""
+    job = JOBS.get(job_id)
+    if job:
+        return job
+
+    # Fallback to disk loading for persistence
+    return load_job_session(job_id)
 
 
 async def wait_for_hitl_response(job_id: str, timeout: float = 3600.0) -> dict[str, Any]:
@@ -131,11 +139,18 @@ def save_job_session(job_id: str) -> bool:
         return False
 
     try:
-        session_file = SESSION_DIR / f"{job_id}.json"
+        session_file = resolve_path_within_root(SESSION_DIR, f"{job_id}.json")
         session_data = job.model_dump(mode="json", exclude_none=True)
         session_file.write_text(json.dumps(session_data, indent=2, default=str), encoding="utf-8")
         logger.debug("Saved session for job %s", _sanitize_for_log(job_id))
         return True
+    except ValueError as e:
+        logger.warning(
+            "Cannot save session for job %s: %s",
+            _sanitize_for_log(job_id),
+            _sanitize_for_log(e),
+        )
+        return False
     except Exception as e:
         logger.error(
             "Failed to save session for job %s: %s",
@@ -154,8 +169,12 @@ def load_job_session(job_id: str) -> JobState | None:
     Returns:
         JobState if found, None otherwise
     """
+    if not _is_safe_job_id(job_id):
+        logger.warning("Cannot load session: unsafe job id %s", _sanitize_for_log(job_id))
+        return None
+
     try:
-        session_file = SESSION_DIR / f"{job_id}.json"
+        session_file = resolve_path_within_root(SESSION_DIR, f"{job_id}.json")
         if not session_file.exists():
             return None
 
@@ -177,6 +196,14 @@ def load_job_session(job_id: str) -> JobState | None:
         JOBS[job_id] = job
         logger.info("Loaded session for job %s", _sanitize_for_log(job_id))
         return job
+
+    except ValueError as e:
+        logger.warning(
+            "Cannot load session for job %s: %s",
+            _sanitize_for_log(job_id),
+            _sanitize_for_log(e),
+        )
+        return None
 
     except Exception as e:
         logger.error(
@@ -213,10 +240,17 @@ def delete_job_session(job_id: str) -> bool:
         return False
 
     try:
-        session_file = SESSION_DIR / f"{job_id}.json"
+        session_file = resolve_path_within_root(SESSION_DIR, f"{job_id}.json")
         if session_file.exists():
             session_file.unlink()
             return True
+        return False
+    except ValueError as e:
+        logger.warning(
+            "Cannot delete session for job %s: %s",
+            _sanitize_for_log(job_id),
+            _sanitize_for_log(e),
+        )
         return False
     except Exception as e:
         logger.error(

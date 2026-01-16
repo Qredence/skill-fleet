@@ -13,8 +13,9 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from ...common.security import resolve_path_within_root
 from ...taxonomy.manager import TaxonomyManager
-from ..dependencies import SkillsRoot
+from ..dependencies import SkillsRoot, TaxonomyManagerDep
 from ..jobs import delete_job_session, get_job, save_job_session
 
 router = APIRouter()
@@ -47,6 +48,7 @@ async def promote_draft(
     job_id: str,
     request: PromoteDraftRequest,
     skills_root: SkillsRoot,
+    taxonomy_manager: TaxonomyManagerDep,
 ) -> PromoteDraftResponse:
     """Validate and promote a job draft into the real taxonomy.
 
@@ -82,7 +84,10 @@ async def promote_draft(
             detail="Draft failed validation. Pass force=true to promote anyway.",
         )
 
-    target_dir = skills_root / job.intended_taxonomy_path
+    try:
+        target_dir = resolve_path_within_root(skills_root, job.intended_taxonomy_path)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid target path: {e}")
 
     if target_dir.exists() and not request.overwrite:
         raise HTTPException(status_code=409, detail="Target skill already exists (overwrite=false)")
@@ -96,7 +101,7 @@ async def promote_draft(
 
         # Update taxonomy meta/cache by loading metadata (best-effort).
         try:
-            TaxonomyManager(skills_root)._ensure_all_skills_loaded()
+            taxonomy_manager._ensure_all_skills_loaded()
         except Exception:
             # Taxonomy update is optional, continue even if it fails
             pass

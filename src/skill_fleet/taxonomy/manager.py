@@ -21,6 +21,12 @@ from typing import Any
 import yaml
 
 from ..analytics.engine import UsageTracker
+from ..common.security import (
+    is_safe_path_component,
+    resolve_path_within_root,
+    sanitize_relative_file_path,
+    sanitize_taxonomy_path,
+)
 
 # ============================================================================
 # agentskills.io Naming Utilities
@@ -122,12 +128,17 @@ class TaxonomyManager:
     _ALWAYS_LOADED_DIRS = ("_core", "mcp_capabilities", "memory_blocks")
 
     def __init__(self, skills_root: Path) -> None:
-        self.skills_root = Path(skills_root)
+        # Treat skills_root as configuration input; resolve it once for consistent
+        # containment checks and to avoid ambiguous relative path behavior.
+        self.skills_root = Path(skills_root).resolve()
         self.meta_path = self.skills_root / "taxonomy_meta.json"
         self.metadata_cache: dict[str, SkillMetadata] = {}
         self.meta: dict[str, Any] = {}
 
-        self.usage_tracker = UsageTracker(self.skills_root / "_analytics")
+        self.usage_tracker = UsageTracker(
+            self.skills_root / "_analytics",
+            trusted_root=self.skills_root,
+        )
 
         self.load_taxonomy_meta()
         self._load_always_loaded_skills()
@@ -163,7 +174,7 @@ class TaxonomyManager:
     def _load_always_loaded_skills(self) -> None:
         """Load always-loaded skill files into the metadata cache."""
         for relative_dir in self._ALWAYS_LOADED_DIRS:
-            skills_dir = self.skills_root / relative_dir
+            skills_dir = resolve_path_within_root(self.skills_root, relative_dir)
             if not skills_dir.exists():
                 continue
 
@@ -260,12 +271,16 @@ class TaxonomyManager:
 
     def skill_exists(self, taxonomy_path: str) -> bool:
         """Check if a skill exists at the given taxonomy path."""
-        skill_dir = self.skills_root / taxonomy_path
+        safe_taxonomy_path = sanitize_taxonomy_path(taxonomy_path)
+        if safe_taxonomy_path is None:
+            return False
+
+        skill_dir = resolve_path_within_root(self.skills_root, safe_taxonomy_path)
         if (skill_dir / "metadata.json").exists():
             return True
 
         # Support single-file JSON skills (e.g., under `_core/`)
-        skill_file = self.skills_root / f"{taxonomy_path}.json"
+        skill_file = resolve_path_within_root(self.skills_root, f"{safe_taxonomy_path}.json")
         return skill_file.exists()
 
     def get_skill_metadata(self, skill_id: str) -> SkillMetadata | None:
@@ -304,7 +319,11 @@ class TaxonomyManager:
 
     def _get_branch_structure(self, branch_path: str) -> dict[str, str]:
         """Get directory structure of a taxonomy branch."""
-        full_path = self.skills_root / branch_path
+        safe_branch_path = sanitize_taxonomy_path(branch_path)
+        if safe_branch_path is None:
+            return {}
+
+        full_path = resolve_path_within_root(self.skills_root, safe_branch_path)
         if not full_path.exists():
             return {}
 
@@ -316,23 +335,33 @@ class TaxonomyManager:
 
     def get_parent_skills(self, taxonomy_path: str) -> list[dict[str, Any]]:
         """Get parent and sibling skills for context."""
-        path_parts = taxonomy_path.split("/")
+        safe_taxonomy_path = sanitize_taxonomy_path(taxonomy_path)
+        if safe_taxonomy_path is None:
+            return []
+
+        path_parts = safe_taxonomy_path.split("/")
         parent_skills: list[dict[str, Any]] = []
 
         # Walk up the tree, searching for metadata.json or single-file JSON skills.
         for i in range(len(path_parts) - 1, 0, -1):
             parent_path = "/".join(path_parts[:i])
-            parent_dir = self.skills_root / parent_path
+            parent_dir = resolve_path_within_root(self.skills_root, parent_path)
             parent_meta_path = parent_dir / "metadata.json"
-            parent_file_path = self.skills_root / f"{parent_path}.json"
+            parent_file_path = resolve_path_within_root(self.skills_root, f"{parent_path}.json")
 
             if parent_meta_path.exists():
                 parent_skills.append(
-                    {"path": parent_path, "metadata": json.loads(parent_meta_path.read_text())}
+                    {
+                        "path": parent_path,
+                        "metadata": json.loads(parent_meta_path.read_text(encoding="utf-8")),
+                    }
                 )
             elif parent_file_path.exists():
                 parent_skills.append(
-                    {"path": parent_path, "metadata": json.loads(parent_file_path.read_text())}
+                    {
+                        "path": parent_path,
+                        "metadata": json.loads(parent_file_path.read_text(encoding="utf-8")),
+                    }
                 )
 
         return parent_skills
@@ -351,7 +380,11 @@ class TaxonomyManager:
         Creates an agentskills.io compliant skill with YAML frontmatter in SKILL.md
         and extended metadata in metadata.json.
         """
-        skill_dir = self.skills_root / path
+        safe_path = sanitize_taxonomy_path(path)
+        if safe_path is None:
+            return False
+
+        skill_dir = resolve_path_within_root(self.skills_root, safe_path)
         if (skill_dir / "metadata.json").exists() and not overwrite:
             return False
         skill_dir.mkdir(parents=True, exist_ok=True)
@@ -359,7 +392,7 @@ class TaxonomyManager:
         now = datetime.now(tz=UTC).isoformat()
 
         # Ensure skill_id is set
-        metadata.setdefault("skill_id", path)
+        metadata.setdefault("skill_id", safe_path)
         skill_id = metadata["skill_id"]
 
         # Ensure metadata.json contains required taxonomy fields (aligns with config/templates).
@@ -758,7 +791,8 @@ If you encounter issues not covered here:
 
             if isinstance(caps, dict):
                 for cap_id, cap_content in caps.items():
-                    filename = f"{cap_id.replace('/', '_')}.md"
+                    raw_name = f"{str(cap_id).replace('/', '_')}.md"
+                    filename = raw_name if is_safe_path_component(raw_name) else "implementation.md"
                     (skill_dir / "capabilities" / filename).write_text(
                         str(cap_content), encoding="utf-8"
                     )
@@ -782,9 +816,21 @@ If you encounter issues not covered here:
                         content = example.get("code") or example.get("content")
                         if content:
                             ext = ".py" if "code" in example else ".md"
-                            filename = example.get("filename", f"example_{i + 1}{ext}")
+                            suggested = str(example.get("filename", "")).strip()
+                            default_name = f"example_{i + 1}{ext}"
+                            filename = (
+                                suggested
+                                if suggested and is_safe_path_component(suggested)
+                                else default_name
+                            )
                         else:
-                            filename = example.get("filename", f"example_{i + 1}.json")
+                            suggested = str(example.get("filename", "")).strip()
+                            default_name = f"example_{i + 1}.json"
+                            filename = (
+                                suggested
+                                if suggested and is_safe_path_component(suggested)
+                                else default_name
+                            )
                             content = json.dumps(example, indent=2)
                     else:
                         filename = f"example_{i + 1}.md"
@@ -808,9 +854,21 @@ If you encounter issues not covered here:
                         content = test.get("code") or test.get("content")
                         if content:
                             ext = ".py" if "code" in test else ".md"
-                            filename = test.get("filename", f"test_{i + 1}{ext}")
+                            suggested = str(test.get("filename", "")).strip()
+                            default_name = f"test_{i + 1}{ext}"
+                            filename = (
+                                suggested
+                                if suggested and is_safe_path_component(suggested)
+                                else default_name
+                            )
                         else:
-                            filename = test.get("filename", f"test_{i + 1}.json")
+                            suggested = str(test.get("filename", "")).strip()
+                            default_name = f"test_{i + 1}.json"
+                            filename = (
+                                suggested
+                                if suggested and is_safe_path_component(suggested)
+                                else default_name
+                            )
                             content = json.dumps(test, indent=2)
                     else:
                         filename = f"test_{i + 1}.py"
@@ -856,8 +914,11 @@ If you encounter issues not covered here:
                     target_dir = skill_dir / category
                     target_dir.mkdir(parents=True, exist_ok=True)
                     for filename, content in items.items():
-                        # Handle potential subdirectories in filename
-                        file_path = target_dir / filename
+                        # Allow subdirectories, but sanitize and enforce containment.
+                        sanitized = sanitize_relative_file_path(str(filename))
+                        if sanitized is None:
+                            continue
+                        file_path = resolve_path_within_root(target_dir, sanitized)
                         file_path.parent.mkdir(parents=True, exist_ok=True)
                         if isinstance(content, bytes):
                             file_path.write_bytes(content)
@@ -900,13 +961,17 @@ If you encounter issues not covered here:
 
     def _try_load_skill_by_id(self, skill_id: str) -> SkillMetadata | None:
         """Try to load skill metadata from disk, caching it on success."""
+        safe_skill_id = sanitize_taxonomy_path(skill_id)
+        if safe_skill_id is None:
+            return None
+
         # Directory-form skill
-        skill_dir = self.skills_root / skill_id
+        skill_dir = resolve_path_within_root(self.skills_root, safe_skill_id)
         if (skill_dir / "metadata.json").exists():
             return self._load_skill_dir_metadata(skill_dir)
 
         # Single-file skill
-        skill_file = self.skills_root / f"{skill_id}.json"
+        skill_file = resolve_path_within_root(self.skills_root, f"{safe_skill_id}.json")
         if skill_file.exists():
             return self._load_skill_file(skill_file)
 

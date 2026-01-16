@@ -2,6 +2,49 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0] - 2026-01-16
+
+### Breaking Changes
+- **Taxonomy Migration**: Simplified from 8-level to 2-level taxonomy
+  - Old paths: `skills/technical_skills/programming/languages/python/async`
+  - New paths: `skills/python/async`
+  - Legacy paths still resolve with deprecation warnings
+  - Use canonical paths in new code and documentation
+
+### Added
+- `src/skill_fleet/taxonomy/models.py`: Pydantic models for taxonomy index
+- `scripts/generate_taxonomy_index.py`: Generate index from mapping report
+- `scripts/migrate_skills_structure.py`: Migrate skills to canonical paths
+- `skills/taxonomy_index.json`: Canonical index for path resolution
+- Taxonomy alias support for backward compatibility
+
+### Changed
+- `TaxonomyManager`: Added index-based skill resolution with alias support
+- `SkillValidator`: Enhanced path traversal protection and alias detection
+- API routes: Updated to use canonical path resolution
+- Documentation: Updated for new taxonomy structure
+
+### Removed
+- Legacy taxonomy directories: `technical_skills/`, `domain_knowledge/`, `task_focus_areas`, etc.
+- Deprecated `src/skill_fleet/migration.py` (workflow consolidated into core/)
+- Placeholder directories: `miscellaneous/`
+
+### Fixed
+- Deprecated print statements in onboarding (replaced with logging)
+- Docstring formatting inconsistencies
+- Path resolution now supports both canonical IDs and legacy aliases
+- **Automatic Linting & Formatting** (January 16, 2026)
+  - Added `_lint_and_format_skill()` method to TaxonomyManager
+  - All newly generated skills are automatically linted and formatted
+  - Runs `ruff check` and `ruff format` on Python files in examples/ and scripts/
+  - Fixed existing linting issues in skills directory:
+    - Added docstring to `skills/devops/docker/examples/example_2.py`
+    - Sorted imports in `skills/memory/universal/examples/basic_usage.py`
+    - Removed f-string prefix from constant string
+  - Linting failures log warnings but don't block skill creation
+
+
+
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 

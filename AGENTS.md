@@ -93,7 +93,7 @@ The **Agentic Skills System** is a hierarchical, dynamic capability framework th
 8. **Taxonomy** (`src/skill_fleet/taxonomy/`)
    - **Taxonomy Index** (`taxonomy_index.json`): Canonical paths and alias mappings
    - **Models** (`models.py`): Pydantic models for CategoryNode, SkillEntry, TaxonomyIndex
-   - **Manager** (`manager.py`): Path resolution with alias support and validation
+   - **Manager** (`manager.py`): Path resolution with alias support, validation, and automatic linting
 
 9. **Analytics** (`src/skill_fleet/analytics/`)
    - Usage tracking in JSONL format
@@ -381,6 +381,10 @@ uv run pytest --cov=src/skill_fleet
 # Linting and formatting
 uv run ruff check .
 uv run ruff format .
+
+# Skills are automatically linted during creation
+# You can also manually lint individual skills:
+uv run ruff check skills/python/async
 ```
 
 ### Analytics

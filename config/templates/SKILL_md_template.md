@@ -172,7 +172,7 @@ digraph when_to_use {
 | ------- | -------- | -------- |
 
 {{#each quick_reference}}
-| {{problem}} | {{solution}} | {{keywords}} |
+| {{problem}} | {{solution}} |
 {{/each}}
 
 ## Core Patterns

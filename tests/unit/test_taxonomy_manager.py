@@ -64,6 +64,27 @@ def test_skill_exists_check_for_directory_skills(temp_taxonomy: Path) -> None:
     assert manager.skill_exists("technical_skills/programming/languages/python") is True
 
 
+def test_skill_exists_rejects_traversal_paths(temp_taxonomy: Path) -> None:
+    manager = TaxonomyManager(temp_taxonomy)
+
+    assert manager.skill_exists("../etc/passwd") is False
+    assert manager.skill_exists("/absolute/path") is False
+
+
+def test_register_skill_rejects_traversal_paths(temp_taxonomy: Path) -> None:
+    manager = TaxonomyManager(temp_taxonomy)
+
+    success = manager.register_skill(
+        path="../evil",
+        metadata={},
+        content="# Evil\n",
+        evolution={},
+        overwrite=False,
+    )
+
+    assert success is False
+
+
 def test_dependency_validation(temp_taxonomy: Path) -> None:
     manager = TaxonomyManager(temp_taxonomy)
 

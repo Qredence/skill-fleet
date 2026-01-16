@@ -358,6 +358,9 @@ async def run_skill_creation(
         job.hitl_type = interaction_type
         job.hitl_data = data
 
+        # Persist state so we don't lose the HITL request on restart
+        save_job_session(job_id)
+
         # Wait for response via /hitl/{job_id}/response
         try:
             response = await wait_for_hitl_response(job_id)
@@ -372,6 +375,10 @@ async def run_skill_creation(
         """Update job state with progress information for CLI display."""
         job.current_phase = phase
         job.progress_message = message
+        # Persist progress updates periodically (optional, but good for long jobs)
+        # We don't save on every detailed message to avoid I/O thrashing,
+        # but saving on phase change is a good balance.
+        save_job_session(job_id)
 
     try:
         # Provide real taxonomy context to Phase 1 (better path selection + overlap analysis).

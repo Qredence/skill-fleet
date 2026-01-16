@@ -12,8 +12,24 @@ from typing import Any
 class UsageTracker:
     """Tracks skill usage events in a JSONL log file."""
 
-    def __init__(self, analytics_root: Path) -> None:
-        self.analytics_root = Path(analytics_root)
+    def __init__(self, analytics_root: Path, *, trusted_root: Path | None = None) -> None:
+        analytics_root_path = Path(analytics_root)
+
+        # Defensive path validation: allow callers to constrain analytics output
+        # to a known-safe root (e.g., skills_root) to prevent traversal/redirects.
+        if trusted_root is not None:
+            trusted_root_resolved = Path(trusted_root).resolve()
+            analytics_root_resolved = analytics_root_path.resolve(strict=False)
+            try:
+                analytics_root_resolved.relative_to(trusted_root_resolved)
+            except ValueError as e:
+                raise ValueError(
+                    f"Analytics root must be within {trusted_root_resolved}. Got: {analytics_root_resolved}"
+                ) from e
+            self.analytics_root = analytics_root_resolved
+        else:
+            self.analytics_root = analytics_root_path.resolve(strict=False)
+
         self.analytics_root.mkdir(parents=True, exist_ok=True)
         self.usage_file = self.analytics_root / "usage_log.jsonl"
 
@@ -42,7 +58,7 @@ class AnalyticsEngine:
     """Analyzes skill usage patterns from logs."""
 
     def __init__(self, usage_file: Path) -> None:
-        self.usage_file = Path(usage_file)
+        self.usage_file = Path(usage_file).resolve(strict=False)
 
     def get_usage_data(self, user_id: str | None = None) -> list[dict[str, Any]]:
         """Read all usage events, optionally filtered by user."""

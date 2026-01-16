@@ -83,8 +83,13 @@ pythonpath = ["src"]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 markers = [
-    "integration: marks tests as integration tests (may require LLM access)",
-    "slow: marks tests as slow running",
+  "integration: marks tests as integration tests (may require LLM access)",
+  "slow: marks tests as slow running",
+]
+filterwarnings = [
+  "ignore:Pydantic serializer warnings:UserWarning",
+  # DeprecationWarning from aiohttp/connector.py in python 3.13
+  "ignore:enable_cleanup_closed ignored:DeprecationWarning",
 ]
 
 [tool.ruff]
@@ -105,12 +110,7 @@ ignore = ["E501"]
 
 [tool.bandit]
 # Bandit security linter configuration
-exclude_dirs = [
-  "tests",
-  ".venv",
-  "venv",
-  ".git",
-]
+exclude_dirs = ["tests", ".venv", "venv", ".git"]
 skips = [
   # Skip assert_used - we use assertions for internal consistency checks
   "B101",

@@ -11,6 +11,8 @@ from typing import Any
 
 import yaml
 
+from ..common.security import resolve_path_within_root, sanitize_relative_file_path
+
 
 @dataclass(frozen=True, slots=True)
 class ValidationResult:
@@ -51,18 +53,28 @@ class SkillValidator:
         self._load_template_overrides()
 
     def _resolve_existing_path_within_dir(
-        self, *, base_dir: Path, candidate: Path, label: str
+        self, *, base_dir: Path, relative_path: str, label: str
     ) -> tuple[Path | None, str | None]:
-        """Resolve a path and enforce it stays within base_dir.
+        """Resolve an untrusted relative path and enforce it stays within base_dir.
 
         This is defense-in-depth against path traversal and symlink escapes.
-        The caller should pass a *resolved* base_dir.
         """
+        if not isinstance(relative_path, str) or not relative_path.strip():
+            return None, f"{label} path not allowed"
+
+        base_dir_resolved = base_dir.resolve()
+
+        sanitized = sanitize_relative_file_path(relative_path)
+        if not sanitized:
+            return None, f"{label} path not allowed"
+
+        # Important: check symlink status before resolving, so we can reject
+        # symlink escapes deterministically (and return a clear error message).
+        candidate = base_dir_resolved / sanitized
         if candidate.is_symlink():
             return None, f"{label} must not be a symlink"
 
         try:
-            base_dir_resolved = base_dir.resolve()
             resolved = candidate.resolve(strict=True)
         except FileNotFoundError:
             return None, f"{label} not found"
@@ -81,18 +93,14 @@ class SkillValidator:
         return resolved, None
 
     def _resolve_existing_path_within_skills_root(
-        self, *, candidate: Path, label: str
+        self, *, relative_path: str, label: str
     ) -> tuple[Path | None, str | None]:
-        """Resolve a path and enforce it stays within skills_root."""
-        skills_root_resolved = self.skills_root.resolve()
-        candidate_resolved, err = self._resolve_existing_path_within_dir(
-            base_dir=skills_root_resolved,
-            candidate=candidate,
+        """Resolve an untrusted relative path and enforce it stays within skills_root."""
+        return self._resolve_existing_path_within_dir(
+            base_dir=self.skills_root,
+            relative_path=relative_path,
             label=label,
         )
-        if err is not None:
-            return None, err
-        return candidate_resolved, None
 
     def resolve_skill_ref(self, skill_ref: str) -> Path:
         """Resolve an untrusted skill reference safely within skills_root.
@@ -132,7 +140,7 @@ class SkillValidator:
                 raise ValueError("Invalid path")
 
         base_dir = self.skills_root.resolve()
-        candidate = (self.skills_root.joinpath(*posix.parts)).resolve()
+        candidate = resolve_path_within_root(base_dir, "/".join(posix.parts))
 
         base_str = os.fspath(base_dir)
         candidate_str = os.fspath(candidate)
@@ -151,9 +159,8 @@ class SkillValidator:
         return self.validate_complete(candidate)
 
     def _load_template_overrides(self) -> None:
-        template_path = self.skills_root / "_templates" / "skill_template.json"
         template_resolved, err = self._resolve_existing_path_within_skills_root(
-            candidate=template_path,
+            relative_path="_templates/skill_template.json",
             label="skill_template.json",
         )
         if err is not None:
@@ -320,8 +327,17 @@ class SkillValidator:
         errors: list[str] = []
         warnings: list[str] = []
 
+        skills_root_resolved = self.skills_root.resolve()
+        candidate = skill_md_path
+        if not candidate.is_absolute():
+            candidate = skills_root_resolved / candidate
+        try:
+            rel = candidate.relative_to(skills_root_resolved).as_posix()
+        except ValueError:
+            return ValidationResult(False, ["SKILL.md path not allowed"], [])
+
         skill_md_resolved, err = self._resolve_existing_path_within_skills_root(
-            candidate=skill_md_path,
+            relative_path=rel,
             label="SKILL.md",
         )
         if err is not None:
@@ -373,8 +389,17 @@ class SkillValidator:
         errors: list[str] = []
         warnings: list[str] = []
 
+        skills_root_resolved = self.skills_root.resolve()
+        candidate = skill_md_path
+        if not candidate.is_absolute():
+            candidate = skills_root_resolved / candidate
+        try:
+            rel = candidate.relative_to(skills_root_resolved).as_posix()
+        except ValueError:
+            return ValidationResult(False, ["SKILL.md path not allowed"], [])
+
         skill_md_resolved, err = self._resolve_existing_path_within_skills_root(
-            candidate=skill_md_path,
+            relative_path=rel,
             label="SKILL.md",
         )
         if err is not None:
@@ -456,8 +481,17 @@ class SkillValidator:
         errors: list[str] = []
         warnings: list[str] = []
 
+        skills_root_resolved = self.skills_root.resolve()
+        candidate = examples_path
+        if not candidate.is_absolute():
+            candidate = skills_root_resolved / candidate
+        try:
+            rel = candidate.relative_to(skills_root_resolved).as_posix()
+        except ValueError:
+            return ValidationResult(False, ["Examples directory path not allowed"], [])
+
         examples_resolved, err = self._resolve_existing_path_within_skills_root(
-            candidate=examples_path,
+            relative_path=rel,
             label="Examples directory",
         )
         if err is not None:
@@ -516,8 +550,9 @@ class SkillValidator:
             return results
 
         if skill_path.is_file() and skill_path.suffix == ".json":
+            rel = skill_path.relative_to(skills_root_resolved).as_posix()
             skill_json_resolved, err = self._resolve_existing_path_within_skills_root(
-                candidate=skill_path,
+                relative_path=rel,
                 label="skill JSON",
             )
             if err is not None:
@@ -544,10 +579,9 @@ class SkillValidator:
             results["errors"].append("Skill path not found")
             return results
 
-        metadata_candidate = skill_path / "metadata.json"
         metadata_resolved, err = self._resolve_existing_path_within_dir(
             base_dir=skill_path,
-            candidate=metadata_candidate,
+            relative_path="metadata.json",
             label="metadata.json",
         )
         if err is not None:

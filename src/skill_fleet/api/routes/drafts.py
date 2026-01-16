@@ -7,6 +7,7 @@ Skill creation is draft-first:
 
 from __future__ import annotations
 
+import os
 import shutil
 from pathlib import Path
 
@@ -14,7 +15,6 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from ...common.security import resolve_path_within_root
-from ...taxonomy.manager import TaxonomyManager
 from ..dependencies import SkillsRoot, TaxonomyManagerDep
 from ..jobs import delete_job_session, get_job, save_job_session
 
@@ -87,17 +87,42 @@ async def promote_draft(
     try:
         target_dir = resolve_path_within_root(skills_root, job.intended_taxonomy_path)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=f"Invalid target path: {e}")
+        raise HTTPException(status_code=400, detail=f"Invalid target path: {e}") from e
 
     if target_dir.exists() and not request.overwrite:
         raise HTTPException(status_code=409, detail="Target skill already exists (overwrite=false)")
+
+    # Validate draft_path to prevent path traversal attacks
+    # The draft_path should be within the drafts directory
+    drafts_dir = skills_root / "_drafts"
+    try:
+        # Validate that draft_path is a safe relative path and resolve it
+        # Note: draft_path is an absolute path string, so we need to convert it to relative
+        draft_path_obj = Path(job.draft_path)
+        if not draft_path_obj.is_absolute():
+            raise ValueError("Draft path must be absolute")
+
+        # Resolve both paths and check containment
+        draft_path_resolved = draft_path_obj.resolve(strict=False)
+        drafts_dir_resolved = drafts_dir.resolve()
+
+        # Verify the draft path is within the drafts directory using commonpath
+        drafts_str = os.fspath(drafts_dir_resolved)
+        draft_str = os.fspath(draft_path_resolved)
+        if os.path.commonpath([drafts_str, draft_str]) != drafts_str:
+            raise ValueError("Draft path escapes drafts directory")
+
+        # Also verify using relative_to for semantic clarity
+        draft_path_resolved.relative_to(drafts_dir_resolved)
+    except (ValueError, RuntimeError) as e:
+        raise HTTPException(status_code=400, detail=f"Invalid draft path: {e}") from e
 
     try:
         if target_dir.exists() and request.overwrite:
             _safe_rmtree(target_dir)
 
         target_dir.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(Path(job.draft_path), target_dir, dirs_exist_ok=request.overwrite)
+        shutil.copytree(draft_path_resolved, target_dir, dirs_exist_ok=request.overwrite)
 
         # Update taxonomy meta/cache by loading metadata (best-effort).
         try:

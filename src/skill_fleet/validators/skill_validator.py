@@ -47,7 +47,22 @@ class SkillValidator:
     _SAFE_PATH_PATTERN = re.compile(r"^[a-zA-Z0-9._-]+$")
 
     def __init__(self, skills_root: Path) -> None:
-        self.skills_root = Path(skills_root)
+        # Normalize and validate the skills_root to defend against misuse of an
+        # untrusted base directory. We require an existing, non-symlink directory
+        # and store only its resolved form.
+        root_path = Path(skills_root)
+        try:
+            root_resolved = root_path.resolve(strict=True)
+        except FileNotFoundError as exc:
+            raise ValueError("skills_root must be an existing directory") from exc
+
+        if not root_resolved.is_dir():
+            raise ValueError("skills_root must be a directory")
+
+        if root_resolved.is_symlink():
+            raise ValueError("skills_root must not be a symlink")
+
+        self.skills_root = root_resolved
         self.required_files = ["metadata.json", "SKILL.md"]
         self.required_dirs = ["capabilities", "examples", "tests", "resources"]
         self._load_template_overrides()

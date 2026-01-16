@@ -144,5 +144,5 @@ def _remove_empty_dirs(path: Path) -> None:
                 if not any(p.iterdir()):
                     p.rmdir()
                     print(f"Removed empty dir: {p.relative_to(path.parent.parent)}")
-            except OSError:
-                pass
+            except OSError as e:
+                print(f"Error removing directory {p}: {e}")

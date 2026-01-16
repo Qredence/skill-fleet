@@ -7,6 +7,7 @@ within expected boundaries.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 
@@ -39,21 +40,26 @@ def sanitize_taxonomy_path(path: str) -> str | None:
         return None
 
     # Reject absolute paths and parent-directory traversal
-    if path.startswith("/") or ".." in path:
+    if path.startswith("/") or ".." in path or "\\" in path:
         return None
 
-    # Normalize and ensure it remains within expected boundaries
-    normalized = Path(path).as_posix().strip("/")
-
-    # Validate each path segment with character whitelist
-    for segment in normalized.split("/"):
-        if not segment:
+    # Filter and validate segments
+    segments = []
+    for segment in path.split("/"):
+        s = segment.strip()
+        if not s or s == ".":
+            continue
+        if s == "..":
             return None
         # Allow letters, numbers, hyphen, underscore only
-        if not all(c.isalnum() or c in "-_" for c in segment):
+        if not all(c.isalnum() or c in "-_" for c in s):
             return None
+        segments.append(s)
 
-    return normalized
+    if not segments:
+        return None
+
+    return "/".join(segments)
 
 
 def sanitize_relative_file_path(path: str) -> str | None:
@@ -69,30 +75,28 @@ def sanitize_relative_file_path(path: str) -> str | None:
     This is intended for user-controlled paths that are later joined onto a fixed
     server-side root directory.
     """
-    if not path:
+    if not path or "\0" in path:
         return None
 
-    if "\0" in path:
+    # Reject absolute paths and traversal to avoid ambiguities
+    if path.startswith("/") or "\\" in path or ".." in path:
         return None
 
-    # Reject absolute paths (POSIX). On POSIX, Windows-style absolute paths will
-    # generally contain backslashes or drive prefixes; we reject backslashes below.
-    if path.startswith("/"):
-        return None
-
-    # Reject Windows separators to avoid ambiguous normalization across platforms.
-    if "\\" in path:
-        return None
-
-    normalized = Path(path).as_posix().strip("/")
-    if not normalized:
-        return None
-
-    for segment in normalized.split("/"):
-        if not is_safe_path_component(segment):
+    segments = []
+    for segment in path.split("/"):
+        s = segment.strip()
+        if not s or s == ".":
+            continue
+        if s == "..":
             return None
+        if not is_safe_path_component(s):
+            return None
+        segments.append(s)
 
-    return normalized
+    if not segments:
+        return None
+
+    return "/".join(segments)
 
 
 def resolve_path_within_root(root: Path, relative_path: str) -> Path:
@@ -106,12 +110,13 @@ def resolve_path_within_root(root: Path, relative_path: str) -> Path:
         raise ValueError("Invalid relative path")
 
     root_resolved = root.resolve()
-    candidate = (root_resolved / sanitized).resolve(strict=False)
+    candidate = root_resolved.joinpath(sanitized).resolve(strict=False)
 
-    try:
-        candidate.relative_to(root_resolved)
-    except ValueError as e:
-        raise ValueError(f"Path must be within {root_resolved}") from e
+    # Use os.path.commonpath for maximum robustness against CodeQL false positives.
+    root_str = os.fspath(root_resolved)
+    candidate_str = os.fspath(candidate)
+    if os.path.commonpath([root_str, candidate_str]) != root_str:
+        raise ValueError(f"Path escapes root: {candidate_str}")
 
     return candidate
 

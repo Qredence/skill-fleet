@@ -42,6 +42,10 @@ All notable changes to this project will be documented in this file.
     - Sorted imports in `skills/memory/universal/examples/basic_usage.py`
     - Removed f-string prefix from constant string
   - Linting failures log warnings but don't block skill creation
+- **Migration Module Recreation** (January 16, 2026)
+  - Recreated `src/skill_fleet/common/migration.py` with `migrate_all_skills()` function
+  - Fixed broken import in `src/skill_fleet/cli/commands/migrate.py`
+  - Import now correctly points to `...common.migration` instead of deprecated `...migration`
 
 
 

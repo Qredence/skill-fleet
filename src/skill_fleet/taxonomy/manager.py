@@ -12,7 +12,9 @@ This manager provides:
 from __future__ import annotations
 
 import json
+import logging
 import re
+import subprocess
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -27,6 +29,9 @@ from ..common.security import (
     sanitize_relative_file_path,
     sanitize_taxonomy_path,
 )
+from .models import TaxonomyIndex
+
+logger = logging.getLogger(__name__)
 
 # ============================================================================
 # agentskills.io Naming Utilities
@@ -132,8 +137,10 @@ class TaxonomyManager:
         # containment checks and to avoid ambiguous relative path behavior.
         self.skills_root = Path(skills_root).resolve()
         self.meta_path = self.skills_root / "taxonomy_meta.json"
+        self.index_path = self.skills_root / "taxonomy_index.json"
         self.metadata_cache: dict[str, SkillMetadata] = {}
         self.meta: dict[str, Any] = {}
+        self.index: TaxonomyIndex = TaxonomyIndex()
 
         self.usage_tracker = UsageTracker(
             self.skills_root / "_analytics",
@@ -141,6 +148,7 @@ class TaxonomyManager:
         )
 
         self.load_taxonomy_meta()
+        self.load_index()
         self._load_always_loaded_skills()
 
     def track_usage(
@@ -170,6 +178,62 @@ class TaxonomyManager:
 
         self.meta = json.loads(self.meta_path.read_text(encoding="utf-8"))
         return self.meta
+
+    def load_index(self) -> TaxonomyIndex:
+        """Load the taxonomy index from disk."""
+        if self.index_path.exists():
+            try:
+                data = json.loads(self.index_path.read_text(encoding="utf-8"))
+                self.index = TaxonomyIndex(**data)
+            except (json.JSONDecodeError, ValidationError) as e:
+                logger.error(f"Failed to load or parse taxonomy index: {e}")
+                self.index = TaxonomyIndex()
+
+    def resolve_skill_location(self, skill_identifier: str) -> str:
+        """Resolve a skill identifier (ID, path, or alias) to its canonical storage path.
+
+        This implements the polyfill strategy:
+        1. Check Index (canonical ID or alias).
+        2. Fallback to Filesystem (legacy support).
+        """
+        # 1. Check Index direct match
+        if skill_identifier in self.index.skills:
+            return self.index.skills[skill_identifier].canonical_path
+
+        # 1b. Check Index aliases
+        for skill_id, entry in self.index.skills.items():
+            if skill_identifier in entry.aliases:
+                logger.warning(
+                    f"Deprecation Warning: Accessing skill via alias '{skill_identifier}'. "
+                    f"Use canonical ID '{skill_id}' instead."
+                )
+                return entry.canonical_path
+
+        # 2. Filesystem Fallback
+        # Check if the identifier looks like a valid path that exists on disk
+        safe_path = sanitize_taxonomy_path(skill_identifier)
+        if safe_path:
+            full_path = resolve_path_within_root(self.skills_root, safe_path)
+
+            # Check directory-style skill
+            if full_path.exists() and (full_path / "metadata.json").exists():
+                if "_drafts" not in safe_path:
+                    logger.warning(
+                        f"Legacy Access: Skill '{skill_identifier}' found on disk (dir) but missing from Taxonomy Index."
+                    )
+                return safe_path
+
+            # Check single-file skill
+            json_path = full_path.with_suffix(".json")
+            if json_path.exists():
+                if "_drafts" not in safe_path:
+                    logger.warning(
+                        f"Legacy Access: Skill '{skill_identifier}' found on disk (json) but missing from Taxonomy Index."
+                    )
+                return safe_path
+
+        # Not found
+        raise FileNotFoundError(f"Skill '{skill_identifier}' not found in index or filesystem.")
 
     def _load_always_loaded_skills(self) -> None:
         """Load always-loaded skill files into the metadata cache."""
@@ -271,17 +335,11 @@ class TaxonomyManager:
 
     def skill_exists(self, taxonomy_path: str) -> bool:
         """Check if a skill exists at the given taxonomy path."""
-        safe_taxonomy_path = sanitize_taxonomy_path(taxonomy_path)
-        if safe_taxonomy_path is None:
-            return False
-
-        skill_dir = resolve_path_within_root(self.skills_root, safe_taxonomy_path)
-        if (skill_dir / "metadata.json").exists():
+        try:
+            self.resolve_skill_location(taxonomy_path)
             return True
-
-        # Support single-file JSON skills (e.g., under `_core/`)
-        skill_file = resolve_path_within_root(self.skills_root, f"{safe_taxonomy_path}.json")
-        return skill_file.exists()
+        except FileNotFoundError:
+            return False
 
     def get_skill_metadata(self, skill_id: str) -> SkillMetadata | None:
         """Retrieve cached skill metadata by `skill_id`."""
@@ -925,6 +983,58 @@ If you encounter issues not covered here:
                         else:
                             file_path.write_text(str(content), encoding="utf-8")
 
+    def _lint_and_format_skill(self, skill_dir: Path) -> None:
+        """Lint and format Python files in generated skill directory.
+
+        Runs ruff linting and formatting on all Python files in the skill's
+        examples/ and scripts/ subdirectories to ensure code quality.
+
+        Args:
+            skill_dir: Path to skill directory
+        """
+        python_files = []
+        examples_dir = skill_dir / "examples"
+        scripts_dir = skill_dir / "scripts"
+
+        # Collect Python files from examples/
+        if examples_dir.exists():
+            python_files.extend(examples_dir.rglob("*.py"))
+
+        # Collect Python files from scripts/
+        if scripts_dir.exists():
+            python_files.extend(scripts_dir.rglob("*.py"))
+
+        if not python_files:
+            return
+
+        # Run ruff check (linting)
+        try:
+            result = subprocess.run(
+                ["uv", "run", "ruff", "check"] + [str(f) for f in python_files],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            if result.returncode != 0:
+                logger.warning(f"Linting issues found in skill {skill_dir.name}: {result.stdout}")
+        except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.SubprocessError) as e:
+            logger.warning(f"Failed to lint skill {skill_dir.name}: {e}")
+
+        # Run ruff format
+        try:
+            result = subprocess.run(
+                ["uv", "run", "ruff", "format"] + [str(f) for f in python_files],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            if result.returncode != 0:
+                logger.warning(
+                    f"Formatting issues found in skill {skill_dir.name}: {result.stdout}"
+                )
+        except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.SubprocessError) as e:
+            logger.warning(f"Failed to format skill {skill_dir.name}: {e}")
+
     def _update_taxonomy_stats(self, metadata: dict[str, Any]) -> None:
         """Update taxonomy statistics and persist taxonomy_meta.json."""
         stats = self.meta.setdefault("statistics", {})
@@ -961,17 +1071,18 @@ If you encounter issues not covered here:
 
     def _try_load_skill_by_id(self, skill_id: str) -> SkillMetadata | None:
         """Try to load skill metadata from disk, caching it on success."""
-        safe_skill_id = sanitize_taxonomy_path(skill_id)
-        if safe_skill_id is None:
+        try:
+            canonical_path = self.resolve_skill_location(skill_id)
+        except FileNotFoundError:
             return None
 
         # Directory-form skill
-        skill_dir = resolve_path_within_root(self.skills_root, safe_skill_id)
+        skill_dir = resolve_path_within_root(self.skills_root, canonical_path)
         if (skill_dir / "metadata.json").exists():
             return self._load_skill_dir_metadata(skill_dir)
 
         # Single-file skill
-        skill_file = resolve_path_within_root(self.skills_root, f"{safe_skill_id}.json")
+        skill_file = resolve_path_within_root(self.skills_root, f"{canonical_path}.json")
         if skill_file.exists():
             return self._load_skill_file(skill_file)
 

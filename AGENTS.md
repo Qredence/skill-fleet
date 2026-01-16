@@ -10,7 +10,9 @@ The **Agentic Skills System** is a hierarchical, dynamic capability framework th
 
 ---
 
-## ✅ Current State (2026-01-15)
+## ✅ Current State (2026-01-16)
+
+**Latest**: Taxonomy v0.2 migration completed - simplified 2-level taxonomy with canonical path resolution and alias support.
 
 - **API-first execution**: FastAPI is the canonical surface for running DSPy workflows; the CLI (`skill-fleet create/chat/...`) is a thin API client.
 - **Draft-first persistence**: jobs write drafts under `skills/_drafts/<job_id>/...`; promotion into the taxonomy is explicit via:
@@ -33,9 +35,11 @@ The **Agentic Skills System** is a hierarchical, dynamic capability framework th
 ### Core Components
 
 1. **Skills Taxonomy** (`skills/`)
-   - 8-level hierarchical structure organizing agent capabilities
+   - Simplified 2-level taxonomy (category/skill) organizing agent capabilities
+   - 9 categories: `python`, `devops`, `testing`, `web`, `architecture`, `api`, `practices`, `domain`, `memory`
+   - Canonical path resolution with backward-compatible alias support
+   - `taxonomy_index.json` defines canonical paths and legacy aliases
    - Each skill is a directory containing a `SKILL.md` file with YAML frontmatter
-   - Skills are organized by domain (e.g., `general/`, `development/`, `business/`)
 
 2. **Unified Core Architecture** (`src/skill_fleet/core/`)
    - **DSPy Integration** (`dspy/`): Complete DSPy framework integration
@@ -86,7 +90,12 @@ The **Agentic Skills System** is a hierarchical, dynamic capability framework th
    - Ensures skills meet quality and compliance standards
    - Validates YAML frontmatter, content structure, and agentskills.io compliance
 
-8. **Analytics** (`src/skill_fleet/analytics/`)
+8. **Taxonomy** (`src/skill_fleet/taxonomy/`)
+   - **Taxonomy Index** (`taxonomy_index.json`): Canonical paths and alias mappings
+   - **Models** (`models.py`): Pydantic models for CategoryNode, SkillEntry, TaxonomyIndex
+   - **Manager** (`manager.py`): Path resolution with alias support, validation, and automatic linting
+
+9. **Analytics** (`src/skill_fleet/analytics/`)
    - Usage tracking in JSONL format
    - Analytics engine for pattern analysis
 
@@ -372,6 +381,10 @@ uv run pytest --cov=src/skill_fleet
 # Linting and formatting
 uv run ruff check .
 uv run ruff format .
+
+# Skills are automatically linted during creation
+# You can also manually lint individual skills:
+uv run ruff check skills/python/async
 ```
 
 ### Analytics
@@ -889,5 +902,5 @@ uv run ruff format .
 
 ---
 
-**Last Updated**: 2026-01-15
+**Last Updated**: 2026-01-16
 **Maintainer**: skill-fleet team

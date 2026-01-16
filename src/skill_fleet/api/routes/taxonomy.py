@@ -64,19 +64,52 @@ class TaxonomyTreeResponse(BaseModel):
 @router.get("/tree", response_model=TaxonomyTreeResponse)
 async def get_taxonomy_tree(manager: TaxonomyManagerDep) -> TaxonomyTreeResponse:
     """Get the taxonomy tree structure."""
-    # Build tree from skills root directory structure
+    # Use the Index-defined logical tree if available
+    if hasattr(manager, "index") and manager.index.taxonomy_tree:
+        return _build_tree_from_index(manager.index.taxonomy_tree)
+
+    # Fallback: Build tree from skills root directory structure (Legacy)
     tree: list[TaxonomyTreeNode] = []
     skills_root = manager.skills_root
 
     for item in sorted(skills_root.iterdir()):
         if item.is_dir() and not item.name.startswith((".", "_")):
-            node = _build_tree_node(item, skills_root)
+            node = _build_tree_from_fs(item, skills_root)
             tree.append(node)
 
     return TaxonomyTreeResponse(tree=tree)
 
 
-def _build_tree_node(path: Any, root: Any) -> TaxonomyTreeNode:
+def _build_tree_from_index(tree_data: dict[str, Any]) -> TaxonomyTreeResponse:
+    """Recursively build tree from Index definition."""
+    nodes = _recurse_index_tree(tree_data, parent_path="")
+    return TaxonomyTreeResponse(tree=nodes)
+
+
+def _recurse_index_tree(tree_data: dict[str, Any], parent_path: str) -> list[TaxonomyTreeNode]:
+    nodes = []
+    for slug, node in tree_data.items():
+        # Support both Pydantic model and dict access
+        if hasattr(node, "children"):
+            children = node.children
+        else:
+            children = node.get("children", {})
+
+        current_path = f"{parent_path}.{slug}" if parent_path else slug
+        children_nodes = _recurse_index_tree(children, current_path)
+
+        nodes.append(
+            TaxonomyTreeNode(
+                name=slug,
+                path=current_path,
+                children=children_nodes,
+                skill_count=0,  # Todo: Calculate from skills registry
+            )
+        )
+    return nodes
+
+
+def _build_tree_from_fs(path: Any, root: Any) -> TaxonomyTreeNode:
     """Recursively build a tree node from a directory."""
     rel_path = str(path.relative_to(root))
     children: list[TaxonomyTreeNode] = []
@@ -87,7 +120,7 @@ def _build_tree_node(path: Any, root: Any) -> TaxonomyTreeNode:
             if (item / "metadata.json").exists():
                 skill_count += 1
             else:
-                child = _build_tree_node(item, root)
+                child = _build_tree_from_fs(item, root)
                 children.append(child)
                 skill_count += child.skill_count
 

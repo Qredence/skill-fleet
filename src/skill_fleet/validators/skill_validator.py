@@ -46,7 +46,7 @@ class SkillValidator:
     _SKILL_NAME_PATTERN = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
     _SAFE_PATH_PATTERN = re.compile(r"^[a-zA-Z0-9._-]+$")
 
-    def __init__(self, skills_root: Path) -> None:
+    def __init__(self, skills_root: Path, taxonomy_manager: Any | None = None) -> None:
         # Normalize and validate the skills_root to defend against misuse of an
         # untrusted base directory. We require an existing, non-symlink directory
         # and store only its resolved form.
@@ -63,6 +63,7 @@ class SkillValidator:
             raise ValueError("skills_root must not be a symlink")
 
         self.skills_root = root_resolved
+        self.taxonomy_manager = taxonomy_manager
         self.required_files = ["metadata.json", "SKILL.md"]
         self.required_dirs = ["capabilities", "examples", "tests", "resources"]
         self._load_template_overrides()
@@ -552,6 +553,22 @@ class SkillValidator:
 
         if not self._validate_skill_id_format(skill_id):
             errors.append(f"skill_id '{skill_id}' should use lowercase/underscore path segments")
+
+        # Check path depth for modern taxonomy compliance
+        depth = len(path.split("/"))
+        if depth > 3:
+            warnings.append(
+                f"Path depth {depth} exceeds recommended maximum of 3 (Simplified Taxonomy)"
+            )
+
+        # Alias warning if manager is available
+        if self.taxonomy_manager and hasattr(self.taxonomy_manager, "index"):
+            for canonical_id, entry in self.taxonomy_manager.index.skills.items():
+                if path in entry.aliases:
+                    warnings.append(
+                        f"Skill path '{path}' is a deprecated alias for '{canonical_id}'"
+                    )
+                    break
 
         return ValidationResult(len(errors) == 0, errors, warnings)
 

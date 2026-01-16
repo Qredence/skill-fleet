@@ -1,1 +1,0 @@
-Creation of decorator factories that accept configuration arguments, enabling dynamic behavior modification (e.g., setting a timeout value at the decorator level).

@@ -8,7 +8,7 @@ from pathlib import Path
 import typer
 
 from ...common.paths import default_skills_root
-from ...migration import migrate_all_skills
+from ...common.migration import migrate_all_skills
 
 
 def migrate_command(

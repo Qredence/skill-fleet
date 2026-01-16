@@ -1,6 +1,0 @@
-{
-  "name": "test_multi_stage_detection",
-  "description": "Verify that the multi_stage_build_optimization capability can correctly identify a single-stage Dockerfile and suggest a split.",
-  "input_data": "FROM golang:1.21\nWORKDIR /app\nCOPY . .\nRUN go build -o main .\nENTRYPOINT [\"./main\"]",
-  "expected_result": "A list of recommended changes including a builder stage and a final runtime stage."
-}

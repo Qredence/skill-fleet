@@ -77,6 +77,9 @@ flowchart TB
 
 - **CLI/TUI**: entry points to trigger skill creation and validation.
 - **Workflow**: DSPy modules that map tasks to taxonomy paths and generate content.
+
+- **Automatic Code Quality**: All generated skills are automatically linted and formatted using ruff to ensure consistent Python code style in examples and scripts.
+
 - **Taxonomy**: on‑disk storage for skills, metadata, and templates.
 
 ## Taxonomy Model

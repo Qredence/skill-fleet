@@ -13,7 +13,7 @@ import pytest
 from fastapi import HTTPException
 
 from skill_fleet.api.jobs import create_job
-from skill_fleet.api.routes.drafts import promote_draft, PromoteDraftRequest
+from skill_fleet.api.routes.drafts import PromoteDraftRequest, promote_draft
 
 
 class TestPromoteDraftSecurity:

@@ -120,7 +120,7 @@ def main():
     index_path = root / "skills/taxonomy_index.json"
 
     if not report_path.exists():
-        print(f"Error: {report_path} not found")
+        logging.error("Error: %s not found", report_path)
         return
 
     print("Parsing mapping...")

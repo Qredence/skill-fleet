@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import subprocess
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -982,6 +983,58 @@ If you encounter issues not covered here:
                             file_path.write_bytes(content)
                         else:
                             file_path.write_text(str(content), encoding="utf-8")
+
+    def _lint_and_format_skill(self, skill_dir: Path) -> None:
+        """Lint and format Python files in generated skill directory.
+
+        Runs ruff linting and formatting on all Python files in the skill's
+        examples/ and scripts/ subdirectories to ensure code quality.
+
+        Args:
+            skill_dir: Path to skill directory
+        """
+        python_files = []
+        examples_dir = skill_dir / "examples"
+        scripts_dir = skill_dir / "scripts"
+
+        # Collect Python files from examples/
+        if examples_dir.exists():
+            python_files.extend(examples_dir.rglob("*.py"))
+
+        # Collect Python files from scripts/
+        if scripts_dir.exists():
+            python_files.extend(scripts_dir.rglob("*.py"))
+
+        if not python_files:
+            return
+
+        # Run ruff check (linting)
+        try:
+            result = subprocess.run(
+                ["uv", "run", "ruff", "check"] + [str(f) for f in python_files],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            if result.returncode != 0:
+                logger.warning(f"Linting issues found in skill {skill_dir.name}: {result.stdout}")
+        except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.SubprocessError) as e:
+            logger.warning(f"Failed to lint skill {skill_dir.name}: {e}")
+
+        # Run ruff format
+        try:
+            result = subprocess.run(
+                ["uv", "run", "ruff", "format"] + [str(f) for f in python_files],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            if result.returncode != 0:
+                logger.warning(
+                    f"Formatting issues found in skill {skill_dir.name}: {result.stdout}"
+                )
+        except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.SubprocessError) as e:
+            logger.warning(f"Failed to format skill {skill_dir.name}: {e}")
 
     def _update_taxonomy_stats(self, metadata: dict[str, Any]) -> None:
         """Update taxonomy statistics and persist taxonomy_meta.json."""

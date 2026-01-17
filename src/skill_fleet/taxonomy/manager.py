@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from pydantic import ValidationError
 
 from ..analytics.engine import UsageTracker
 from ..common.security import (
@@ -499,10 +500,9 @@ class TaxonomyManager:
         )
         (skill_dir / "SKILL.md").write_text(skill_md_content, encoding="utf-8")
 
-        # Create subdirectories with README.md files
-        self._create_skill_subdirectories(skill_dir, name)
-
         # Populate extra files if provided
+        # Note: Directories are now created lazily in _write_extra_files()
+        # only when there is actual content to write.
         if extra_files:
             self._write_extra_files(skill_dir, extra_files)
 
@@ -837,7 +837,10 @@ If you encounter issues not covered here:
                 file_path.write_text(content, encoding="utf-8")
 
     def _write_extra_files(self, skill_dir: Path, extra_files: dict[str, Any]) -> None:
-        """Populate skill subdirectories with additional content."""
+        """Populate skill subdirectories with additional content.
+
+        Only creates directories when there is actual content to write.
+        """
         # Handle capability implementations
         if "capability_implementations" in extra_files:
             caps = extra_files["capability_implementations"]
@@ -848,16 +851,16 @@ If you encounter issues not covered here:
                     pass
 
             if isinstance(caps, dict):
+                caps_dir = skill_dir / "capabilities"
+                caps_dir.mkdir(exist_ok=True)
                 for cap_id, cap_content in caps.items():
                     raw_name = f"{str(cap_id).replace('/', '_')}.md"
                     filename = raw_name if is_safe_path_component(raw_name) else "implementation.md"
-                    (skill_dir / "capabilities" / filename).write_text(
-                        str(cap_content), encoding="utf-8"
-                    )
+                    (caps_dir / filename).write_text(str(cap_content), encoding="utf-8")
             else:
-                (skill_dir / "capabilities" / "implementations.md").write_text(
-                    str(caps), encoding="utf-8"
-                )
+                caps_dir = skill_dir / "capabilities"
+                caps_dir.mkdir(exist_ok=True)
+                (caps_dir / "implementations.md").write_text(str(caps), encoding="utf-8")
 
         # Handle usage examples
         if "usage_examples" in extra_files:
@@ -869,6 +872,8 @@ If you encounter issues not covered here:
                     pass
 
             if isinstance(examples, list):
+                examples_dir = skill_dir / "examples"
+                examples_dir.mkdir(exist_ok=True)
                 for i, example in enumerate(examples):
                     if isinstance(example, dict):
                         content = example.get("code") or example.get("content")
@@ -893,9 +898,11 @@ If you encounter issues not covered here:
                     else:
                         filename = f"example_{i + 1}.md"
                         content = str(example)
-                    (skill_dir / "examples" / filename).write_text(content, encoding="utf-8")
+                    (examples_dir / filename).write_text(content, encoding="utf-8")
             else:
-                (skill_dir / "examples" / "examples.md").write_text(str(examples), encoding="utf-8")
+                examples_dir = skill_dir / "examples"
+                examples_dir.mkdir(exist_ok=True)
+                (examples_dir / "examples.md").write_text(str(examples), encoding="utf-8")
 
         # Handle tests
         if "integration_tests" in extra_files:
@@ -907,6 +914,8 @@ If you encounter issues not covered here:
                     pass
 
             if isinstance(tests, list):
+                tests_dir = skill_dir / "tests"
+                tests_dir.mkdir(exist_ok=True)
                 for i, test in enumerate(tests):
                     if isinstance(test, dict):
                         content = test.get("code") or test.get("content")
@@ -931,9 +940,11 @@ If you encounter issues not covered here:
                     else:
                         filename = f"test_{i + 1}.py"
                         content = str(test)
-                    (skill_dir / "tests" / filename).write_text(content, encoding="utf-8")
+                    (tests_dir / filename).write_text(content, encoding="utf-8")
             else:
-                (skill_dir / "tests" / "test_skill.py").write_text(str(tests), encoding="utf-8")
+                tests_dir = skill_dir / "tests"
+                tests_dir.mkdir(exist_ok=True)
+                (tests_dir / "test_skill.py").write_text(str(tests), encoding="utf-8")
 
         # Handle best practices
         if "best_practices" in extra_files and extra_files["best_practices"]:
@@ -956,13 +967,15 @@ If you encounter issues not covered here:
         # Handle resources
         if "resource_requirements" in extra_files and extra_files["resource_requirements"]:
             res = extra_files["resource_requirements"]
+            resources_dir = skill_dir / "resources"
+            resources_dir.mkdir(exist_ok=True)
             filename = (
                 "requirements.json"
                 if isinstance(res, (dict, list))
                 or (isinstance(res, str) and res.strip().startswith(("{", "[")))
                 else "requirements.md"
             )
-            (skill_dir / "resources" / filename).write_text(str(res), encoding="utf-8")
+            (resources_dir / filename).write_text(str(res), encoding="utf-8")
 
         # Handle bundled resources (scripts, assets, resources)
         for category in ["scripts", "assets", "resources"]:

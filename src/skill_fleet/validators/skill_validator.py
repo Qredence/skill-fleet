@@ -65,7 +65,7 @@ class SkillValidator:
         self.skills_root = root_resolved
         self.taxonomy_manager = taxonomy_manager
         self.required_files = ["metadata.json", "SKILL.md"]
-        self.required_dirs = ["capabilities", "examples", "tests", "resources"]
+        self.required_dirs = []  # All directories are now optional (created lazily)
         self._load_template_overrides()
 
     def _resolve_existing_path_within_dir(

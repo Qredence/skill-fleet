@@ -1,4 +1,4 @@
-from types import SimpleNamespace
+import dspy
 
 from skill_fleet.core.optimization.evaluation import (
     content_quality_metric,
@@ -10,32 +10,34 @@ from skill_fleet.core.optimization.evaluation import (
 
 
 def test_split_dataset_splits_by_ratio() -> None:
-    examples = list(range(10))
+    examples = [dspy.Example(idx=i) for i in range(10)]
     train, val = split_dataset(examples, train_ratio=0.8)
-    assert train == list(range(8))
-    assert val == list(range(8, 10))
+    assert len(train) == 8
+    assert len(val) == 2
+    assert [ex.idx for ex in train] == list(range(8))
+    assert [ex.idx for ex in val] == list(range(8, 10))
 
 
 def test_taxonomy_path_metric_exact_match() -> None:
-    gold = SimpleNamespace(expected_taxonomy_path="general/testing")
-    pred = SimpleNamespace(understanding={"taxonomy_path": "general/testing"})
+    gold = dspy.Example(expected_taxonomy_path="general/testing")
+    pred = dspy.Prediction(understanding={"taxonomy_path": "general/testing"})
     assert taxonomy_path_metric(gold, pred) == 1.0
 
 
 def test_taxonomy_path_metric_partial_match_same_root() -> None:
-    gold = SimpleNamespace(expected_taxonomy_path="general/testing")
-    pred = SimpleNamespace(understanding={"taxonomy_path": "general/other"})
+    gold = dspy.Example(expected_taxonomy_path="general/testing")
+    pred = dspy.Prediction(understanding={"taxonomy_path": "general/other"})
     assert 0.0 < taxonomy_path_metric(gold, pred) < 1.0
 
 
 def test_metadata_metric_scores_matches() -> None:
-    gold = SimpleNamespace(
+    gold = dspy.Example(
         expected_name="python-decorators",
         expected_type="technical",
         expected_weight="lightweight",
         expected_capabilities=["cap_one", "cap_two"],
     )
-    pred = SimpleNamespace(
+    pred = dspy.Prediction(
         plan={
             "skill_metadata": {
                 "name": "python-decorators",
@@ -50,7 +52,7 @@ def test_metadata_metric_scores_matches() -> None:
 
 
 def test_content_quality_metric_requires_sections_and_code() -> None:
-    pred = SimpleNamespace(
+    pred = dspy.Prediction(
         content={
             "skill_content": """# Title
 
@@ -68,18 +70,18 @@ print('hello')
 """
         }
     )
-    assert content_quality_metric(SimpleNamespace(), pred) > 0.3
+    assert content_quality_metric(dspy.Example(), pred) > 0.3
 
 
 def test_skill_creation_metric_combines_components() -> None:
-    gold = SimpleNamespace(
+    gold = dspy.Example(
         expected_taxonomy_path="general/testing",
         expected_name="workflow-testing",
         expected_type="technical",
         expected_weight="lightweight",
         expected_capabilities=["cap_one"],
     )
-    pred = SimpleNamespace(
+    pred = dspy.Prediction(
         understanding={"taxonomy_path": "general/testing"},
         plan={
             "skill_metadata": {

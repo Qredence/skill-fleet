@@ -19,7 +19,7 @@ from ...core.models import ChecklistState
 class TDDWorkflowState(BaseModel):
     """TDD workflow state for job tracking."""
 
-    phase: str | None = None
+    phase: Literal["red", "green", "refactor", "complete"] | None = None
     checklist: ChecklistState = Field(default_factory=ChecklistState)
     baseline_tests_run: bool = False
     compliance_tests_run: bool = False

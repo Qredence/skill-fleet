@@ -29,7 +29,8 @@ def create_skill(args: Any) -> int:
     """
     # Load fleet config (tests patch this)
     config_path_arg = Path(args.config) if getattr(args, "config", None) else None
-    config = load_fleet_config(config_path_arg) if config_path_arg else {}
+    if config_path_arg:
+        load_fleet_config(config_path_arg)
 
     # Configure DSPy (tests patch configure_dspy)
     configure_dspy(config_path_arg)

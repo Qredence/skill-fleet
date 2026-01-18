@@ -45,7 +45,7 @@ class JobState(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     job_id: str
-    status: str = "pending"
+    status: Literal["pending", "running", "pending_hitl", "completed", "failed"] = "pending"
     hitl_type: str | None = None
     hitl_data: dict[str, Any] | None = None
     hitl_response: dict[str, Any] | None = None

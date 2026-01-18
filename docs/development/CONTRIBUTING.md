@@ -45,6 +45,43 @@ uv run ruff check --fix .
 uv run ruff format .
 ```
 
+### Type Checking
+
+We use [ty](https://docs.astral.sh/ty/) for fast static type checking:
+
+```bash
+# Check types
+uv run ty check src/ tests/
+
+# Watch mode
+uv run ty check --watch
+
+# Specific files
+uv run ty check src/skill_fleet/llm/fleet_config.py
+```
+
+### Type Suppression
+
+When needed, use ty-specific suppression comments:
+
+```python
+# ty:ignore[assignment] - For assignment type issues
+# ty:ignore[arg-type] - For argument type mismatches
+# ty:ignore[return-value] - For return type issues
+# ty:ignore[misc] - For other miscellaneous issues
+```
+
+Example from `fleet_config.py`:
+```python
+return dspy.LM(
+    dspy_model,
+    model_type=resolved.model_type,  # ty:ignore[arg-type]
+    temperature=temperature,
+    max_tokens=max_tokens,
+    **lm_kwargs,
+)
+```
+
 ### Type Hints
 
 - Use `str | int` syntax (Python 3.10+ union syntax)
@@ -171,6 +208,7 @@ Before submitting your PR, ensure:
 
 - [ ] All tests pass locally
 - [ ] Code passes `uv run ruff check .`
+- [ ] Code passes `uv run ty check src/ tests/`
 - [ ] Documentation updated for new features
 - [ ] CHANGELOG.md updated (if applicable)
 - [ ] Commit messages follow conventions
@@ -182,6 +220,7 @@ The `main` branch is protected with the following requirements:
 - At least 1 approving review required
 - All CI status checks must pass:
   - Linting (ruff check and format)
+  - Type checking (ty)
   - Tests (Python 3.12 and 3.13)
   - Build verification
   - Security checks

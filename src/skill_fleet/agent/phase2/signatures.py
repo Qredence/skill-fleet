@@ -27,8 +27,8 @@ from typing import Literal
 
 import dspy
 
-# Import models from existing models.py for type-safe outputs
-from .models import (
+# Import models from core/models.py for type-safe outputs
+from skill_fleet.core.models import (
     Capability,
     CompatibilityConstraints,
     DependencyRef,

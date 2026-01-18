@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -368,7 +369,7 @@ def skill_creation_metric(
 def evaluate_program(
     program: dspy.Module,
     examples: list[dspy.Example],
-    metric: callable = skill_creation_metric,
+    metric: Callable[..., Any] = skill_creation_metric,
     **program_kwargs: Any,
 ) -> dict[str, Any]:
     """Run evaluation on a set of examples.

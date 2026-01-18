@@ -17,7 +17,7 @@ import logging
 import os
 import sys
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Protocol
 
 from rich.prompt import Prompt as RichPrompt
 
@@ -58,15 +58,16 @@ class PromptToolkitUI:
     async def ask_text(self, prompt: str, *, default: str = "") -> str:
         """Ask for free-form text using prompt-toolkit when available."""
         try:
-            from prompt_toolkit.shortcuts import prompt_async
+            from prompt_toolkit.shortcuts import prompt
         except ImportError:
-            logger.debug("prompt_async not available, using Rich fallback")
-            return await asyncio.to_thread(RichPrompt.ask, prompt, default=default)
+            logger.debug("prompt_toolkit not available, using Rich fallback")
+            return await asyncio.to_thread(RichPrompt.ask, prompt, default=default)  # type: ignore[arg-type, return-value]
         except Exception as e:
-            logger.warning(f"prompt_async import failed unexpectedly: {e}")
-            return await asyncio.to_thread(RichPrompt.ask, prompt, default=default)
+            logger.warning(f"prompt_toolkit import failed unexpectedly: {e}")
+            return await asyncio.to_thread(RichPrompt.ask, prompt, default=default)  # type: ignore[arg-type, return-value]
 
-        return await prompt_async(f"{prompt}: ", default=default)
+        # prompt_toolkit's prompt function is not async, so we run it in a thread
+        return await asyncio.to_thread(prompt, f"{prompt}: ", default=default)  # type: ignore[arg-type]
 
     async def choose_one(
         self,
@@ -92,6 +93,7 @@ class PromptToolkitUI:
         # single-choice UX. Any import/runtime error falls back to Rich.
         default = default_id or (choices[0][0] if choices else "")
 
+        pt_choice: Any = None
         try:
             from prompt_toolkit.shortcuts import choice as pt_choice
         except ImportError:

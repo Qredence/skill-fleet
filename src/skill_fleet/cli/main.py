@@ -28,11 +28,11 @@ def create_skill(args: Any) -> int:
     - max_iterations, feedback_type, etc. are accepted but optional
     """
     # Load fleet config (tests patch this)
-    config_path = Path(args.config) if getattr(args, "config", None) else None
-    config = load_fleet_config(config_path) if config_path else {}
+    config_path_arg = Path(args.config) if getattr(args, "config", None) else None
+    config = load_fleet_config(config_path_arg) if config_path_arg else {}
 
     # Configure DSPy (tests patch configure_dspy)
-    configure_dspy(config)
+    configure_dspy(config_path_arg)
 
     # Taxonomy manager
     skills_root = Path(getattr(args, "skills_root", "./skills"))

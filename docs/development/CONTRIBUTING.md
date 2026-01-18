@@ -13,17 +13,20 @@ Thank you for your interest in contributing to Skills Fleet! This document provi
 ### Setup Steps
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/Qredence/skill-fleet.git
 cd skill-fleet
 ```
 
 2. Install dependencies using uv:
+
 ```bash
 uv sync
 ```
 
 3. Verify your installation:
+
 ```bash
 uv run pytest tests/
 ```
@@ -63,24 +66,6 @@ uv run ty check src/skill_fleet/llm/fleet_config.py
 ### Type Suppression
 
 When needed, use ty-specific suppression comments:
-
-```python
-# ty:ignore[assignment] - For assignment type issues
-# ty:ignore[arg-type] - For argument type mismatches
-# ty:ignore[return-value] - For return type issues
-# ty:ignore[misc] - For other miscellaneous issues
-```
-
-Example from `fleet_config.py`:
-```python
-return dspy.LM(
-    dspy_model,
-    model_type=resolved.model_type,  # ty:ignore[arg-type]
-    temperature=temperature,
-    max_tokens=max_tokens,
-    **lm_kwargs,
-)
-```
 
 ### Type Hints
 
@@ -168,18 +153,24 @@ def test_safe_json_loads_with_invalid_json():
 
 1. Fork the repository
 2. Create a feature branch:
+
 ```bash
 git checkout -b feature/your-feature-name
 ```
+
 3. Make your changes and commit:
+
 ```bash
 git add .
 git commit -m "feat: add new feature description"
 ```
+
 4. Push to your fork:
+
 ```bash
 git push origin feature/your-feature-name
 ```
+
 5. Open a pull request against the main branch
 
 ### Commit Message Conventions
@@ -195,6 +186,7 @@ We follow semantic commit messages:
 - `chore:` Maintenance tasks
 
 Examples:
+
 ```
 feat: add revision feedback support to skill editing
 fix: handle None values in safe_json_loads
@@ -217,6 +209,7 @@ Before submitting your PR, ensure:
 ### Branch Protection & Required Checks
 
 The `main` branch is protected with the following requirements:
+
 - At least 1 approving review required
 - All CI status checks must pass:
   - Linting (ruff check and format)

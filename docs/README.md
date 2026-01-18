@@ -110,7 +110,7 @@ All skills follow the [agentskills.io](https://agentskills.io) specification for
 - **Migration Tools**: Utilities to convert existing skills to the agentskills.io format
 - **Validation**: Automated checks ensure compliance with the specification
 
-See [agentskills.io Compliance Guide](../docs/agentskills-compliance.md) for detailed information.
+See [agentskills.io Compliance Guide](concepts/agentskills-compliance.md) for detailed information.
 
 ## DSPy Integration
 
@@ -373,7 +373,7 @@ bun run tui
 
 ## Getting Started with Skill Creation
 
-For practical, hands-on guidance on creating skills, see **[Skill Creation Guidelines](skill-creation-guidelines.md)**, which provides:
+For practical, hands-on guidance on creating skills, see **[Skill Creation Guidelines](getting-started/skill-creation-guidelines.md)**, which provides:
 - Comprehensive skill creation interrogations (discovery questions)
 - Structure and format requirements
 - Content guidelines and best practices
@@ -381,7 +381,7 @@ For practical, hands-on guidance on creating skills, see **[Skill Creation Guide
 - Validation checklist
 - Troubleshooting guide
 
-For workflow internals, see [`docs/architecture/skill-creation-workflow.md`](architecture/skill-creation-workflow.md).
+For workflow internals, see [`architecture/skill-creation-workflow.md`](architecture/skill-creation-workflow.md).
 
 ---
 
@@ -391,7 +391,7 @@ For workflow internals, see [`docs/architecture/skill-creation-workflow.md`](arc
 
 | Topic | Description |
 |-------|-------------|
-| **[README](../README.md)** | Project overview, quick start, and differentiation |
+| **[Project README](../README.md)** | Project overview, quick start, and differentiation |
 | **[DSPy Documentation](dspy/)** | 3-phase workflow, signatures, modules, programs, optimization |
 | **[API Documentation](api/)** | REST API endpoints, schemas, jobs, middleware |
 | **[CLI Documentation](cli/)** | Command reference, interactive chat, architecture |
@@ -403,4 +403,4 @@ For workflow internals, see [`docs/architecture/skill-creation-workflow.md`](arc
 - **[Introduction](intro/introduction.md)** - System introduction and documentation map
 - **[Getting Started](getting-started/)** - Installation, quick start, templates
 - **[Developer Reference](concepts/developer-reference.md)** - Development workflows and patterns
-- **[agentskills.io Compliance](agentskills-compliance.md)** - Schema and validation rules
+- **[agentskills.io Compliance](concepts/agentskills-compliance.md)** - Schema and validation rules

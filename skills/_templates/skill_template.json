@@ -14,12 +14,6 @@
     "usage_count": 0,
     "success_rate": 0.0
   },
-  "directory_structure": [
-    "capabilities/",
-    "examples/",
-    "tests/",
-    "resources/"
-  ],
   "required_files": [
     "metadata.json",
     "SKILL.md"

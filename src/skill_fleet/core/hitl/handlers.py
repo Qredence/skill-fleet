@@ -3,7 +3,7 @@
 import json
 import logging
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import UTC, datetime
 
 logger = logging.getLogger(__name__)
 
@@ -176,7 +176,7 @@ class CLIFeedbackHandler(FeedbackHandler):
                 "status": status,
                 "comments": comments,
                 "reviewer": reviewer,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
         )
 
@@ -203,7 +203,7 @@ class InteractiveHITLHandler(FeedbackHandler):
         self.skill_content = ""
 
         # Initialize dynamic question generator
-        from .modules import DynamicQuestionGeneratorModule
+        from ..dspy.modules import DynamicQuestionGeneratorModule
 
         self.question_generator = DynamicQuestionGeneratorModule()
 
@@ -765,7 +765,7 @@ class WebhookFeedbackHandler(FeedbackHandler):
         review_data = {
             "manifest": packaging_manifest,
             "validation": validation_report,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         try:
@@ -788,7 +788,7 @@ class WebhookFeedbackHandler(FeedbackHandler):
                     "status": "needs_revision",
                     "comments": "Review timeout - please review manually",
                     "reviewer": "system",
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 }
             )
 
@@ -799,7 +799,7 @@ class WebhookFeedbackHandler(FeedbackHandler):
                     "status": "needs_revision",
                     "comments": f"Feedback system error: {str(e)}",
                     "reviewer": "system",
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 }
             )
 

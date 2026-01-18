@@ -32,7 +32,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 import dspy
 import yaml
@@ -245,17 +245,15 @@ class SkillOptimizer:
         config = self._get_optimizer_config("bootstrap_fewshot")
 
         # Merge config with kwargs
+        # Extract metric separately as it's a positional argument
+        metric = skill_quality_metric
         optimizer_kwargs = {
-            "metric": skill_quality_metric,
             "max_bootstrapped_demos": config.get("max_bootstrapped_demos", 4),
             "max_labeled_demos": config.get("max_labeled_demos", 4),
-            "max_rounds": config.get("max_rounds", 1),
-            "max_errors": config.get("max_errors", 5),
         }
-        optimizer_kwargs.update(kwargs)
 
-        # Create optimizer
-        optimizer = BootstrapFewShot(**optimizer_kwargs)
+        # Create optimizer (metric is a positional argument)
+        optimizer = BootstrapFewShot(metric=metric, **optimizer_kwargs)
 
         # Compile (optimize) the program
         optimized_program = optimizer.compile(program, trainset=trainset)
@@ -477,7 +475,7 @@ class SkillOptimizer:
             # Create optimizer
             optimizer = MIPROv2(
                 metric=skill_quality_metric,
-                auto=auto,
+                auto=cast(Literal["light", "medium", "heavy"] | None, auto),
                 num_threads=self.optimization_config.get("miprov2", {}).get("num_threads", 4),
                 verbose=self.optimization_config.get("miprov2", {}).get("verbose", True),
             )

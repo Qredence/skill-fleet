@@ -122,3 +122,48 @@ skips = [
   "B106",
 ]
 assert_used = false
+
+[tool.ty.environment]
+# Python version to assume (affects syntax and stdlib types)
+python-version = "3.12"
+
+# Path to Python environment for third-party modules (auto-detected by ty)
+# python = "./.venv"
+
+# Target platform ("win32", "darwin", "linux", "android", "ios", "all")
+# ty will auto-detect from current platform
+# python-platform = "linux"
+
+# First-party module search paths (priority order)
+root = ["./src"]
+
+[tool.ty.rules]
+# Set rule severities: "error", "warn", or "ignore"
+
+# Critical errors
+division-by-zero = "error"
+possibly-unresolved-reference = "error"
+invalid-argument-type = "error"
+unsupported-operator = "error"
+
+# Code quality warnings
+unused-ignore-comment = "warn"
+redundant-cast = "warn"
+
+# Relaxed rules for false positives
+index-out-of-bounds = "warn"
+
+[tool.ty.src]
+# Include specific files/directories
+include = ["src", "tests"]
+
+[tool.ty.terminal]
+output-format = "full"
+error-on-warning = false
+
+# Relaxed rules for tests
+[[tool.ty.overrides]]
+include = ["tests/**"]
+
+[tool.ty.overrides.rules]
+possibly-unresolved-reference = "warn"

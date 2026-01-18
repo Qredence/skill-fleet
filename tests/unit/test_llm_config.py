@@ -340,7 +340,7 @@ class TestTaskLMResolution:
         )
 
         with pytest.raises(AttributeError):
-            resolution.model_key = "new_value"  # ty:ignore[invalid-assignment]
+            resolution.model_key = "new_value"  # type: ignore[assignment]
 
 
 class TestBuildLmForTask:

@@ -1680,8 +1680,7 @@ class ConversationalSkillAgent(dspy.Module):
             # Update skill content with counters (placeholder - actual implementation would modify skill_content)
             # For now, we'll note that counters should be added
 
-        # Re-test until bulletproof
-        if add_counters:
+            # Re-test until bulletproof
             session.checklist_state.retested_until_bulletproof = True
             session.checklist_state.rationalization_table_built = True
             message += "\n✅ Re-tested - skill is now bulletproof against rationalizations\n"

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any
+from typing import Any, cast
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
@@ -209,7 +209,7 @@ async def get_prompt(job_id: str) -> HITLPromptResponse:
             }
         )
 
-    return HITLPromptResponse(**response)
+    return HITLPromptResponse(**cast(dict[str, Any], response))
 
 
 @router.post("/{job_id}/response", response_model=HITLResponseResult)

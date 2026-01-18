@@ -37,7 +37,7 @@ def client():
 @pytest.fixture
 def dependency_override_cleanup():
     """Fixture to ensure dependency overrides are cleaned up after each test.
-    
+
     This prevents test isolation issues where overrides from one test
     affect subsequent tests.
     """
@@ -55,7 +55,7 @@ class TestHealthEndpoint:
 
     def test_health_returns_ok_status(self, client):
         """Test health endpoint returns ok status with valid version.
-        
+
         Verifies that the health check endpoint:
         - Returns HTTP 200 status code
         - Includes 'status' field with value 'ok'
@@ -82,7 +82,7 @@ class TestSkillsCreateEndpoint:
 
     def test_create_skill_returns_job_id(self, client):
         """Test skill creation returns a job ID and accepted status.
-        
+
         Verifies that when a valid skill creation request is submitted:
         - HTTP 200 status is returned
         - Response includes a 'job_id' field
@@ -103,7 +103,7 @@ class TestSkillsCreateEndpoint:
 
     def test_create_skill_missing_description(self, client):
         """Test skill creation fails without task_description field.
-        
+
         Verifies that Pydantic validation catches missing required fields
         and returns HTTP 422 (Unprocessable Entity).
         """
@@ -113,7 +113,7 @@ class TestSkillsCreateEndpoint:
 
     def test_create_skill_empty_description(self, client):
         """Test skill creation fails with empty task_description string.
-        
+
         Verifies that empty strings are rejected as invalid input,
         returning HTTP 400 with appropriate error message.
         """
@@ -130,7 +130,7 @@ class TestSkillsCreateEndpoint:
 
     def test_create_skill_with_user_id(self, client):
         """Test skill creation with custom user_id parameter.
-        
+
         Verifies that when a custom user_id is provided:
         - The request is accepted (HTTP 200)
         - A job_id is returned
@@ -152,7 +152,7 @@ class TestSkillsCreateEndpoint:
 
     def test_create_skill_default_user_id(self, client):
         """Test skill creation defaults user_id to 'default' when not provided.
-        
+
         Verifies that the CreateSkillRequest model properly defaults
         the user_id field when omitted from the request.
         """
@@ -173,7 +173,7 @@ class TestHITLEndpoints:
 
     def test_get_prompt_job_not_found(self, client):
         """Test getting prompt for non-existent job returns 404.
-        
+
         Verifies that requesting a prompt for a job that doesn't exist
         returns HTTP 404 with appropriate error message.
         """
@@ -186,7 +186,7 @@ class TestHITLEndpoints:
 
     def test_post_response_job_not_found(self, client):
         """Test posting response to non-existent job returns 404.
-        
+
         Verifies that submitting a response to a non-existent job
         returns HTTP 404 with appropriate error message.
         """
@@ -202,7 +202,7 @@ class TestHITLEndpoints:
 
     def test_hitl_get_prompt_for_created_job(self, client):
         """Test getting HITL prompt for a created job returns valid structure.
-        
+
         Verifies that after creating a job:
         - The job can be queried for its prompt
         - HTTP 200 status is returned
@@ -236,7 +236,7 @@ class TestTaxonomyEndpoints:
 
     def test_list_skills(self, client, dependency_override_cleanup):
         """Test listing skills from taxonomy returns valid structure.
-        
+
         Verifies that the taxonomy listing endpoint:
         - Returns HTTP 200 status
         - Includes 'skills' field containing a list
@@ -273,7 +273,7 @@ class TestValidationEndpoints:
 
     def test_validate_skill_missing_path(self, client):
         """Test validation fails without path field.
-        
+
         Verifies that Pydantic validation catches missing required 'path' field
         and returns HTTP 422 (Unprocessable Entity).
         """
@@ -283,7 +283,7 @@ class TestValidationEndpoints:
 
     def test_validate_skill_empty_path(self, client):
         """Test validation fails with empty path string.
-        
+
         Verifies that empty strings are rejected as invalid input,
         returning HTTP 400 with appropriate error message.
         """
@@ -299,7 +299,7 @@ class TestValidationEndpoints:
 
     def test_validate_skill_absolute_path_rejected(self, client):
         """Test validation rejects absolute paths for security.
-        
+
         Verifies that absolute paths (e.g., /etc/passwd) are rejected
         to prevent directory traversal attacks, returning HTTP 422.
         """
@@ -315,7 +315,7 @@ class TestValidationEndpoints:
 
     def test_validate_skill_path_traversal_rejected(self, client):
         """Test validation rejects path traversal attempts for security.
-        
+
         Verifies that paths with ../ sequences are rejected
         to prevent directory traversal attacks, returning HTTP 422.
         """
@@ -331,7 +331,7 @@ class TestValidationEndpoints:
 
     def test_validate_skill_valid_path(self, client):
         """Test validation with a valid skill path returns complete response.
-        
+
         Verifies that a valid skill path:
         - Returns HTTP 200 status
         - Includes 'passed' field indicating validation result
@@ -375,7 +375,7 @@ class TestOptimizationEndpoints:
 
     def test_start_optimization_rejects_training_paths_traversal(self, client):
         """Test optimization rejects path traversal in training_paths.
-        
+
         Verifies that paths with ../ sequences in training_paths
         are rejected for security, returning HTTP 422.
         """
@@ -387,7 +387,7 @@ class TestOptimizationEndpoints:
 
     def test_start_optimization_rejects_training_paths_absolute(self, client):
         """Test optimization rejects absolute paths in training_paths.
-        
+
         Verifies that absolute paths in training_paths are rejected
         for security, returning HTTP 422.
         """
@@ -399,7 +399,7 @@ class TestOptimizationEndpoints:
 
     def test_start_optimization_accepts_sanitized_training_paths(self, client):
         """Test optimization accepts and sanitizes valid training_paths.
-        
+
         Verifies that valid training paths with redundant slashes
         are accepted and properly normalized before processing.
         """
@@ -414,7 +414,7 @@ class TestOptimizationEndpoints:
 
     def test_start_optimization_rejects_save_path_traversal(self, client):
         """Test optimization rejects path traversal in save_path.
-        
+
         Verifies that paths with ../ sequences in save_path
         are rejected for security, returning HTTP 422.
         """
@@ -426,7 +426,7 @@ class TestOptimizationEndpoints:
 
     def test_start_optimization_rejects_save_path_absolute(self, client):
         """Test optimization rejects absolute paths in save_path.
-        
+
         Verifies that absolute paths in save_path are rejected
         for security, returning HTTP 422.
         """
@@ -438,7 +438,7 @@ class TestOptimizationEndpoints:
 
     def test_start_optimization_rejects_save_path_backslashes(self, client):
         """Test optimization rejects backslashes in save_path.
-        
+
         Verifies that Windows-style paths with backslashes are rejected
         to ensure cross-platform consistency, returning HTTP 422.
         """
@@ -450,7 +450,7 @@ class TestOptimizationEndpoints:
 
     def test_start_optimization_accepts_sanitized_save_path(self, client):
         """Test optimization accepts and sanitizes valid save_path.
-        
+
         Verifies that valid save paths with redundant slashes
         are accepted and properly normalized before processing.
         """
@@ -467,7 +467,7 @@ class TestOptimizationEndpoints:
 
     def test_run_optimization_creates_save_parents(self, tmp_path, monkeypatch):
         """Test optimization creates parent directories for save_path.
-        
+
         Verifies that when saving optimization results:
         - Parent directories are automatically created
         - Files are saved to the correct location
@@ -556,7 +556,7 @@ class TestCreateSkillRequest:
 
     def test_valid_request(self):
         """Test CreateSkillRequest with all valid fields.
-        
+
         Verifies that a properly constructed request:
         - Accepts task_description and user_id
         - Stores values correctly
@@ -574,7 +574,7 @@ class TestCreateSkillRequest:
 
     def test_default_user_id(self):
         """Test CreateSkillRequest defaults user_id to 'default'.
-        
+
         Verifies that when user_id is omitted, it defaults to 'default'
         as specified in the model definition.
         """
@@ -590,7 +590,7 @@ class TestValidateSkillRequest:
 
     def test_valid_request(self):
         """Test ValidateSkillRequest with valid path.
-        
+
         Verifies that a properly constructed validation request
         stores the path correctly.
         """
@@ -609,9 +609,11 @@ class TestValidateSkillRequest:
 class TestEvaluationEndpoints:
     """Tests for skill quality evaluation endpoints."""
 
-    def test_evaluate_skill_rejects_path_traversal(self, client, tmp_path, dependency_override_cleanup):
+    def test_evaluate_skill_rejects_path_traversal(
+        self, client, tmp_path, dependency_override_cleanup
+    ):
         """Test evaluation rejects path traversal attempts for security.
-        
+
         Verifies that paths with ../ sequences are rejected
         to prevent escaping the skills_root directory, returning HTTP 422.
         """
@@ -633,9 +635,11 @@ class TestEvaluationEndpoints:
         finally:
             app.dependency_overrides.clear()
 
-    def test_evaluate_skill_allows_valid_taxonomy_path(self, client, tmp_path, dependency_override_cleanup):
+    def test_evaluate_skill_allows_valid_taxonomy_path(
+        self, client, tmp_path, dependency_override_cleanup
+    ):
         """Test evaluation succeeds for valid taxonomy paths under skills_root.
-        
+
         Verifies that a valid skill path:
         - Returns HTTP 200 status
         - Includes 'overall_score' field with numeric value
@@ -679,9 +683,11 @@ class TestEvaluationEndpoints:
         finally:
             app.dependency_overrides.clear()
 
-    def test_evaluate_batch_marks_invalid_path_as_error(self, client, tmp_path, dependency_override_cleanup):
+    def test_evaluate_batch_marks_invalid_path_as_error(
+        self, client, tmp_path, dependency_override_cleanup
+    ):
         """Test batch evaluation marks invalid paths as errors without reading files.
-        
+
         Verifies that batch evaluation:
         - Returns HTTP 200 status
         - Marks invalid paths as errors (not successes)
@@ -721,12 +727,12 @@ class TestEvaluationEndpoints:
                 assert data["average_score"] == 0.25
                 assert isinstance(data["results"], list)
                 assert len(data["results"]) == 2
-                
+
                 # Verify error result structure
                 errors = [r for r in data["results"] if r.get("error")]
                 assert len(errors) == 1
                 assert errors[0]["error"] == "Invalid path"
-                
+
                 # Verify success result structure
                 successes = [r for r in data["results"] if not r.get("error")]
                 assert len(successes) == 1

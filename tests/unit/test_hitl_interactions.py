@@ -30,6 +30,7 @@ class TestDeepUnderstandingInteractionType:
         # Arrange
         job_id = create_job()
         job = get_job(job_id)
+        assert job is not None
         job.hitl_type = "deep_understanding"
         job.hitl_data = {
             "question": "What problem are you trying to solve?",
@@ -58,6 +59,7 @@ class TestDeepUnderstandingInteractionType:
         # Arrange
         job_id = create_job()
         job = get_job(job_id)
+        assert job is not None
         job.hitl_type = "deep_understanding"
         job.deep_understanding = DeepUnderstandingState(
             questions_asked=[{"id": "q1", "question": "What problem?"}],
@@ -75,8 +77,8 @@ class TestDeepUnderstandingInteractionType:
         job.deep_understanding.answers.append(
             {"question_id": "q1", "answer": user_response["answer"]}
         )
-        job.deep_understanding.user_problem = user_response["problem"]
-        job.deep_understanding.user_goals = user_response["goals"]
+        job.deep_understanding.user_problem = str(user_response["problem"])
+        job.deep_understanding.user_goals = list(user_response["goals"])
         job.deep_understanding.readiness_score = 0.8
         job.updated_at = datetime.now(UTC)
 
@@ -91,6 +93,7 @@ class TestDeepUnderstandingInteractionType:
         # Arrange
         job_id = create_job()
         job = get_job(job_id)
+        assert job is not None
         job.deep_understanding = DeepUnderstandingState(
             readiness_score=0.6,
             user_problem="Need flaky test detection",
@@ -118,6 +121,7 @@ class TestTDDRedPhaseInteractionType:
         # Arrange
         job_id = create_job()
         job = get_job(job_id)
+        assert job is not None
         job.hitl_type = "tdd_red"
         job.hitl_data = {
             "test_requirements": "Test that TDDWorkflowState serializes correctly",
@@ -141,6 +145,7 @@ class TestTDDRedPhaseInteractionType:
         # Arrange
         job_id = create_job()
         job = get_job(job_id)
+        assert job is not None
         job.tdd_workflow = TDDWorkflowState()
 
         # Act - Simulate entering red phase
@@ -157,6 +162,7 @@ class TestTDDRedPhaseInteractionType:
         # Arrange
         job_id = create_job()
         job = get_job(job_id)
+        assert job is not None
         job.tdd_workflow = TDDWorkflowState(phase="red")
 
         # Act - Simulate detecting rationalizations
@@ -178,6 +184,7 @@ class TestTDDGreenPhaseInteractionType:
         # Arrange
         job_id = create_job()
         job = get_job(job_id)
+        assert job is not None
         job.hitl_type = "tdd_green"
         job.hitl_data = {
             "failing_test": "test_tdd_workflow_state_serialization",
@@ -197,6 +204,7 @@ class TestTDDGreenPhaseInteractionType:
         # Arrange
         job_id = create_job()
         job = get_job(job_id)
+        assert job is not None
         job.tdd_workflow = TDDWorkflowState(phase="red", baseline_tests_run=True)
 
         # Act - Simulate transitioning to green
@@ -211,6 +219,7 @@ class TestTDDGreenPhaseInteractionType:
         # Arrange
         job_id = create_job()
         job = get_job(job_id)
+        assert job is not None
         job.tdd_workflow = TDDWorkflowState(phase="green")
 
         # Act - Simulate running compliance tests
@@ -228,6 +237,7 @@ class TestTDDRefactorPhaseInteractionType:
         # Arrange
         job_id = create_job()
         job = get_job(job_id)
+        assert job is not None
         job.hitl_type = "tdd_refactor"
         job.hitl_data = {
             "refactor_opportunities": [
@@ -250,6 +260,7 @@ class TestTDDRefactorPhaseInteractionType:
         # Arrange
         job_id = create_job()
         job = get_job(job_id)
+        assert job is not None
         job.tdd_workflow = TDDWorkflowState(
             phase="green",
             baseline_tests_run=True,
@@ -269,6 +280,7 @@ class TestTDDRefactorPhaseInteractionType:
         # Arrange
         job_id = create_job()
         job = get_job(job_id)
+        assert job is not None
         job.tdd_workflow = TDDWorkflowState(
             phase="refactor",
             baseline_tests_run=True,
@@ -289,6 +301,7 @@ class TestTDDWorkflowProgression:
         # Arrange
         job_id = create_job()
         job = get_job(job_id)
+        assert job is not None
         job.tdd_workflow = TDDWorkflowState()
 
         # Red phase
@@ -319,6 +332,7 @@ class TestTDDWorkflowProgression:
         # Arrange
         job_id = create_job()
         job = get_job(job_id)
+        assert job is not None
         job.tdd_workflow = TDDWorkflowState(phase="red")
 
         # Expected progression: red -> green -> refactor -> complete
@@ -344,6 +358,7 @@ class TestHitlRouteIntegration:
         # Arrange
         job_id = create_job()
         job = get_job(job_id)
+        assert job is not None
         job.status = "pending_hitl"
         job.hitl_type = "tdd_red"
         job.hitl_data = {
@@ -368,6 +383,7 @@ class TestHitlRouteIntegration:
         # Arrange
         job_id = create_job()
         job = get_job(job_id)
+        assert job is not None
         job.status = "pending_hitl"
         job.hitl_type = "deep_understanding"
         job.hitl_data = {
@@ -394,6 +410,7 @@ class TestHitlRouteIntegration:
         # Arrange
         job_id = create_job()
         job = get_job(job_id)
+        assert job is not None
         job.tdd_workflow = TDDWorkflowState(phase="red")
         job.hitl_response = None
 
@@ -405,7 +422,7 @@ class TestHitlRouteIntegration:
 
         # Act - Simulate response processing
         job.hitl_response = response
-        job.tdd_workflow.rationalizations_identified = response.get("rationalizations", [])
+        job.tdd_workflow.rationalizations_identified = list(response.get("rationalizations", []))
         job.updated_at = datetime.now(UTC)
 
         # Assert
@@ -417,6 +434,7 @@ class TestHitlRouteIntegration:
         # Arrange
         job_id = create_job()
         job = get_job(job_id)
+        assert job is not None
         job.deep_understanding = DeepUnderstandingState()
         job.hitl_response = None
 
@@ -430,8 +448,8 @@ class TestHitlRouteIntegration:
 
         # Act - Simulate response processing
         job.hitl_response = response
-        job.deep_understanding.user_problem = response.get("problem", "")
-        job.deep_understanding.user_goals = response.get("goals", [])
+        job.deep_understanding.user_problem = str(response.get("problem", ""))
+        job.deep_understanding.user_goals = list(response.get("goals", []))
         job.deep_understanding.readiness_score = 0.8
         job.updated_at = datetime.now(UTC)
 

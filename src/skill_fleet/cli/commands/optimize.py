@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import Literal, cast
 
 import click
 import typer
@@ -108,9 +109,9 @@ def optimize_command(
                 program,
                 trainset_path=trainset,
                 output_path=output,
-                optimizer_type=optimizer,
+                optimizer_type=cast(Literal["miprov2", "gepa"], optimizer),
                 model=model,
-                auto=auto,
+                auto=cast(Literal["light", "medium", "heavy"], auto),
             )
         elif optimizer == "miprov2":
             optimize_with_miprov2(
@@ -118,7 +119,7 @@ def optimize_command(
                 trainset_path=trainset,
                 output_path=output,
                 model=model,
-                auto=auto,
+                auto=cast(Literal["light", "medium", "heavy"], auto),
             )
         else:
             optimize_with_gepa(
@@ -126,7 +127,7 @@ def optimize_command(
                 trainset_path=trainset,
                 output_path=output,
                 model=model,
-                auto=auto,
+                auto=cast(Literal["light", "medium", "heavy"], auto),
             )
 
         print(f"\n[SUCCESS] Optimized program saved to: {output}")

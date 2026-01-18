@@ -36,10 +36,10 @@ def _canonicalize_skill_md_frontmatter(skill_content: str, skill_metadata: Any) 
         meta = skill_metadata
     elif hasattr(skill_metadata, "model_dump"):
         # Pydantic v2 BaseModel
-        meta = skill_metadata.model_dump()  # type: ignore[assignment]
+        meta = skill_metadata.model_dump()
     elif hasattr(skill_metadata, "dict"):
         # Pydantic v1 BaseModel
-        meta = skill_metadata.dict()  # type: ignore[assignment]
+        meta = skill_metadata.dict()
 
     name = str(meta.get("name", "")).strip()
     description = str(meta.get("description", "")).strip()

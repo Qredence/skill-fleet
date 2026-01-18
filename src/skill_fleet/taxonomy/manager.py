@@ -189,6 +189,9 @@ class TaxonomyManager:
             except (json.JSONDecodeError, ValidationError) as e:
                 logger.error(f"Failed to load or parse taxonomy index: {e}")
                 self.index = TaxonomyIndex()
+        else:
+            self.index = TaxonomyIndex()
+        return self.index
 
     def resolve_skill_location(self, skill_identifier: str) -> str:
         """Resolve a skill identifier (ID, path, or alias) to its canonical storage path.

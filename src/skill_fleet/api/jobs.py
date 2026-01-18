@@ -10,10 +10,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-# Local imports
 from ..common.security import resolve_path_within_root
-
-# Import Pydantic models from schemas per FastAPI best practices
 from .schemas import DeepUnderstandingState, JobState, TDDWorkflowState
 
 logger = logging.getLogger(__name__)
@@ -94,6 +91,8 @@ async def wait_for_hitl_response(job_id: str, timeout: float = 3600.0) -> dict[s
 
     # Atomic check and clear - response is guaranteed to be set after event fires
     response = job.hitl_response
+    if response is None:
+        raise RuntimeError("Response should be set after event fires")
     job.hitl_response = None
     job.hitl_event.clear()  # Reset for next interaction
     job.updated_at = datetime.now(UTC)

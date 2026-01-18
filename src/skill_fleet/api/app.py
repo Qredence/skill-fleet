@@ -70,7 +70,7 @@ def create_app() -> FastAPI:
             "are disabled (allow_credentials=False)."
         )
     app.add_middleware(
-        CORSMiddleware,
+        CORSMiddleware,  # type: ignore[arg-type]
         allow_origins=cors_origins,
         allow_credentials="*" not in cors_origins,
         allow_methods=["*"],

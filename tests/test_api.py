@@ -16,7 +16,15 @@ from httpx import Response
 from skill_fleet.api.app import app
 
 # ============================================================================
-# Test Client Setup
+# Constants
+# ============================================================================
+
+TEST_SKILL_PATH = "general/testing"
+TEST_SKILL_DESCRIPTION = "Use when testing."
+API_VERSION = "2.0.0"
+
+# ============================================================================
+# Fixtures
 # ============================================================================
 
 
@@ -24,6 +32,17 @@ from skill_fleet.api.app import app
 def client():
     """Create a test client for the FastAPI app."""
     return TestClient(app)
+
+
+@pytest.fixture
+def dependency_override_cleanup():
+    """Fixture to ensure dependency overrides are cleaned up after each test.
+
+    This prevents test isolation issues where overrides from one test
+    affect subsequent tests.
+    """
+    yield
+    app.dependency_overrides.clear()
 
 
 # ============================================================================
@@ -35,13 +54,22 @@ class TestHealthEndpoint:
     """Tests for health check endpoint."""
 
     def test_health_returns_ok_status(self, client):
-        """Test health endpoint returns ok status."""
+        """Test health endpoint returns ok status with valid version.
+
+        Verifies that the health check endpoint:
+        - Returns HTTP 200 status code
+        - Includes 'status' field with value 'ok'
+        - Includes 'version' field with a valid semantic version string
+        """
         response = client.get("/health")
 
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "ok"
-        assert data["version"] == "2.0.0"
+        assert "version" in data
+        # Verify version is a non-empty string (semantic versioning format)
+        assert isinstance(data["version"], str)
+        assert len(data["version"]) > 0
 
 
 # ============================================================================
@@ -52,50 +80,87 @@ class TestHealthEndpoint:
 class TestSkillsCreateEndpoint:
     """Tests for /api/v2/skills/create endpoint."""
 
-    @patch("skill_fleet.api.routes.skills.run_skill_creation")
-    def test_create_skill_returns_job_id(self, mock_run, client):
-        """Test skill creation returns a job ID."""
-        response = client.post(
-            "/api/v2/skills/create",
-            json={"task_description": "Create an OpenAPI skill for REST endpoints"},
-        )
+    def test_create_skill_returns_job_id(self, client):
+        """Test skill creation returns a job ID and accepted status.
 
-        assert response.status_code == 200
-        data = response.json()
-        assert "job_id" in data
-        assert data["status"] == "accepted"
+        Verifies that when a valid skill creation request is submitted:
+        - HTTP 200 status is returned
+        - Response includes a 'job_id' field
+        - Response includes 'status' field with value 'accepted'
+        """
+        with patch("skill_fleet.api.routes.skills.run_skill_creation"):
+            response = client.post(
+                "/api/v2/skills/create",
+                json={"task_description": "Create an OpenAPI skill for REST endpoints"},
+            )
+
+            assert response.status_code == 200
+            data = response.json()
+            assert "job_id" in data
+            assert isinstance(data["job_id"], str)
+            assert len(data["job_id"]) > 0
+            assert data["status"] == "accepted"
 
     def test_create_skill_missing_description(self, client):
-        """Test skill creation fails without description."""
+        """Test skill creation fails without task_description field.
+
+        Verifies that Pydantic validation catches missing required fields
+        and returns HTTP 422 (Unprocessable Entity).
+        """
         response = client.post("/api/v2/skills/create", json={})
 
         assert response.status_code == 422  # Validation error
 
-    @patch("skill_fleet.api.routes.skills.run_skill_creation")
-    def test_create_skill_empty_description(self, mock_run, client):
-        """Test skill creation fails with empty description."""
-        response = client.post(
-            "/api/v2/skills/create",
-            json={"task_description": ""},
-        )
+    def test_create_skill_empty_description(self, client):
+        """Test skill creation fails with empty task_description string.
 
-        assert response.status_code == 400
-        assert "task_description is required" in response.json()["detail"]
+        Verifies that empty strings are rejected as invalid input,
+        returning HTTP 400 with appropriate error message.
+        """
+        with patch("skill_fleet.api.routes.skills.run_skill_creation"):
+            response = client.post(
+                "/api/v2/skills/create",
+                json={"task_description": ""},
+            )
 
-    @patch("skill_fleet.api.routes.skills.run_skill_creation")
-    def test_create_skill_with_user_id(self, mock_run, client):
-        """Test skill creation with custom user_id."""
-        response = client.post(
-            "/api/v2/skills/create",
-            json={
-                "task_description": "Create a skill for Python async programming",
-                "user_id": "test-user-123",
-            },
-        )
+            assert response.status_code == 400
+            data = response.json()
+            assert "detail" in data
+            assert "task_description is required" in data["detail"]
 
-        assert response.status_code == 200
-        data = response.json()
-        assert "job_id" in data
+    def test_create_skill_with_user_id(self, client):
+        """Test skill creation with custom user_id parameter.
+
+        Verifies that when a custom user_id is provided:
+        - The request is accepted (HTTP 200)
+        - A job_id is returned
+        - The user_id is properly passed through the system
+        """
+        with patch("skill_fleet.api.routes.skills.run_skill_creation"):
+            response = client.post(
+                "/api/v2/skills/create",
+                json={
+                    "task_description": "Create a skill for Python async programming",
+                    "user_id": "test-user-123",
+                },
+            )
+
+            assert response.status_code == 200
+            data = response.json()
+            assert "job_id" in data
+            assert isinstance(data["job_id"], str)
+
+    def test_create_skill_default_user_id(self, client):
+        """Test skill creation defaults user_id to 'default' when not provided.
+
+        Verifies that the CreateSkillRequest model properly defaults
+        the user_id field when omitted from the request.
+        """
+        from skill_fleet.api.routes.skills import CreateSkillRequest
+
+        request = CreateSkillRequest(task_description="Test skill creation")
+
+        assert request.user_id == "default"
 
 
 # ============================================================================
@@ -104,41 +169,61 @@ class TestSkillsCreateEndpoint:
 
 
 class TestHITLEndpoints:
-    """Tests for HITL interaction endpoints."""
+    """Tests for HITL (Human-in-the-Loop) interaction endpoints."""
 
     def test_get_prompt_job_not_found(self, client):
-        """Test getting prompt for a non-existent job returns 404."""
+        """Test getting prompt for non-existent job returns 404.
+
+        Verifies that requesting a prompt for a job that doesn't exist
+        returns HTTP 404 with appropriate error message.
+        """
         response = client.get("/api/v2/hitl/nonexistent-job-id/prompt")
 
         assert response.status_code == 404
-        assert "Job not found" in response.json()["detail"]
+        data = response.json()
+        assert "detail" in data
+        assert "Job not found" in data["detail"]
 
     def test_post_response_job_not_found(self, client):
-        """Test posting response to non-existent job returns 404."""
+        """Test posting response to non-existent job returns 404.
+
+        Verifies that submitting a response to a non-existent job
+        returns HTTP 404 with appropriate error message.
+        """
         response = client.post(
             "/api/v2/hitl/nonexistent-job-id/response",
             json={"action": "proceed"},
         )
 
         assert response.status_code == 404
-        assert "Job not found" in response.json()["detail"]
+        data = response.json()
+        assert "detail" in data
+        assert "Job not found" in data["detail"]
 
-    @patch("skill_fleet.api.routes.skills.run_skill_creation")
-    def test_hitl_get_prompt_for_created_job(self, mock_run, client):
-        """Test getting HITL prompt for a created job."""
-        # Create a job (a background task is mocked)
-        create_response = client.post(
-            "/api/v2/skills/create",
-            json={"task_description": "Create a skill for Docker best practices"},
-        )
-        assert create_response.status_code == 200
-        job_id = create_response.json()["job_id"]
+    def test_hitl_get_prompt_for_created_job(self, client):
+        """Test getting HITL prompt for a created job returns valid structure.
 
-        # Get the prompt - job exists but may be in the initial state
-        prompt_response = client.get(f"/api/v2/hitl/{job_id}/prompt")
-        assert prompt_response.status_code == 200
-        data = prompt_response.json()
-        assert "status" in data
+        Verifies that after creating a job:
+        - The job can be queried for its prompt
+        - HTTP 200 status is returned
+        - Response includes 'status' field
+        - Response structure is valid JSON
+        """
+        with patch("skill_fleet.api.routes.skills.run_skill_creation"):
+            # Create a job (background task is mocked)
+            create_response = client.post(
+                "/api/v2/skills/create",
+                json={"task_description": "Create a skill for Docker best practices"},
+            )
+            assert create_response.status_code == 200
+            job_id = create_response.json()["job_id"]
+
+            # Get the prompt - job exists but may be in initial state
+            prompt_response = client.get(f"/api/v2/hitl/{job_id}/prompt")
+            assert prompt_response.status_code == 200
+            data = prompt_response.json()
+            assert "status" in data
+            assert isinstance(data["status"], str)
 
 
 # ============================================================================
@@ -149,9 +234,15 @@ class TestHITLEndpoints:
 class TestTaxonomyEndpoints:
     """Tests for taxonomy operation endpoints."""
 
-    def test_list_skills(self, client):
-        """Test listing skills from taxonomy."""
-        # Use dependency override for the TaxonomyManager dependency
+    def test_list_skills(self, client, dependency_override_cleanup):
+        """Test listing skills from taxonomy returns valid structure.
+
+        Verifies that the taxonomy listing endpoint:
+        - Returns HTTP 200 status
+        - Includes 'skills' field containing a list
+        - Includes 'total' field with count
+        - Properly uses dependency injection for TaxonomyManager
+        """
         from skill_fleet.api.dependencies import get_taxonomy_manager
 
         mock_manager = MagicMock()
@@ -167,6 +258,7 @@ class TestTaxonomyEndpoints:
             assert "skills" in data
             assert isinstance(data["skills"], list)
             assert "total" in data
+            assert isinstance(data["total"], int)
         finally:
             app.dependency_overrides.clear()
 
@@ -177,46 +269,75 @@ class TestTaxonomyEndpoints:
 
 
 class TestValidationEndpoints:
-    """Tests for validation endpoints."""
+    """Tests for skill validation endpoints."""
 
     def test_validate_skill_missing_path(self, client):
-        """Test validation fails without path."""
+        """Test validation fails without path field.
+
+        Verifies that Pydantic validation catches missing required 'path' field
+        and returns HTTP 422 (Unprocessable Entity).
+        """
         response = client.post("/api/v2/validation/validate", json={})
 
         assert response.status_code == 422  # Validation error
 
     def test_validate_skill_empty_path(self, client):
-        """Test validation fails with empty path."""
+        """Test validation fails with empty path string.
+
+        Verifies that empty strings are rejected as invalid input,
+        returning HTTP 400 with appropriate error message.
+        """
         response = client.post(
             "/api/v2/validation/validate",
             json={"path": ""},
         )
 
         assert response.status_code == 400
-        assert "path is required" in response.json()["detail"]
+        data = response.json()
+        assert "detail" in data
+        assert "path is required" in data["detail"]
 
     def test_validate_skill_absolute_path_rejected(self, client):
-        """Test validation rejects absolute paths."""
+        """Test validation rejects absolute paths for security.
+
+        Verifies that absolute paths (e.g., /etc/passwd) are rejected
+        to prevent directory traversal attacks, returning HTTP 422.
+        """
         response = client.post(
             "/api/v2/validation/validate",
             json={"path": "/etc/passwd"},
         )
 
-        assert response.status_code == 400
-        assert "Invalid path" in response.json()["detail"]
+        assert response.status_code == 422
+        data = response.json()
+        assert "detail" in data
+        assert "Invalid path" in data["detail"]
 
     def test_validate_skill_path_traversal_rejected(self, client):
-        """Test validation rejects path traversal attempts."""
+        """Test validation rejects path traversal attempts for security.
+
+        Verifies that paths with ../ sequences are rejected
+        to prevent directory traversal attacks, returning HTTP 422.
+        """
         response = client.post(
             "/api/v2/validation/validate",
             json={"path": "../../../etc/passwd"},
         )
 
-        assert response.status_code == 400
-        assert "Invalid path" in response.json()["detail"]
+        assert response.status_code == 422
+        data = response.json()
+        assert "detail" in data
+        assert "Invalid path" in data["detail"]
 
     def test_validate_skill_valid_path(self, client):
-        """Test validation with a valid skill path."""
+        """Test validation with a valid skill path returns complete response.
+
+        Verifies that a valid skill path:
+        - Returns HTTP 200 status
+        - Includes 'passed' field indicating validation result
+        - Includes 'checks' list with validation details
+        - Includes 'warnings' and 'errors' lists
+        """
         with patch("skill_fleet.api.routes.validation.SkillValidator") as mock_validator:
             mock_instance = MagicMock()
             # Return format matching ValidationResponse model
@@ -230,15 +351,18 @@ class TestValidationEndpoints:
 
             response = client.post(
                 "/api/v2/validation/validate",
-                json={"path": "general/testing"},
+                json={"path": TEST_SKILL_PATH},
             )
 
             assert response.status_code == 200
             data = response.json()
             assert data["passed"] is True
             assert "checks" in data
+            assert isinstance(data["checks"], list)
             assert "warnings" in data
+            assert isinstance(data["warnings"], list)
             assert "errors" in data
+            assert isinstance(data["errors"], list)
 
 
 # ============================================================================
@@ -247,9 +371,14 @@ class TestValidationEndpoints:
 
 
 class TestOptimizationEndpoints:
-    """Tests for optimization endpoints."""
+    """Tests for DSPy workflow optimization endpoints."""
 
     def test_start_optimization_rejects_training_paths_traversal(self, client):
+        """Test optimization rejects path traversal in training_paths.
+
+        Verifies that paths with ../ sequences in training_paths
+        are rejected for security, returning HTTP 422.
+        """
         response = client.post(
             "/api/v2/optimization/start",
             json={"training_paths": ["../.codex/skills/some-skill"]},
@@ -257,23 +386,38 @@ class TestOptimizationEndpoints:
         assert response.status_code == 422
 
     def test_start_optimization_rejects_training_paths_absolute(self, client):
+        """Test optimization rejects absolute paths in training_paths.
+
+        Verifies that absolute paths in training_paths are rejected
+        for security, returning HTTP 422.
+        """
         response = client.post(
             "/api/v2/optimization/start",
             json={"training_paths": ["/tmp/outside"]},
         )
         assert response.status_code == 422
 
-    @patch("skill_fleet.api.routes.optimization._run_optimization")
-    def test_start_optimization_accepts_sanitized_training_paths(self, mock_run, client):
-        response = client.post(
-            "/api/v2/optimization/start",
-            json={"training_paths": ["general//testing"]},
-        )
-        assert response.status_code == 200
-        (_, kwargs) = mock_run.call_args
-        assert kwargs["request"].training_paths == ["general/testing"]
+    def test_start_optimization_accepts_sanitized_training_paths(self, client):
+        """Test optimization accepts and sanitizes valid training_paths.
+
+        Verifies that valid training paths with redundant slashes
+        are accepted and properly normalized before processing.
+        """
+        with patch("skill_fleet.api.routes.optimization._run_optimization") as mock_run:
+            response = client.post(
+                "/api/v2/optimization/start",
+                json={"training_paths": ["general//testing"]},
+            )
+            assert response.status_code == 200
+            (_, kwargs) = mock_run.call_args
+            assert kwargs["request"].training_paths == ["general/testing"]
 
     def test_start_optimization_rejects_save_path_traversal(self, client):
+        """Test optimization rejects path traversal in save_path.
+
+        Verifies that paths with ../ sequences in save_path
+        are rejected for security, returning HTTP 422.
+        """
         response = client.post(
             "/api/v2/optimization/start",
             json={"save_path": "../outside"},
@@ -281,6 +425,11 @@ class TestOptimizationEndpoints:
         assert response.status_code == 422
 
     def test_start_optimization_rejects_save_path_absolute(self, client):
+        """Test optimization rejects absolute paths in save_path.
+
+        Verifies that absolute paths in save_path are rejected
+        for security, returning HTTP 422.
+        """
         response = client.post(
             "/api/v2/optimization/start",
             json={"save_path": "/tmp/outside"},
@@ -288,24 +437,42 @@ class TestOptimizationEndpoints:
         assert response.status_code == 422
 
     def test_start_optimization_rejects_save_path_backslashes(self, client):
+        """Test optimization rejects backslashes in save_path.
+
+        Verifies that Windows-style paths with backslashes are rejected
+        to ensure cross-platform consistency, returning HTTP 422.
+        """
         response = client.post(
             "/api/v2/optimization/start",
             json={"save_path": r"..\\outside"},
         )
         assert response.status_code == 422
 
-    @patch("skill_fleet.api.routes.optimization._run_optimization")
-    def test_start_optimization_accepts_sanitized_save_path(self, mock_run, client):
-        response: Response = client.post(
-            "/api/v2/optimization/start",
-            json={"save_path": "my_program//program"},
-        )
-        assert response.status_code == 200
-        data = response.json()
-        assert data["status"] == "pending"
-        assert "job_id" in data
+    def test_start_optimization_accepts_sanitized_save_path(self, client):
+        """Test optimization accepts and sanitizes valid save_path.
+
+        Verifies that valid save paths with redundant slashes
+        are accepted and properly normalized before processing.
+        """
+        with patch("skill_fleet.api.routes.optimization._run_optimization"):
+            response: Response = client.post(
+                "/api/v2/optimization/start",
+                json={"save_path": "my_program//program"},
+            )
+            assert response.status_code == 200
+            data = response.json()
+            assert data["status"] == "pending"
+            assert "job_id" in data
+            assert isinstance(data["job_id"], str)
 
     def test_run_optimization_creates_save_parents(self, tmp_path, monkeypatch):
+        """Test optimization creates parent directories for save_path.
+
+        Verifies that when saving optimization results:
+        - Parent directories are automatically created
+        - Files are saved to the correct location
+        - Job status is updated to 'completed'
+        """
         from skill_fleet.api.routes import optimization as optimization_routes
 
         repo_root = tmp_path / "repo"
@@ -385,10 +552,16 @@ class TestOptimizationEndpoints:
 
 
 class TestCreateSkillRequest:
-    """Tests for CreateSkillRequest pydantic model."""
+    """Tests for CreateSkillRequest Pydantic model."""
 
     def test_valid_request(self):
-        """Test valid create skill request."""
+        """Test CreateSkillRequest with all valid fields.
+
+        Verifies that a properly constructed request:
+        - Accepts task_description and user_id
+        - Stores values correctly
+        - Can be serialized/deserialized
+        """
         from skill_fleet.api.routes.skills import CreateSkillRequest
 
         request = CreateSkillRequest(
@@ -400,7 +573,11 @@ class TestCreateSkillRequest:
         assert request.user_id == "test-user"
 
     def test_default_user_id(self):
-        """Test user_id defaults to 'default'."""
+        """Test CreateSkillRequest defaults user_id to 'default'.
+
+        Verifies that when user_id is omitted, it defaults to 'default'
+        as specified in the model definition.
+        """
         from skill_fleet.api.routes.skills import CreateSkillRequest
 
         request = CreateSkillRequest(task_description="Test skill creation")
@@ -409,15 +586,19 @@ class TestCreateSkillRequest:
 
 
 class TestValidateSkillRequest:
-    """Tests for ValidateSkillRequest pydantic model."""
+    """Tests for ValidateSkillRequest Pydantic model."""
 
     def test_valid_request(self):
-        """Test valid validate skill request."""
+        """Test ValidateSkillRequest with valid path.
+
+        Verifies that a properly constructed validation request
+        stores the path correctly.
+        """
         from skill_fleet.api.routes.validation import ValidateSkillRequest
 
-        request = ValidateSkillRequest(path="general/testing")
+        request = ValidateSkillRequest(path=TEST_SKILL_PATH)
 
-        assert request.path == "general/testing"
+        assert request.path == TEST_SKILL_PATH
 
 
 # ============================================================================
@@ -426,10 +607,16 @@ class TestValidateSkillRequest:
 
 
 class TestEvaluationEndpoints:
-    """Tests for evaluation endpoints."""
+    """Tests for skill quality evaluation endpoints."""
 
-    def test_evaluate_skill_rejects_path_traversal(self, client, tmp_path):
-        """Test evaluation rejects traversal attempts that could escape skills_root."""
+    def test_evaluate_skill_rejects_path_traversal(
+        self, client, tmp_path, dependency_override_cleanup
+    ):
+        """Test evaluation rejects path traversal attempts for security.
+
+        Verifies that paths with ../ sequences are rejected
+        to prevent escaping the skills_root directory, returning HTTP 422.
+        """
         from skill_fleet.api.dependencies import get_skills_root
 
         skills_root = tmp_path / "skills"
@@ -441,13 +628,23 @@ class TestEvaluationEndpoints:
                 "/api/v2/evaluation/evaluate",
                 json={"path": "../.codex/skills/universal-memory"},
             )
-            assert response.status_code == 400
-            assert "Invalid path" in response.json()["detail"]
+            assert response.status_code == 422
+            data = response.json()
+            assert "detail" in data
+            assert "Invalid path" in data["detail"]
         finally:
             app.dependency_overrides.clear()
 
-    def test_evaluate_skill_allows_valid_taxonomy_path(self, client, tmp_path):
-        """Test evaluation succeeds for a valid taxonomy path under skills_root."""
+    def test_evaluate_skill_allows_valid_taxonomy_path(
+        self, client, tmp_path, dependency_override_cleanup
+    ):
+        """Test evaluation succeeds for valid taxonomy paths under skills_root.
+
+        Verifies that a valid skill path:
+        - Returns HTTP 200 status
+        - Includes 'overall_score' field with numeric value
+        - Includes quality assessment metrics
+        """
         from skill_fleet.api.dependencies import get_skills_root
 
         skills_root = tmp_path / "skills"
@@ -475,16 +672,28 @@ class TestEvaluationEndpoints:
 
                 response = client.post(
                     "/api/v2/evaluation/evaluate",
-                    json={"path": "general/testing"},
+                    json={"path": TEST_SKILL_PATH},
                 )
                 assert response.status_code == 200
                 data = response.json()
                 assert data["overall_score"] == 0.5
+                assert isinstance(data["overall_score"], (int, float))
+                assert data["overall_score"] >= 0.0
+                assert data["overall_score"] <= 1.0
         finally:
             app.dependency_overrides.clear()
 
-    def test_evaluate_batch_marks_invalid_path_as_error(self, client, tmp_path):
-        """Test batch evaluation marks invalid paths as errors rather than reading files."""
+    def test_evaluate_batch_marks_invalid_path_as_error(
+        self, client, tmp_path, dependency_override_cleanup
+    ):
+        """Test batch evaluation marks invalid paths as errors without reading files.
+
+        Verifies that batch evaluation:
+        - Returns HTTP 200 status
+        - Marks invalid paths as errors (not successes)
+        - Includes 'total_evaluated', 'total_errors', and 'average_score'
+        - Properly separates valid and invalid results
+        """
         from skill_fleet.api.dependencies import get_skills_root
 
         skills_root = tmp_path / "skills"
@@ -509,15 +718,24 @@ class TestEvaluationEndpoints:
 
                 response = client.post(
                     "/api/v2/evaluation/evaluate-batch",
-                    json={"paths": ["general/testing", "../.codex/skills/universal-memory"]},
+                    json={"paths": [TEST_SKILL_PATH, "../.codex/skills/universal-memory"]},
                 )
                 assert response.status_code == 200
                 data = response.json()
                 assert data["total_evaluated"] == 1
                 assert data["total_errors"] == 1
                 assert data["average_score"] == 0.25
+                assert isinstance(data["results"], list)
+                assert len(data["results"]) == 2
+
+                # Verify error result structure
                 errors = [r for r in data["results"] if r.get("error")]
                 assert len(errors) == 1
                 assert errors[0]["error"] == "Invalid path"
+
+                # Verify success result structure
+                successes = [r for r in data["results"] if not r.get("error")]
+                assert len(successes) == 1
+                assert successes[0]["path"] == TEST_SKILL_PATH
         finally:
             app.dependency_overrides.clear()

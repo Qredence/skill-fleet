@@ -33,6 +33,25 @@ jobs:
       - name: Run ruff format check
         run: uv run ruff format --check src/ tests/
 
+  type-check:
+    name: Type Check with ty
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+        with:
+          enable-cache: true
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --group dev
+
+      - name: Run ty type check
+        run: uv run ty check src/ tests/
+
   test:
     name: Run Tests
     runs-on: ubuntu-latest
@@ -149,7 +168,7 @@ jobs:
   all-checks:
     name: All Checks Passed
     runs-on: ubuntu-latest
-    needs: [lint, test, build, security]
+    needs: [lint, type-check, test, build, security]
     steps:
       - name: Confirm all checks passed
         run: echo "All CI checks passed successfully!"

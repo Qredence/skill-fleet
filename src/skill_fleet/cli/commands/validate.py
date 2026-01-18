@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import cast
 
 import typer
 
@@ -47,13 +48,15 @@ def validate_command(
 
     status = "passed" if results.get("passed") else "failed"
     print(f"validation: {status}")
-    if results.get("errors"):
+    errors = results.get("errors")
+    if errors:
         print("errors:")
-        for message in results["errors"]:
+        for message in cast(list[str], errors):
             print(f"- {message}")
-    if results.get("warnings"):
+    warnings = results.get("warnings")
+    if warnings:
         print("warnings:")
-        for message in results["warnings"]:
+        for message in cast(list[str], warnings):
             print(f"- {message}")
 
     if not results.get("passed"):

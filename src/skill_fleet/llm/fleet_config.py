@@ -183,7 +183,7 @@ def build_lm_for_task(config: dict[str, Any], task_name: str) -> dspy.LM:
 
     return dspy.LM(
         dspy_model,
-        model_type=resolved.model_type,  # type: ignore[arg-type]
+        model_type=resolved.model_type,  # type: ignore[invalid-argument-type]
         temperature=temperature,
         max_tokens=max_tokens,
         **lm_kwargs,

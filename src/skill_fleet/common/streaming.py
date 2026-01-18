@@ -64,7 +64,7 @@ def create_streaming_module(
     module: dspy.Module,
     reasoning_field: str = "reasoning",
     async_mode: bool = False,
-) -> dspy.Module:
+) -> Any:
     """Wrap a DSPy module with streaming for reasoning field.
 
     Args:
@@ -104,7 +104,7 @@ def create_streaming_module(
     )
 
 
-def create_async_module(module: dspy.Module, max_workers: int = 4) -> dspy.Module:
+def create_async_module(module: dspy.Module, max_workers: int = 4) -> Any:
     """Convert DSPy module to async mode for FastAPI deployment.
 
     Uses dspy.asyncify which runs the program in a thread pool.

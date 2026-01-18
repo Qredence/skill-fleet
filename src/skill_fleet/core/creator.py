@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import dspy
 
@@ -236,7 +236,7 @@ class TaxonomySkillCreator(dspy.Module):
             has_cycle, path = self.taxonomy.detect_circular_dependencies(skill_id, dep_ids)
             if has_cycle:
                 if self.verbose:
-                    print(f"❌ Circular dependency: {' -> '.join(path)}")
+                    print(f"❌ Circular dependency: {' -> '.join(cast(list[str], path))}")
                 return False
 
         return True

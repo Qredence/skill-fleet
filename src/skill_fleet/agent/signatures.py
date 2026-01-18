@@ -96,11 +96,13 @@ class DetectMultiSkillNeeds(dspy.Signature):
 
 
 class GenerateClarifyingQuestion(dspy.Signature):
-    """Generate one focused clarifying question following brainstorming principles.
+    """Generate one focused clarifying question with multi-select options.
 
-    Creates a single, focused question to better understand the user's needs.
-    Follows the brainstorming skill pattern: one question at a time,
-    prefer multiple choice, focus on understanding purpose and constraints.
+    Creates a single, focused question with 2-5 multi-select options to better
+    understand the user's needs. Follows the brainstorming skill pattern:
+    one question at a time, prefer multiple choice, focus on understanding
+    purpose and constraints. Use the smart options utility for domain-specific
+    suggestions when the LLM doesn't return options.
     """
 
     # Inputs
@@ -117,7 +119,7 @@ class GenerateClarifyingQuestion(dspy.Signature):
         desc="Single focused question to ask the user. Prefer multiple choice format when possible."
     )
     question_options: list[str] = dspy.OutputField(
-        desc="Multiple choice options if applicable (empty list for free-form questions). Use when discrete choices help clarify."
+        desc="Multi-select options (2-5 required). Use domain-specific options: programming languages, project states, team sizes, priorities, scopes, experience levels, CI/CD platforms, etc. Include 'Other' as final option for free-form input. Empty list for free-form questions."
     )
     reasoning: str = dspy.OutputField(
         desc="Why this question matters - what gap in understanding it addresses"
@@ -157,10 +159,11 @@ class AssessReadiness(dspy.Signature):
 class DeepUnderstandingSignature(dspy.Signature):
     """Understand user's actual needs, problems, and goals before creating skill.
 
-    This signature generates contextual multi-choice questions to understand WHY
-    the user needs the skill, what problem they're solving, and what their goals are.
-    Uses research when needed to provide better context. Asks questions one at a time
-    until readiness_score >= 0.8.
+    This signature generates contextual multi-select questions (2-5 options) to
+    understand WHY the user needs the skill, what problem they're solving, and
+    what their goals are. All questions should support multi-select unless there's
+    a specific reason for single-select. Uses research when needed to provide better
+    context. Asks questions one at a time until readiness_score >= 0.8.
     """
 
     # Inputs
@@ -177,7 +180,7 @@ class DeepUnderstandingSignature(dspy.Signature):
 
     # Outputs
     next_question: str = dspy.OutputField(
-        desc="Next question to ask as JSON string of ClarifyingQuestion object (or empty string if ready). Should have contextual multi-choice options (2-5 options). Empty string if ready to proceed (readiness_score >= 0.8). Format: JSON string that can be parsed into ClarifyingQuestion with id, question, context, options (list of QuestionOption), allows_multiple, required fields."
+        desc="Next question to ask as JSON string of ClarifyingQuestion object (or empty string if ready). Should have contextual multi-select options (2-5 options, allows_multiple=True by default). Empty string if ready to proceed (readiness_score >= 0.8). Format: JSON string that can be parsed into ClarifyingQuestion with id, question, context, options (list of QuestionOption), allows_multiple, required fields."
     )
     reasoning: str = dspy.OutputField(
         desc="Agent's thinking about WHY this question matters (1-3 sentences). Explain what gap in understanding this question addresses and how it helps create a more relevant skill. Display as context before the question."

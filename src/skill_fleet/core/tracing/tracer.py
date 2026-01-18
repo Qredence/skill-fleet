@@ -180,9 +180,11 @@ class ReasoningTracer:
             try:
                 import mlflow
 
-                mlflow.start_run()
-                mlflow.log_params({"task_description": task_description})
-                self._mlflow_run_id = mlflow.active_run().info.run_id
+                mlflow.start_run()  # type: ignore[attr-defined]
+                mlflow.log_params({"task_description": task_description})  # type: ignore[attr-defined]
+                active_run = mlflow.active_run()
+                if active_run:
+                    self._mlflow_run_id = active_run.info.run_id
                 logger.info(f"Started MLflow run: {self._mlflow_run_id}")
             except ImportError:
                 logger.warning("MLflow not installed, skipping MLflow logging")
@@ -290,10 +292,10 @@ class ReasoningTracer:
             trace_file.parent.mkdir(parents=True, exist_ok=True)
             trace_file.write_text(json.dumps(trace.to_dict(), indent=2))
 
-            mlflow.log_artifact(str(trace_file))
+            mlflow.log_artifact(str(trace_file))  # type: ignore[attr-defined]
 
             # Log as metrics
-            mlflow.log_metrics(
+            mlflow.log_metrics(  # type: ignore[attr-defined]
                 {
                     f"{trace.step}_success": 1.0,
                     f"{trace.step}_reasoning_length": len(trace.reasoning),
@@ -318,7 +320,7 @@ class ReasoningTracer:
             try:
                 import mlflow
 
-                mlflow.end_run()
+                mlflow.end_run()  # type: ignore[attr-defined]
                 logger.info(f"Ended MLflow run: {self._mlflow_run_id}")
             except Exception as e:
                 logger.warning(f"Failed to end MLflow run: {e}")

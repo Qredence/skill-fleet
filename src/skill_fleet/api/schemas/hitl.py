@@ -36,7 +36,7 @@ class StructuredQuestion(BaseModel):
         default=None, description="Optional list of choices for multiple-choice questions"
     )
     allows_multiple: bool = Field(
-        default=False, description="Whether multiple options can be selected"
+        default=True, description="Whether multiple options can be selected (multi-select by default)"
     )
     rationale: str | None = Field(default=None, description="Why this question is being asked")
 
@@ -151,7 +151,7 @@ def _dict_to_structured_question(data: dict[str, Any]) -> StructuredQuestion:
     return StructuredQuestion(
         text=text,
         options=options if options else None,
-        allows_multiple=bool(data.get("allows_multiple", False)),
+        allows_multiple=bool(data.get("allows_multiple", True)),  # Default to multi-select
         rationale=data.get("rationale"),
     )
 

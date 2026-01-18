@@ -434,9 +434,9 @@ def optimize_with_tracking(
     mlflow.set_experiment(experiment_name)
     logger.info(f"MLflow experiment: {experiment_name}")
 
-    with mlflow.start_run():
+    with mlflow.start_run():  # type: ignore[attr-defined]
         # Log configuration
-        mlflow.log_params(
+        mlflow.log_params(  # type: ignore[attr-defined]
             {
                 "optimizer": optimizer_type,
                 "model": model,
@@ -455,7 +455,7 @@ def optimize_with_tracking(
             )
 
         # Log the optimized model
-        mlflow.dspy.log_model(optimized, "optimized_skill_creator")
+        mlflow.dspy.log_model(optimized, "optimized_skill_creator")  # type: ignore[attr-defined]
 
     return optimized
 

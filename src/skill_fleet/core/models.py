@@ -35,10 +35,10 @@ class ClarifyingQuestion(BaseModel):
     context: str = Field(default="", description="Why this question is being asked")
     options: list[QuestionOption] = Field(
         default_factory=list,
-        description="Multi-choice options (if empty, expects free-form answer)",
+        description="Multi-select options (2-5 required, empty if free-form)",
     )
     allows_multiple: bool = Field(
-        default=False, description="Whether multiple options can be selected"
+        default=True, description="Whether multiple options can be selected (default: true)",
     )
     required: bool = Field(default=True, description="Whether an answer is required")
 

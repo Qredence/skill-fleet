@@ -290,14 +290,17 @@ class FleetConfig(BaseModel):
         )
         env_default_model = os.environ.get("FLEET_MODEL_DEFAULT")
 
+        # Get role model if role exists and role config is found
+        role_model = None
+        if task.role:
+            role_config = self.roles.get_role(task.role)
+            if role_config:
+                role_model = role_config.model
+
         model_key = (
             env_task_model
             or task.model
-            or (
-                self.roles.get_role(task.role).model
-                if task.role and self.roles.get_role(task.role)
-                else None
-            )
+            or role_model
             or env_role_model
             or env_default_model
             or self.models.default

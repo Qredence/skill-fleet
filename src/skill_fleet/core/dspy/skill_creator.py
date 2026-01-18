@@ -20,7 +20,7 @@ from typing import Any
 import dspy
 
 from ...common.async_utils import run_async
-from ...common.paths import find_repo_root
+from ...common.paths import default_config_root
 from ..models import SkillCreationResult
 from .modules.hitl import (
     ConfirmUnderstandingModule,
@@ -69,21 +69,24 @@ def _extract_hitl_text_response(response: Any) -> str:
 
 
 def _load_skill_md_template() -> str | None:
-    """Load the SKILL.md authoring template (repo-local) for generation guidance."""
+    """Load the SKILL.md authoring template for generation guidance."""
     candidates: list[Path] = []
-    for root in (find_repo_root(Path.cwd()), find_repo_root(Path(__file__).resolve())):
-        if root:
-            candidates.append(root / "config" / "templates" / "SKILL_md_template.md")
+
+    # Allow a local override in the current working directory.
+    candidates.append(Path.cwd() / "config" / "templates" / "SKILL_md_template.md")
+    candidates.append(default_config_root() / "templates" / "SKILL_md_template.md")
 
     for path in candidates:
-        if path.exists():
-            raw = path.read_text(encoding="utf-8")
-            # Strip the large leading {{!-- ... --}} comment block (mustache comment),
-            # keeping only the renderable portion of the template.
-            marker = "## --}}"
-            if marker in raw:
-                raw = raw.split(marker, 1)[1].lstrip()
-            return raw
+        if not path.exists():
+            continue
+        raw = path.read_text(encoding="utf-8")
+        # Strip the large leading {{!-- ... --}} comment block (mustache comment),
+        # keeping only the renderable portion of the template.
+        marker = "## --}}"
+        if marker in raw:
+            raw = raw.split(marker, 1)[1].lstrip()
+        return raw
+
     return None
 
 
@@ -124,18 +127,17 @@ class SkillCreationProgram(dspy.Module):
         Looks for optimized programs in config/optimized/ directory.
         Returns True if an optimized program was loaded.
         """
-        optimized_dir = find_repo_root(Path.cwd())
-        if not optimized_dir:
-            optimized_dir = find_repo_root(Path(__file__).resolve())
-        if not optimized_dir:
-            return False
+        optimized_roots = [
+            Path.cwd() / "config" / "optimized",
+            default_config_root() / "optimized",
+        ]
 
-        optimized_path = optimized_dir / "config" / "optimized"
-        if not optimized_path.exists():
-            return False
+        candidates: list[Path] = []
+        for root in optimized_roots:
+            if not root.exists():
+                continue
+            candidates.extend(sorted(root.glob("skill_creator*.json"), reverse=True))
 
-        # Look for optimized program files (prefer newest)
-        candidates = sorted(optimized_path.glob("skill_creator*.json"), reverse=True)
         if not candidates:
             return False
 

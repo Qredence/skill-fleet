@@ -29,15 +29,13 @@ def _load_gold_standard_examples(max_examples: int = 2) -> str:
     Returns:
         Formatted string with example excerpts
     """
-    repo_root = find_repo_root(Path.cwd()) or find_repo_root(Path(__file__).resolve())
-    if not repo_root:
-        return ""
+    repo_root = find_repo_root(Path.cwd()) or find_repo_root(Path(__file__).resolve()) or Path.cwd()
 
     # Known excellent skill paths
     gold_skill_paths = [
-        "skills/technical_skills/programming/web_frameworks/python/fastapi/SKILL.md",
-        "skills/technical_skills/programming/languages/python/decorators/SKILL.md",
-        "skills/technical_skills/programming/languages/python/asynchronous_programming/SKILL.md",
+        "skills/python/fastapi-production/SKILL.md",
+        "skills/python/decorators/SKILL.md",
+        "skills/python/async/SKILL.md",
     ]
 
     examples = []

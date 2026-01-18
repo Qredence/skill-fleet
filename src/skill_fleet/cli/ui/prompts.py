@@ -13,12 +13,15 @@ requiring a real TTY.
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import sys
 from dataclasses import dataclass
 from typing import Protocol
 
 from rich.prompt import Prompt as RichPrompt
+
+logger = logging.getLogger(__name__)
 
 OTHER_OPTION_ID = "__other__"
 
@@ -56,8 +59,11 @@ class PromptToolkitUI:
         """Ask for free-form text using prompt-toolkit when available."""
         try:
             from prompt_toolkit.shortcuts import prompt_async
-        except Exception:
-            # Last-resort fallback
+        except ImportError:
+            logger.debug("prompt_async not available, using Rich fallback")
+            return await asyncio.to_thread(RichPrompt.ask, prompt, default=default)
+        except Exception as e:
+            logger.warning(f"prompt_async import failed unexpectedly: {e}")
             return await asyncio.to_thread(RichPrompt.ask, prompt, default=default)
 
         return await prompt_async(f"{prompt}: ", default=default)
@@ -88,7 +94,11 @@ class PromptToolkitUI:
 
         try:
             from prompt_toolkit.shortcuts import choice as pt_choice
-        except Exception:
+        except ImportError:
+            logger.debug("choice() helper not available, trying radiolist_dialog")
+            pt_choice = None
+        except Exception as e:
+            logger.warning(f"choice() import failed unexpectedly: {e}")
             pt_choice = None
 
         if pt_choice is not None:
@@ -99,7 +109,11 @@ class PromptToolkitUI:
                     options=choices,
                     default=default,
                 )
-            except Exception:
+            except (ImportError, AttributeError, RuntimeError) as e:
+                logger.debug(f"choice() failed ({type(e).__name__}), using Rich fallback: {e}")
+                return await RichFallbackUI().choose_one(prompt, choices, default_id=default_id)
+            except Exception as e:
+                logger.warning(f"choice() failed unexpectedly: {e}")
                 return await RichFallbackUI().choose_one(prompt, choices, default_id=default_id)
 
             return str(selected) if selected is not None else default
@@ -107,7 +121,11 @@ class PromptToolkitUI:
         # choice() not available — try radiolist_dialog next
         try:
             from prompt_toolkit.shortcuts import radiolist_dialog
-        except Exception:
+        except ImportError:
+            logger.debug("radiolist_dialog not available, using Rich fallback")
+            return await RichFallbackUI().choose_one(prompt, choices, default_id=default_id)
+        except Exception as e:
+            logger.warning(f"radiolist_dialog import failed unexpectedly: {e}")
             return await RichFallbackUI().choose_one(prompt, choices, default_id=default_id)
 
         dialog = radiolist_dialog(title="", text=prompt, values=choices)
@@ -116,7 +134,11 @@ class PromptToolkitUI:
                 selected = await dialog.run_async()
             else:
                 selected = await asyncio.to_thread(dialog.run)
-        except Exception:
+        except (ImportError, AttributeError, RuntimeError) as e:
+            logger.debug(f"radiolist_dialog failed ({type(e).__name__}), using Rich fallback: {e}")
+            return await RichFallbackUI().choose_one(prompt, choices, default_id=default_id)
+        except Exception as e:
+            logger.warning(f"radiolist_dialog failed unexpectedly: {e}")
             return await RichFallbackUI().choose_one(prompt, choices, default_id=default_id)
 
         return str(selected) if selected is not None else default
@@ -134,14 +156,29 @@ class PromptToolkitUI:
 
         try:
             from prompt_toolkit.shortcuts import checkboxlist_dialog
-        except Exception:
+        except ImportError:
+            logger.debug("checkboxlist_dialog not available, using Rich fallback")
+            return await RichFallbackUI().choose_many(prompt, choices, default_ids=default_ids)
+        except Exception as e:
+            logger.warning(f"checkboxlist_dialog import failed unexpectedly: {e}")
             return await RichFallbackUI().choose_many(prompt, choices, default_ids=default_ids)
 
         dialog = checkboxlist_dialog(title="", text=prompt, values=choices)
-        if hasattr(dialog, "run_async"):
-            selected = await dialog.run_async()
-        else:
-            selected = None
+        selected = None
+        try:
+            if hasattr(dialog, "run_async"):
+                selected = await dialog.run_async()
+            else:
+                selected = None
+        except (ImportError, AttributeError, RuntimeError) as e:
+            logger.debug(
+                f"checkboxlist_dialog failed ({type(e).__name__}), using Rich fallback: {e}"
+            )
+            return await RichFallbackUI().choose_many(prompt, choices, default_ids=default_ids)
+        except Exception as e:
+            logger.warning(f"checkboxlist_dialog failed unexpectedly: {e}")
+            return await RichFallbackUI().choose_many(prompt, choices, default_ids=default_ids)
+
         if selected is None:
             # Cancel => fall back to defaults, otherwise empty.
             if default_ids:
@@ -193,12 +230,17 @@ class RichFallbackUI:
         default_str = ",".join(default_ids) if default_ids else ""
         raw = await asyncio.to_thread(
             RichPrompt.ask,
-            f"{prompt} (comma-separated)",
+            f"{prompt} (comma-separated, options: {', '.join(ids)})",
             default=default_str,
         )
         selected = [part.strip() for part in raw.split(",") if part.strip()]
         # Keep only known ids to avoid surprising downstream behavior.
-        return [s for s in selected if s in ids]
+        valid_selections = [s for s in selected if s in ids]
+        if valid_selections != selected:
+            unknown = set(selected) - set(valid_selections)
+            if unknown:
+                logger.debug(f"Filtered unknown selections: {unknown}")
+        return valid_selections
 
 
 def get_default_ui(*, force_plain_text: bool = False) -> PromptUI:
@@ -221,7 +263,11 @@ def get_default_ui(*, force_plain_text: bool = False) -> PromptUI:
         import prompt_toolkit  # noqa: F401
 
         return PromptToolkitUI()
-    except Exception:
+    except ImportError:
+        logger.debug("prompt_toolkit not available, using Rich fallback")
+        return RichFallbackUI()
+    except Exception as e:
+        logger.warning(f"prompt_toolkit import failed unexpectedly: {e}")
         return RichFallbackUI()
 
 

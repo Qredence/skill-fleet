@@ -39,11 +39,14 @@ def load_trainset(
     """
     import dspy
 
+    from ...common.paths import resolve_repo_relative_path
+
+    path = resolve_repo_relative_path(path)
     path = Path(path)
     if not path.exists():
         raise FileNotFoundError(f"Training set not found at {path}")
 
-    data = json.loads(path.read_text())
+    data = json.loads(path.read_text(encoding="utf-8"))
 
     examples = []
     for item in data:

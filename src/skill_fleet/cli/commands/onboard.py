@@ -9,7 +9,11 @@ import typer
 from rich.console import Console
 from rich.progress import Progress
 
-from ...common.paths import default_profiles_path, default_skills_root
+from ...common.paths import (
+    default_profiles_path,
+    default_skills_root,
+    ensure_skills_root_initialized,
+)
 from ...core.creator import TaxonomySkillCreator
 from ...onboarding.bootstrap import SkillBootstrapper
 from ...taxonomy.manager import TaxonomyManager
@@ -43,7 +47,8 @@ def onboard_command(
     console.print("\n[bold cyan]Welcome to the Agentic Skills System![/bold cyan]\n")
     console.print("Let's set up your personalized skill set.\n")
 
-    taxonomy = TaxonomyManager(Path(skills_root))
+    skills_root_path = ensure_skills_root_initialized(Path(skills_root))
+    taxonomy = TaxonomyManager(skills_root_path)
     creator = TaxonomySkillCreator(taxonomy_manager=taxonomy)
     bootstrapper = SkillBootstrapper(
         taxonomy_manager=taxonomy, skill_creator=creator, profiles_path=Path(profiles_path)

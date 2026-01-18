@@ -22,6 +22,7 @@ from typing import Annotated
 
 from fastapi import Depends
 
+from ..common.paths import ensure_skills_root_initialized
 from ..taxonomy.manager import TaxonomyManager
 
 
@@ -34,7 +35,8 @@ def get_skills_root() -> Path:
     Returns:
         Path to the skills root directory
     """
-    return Path(os.environ.get("SKILL_FLEET_SKILLS_ROOT", "skills"))
+    root = Path(os.environ.get("SKILL_FLEET_SKILLS_ROOT", "skills"))
+    return ensure_skills_root_initialized(root)
 
 
 def get_drafts_root(skills_root: Annotated[Path, Depends(get_skills_root)]) -> Path:

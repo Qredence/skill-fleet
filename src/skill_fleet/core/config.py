@@ -381,7 +381,15 @@ def load_config(config_path: str | Path = "config/config.yaml") -> FleetConfig:
         >>> model_key, model_config, params = config.get_model_config("skill_understand")
         >>> print(f"Using model: {model_key}")
     """
-    return FleetConfig.from_yaml(config_path)
+    from ..common.paths import default_config_path
+
+    path = Path(config_path)
+    # Backwards-compatible default: if the repo-local path isn't present, fall back
+    # to packaged defaults (when installed from a wheel) or other safe candidates.
+    if path == Path("config/config.yaml") and not path.exists():
+        path = default_config_path()
+
+    return FleetConfig.from_yaml(path)
 
 
 def validate_config(config_path: str | Path = "config/config.yaml") -> bool:
@@ -398,7 +406,13 @@ def validate_config(config_path: str | Path = "config/config.yaml") -> bool:
     Raises:
         ConfigurationError: If configuration is invalid
     """
-    FleetConfig.from_yaml(config_path)
+    from ..common.paths import default_config_path
+
+    path = Path(config_path)
+    if path == Path("config/config.yaml") and not path.exists():
+        path = default_config_path()
+
+    FleetConfig.from_yaml(path)
     return True
 
 

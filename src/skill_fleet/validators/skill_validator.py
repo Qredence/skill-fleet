@@ -40,7 +40,7 @@ class SkillValidator:
     _PRIORITY_ENUM = {"always", "task_specific", "on_demand", "dormant"}
 
     # Pre-compiled regex patterns for performance
-    _SKILL_ID_PATTERN = re.compile(r"^[a-z0-9_]+(?:/[a-z0-9_]+)*$")
+    _SKILL_ID_PATTERN = re.compile(r"^[a-z0-9_-]+(?:/[a-z0-9_-]+)*$")
     _SKILL_REF_PATTERN = re.compile(r"^[a-z0-9_.-]+(?:/[a-z0-9_.-]+)*?(?:\.json)?$")
     _SEMVER_PATTERN = re.compile(r"^\d+\.\d+\.\d+$")
     _SKILL_NAME_PATTERN = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
@@ -495,7 +495,11 @@ class SkillValidator:
         return True, None
 
     def validate_examples(self, examples_path: Path) -> ValidationResult:
-        """Validate example markdown files under a skill's examples directory."""
+        """Validate example markdown files under a skill's examples directory.
+
+        Note: Examples directory is optional. If it doesn't exist, validation passes
+        with a warning rather than an error.
+        """
         errors: list[str] = []
         warnings: list[str] = []
 
@@ -515,9 +519,11 @@ class SkillValidator:
             label="Examples directory",
         )
         if err is not None or examples_resolved is None:
-            return ValidationResult(False, [err or "Examples directory not found"], [])
+            # Examples directory is optional - return warning, not error
+            return ValidationResult(True, [], ["Examples directory not found"])
         if not examples_resolved.is_dir():
-            return ValidationResult(False, ["Examples directory not found"], [])
+            # Examples directory is optional - return warning, not error
+            return ValidationResult(True, [], ["Examples directory not found"])
 
         example_files = list(examples_resolved.glob("*.md"))
         if len(example_files) == 0:
@@ -552,7 +558,7 @@ class SkillValidator:
             warnings.append(f"skill_id '{skill_id}' does not match path '{path}'")
 
         if not self._validate_skill_id_format(skill_id):
-            errors.append(f"skill_id '{skill_id}' should use lowercase/underscore path segments")
+            errors.append(f"skill_id '{skill_id}' should use lowercase/underscore/hyphen path segments")
 
         # Check path depth for modern taxonomy compliance
         depth = len(path.split("/"))

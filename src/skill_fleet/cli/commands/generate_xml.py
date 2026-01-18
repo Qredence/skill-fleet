@@ -6,7 +6,7 @@ from pathlib import Path
 
 import typer
 
-from ...common.paths import default_skills_root
+from ...common.paths import default_skills_root, ensure_skills_root_initialized
 from ...taxonomy.manager import TaxonomyManager
 
 
@@ -17,7 +17,8 @@ def generate_xml_command(
     output: str = typer.Option(None, "--output", "-o", help="Output file (default: stdout)"),
 ):
     """Generate <available_skills> XML for agent prompt injection."""
-    taxonomy = TaxonomyManager(Path(skills_root))
+    skills_root_path = ensure_skills_root_initialized(Path(skills_root))
+    taxonomy = TaxonomyManager(skills_root_path)
     xml_content = taxonomy.generate_available_skills_xml()
 
     if output:

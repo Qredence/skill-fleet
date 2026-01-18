@@ -10,7 +10,7 @@ from rich.console import Console
 from rich.table import Table
 
 from ...analytics.engine import AnalyticsEngine, RecommendationEngine
-from ...common.paths import default_skills_root
+from ...common.paths import default_skills_root, ensure_skills_root_initialized
 from ...taxonomy.manager import TaxonomyManager
 
 
@@ -22,7 +22,7 @@ def analytics_command(
     json_output: bool = typer.Option(False, "--json", help="Output JSON only"),
 ):
     """Show skill usage analytics and recommendations."""
-    skills_root_path = Path(skills_root)
+    skills_root_path = ensure_skills_root_initialized(Path(skills_root))
     taxonomy = TaxonomyManager(skills_root_path)
     analytics_file = skills_root_path / "_analytics" / "usage_log.jsonl"
 

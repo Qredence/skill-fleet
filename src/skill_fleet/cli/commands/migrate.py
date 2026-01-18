@@ -7,8 +7,8 @@ from pathlib import Path
 
 import typer
 
-from ...common.paths import default_skills_root
 from ...common.migration import migrate_all_skills
+from ...common.paths import default_skills_root, ensure_skills_root_initialized
 
 
 def migrate_command(
@@ -19,7 +19,7 @@ def migrate_command(
     json_output: bool = typer.Option(False, "--json", help="Output JSON only"),
 ):
     """Migrate existing skills to agentskills.io format."""
-    skills_root_path = Path(skills_root)
+    skills_root_path = ensure_skills_root_initialized(Path(skills_root))
 
     if json_output:
         # Quiet mode for JSON output

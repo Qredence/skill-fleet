@@ -565,6 +565,7 @@ docs/
 - **`.env`**: Environment variables (API keys, configuration)
 - **`config/config.yaml`**: LLM configuration (model selection, parameters)
 - **`src/skill_fleet/config/`**: Packaged defaults for wheels (kept in sync with `config/`)
+  - Sync helper: `uv run python scripts/sync_packaged_resources.py`
 
 ### Frontend UI
 

@@ -7,7 +7,7 @@ from pathlib import Path
 
 import typer
 
-from ...common.paths import default_skills_root
+from ...common.paths import default_skills_root, ensure_skills_root_initialized
 from ...validators import SkillValidator
 
 
@@ -19,7 +19,7 @@ def validate_command(
     json_output: bool = typer.Option(False, "--json", help="Output JSON only"),
 ):
     """Validate a skill's metadata and structure."""
-    skills_root_path = Path(skills_root)
+    skills_root_path = ensure_skills_root_initialized(Path(skills_root))
     validator = SkillValidator(skills_root_path)
 
     # Treat user input as untrusted; normalize to a taxonomy-relative reference.

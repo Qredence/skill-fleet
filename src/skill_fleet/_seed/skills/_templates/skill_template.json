@@ -1,0 +1,28 @@
+{
+  "metadata_template": {
+    "skill_id": "{{taxonomy_path}}",
+    "version": "1.0.0",
+    "type": "{{type}}",
+    "weight": "{{weight}}",
+    "load_priority": "{{priority}}",
+    "dependencies": [],
+    "capabilities": [],
+    "tags": [],
+    "created_at": "{{timestamp}}",
+    "last_modified": "{{timestamp}}",
+    "generation_reason": "{{reason}}",
+    "usage_count": 0,
+    "success_rate": 0.0
+  },
+  "directory_structure": [
+    "capabilities/",
+    "examples/",
+    "tests/",
+    "resources/"
+  ],
+  "required_files": [
+    "metadata.json",
+    "SKILL.md"
+  ]
+}
+

@@ -379,7 +379,7 @@ def optimize_with_tracking(
 ) -> SkillCreationProgram:
     """Optimize with MLflow tracking enabled.
 
-    Requires: pip install mlflow>=2.21.1
+    Requires: uv add "mlflow>=2.21.1"
 
     Args:
         program: Program to optimize.

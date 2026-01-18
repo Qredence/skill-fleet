@@ -1,6 +1,7 @@
 """Migrate skill directories to their new canonical paths based on taxonomy_index.json."""
 
 import json
+import logging
 import shutil
 from pathlib import Path
 

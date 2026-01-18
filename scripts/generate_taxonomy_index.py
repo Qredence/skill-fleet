@@ -4,6 +4,7 @@ This script parses reports/taxonomy-map.md and converts it into the
 skills/taxonomy_index.json format using the new TaxonomyIndex models.
 """
 
+import logging
 from pathlib import Path
 
 from skill_fleet.taxonomy.models import CategoryNode, SkillEntry, TaxonomyIndex

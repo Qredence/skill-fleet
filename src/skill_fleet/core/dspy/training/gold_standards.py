@@ -105,9 +105,20 @@ class GoldStandardLoader:
             )
             repo_root = find_repo_root(self.config_path)
             if repo_root:
-                self.gold_skills_path = repo_root / relative_path
+                candidate = repo_root / relative_path
+                if candidate.exists():
+                    self.gold_skills_path = candidate
+                else:
+                    self.gold_skills_path = Path(relative_path)
             else:
-                self.gold_skills_path = Path(relative_path)
+                # When running from an installed wheel, `config_path` typically lives at
+                # `.../site-packages/skill_fleet/config/config.yaml`. Interpret repo-style
+                # "config/..." paths relative to that packaged config directory.
+                config_root = self.config_path.parent
+                rel = str(relative_path)
+                if rel.startswith("config/"):
+                    rel = rel.removeprefix("config/")
+                self.gold_skills_path = config_root / rel
 
         self.repo_root = find_repo_root(self.config_path)
         self._gold_skills: list[GoldSkillEntry] = []

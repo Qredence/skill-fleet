@@ -151,7 +151,7 @@ uv run ruff format .
 
 ## License
 
-Proprietary - Copyright (c) 2026 Qredence.
+Apache License 2.0. See `LICENSE`.
 
 ## Contributing
 

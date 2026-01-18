@@ -1,0 +1,142 @@
+{
+  "bootstrap_profiles": {
+    "web_developer": {
+      "required": [
+        "technical_skills/programming/languages/javascript_typescript",
+        "technical_skills/programming/paradigms/object_oriented",
+        "tool_proficiency/development_tools/version_control",
+        "specializations/frontend_development",
+        "task_focus_areas/build_create"
+      ],
+      "on_demand": [
+        "technical_skills/infrastructure/containerization",
+        "specializations/backend_development",
+        "technical_skills/apis_integration/rest_apis"
+      ]
+    },
+    "backend_developer": {
+      "required": [
+        "technical_skills/programming/languages/python",
+        "technical_skills/data_engineering/storage/relational_databases",
+        "technical_skills/apis_integration/rest_apis",
+        "specializations/backend_development",
+        "task_focus_areas/build_create"
+      ],
+      "on_demand": [
+        "technical_skills/infrastructure/cloud_platforms",
+        "technical_skills/security/authentication_authorization",
+        "domain_knowledge/business_intelligence"
+      ]
+    },
+    "data_scientist": {
+      "required": [
+        "technical_skills/programming/languages/python",
+        "domain_knowledge/machine_learning",
+        "technical_skills/data_engineering/processing/etl_pipelines",
+        "tool_proficiency/data_tools/visualization_tools",
+        "task_focus_areas/research_explore"
+      ],
+      "on_demand": [
+        "domain_knowledge/nlp_understanding",
+        "domain_knowledge/computer_vision",
+        "technical_skills/data_engineering/storage/vector_databases"
+      ]
+    },
+    "ml_engineer": {
+      "required": [
+        "technical_skills/programming/languages/python",
+        "domain_knowledge/machine_learning",
+        "specializations/ai_ml_engineering",
+        "technical_skills/infrastructure/cloud_platforms",
+        "task_focus_areas/build_create"
+      ],
+      "on_demand": [
+        "domain_knowledge/nlp_understanding",
+        "technical_skills/infrastructure/containerization",
+        "task_focus_areas/optimize_improve"
+      ]
+    },
+    "devops_engineer": {
+      "required": [
+        "technical_skills/infrastructure/cloud_platforms",
+        "technical_skills/infrastructure/containerization",
+        "technical_skills/infrastructure/infrastructure_as_code",
+        "specializations/devops_sre",
+        "task_focus_areas/maintain_support"
+      ],
+      "on_demand": [
+        "technical_skills/programming/languages/shell_scripting",
+        "tool_proficiency/monitoring_observability",
+        "technical_skills/security"
+      ]
+    },
+    "general_purpose": {
+      "required": [
+        "cognitive_skills/analysis",
+        "cognitive_skills/synthesis",
+        "cognitive_skills/reasoning",
+        "task_focus_areas/build_create"
+      ],
+      "on_demand": [
+        "technical_skills/programming/languages/python",
+        "tool_proficiency/development_tools",
+        "task_focus_areas/debug_fix"
+      ]
+    }
+  },
+  "tech_stack_mapping": {
+    "JavaScript/TypeScript": [
+      "technical_skills/programming/languages/javascript_typescript"
+    ],
+    "Python": [
+      "technical_skills/programming/languages/python"
+    ],
+    "React": [
+      "specializations/frontend_development/react_ecosystem"
+    ],
+    "Node.js": [
+      "technical_skills/programming/languages/javascript_typescript/node_runtime"
+    ],
+    "Docker": [
+      "technical_skills/infrastructure/containerization/docker"
+    ],
+    "Kubernetes": [
+      "technical_skills/infrastructure/containerization/kubernetes"
+    ],
+    "AWS": [
+      "technical_skills/infrastructure/cloud_platforms/aws_services"
+    ],
+    "PostgreSQL": [
+      "technical_skills/data_engineering/storage/relational_databases"
+    ],
+    "MongoDB": [
+      "technical_skills/data_engineering/storage/nosql_databases"
+    ]
+  },
+  "task_mapping": {
+    "Building new features": [
+      "task_focus_areas/build_create"
+    ],
+    "Debugging issues": [
+      "task_focus_areas/debug_fix"
+    ],
+    "Performance optimization": [
+      "task_focus_areas/optimize_improve"
+    ],
+    "Code review": [
+      "cognitive_skills/analysis/code_analysis"
+    ],
+    "Writing tests": [
+      "technical_skills/programming/practices/testing"
+    ],
+    "Documentation": [
+      "cognitive_skills/synthesis/content_generation/documentation"
+    ],
+    "Data analysis": [
+      "cognitive_skills/analysis/data_analysis"
+    ],
+    "API design": [
+      "cognitive_skills/synthesis/design_synthesis/api_design"
+    ]
+  }
+}

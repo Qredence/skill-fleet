@@ -3,7 +3,16 @@ FastAPI PATCH Endpoint Example - Partial User Updates
 
 This example demonstrates how to create a PATCH endpoint that updates only the
 fields provided in the request, leaving other fields unchanged.
+
+WARNING: This is example code that uses global state (fake_db, next_id)
+for simplicity. In production applications:
+- Use a proper database (PostgreSQL, MongoDB, etc.)
+- Replace global variables with proper dependency injection
+- Consider using SQLAlchemy ORM with async support
+- Add proper validation, error handling, and transaction support
 """
+
+from __future__ import annotations
 
 from typing import Optional
 from pydantic import BaseModel, EmailStr, Field

@@ -44,7 +44,6 @@ def _is_safe_job_id(job_id: str) -> bool:
 
 # In-memory job store (use Redis in production)
 JOBS: dict[str, JobState] = {}
-_HITL_RESPONSE_WAITERS: dict[str, asyncio.Future[dict[str, Any]]] = {}
 
 
 def create_job() -> str:
@@ -67,47 +66,58 @@ def get_job(job_id: str) -> JobState | None:
 async def wait_for_hitl_response(job_id: str, timeout: float = 3600.0) -> dict[str, Any]:
     """Wait for user to provide HITL response via API.
 
-    This uses an event-driven waiter instead of polling to avoid:
+    This uses an event-driven mechanism instead of polling to avoid:
     - unnecessary latency (poll interval)
     - duplicate prompts in clients that poll immediately after POSTing a response
 
-    Falls back to the legacy in-memory `job.hitl_response` field if a response
-    was already set before the waiter was registered (rare, but safe).
+    Uses asyncio.Event on the JobState instance for atomic signaling.
     """
     job = JOBS[job_id]
 
-    # Fast-path: response already present (legacy behavior / rare races).
-    if job.hitl_response is not None:
-        response = job.hitl_response
+    # Ensure event is initialized (handles loaded sessions)
+    if job.hitl_event is None:
+        job.hitl_event = asyncio.Event()
+
+    # Fast-path: response already present (race-safe check)
+    response = job.hitl_response
+    if response is not None:
         job.hitl_response = None
+        job.hitl_event.clear()  # Reset event for next interaction
         job.updated_at = datetime.now(UTC)
         return response
 
-    loop = asyncio.get_running_loop()
-    waiter: asyncio.Future[dict[str, Any]] = loop.create_future()
-    _HITL_RESPONSE_WAITERS[job_id] = waiter
-
+    # Wait for response to be set
     try:
-        response = await asyncio.wait_for(waiter, timeout=timeout)
+        await asyncio.wait_for(job.hitl_event.wait(), timeout=timeout)
     except TimeoutError as exc:
         raise TimeoutError("HITL response timed out") from exc
-    finally:
-        # Only clear if we're still the active waiter for this job.
-        if _HITL_RESPONSE_WAITERS.get(job_id) is waiter:
-            _HITL_RESPONSE_WAITERS.pop(job_id, None)
 
-    # Clear for next interaction and update timestamp when response received.
+    # Atomic check and clear - response is guaranteed to be set after event fires
+    response = job.hitl_response
     job.hitl_response = None
+    job.hitl_event.clear()  # Reset for next interaction
     job.updated_at = datetime.now(UTC)
     return response
 
 
 def notify_hitl_response(job_id: str, response: dict[str, Any]) -> None:
-    """Notify the in-flight HITL waiter (if any) that a response arrived."""
-    waiter = _HITL_RESPONSE_WAITERS.get(job_id)
-    if waiter is None or waiter.done():
+    """Notify the in-flight HITL waiter that a response arrived.
+
+    This is race-safe: the event is set before storing the response,
+    ensuring that any waiters will see the new response.
+    """
+    job = JOBS.get(job_id)
+    if job is None:
         return
-    waiter.set_result(response)
+
+    # Ensure event is initialized
+    if job.hitl_event is None:
+        job.hitl_event = asyncio.Event()
+
+    # Store response first (atomic with event set)
+    job.hitl_response = response
+    job.hitl_event.set()  # Notify any waiting coroutines
+    job.updated_at = datetime.now(UTC)
 
 
 # =============================================================================
@@ -192,6 +202,10 @@ def load_job_session(job_id: str) -> JobState | None:
             job.tdd_workflow = TDDWorkflowState(**tdd_data)
         if deep_data:
             job.deep_understanding = DeepUnderstandingState(**deep_data)
+
+        # Reinitialize hitl_event and hitl_lock (not serialized)
+        job.hitl_event = asyncio.Event()
+        job.hitl_lock = asyncio.Lock()
 
         JOBS[job_id] = job
         logger.info("Loaded session for job %s", _sanitize_for_log(job_id))

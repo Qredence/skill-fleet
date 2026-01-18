@@ -59,7 +59,7 @@ async def validate_skill(
     try:
         candidate_path = validator.resolve_skill_ref(path)
     except ValueError as err:
-        raise HTTPException(status_code=400, detail="Invalid path") from err
+        raise HTTPException(status_code=422, detail="Invalid path") from err
 
     result = validator.validate_complete(candidate_path)
 

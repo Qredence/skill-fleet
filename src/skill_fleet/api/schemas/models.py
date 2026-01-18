@@ -7,10 +7,11 @@ This keeps models separate from business logic and route handlers.
 
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from ...core.models import ChecklistState
 
@@ -49,6 +50,13 @@ class JobState(BaseModel):
     result: Any | None = None
     error: str | None = None
 
+    # Event for atomic HITL response signaling (not serialized)
+    # Initialized in __pydantic_init__ to avoid serialization issues
+    hitl_event: asyncio.Event | None = None
+
+    # Lock for atomic HITL operations (not serialized)
+    hitl_lock: asyncio.Lock | None = None
+
     # Progress tracking for CLI display
     current_phase: str | None = None  # "understanding", "generation", "validation"
     progress_message: str | None = None  # Detailed progress message for CLI
@@ -81,3 +89,17 @@ class JobState(BaseModel):
     # User context
     user_id: str = "default"
     user_context: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def initialize_hitl_sync_objects(self) -> JobState:
+        """Initialize asyncio.Event and asyncio.Lock for HITL synchronization.
+
+        This is done in a model validator to ensure that sync objects are created
+        when a JobState instance is instantiated, but excluded from serialization
+        since asyncio.Event and asyncio.Lock are not JSON-serializable.
+        """
+        if self.hitl_event is None:
+            object.__setattr__(self, "hitl_event", asyncio.Event())
+        if self.hitl_lock is None:
+            object.__setattr__(self, "hitl_lock", asyncio.Lock())
+        return self

@@ -12,7 +12,10 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from ...common.security import sanitize_taxonomy_path
+from ...common.path_validation import (
+    resolve_skill_md_path,
+    sanitize_taxonomy_path,
+)
 from ...core.dspy.metrics import SkillQualityScores, assess_skill_quality
 from ..dependencies import SkillsRoot
 
@@ -139,36 +142,14 @@ def _scores_to_response(scores: SkillQualityScores) -> EvaluationResponse:
 def _resolve_skill_md_path(*, skills_root: Path, taxonomy_path: str) -> Path:
     """Resolve an untrusted taxonomy-relative path to a SKILL.md path safely.
 
+    Delegates to the shared resolve_skill_md_path function in
+    common.path_validation to ensure consistent security handling.
+
     Raises:
         ValueError: If the taxonomy path is invalid or escapes skills_root.
         FileNotFoundError: If the SKILL.md file does not exist.
     """
-    safe_taxonomy_path = sanitize_taxonomy_path(taxonomy_path)
-    if safe_taxonomy_path is None:
-        raise ValueError("Invalid path")
-
-    skills_root_resolved = skills_root.resolve()
-
-    # Disallow symlinks for the skill directory itself (defense-in-depth).
-    skill_dir = skills_root_resolved / safe_taxonomy_path
-    if skill_dir.exists() and skill_dir.is_symlink():
-        raise ValueError("Invalid path")
-
-    candidate_md = skill_dir / "SKILL.md"
-    if not candidate_md.exists():
-        raise FileNotFoundError(candidate_md.as_posix())
-
-    # Disallow symlink SKILL.md files to prevent escaping via filesystem links.
-    if candidate_md.is_symlink():
-        raise ValueError("Invalid path")
-
-    resolved_md = candidate_md.resolve(strict=True)
-    try:
-        resolved_md.relative_to(skills_root_resolved)
-    except ValueError as e:
-        raise ValueError("Invalid path") from e
-
-    return resolved_md
+    return resolve_skill_md_path(skills_root=skills_root, taxonomy_path=taxonomy_path)
 
 
 @router.post("/evaluate", response_model=EvaluationResponse)
@@ -194,7 +175,7 @@ async def evaluate_skill(
     try:
         skill_md = _resolve_skill_md_path(skills_root=skills_root, taxonomy_path=path)
     except ValueError as err:
-        raise HTTPException(status_code=400, detail="Invalid path") from err
+        raise HTTPException(status_code=422, detail="Invalid path") from err
     except FileNotFoundError as err:
         raise HTTPException(
             status_code=404,

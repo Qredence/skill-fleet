@@ -9,12 +9,13 @@ from __future__ import annotations
 
 import os
 import shutil
+import tempfile
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from ...common.security import resolve_path_within_root
+from ...common.path_validation import resolve_path_within_root
 from ..dependencies import SkillsRoot, TaxonomyManagerDep
 from ..jobs import delete_job_session, get_job, save_job_session
 
@@ -97,7 +98,7 @@ async def promote_draft(
         # Ensure the target directory is resolved within the normalized skills root.
         target_dir = resolve_path_within_root(skills_root_resolved, job.intended_taxonomy_path)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=f"Invalid target path: {e}") from e
+        raise HTTPException(status_code=422, detail=f"Invalid target path: {e}") from e
 
     if target_dir.exists() and not request.overwrite:
         raise HTTPException(status_code=409, detail="Target skill already exists (overwrite=false)")
@@ -124,14 +125,43 @@ async def promote_draft(
         # Also verify using relative_to for semantic clarity
         draft_path_resolved.relative_to(drafts_dir_resolved)
     except (ValueError, RuntimeError) as e:
-        raise HTTPException(status_code=400, detail=f"Invalid draft path: {e}") from e
+        raise HTTPException(status_code=422, detail=f"Invalid draft path: {e}") from e
 
     try:
-        if target_dir.exists() and request.overwrite:
-            _safe_rmtree(target_dir)
+        # Transaction-safe promotion: use temporary directory for atomicity
+        with tempfile.TemporaryDirectory(prefix="skill_promote_") as temp_dir:
+            temp_dir_path = Path(temp_dir)
 
-        target_dir.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(draft_path_resolved, target_dir, dirs_exist_ok=request.overwrite)
+            # Backup existing target if overwriting
+            backup_path = temp_dir_path / "backup"
+            needs_restore = False
+
+            if target_dir.exists() and request.overwrite:
+                # Move existing target to backup
+                shutil.move(str(target_dir), str(backup_path))
+                needs_restore = True
+            elif target_dir.exists():
+                # Target exists but overwrite=False - should have been caught above
+                raise HTTPException(
+                    status_code=409, detail="Target skill already exists (overwrite=false)"
+                )
+
+            try:
+                # Copy draft to target
+                target_dir.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copytree(draft_path_resolved, target_dir, dirs_exist_ok=request.overwrite)
+
+                # Success - remove backup if it exists
+                if backup_path.exists():
+                    shutil.rmtree(backup_path)
+
+            except Exception as e:
+                # Failure - restore from backup if we made one
+                if needs_restore and backup_path.exists():
+                    if target_dir.exists():
+                        shutil.rmtree(target_dir)
+                    shutil.move(str(backup_path), str(target_dir))
+                raise e
 
         # Update taxonomy meta/cache by loading metadata (best-effort).
         try:

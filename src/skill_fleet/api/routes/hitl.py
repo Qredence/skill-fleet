@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
@@ -232,21 +233,28 @@ async def post_response(job_id: str, response: dict) -> HITLResponseResult:
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
-    # Only accept responses when the job is actively waiting for HITL. This avoids
-    # late/stale responses accidentally being consumed by a *future* HITL prompt.
-    if job.status != "pending_hitl":
-        return HITLResponseResult(
-            status="ignored", detail=f"No HITL prompt pending (status={job.status})"
-        )
+    # Ensure lock is initialized (handles loaded sessions)
+    if job.hitl_lock is None:
+        job.hitl_lock = asyncio.Lock()
 
-    # Store the response
-    job.hitl_response = response
+    # Use lock to make status check and response assignment atomic
+    # This prevents race conditions where status changes between check and assignment
+    async with job.hitl_lock:
+        # Only accept responses when the job is actively waiting for HITL. This avoids
+        # late/stale responses accidentally being consumed by a *future* HITL prompt.
+        if job.status != "pending_hitl":
+            return HITLResponseResult(
+                status="ignored", detail=f"No HITL prompt pending (status={job.status})"
+            )
 
-    # Immediately release any in-flight waiter so the background job can resume.
-    notify_hitl_response(job_id, response)
+        # Store the response
+        job.hitl_response = response
 
-    # Update status eagerly so polling clients don't re-render the same prompt.
-    job.status = "running"
+        # Immediately release any in-flight waiter so the background job can resume.
+        notify_hitl_response(job_id, response)
+
+        # Update status eagerly so polling clients don't re-render the same prompt.
+        job.status = "running"
 
     # Update deep_understanding state if provided
     if job.hitl_type == "deep_understanding":

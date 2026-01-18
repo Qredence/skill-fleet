@@ -558,7 +558,9 @@ class SkillValidator:
             warnings.append(f"skill_id '{skill_id}' does not match path '{path}'")
 
         if not self._validate_skill_id_format(skill_id):
-            errors.append(f"skill_id '{skill_id}' should use lowercase/underscore/hyphen path segments")
+            errors.append(
+                f"skill_id '{skill_id}' should use lowercase/underscore/hyphen path segments"
+            )
 
         # Check path depth for modern taxonomy compliance
         depth = len(path.split("/"))

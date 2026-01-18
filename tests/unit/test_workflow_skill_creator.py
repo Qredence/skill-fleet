@@ -83,7 +83,7 @@ def test_create_skill_returns_exists(tmp_path, monkeypatch: pytest.MonkeyPatch) 
     )
 
     # Cast to Any to avoid type errors, but the duck typing works at runtime
-    taxonomy = _FakeTaxonomy(tmp_path)  # type: ignore[arg-type]
+    taxonomy = _FakeTaxonomy(tmp_path)
     taxonomy._exists = True
 
     # Create a proper mock validator
@@ -107,7 +107,7 @@ def test_create_skill_returns_validation_failed(tmp_path, monkeypatch: pytest.Mo
         skill_creator_module.dspy, "context", lambda **kwargs: contextlib.nullcontext()
     )
 
-    taxonomy = _FakeTaxonomy(tmp_path)  # type: ignore[arg-type]
+    taxonomy = _FakeTaxonomy(tmp_path)
     validator_mock = Mock(spec=SkillValidator)
 
     creator = skill_creator_module.TaxonomySkillCreator(
@@ -131,7 +131,7 @@ def test_create_skill_rejects_circular_dependency(
         skill_creator_module.dspy, "context", lambda **kwargs: contextlib.nullcontext()
     )
 
-    taxonomy = _FakeTaxonomy(tmp_path)  # type: ignore[arg-type]
+    taxonomy = _FakeTaxonomy(tmp_path)
     taxonomy._has_cycle = True
     validator_mock = Mock(spec=SkillValidator)
 
@@ -159,7 +159,7 @@ def test_create_skill_approved_tracks_usage_and_updates_stats(
         skill_creator_module.dspy, "context", lambda **kwargs: contextlib.nullcontext()
     )
 
-    taxonomy = _FakeTaxonomy(tmp_path)  # type: ignore[arg-type]
+    taxonomy = _FakeTaxonomy(tmp_path)
     validator_mock = Mock(spec=SkillValidator)
 
     creator = skill_creator_module.TaxonomySkillCreator(
@@ -192,7 +192,7 @@ def test_create_skill_max_iterations_when_needs_revision_repeats(
         skill_creator_module.dspy, "context", lambda **kwargs: contextlib.nullcontext()
     )
 
-    taxonomy = _FakeTaxonomy(tmp_path)  # type: ignore[arg-type]
+    taxonomy = _FakeTaxonomy(tmp_path)
     validator_mock = Mock(spec=SkillValidator)
 
     creator = skill_creator_module.TaxonomySkillCreator(

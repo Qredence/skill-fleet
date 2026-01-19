@@ -11,9 +11,10 @@
 import React, { useState } from "react";
 import { Box, Text } from "ink";
 import TextInput from "ink-text-input";
-import { StreamingClient, ThinkingChunk, ResponseChunk } from "../streaming-client";
+import { StreamingClient, ThinkingChunk, ResponseChunk } from "../streaming-client.js";
 
 interface Message {
+  id: string;
   role: "user" | "assistant" | "thinking";
   content: string;
   step?: number;
@@ -43,8 +44,10 @@ function formatThinkingChunk(chunk: ThinkingChunk): string {
 
 export const ChatTab: React.FC<ChatTabProps> = ({ apiUrl, isActive }) => {
   const [input, setInput] = useState("");
+  const [messageIdCounter, setMessageIdCounter] = useState(0);
   const [messages, setMessages] = useState<Message[]>([
     {
+      id: "welcome-0",
       role: "assistant",
       content:
         "Welcome to Skills Fleet TUI! 🚀\nType your request (e.g., 'optimize my last skill' or '/help') and I'll assist you.\nI'll show you my thinking process as I generate responses.",
@@ -55,13 +58,19 @@ export const ChatTab: React.FC<ChatTabProps> = ({ apiUrl, isActive }) => {
 
   const streamingClient = new StreamingClient();
 
+  const getNextMessageId = () => {
+    const id = `msg-${messageIdCounter}`;
+    setMessageIdCounter(messageIdCounter + 1);
+    return id;
+  };
+
   const handleSubmit = async (message: string) => {
     if (!message.trim() || isLoading) return;
 
     // Add user message
     setMessages((prev) => [
       ...prev,
-      { role: "user", content: message },
+      { id: getNextMessageId(), role: "user", content: message },
     ]);
     setInput("");
     setIsLoading(true);
@@ -79,6 +88,7 @@ export const ChatTab: React.FC<ChatTabProps> = ({ apiUrl, isActive }) => {
           setMessages((prev) => [
             ...prev,
             {
+              id: `think-${Date.now()}-${Math.random()}`,
               role: "thinking",
               content: formatThinkingChunk(chunk),
               step: chunk.step,
@@ -105,7 +115,7 @@ export const ChatTab: React.FC<ChatTabProps> = ({ apiUrl, isActive }) => {
         onError: (error: string) => {
           setMessages((prev) => [
             ...prev,
-            { role: "assistant", content: `❌ Error: ${error}` },
+            { id: getNextMessageId(), role: "assistant", content: `❌ Error: ${error}` },
           ]);
         },
         onComplete: () => {
@@ -120,6 +130,7 @@ export const ChatTab: React.FC<ChatTabProps> = ({ apiUrl, isActive }) => {
         setMessages((prev) => [
           ...prev,
           {
+            id: getNextMessageId(),
             role: "assistant",
             content:
               "Got your message! How can I help with your skills?",
@@ -130,6 +141,7 @@ export const ChatTab: React.FC<ChatTabProps> = ({ apiUrl, isActive }) => {
       setMessages((prev) => [
         ...prev,
         {
+          id: getNextMessageId(),
           role: "assistant",
           content: `❌ Failed to process message: ${error instanceof Error ? error.message : String(error)}`,
         },
@@ -188,7 +200,7 @@ export const ChatTab: React.FC<ChatTabProps> = ({ apiUrl, isActive }) => {
     <Box flexDirection="column" width={80} height={24}>
       {/* Messages Display */}
       <Box flexDirection="column" marginBottom={1} flexGrow={1} overflowY="hidden">
-        {visibleMessages.map((msg, idx) => {
+        {visibleMessages.map((msg) => {
           let prefix = "";
           let color: "cyan" | "green" | "yellow" | "gray" | "blue" = "cyan";
 
@@ -204,7 +216,7 @@ export const ChatTab: React.FC<ChatTabProps> = ({ apiUrl, isActive }) => {
           }
 
           return (
-            <Box key={idx} flexDirection="column" marginBottom={1}>
+            <Box key={msg.id} flexDirection="column" marginBottom={1}>
               <Text color={color}>
                 {prefix}
                 {msg.content}
@@ -221,7 +233,7 @@ export const ChatTab: React.FC<ChatTabProps> = ({ apiUrl, isActive }) => {
             💡 Suggested next steps:
           </Text>
           {suggestions.map((sugg, idx) => (
-            <Text key={idx} color="yellow">
+            <Text key={`suggestion-${idx}-${sugg.substring(0, 10)}`} color="yellow">
               • {sugg}
             </Text>
           ))}

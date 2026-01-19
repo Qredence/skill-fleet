@@ -7,7 +7,7 @@
 
 import React from "react";
 import { render } from "ink";
-import { App } from "./app";
+import { App } from "./app.js";
 
 // Parse environment variables
 const API_URL = process.env.SKILL_FLEET_API_URL || "http://localhost:8000";

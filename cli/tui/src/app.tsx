@@ -11,7 +11,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Box, Text } from "ink";
-import { ChatTab } from "./tabs/chat-tab";
+import { ChatTab } from "./tabs/chat-tab.js";
 
 interface AppProps {
   apiUrl: string;

@@ -10,7 +10,7 @@
  */
 import React, { useEffect, useState } from "react";
 import { Box, Text } from "ink";
-import { ChatTab } from "./tabs/chat-tab";
+import { ChatTab } from "./tabs/chat-tab.js";
 const TABS = ["chat", "skills", "jobs", "optimization"];
 const TAB_NAMES = {
     chat: "💬 Chat",

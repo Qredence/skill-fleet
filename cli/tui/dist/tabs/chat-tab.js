@@ -10,7 +10,7 @@
 import React, { useState } from "react";
 import { Box, Text } from "ink";
 import TextInput from "ink-text-input";
-import { StreamingClient } from "../streaming-client";
+import { StreamingClient } from "../streaming-client.js";
 /**
  * Format thinking content with colors
  */
@@ -27,8 +27,10 @@ function formatThinkingChunk(chunk) {
 }
 export const ChatTab = ({ apiUrl, isActive }) => {
     const [input, setInput] = useState("");
+    const [messageIdCounter, setMessageIdCounter] = useState(0);
     const [messages, setMessages] = useState([
         {
+            id: "welcome-0",
             role: "assistant",
             content: "Welcome to Skills Fleet TUI! 🚀\nType your request (e.g., 'optimize my last skill' or '/help') and I'll assist you.\nI'll show you my thinking process as I generate responses.",
         },
@@ -36,13 +38,18 @@ export const ChatTab = ({ apiUrl, isActive }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [suggestions, setSuggestions] = useState([]);
     const streamingClient = new StreamingClient();
+    const getNextMessageId = () => {
+        const id = `msg-${messageIdCounter}`;
+        setMessageIdCounter(messageIdCounter + 1);
+        return id;
+    };
     const handleSubmit = async (message) => {
         if (!message.trim() || isLoading)
             return;
         // Add user message
         setMessages((prev) => [
             ...prev,
-            { role: "user", content: message },
+            { id: getNextMessageId(), role: "user", content: message },
         ]);
         setInput("");
         setIsLoading(true);
@@ -58,6 +65,7 @@ export const ChatTab = ({ apiUrl, isActive }) => {
                     setMessages((prev) => [
                         ...prev,
                         {
+                            id: `think-${Date.now()}-${Math.random()}`,
                             role: "thinking",
                             content: formatThinkingChunk(chunk),
                             step: chunk.step,
@@ -82,7 +90,7 @@ export const ChatTab = ({ apiUrl, isActive }) => {
                 onError: (error) => {
                     setMessages((prev) => [
                         ...prev,
-                        { role: "assistant", content: `❌ Error: ${error}` },
+                        { id: getNextMessageId(), role: "assistant", content: `❌ Error: ${error}` },
                     ]);
                 },
                 onComplete: () => {
@@ -96,6 +104,7 @@ export const ChatTab = ({ apiUrl, isActive }) => {
                 setMessages((prev) => [
                     ...prev,
                     {
+                        id: getNextMessageId(),
                         role: "assistant",
                         content: "Got your message! How can I help with your skills?",
                     },
@@ -106,6 +115,7 @@ export const ChatTab = ({ apiUrl, isActive }) => {
             setMessages((prev) => [
                 ...prev,
                 {
+                    id: getNextMessageId(),
                     role: "assistant",
                     content: `❌ Failed to process message: ${error instanceof Error ? error.message : String(error)}`,
                 },
@@ -151,7 +161,7 @@ export const ChatTab = ({ apiUrl, isActive }) => {
     const maxMessages = 15;
     const visibleMessages = messages.slice(-maxMessages);
     return (React.createElement(Box, { flexDirection: "column", width: 80, height: 24 },
-        React.createElement(Box, { flexDirection: "column", marginBottom: 1, flexGrow: 1, overflowY: "hidden" }, visibleMessages.map((msg, idx) => {
+        React.createElement(Box, { flexDirection: "column", marginBottom: 1, flexGrow: 1, overflowY: "hidden" }, visibleMessages.map((msg) => {
             let prefix = "";
             let color = "cyan";
             if (msg.role === "user") {
@@ -166,14 +176,14 @@ export const ChatTab = ({ apiUrl, isActive }) => {
                 prefix = "Assistant: ";
                 color = "green";
             }
-            return (React.createElement(Box, { key: idx, flexDirection: "column", marginBottom: 1 },
+            return (React.createElement(Box, { key: msg.id, flexDirection: "column", marginBottom: 1 },
                 React.createElement(Text, { color: color },
                     prefix,
                     msg.content)));
         })),
         suggestions.length > 0 && !isLoading && (React.createElement(Box, { flexDirection: "column", marginBottom: 1, borderStyle: "single", borderColor: "yellow", paddingX: 1 },
             React.createElement(Text, { color: "yellow", bold: true }, "\uD83D\uDCA1 Suggested next steps:"),
-            suggestions.map((sugg, idx) => (React.createElement(Text, { key: idx, color: "yellow" },
+            suggestions.map((sugg, idx) => (React.createElement(Text, { key: `suggestion-${idx}-${sugg.substring(0, 10)}`, color: "yellow" },
                 "\u2022 ",
                 sugg))))),
         isLoading && (React.createElement(Box, { marginBottom: 1 },

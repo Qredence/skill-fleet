@@ -6,7 +6,7 @@
  */
 import React from "react";
 import { render } from "ink";
-import { App } from "./app";
+import { App } from "./app.js";
 // Parse environment variables
 const API_URL = process.env.SKILL_FLEET_API_URL || "http://localhost:8000";
 const USER_ID = process.env.SKILL_FLEET_USER_ID || "default";

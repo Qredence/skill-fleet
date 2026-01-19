@@ -44,52 +44,55 @@ from ...models import (
 
 
 class GatherExamplesForSkill(dspy.Signature):
-    """Gather concrete usage examples from the user before skill creation.
+    """Collect concrete usage examples from user before creating skill.
 
-    This step runs BEFORE UnderstandTaskForSkill to ensure we build skills
-    grounded in real use cases, not assumptions. Skip only when usage
-    patterns are already clearly understood.
+    Ground skills in real use cases, not assumptions. Ask focused questions
+    about functionality, triggering conditions, and edge cases.
 
-    Key questions to explore:
-    - "What functionality should this skill support?"
-    - "Can you give examples of how this skill would be used?"
-    - "What would a user say that should trigger this skill?"
-    - "What are the edge cases or limitations?"
-
-    Conclude when readiness_score >= threshold (default 0.8) and
-    at least min_examples (default 3) concrete examples are collected.
+    Conclude when: readiness_score >= threshold AND min_examples collected.
     """
 
     # Inputs
-    task_description: str = dspy.InputField(desc="Initial task description from user")
+    task_description: str = dspy.InputField(
+        desc="Initial task description from user (what skill they need)"
+    )
     user_responses: str = dspy.InputField(
-        desc="JSON list of user responses to previous clarifying questions (empty [] on first call)"
+        desc="JSON array of previous user responses: [{question_id, answer_text}, ...]. "
+        "Empty array [] on first round."
     )
     collected_examples: str = dspy.InputField(
-        desc="JSON list of UserExample objects collected so far (empty [] on first call)"
+        desc="JSON array of UserExample objects collected: [{input_description, expected_output, context}, ...]. "
+        "Empty array [] on first round."
     )
     config: str = dspy.InputField(
-        desc="JSON ExampleGatheringConfig with min_examples, readiness_threshold, max_questions"
+        desc="JSON ExampleGatheringConfig: {min_examples: 3, readiness_threshold: 0.8, max_questions: 10}"
     )
 
     # Outputs
     clarifying_questions: list[ClarifyingQuestion] = dspy.OutputField(
-        desc="1-3 focused questions to ask the user (fewer is better). Empty list if ready to proceed."
+        desc="1-3 focused questions (fewer better). Each has: question_text, context, suggested_answers. "
+        "Ask about: specific use cases, triggering conditions, edge cases. "
+        "Empty list [] when ready to proceed (readiness_score >= threshold)."
     )
     new_examples: list[UserExample] = dspy.OutputField(
-        desc="New examples extracted from user responses (add to collected_examples)"
+        desc="New examples extracted from latest user responses. Each has: input_description, expected_output, context. "
+        "Add to collected_examples for cumulative gathering. Empty list [] if no new examples this round."
     )
     terminology_updates: dict[str, str] = dspy.OutputField(
-        desc="Key terms and definitions learned from this round"
+        desc="Domain-specific terms learned this round: {term: definition}. "
+        "Use for consistent vocabulary in generated skill. Empty dict {} if no new terms."
     )
     refined_task: str = dspy.OutputField(
-        desc="Updated task description incorporating insights from examples"
+        desc="Updated task description incorporating user responses and examples. "
+        "More specific than original. Use this for Phase 1 Understanding step."
     )
     readiness_score: float = dspy.OutputField(
-        desc="0.0-1.0 score. >= threshold means ready to proceed. Based on example coverage, clarity, and edge cases."
+        desc="Readiness 0.0-1.0. Score based on: example diversity (0-0.4), clarity (0-0.3), "
+        "edge case coverage (0-0.3). >= threshold (default 0.8) means proceed to Phase 1."
     )
     readiness_reasoning: str = dspy.OutputField(
-        desc="Brief explanation of readiness score (why ready or what's missing)"
+        desc="1-2 sentence explanation of score. If ready: what we learned. "
+        "If not ready: what specific information still missing. Be concrete."
     )
 
 
@@ -99,38 +102,48 @@ class GatherExamplesForSkill(dspy.Signature):
 
 
 class UnderstandTaskForSkill(dspy.Signature):
-    """Extract task requirements and map to a taxonomy position.
+    """Analyze task requirements and determine taxonomy placement.
 
-    Analyzes the user's task description and determines:
-    - Core intent and requirements
-    - Best taxonomy path for the skill
-    - Related skills in the taxonomy
-    - Missing dependencies
+    Extract core intent, find optimal taxonomy path, identify related skills,
+    and analyze dependencies. Be thorough but concise.
     """
 
     # Inputs
     task_description: str = dspy.InputField(
-        desc="User task or capability requirement to create a skill for"
+        desc="User's task description (what skill to create and why)"
     )
-    existing_skills: str = dspy.InputField(desc="JSON list of currently mounted skill_ids")
+    existing_skills: str = dspy.InputField(
+        desc="JSON array of current skill_ids: ['python/async', 'web/react', ...]. "
+        "Use to avoid duplication and find related skills."
+    )
     taxonomy_structure: str = dspy.InputField(
-        desc="JSON object with relevant portions of the hierarchical taxonomy"
+        desc="JSON taxonomy tree with categories and existing skills. "
+        "Format: {category: {subcategory: [skill_ids], ...}, ...}"
     )
 
-    # Outputs - mix of typed and string for flexibility
+    # Outputs
     task_intent: str = dspy.OutputField(
-        desc="Core intent and requirements extracted from task (1-3 sentences)"
+        desc="Core intent (1-3 sentences): what user wants to achieve, why this skill is needed, "
+        "what problem it solves. Be specific and actionable."
     )
     taxonomy_path: str = dspy.OutputField(
-        desc="Proposed taxonomy path using forward slashes (e.g., 'technical_skills/programming/languages/python')"
+        desc="Proposed path in v0.2 format: 'category/skill-name' (2-level structure). "
+        "Use kebab-case. Examples: 'python/async-patterns', 'web/react-hooks'. "
+        "Prefer existing categories, justify new ones."
     )
     parent_skills: list[ParentSkillInfo] = dspy.OutputField(
-        desc="List of related parent/sibling skills in taxonomy for context"
+        desc="0-5 related skills in same category/parent category. Each has: skill_id, relationship (parent/sibling/related). "
+        "Use for understanding existing patterns and avoiding duplication. Empty list [] if creating new category."
     )
     dependency_analysis: DependencyAnalysis = dspy.OutputField(
-        desc="Analysis of required dependency skills not yet mounted"
+        desc="Dependency analysis object with: required (list of prerequisite skill_ids), "
+        "recommended (complementary skill_ids), conflicts (incompatible skill_ids), rationale"
     )
-    confidence_score: float = dspy.OutputField(desc="Confidence in taxonomy placement (0.0-1.0)")
+    confidence_score: float = dspy.OutputField(
+        desc="Confidence 0.0-1.0 in analysis quality. >0.8 = high confidence (clear requirements), "
+        "0.6-0.8 = moderate, <0.6 = low (may need HITL clarification). "
+        "Consider: task clarity, taxonomy fit, dependency certainty."
+    )
 
 
 # =============================================================================
@@ -139,38 +152,55 @@ class UnderstandTaskForSkill(dspy.Signature):
 
 
 class PlanSkillStructure(dspy.Signature):
-    """Design skill structure with taxonomy integration and agentskills.io compliance.
+    """Design complete skill structure ensuring agentskills.io compliance.
 
-    Creates the complete metadata and structure for a new skill, ensuring:
-    - Valid agentskills.io kebab-case name
-    - Proper dependency declarations
-    - Well-defined capabilities
+    Create metadata, define capabilities, specify dependencies, and plan composition.
+    All outputs must be production-ready and validation-compliant.
     """
 
     # Inputs
-    task_intent: str = dspy.InputField(desc="Core intent from understand step")
-    taxonomy_path: str = dspy.InputField(desc="Proposed taxonomy path")
-    parent_skills: str = dspy.InputField(desc="JSON list of related skills")
-    dependency_analysis: str = dspy.InputField(desc="JSON dependency analysis")
+    task_intent: str = dspy.InputField(
+        desc="Core intent from understand step (purpose, problem, value)"
+    )
+    taxonomy_path: str = dspy.InputField(
+        desc="Validated taxonomy path in v0.2 format: 'category/skill-name'"
+    )
+    parent_skills: str = dspy.InputField(
+        desc="JSON array of related ParentSkillInfo objects for pattern consistency"
+    )
+    dependency_analysis: str = dspy.InputField(
+        desc="JSON DependencyAnalysis with prerequisites, complementary skills, conflicts"
+    )
 
     # Outputs - typed for validation
     skill_metadata: SkillMetadata = dspy.OutputField(
-        desc="Complete skill metadata following agentskills.io spec"
+        desc="Metadata object: name (kebab-case matching taxonomy path leaf), "
+        "description (starts with 'Use when...', 10-30 words, specific triggers), "
+        "taxonomy_path, tags (3-7 keywords), version (1.0.0 for new skills). "
+        "MUST pass agentskills.io validation."
     )
     dependencies: list[DependencyRef] = dspy.OutputField(
-        desc="List of dependency skill_ids with justification"
+        desc="0-5 dependencies (prerequisites + key complementary skills). Each has: skill_id, reason. "
+        "Order by importance. Include only dependencies that significantly impact skill usage."
     )
     capabilities: list[Capability] = dspy.OutputField(
-        desc="List of discrete, testable capabilities (3-7 recommended)"
+        desc="3-7 discrete, testable capabilities this skill provides. Each has: name, description, rationale. "
+        "Each capability should map to a major skill section or pattern. "
+        "Be specific (not 'handle async' but 'implement async/await with error handling')."
     )
     resource_requirements: ResourceRequirements = dspy.OutputField(
-        desc="External resources (APIs, tools, files) needed"
+        desc="External resources object: apis (external APIs needed), tools (CLI tools), "
+        "files (config files), packages (language packages). Specify versions where relevant. "
+        "Empty fields for self-contained skills."
     )
     compatibility_constraints: CompatibilityConstraints = dspy.OutputField(
-        desc="Platform requirements and conflicts"
+        desc="Compatibility object: python_version, platforms (list), conflicts (incompatible skills/tools). "
+        "Be specific: '>= 3.10' not '3.x'. Empty/null fields if no constraints."
     )
     composition_strategy: str = dspy.OutputField(
-        desc="How this skill composes with other skills (1-2 paragraphs)"
+        desc="1-2 paragraphs on skill composition: how this skill works with dependencies, "
+        "when to load with other skills, common skill combinations. "
+        "Include concrete examples: 'Load with python/basics when...'. Empty string '' if standalone."
     )
 
 
@@ -183,13 +213,18 @@ class InitializeSkillSkeleton(dspy.Signature):
     """Create a skill skeleton matching taxonomy standards.
 
     Generates the directory structure and file list for the skill,
-    following the standard layout:
+    following the v2 Golden Standard layout:
     - metadata.json
     - SKILL.md
-    - capabilities/
+    - references/ (v2 standard, replaces capabilities/)
+    - guides/ (v2 standard, replaces resources/)
+    - templates/ (v2 standard)
+    - scripts/
     - examples/
     - tests/
-    - resources/
+    - assets/
+
+    Legacy directories (capabilities/, resources/) may be created for backward compatibility.
     """
 
     # Inputs
@@ -212,17 +247,10 @@ class InitializeSkillSkeleton(dspy.Signature):
 
 
 class EditSkillContent(dspy.Signature):
-    """Generate comprehensive skill content with composition support.
+    """Generate production-ready SKILL.md with all required sections and quality indicators.
 
-    Creates the main SKILL.md content and supporting documentation.
-    Note: YAML frontmatter will be added automatically during registration.
-
-    The skill_content MUST include these sections:
-    - # Title (skill name as heading)
-    - ## Overview (what the skill does)
-    - ## Capabilities (list of discrete capabilities)
-    - ## Dependencies (required skills or 'No dependencies')
-    - ## Usage Examples (code examples with expected output)
+    MUST include: When to Use This Skill, Quick Start, ❌/✅ contrast patterns, core principle.
+    Follow v2 Golden Standard. YAML frontmatter added automatically.
     """
 
     # Inputs
@@ -238,21 +266,29 @@ class EditSkillContent(dspy.Signature):
 
     # Outputs - skill_content stays as string for long-form markdown
     skill_content: str = dspy.OutputField(
-        desc="""Full SKILL.md markdown body content (frontmatter added automatically).
-        Must include: # Title, ## Overview, ## Capabilities, ## Dependencies, ## Usage Examples.
-        Include code blocks with syntax highlighting (```python, ```bash, etc.)."""
+        desc="Complete SKILL.md body (frontmatter added separately). Required sections: "
+        "(1) ## When to Use This Skill - specific triggers, (2) ## Quick Start - copy-paste examples, "
+        "(3) ## Patterns - with ❌ anti-patterns and ✅ production patterns. "
+        "Include: **Core principle:** statement, strong guidance (ALWAYS/NEVER/MUST), "
+        "executable code blocks with language tags. Min 50 lines, production quality."
     )
     capability_implementations: list[CapabilityImplementation] = dspy.OutputField(
-        desc="Documentation content for each capability"
+        desc="Implementation docs for each capability (matches capabilities from plan). "
+        "Each has: capability_id, content (markdown with code examples), code_snippets (standalone). "
+        "Min 1, typically 3-7 implementations."
     )
     usage_examples: list[UsageExample] = dspy.OutputField(
-        desc="Runnable usage examples with code and expected output"
+        desc="3-5 executable usage examples. Each has: title, description, code (copy-paste ready), "
+        "expected_output, notes. Real-world scenarios preferred over toy examples."
     )
     best_practices: list[BestPractice] = dspy.OutputField(
-        desc="Best practice recommendations (3-5 items)"
+        desc="5-10 actionable best practices. Each has: title, description, rationale. "
+        "Include common mistakes (❌) and correct patterns (✅). Order by importance."
     )
     integration_guide: str = dspy.OutputField(
-        desc="Integration notes and composition patterns (1-2 paragraphs)"
+        desc="Integration and composition guidance (1-2 paragraphs). How to combine with other skills, "
+        "when to load together, common workflows. Include specific skill names. "
+        "Empty string '' if skill is standalone."
     )
 
 
@@ -262,13 +298,10 @@ class EditSkillContent(dspy.Signature):
 
 
 class PackageSkillForApproval(dspy.Signature):
-    """Validate and prepare a skill for approval.
+    """Validate skill and prepare for approval with quality assessment.
 
-    Performs comprehensive validation and generates:
-    - Validation report with errors/warnings
-    - Integration test cases
-    - Packaging manifest
-    - Quality score
+    Run agentskills.io validation, quality scoring, and test generation.
+    Ensure skill meets minimum quality threshold before packaging.
     """
 
     # Inputs
@@ -279,15 +312,23 @@ class PackageSkillForApproval(dspy.Signature):
 
     # Outputs - typed for structured validation
     validation_report: ValidationReport = dspy.OutputField(
-        desc="Validation results with pass/fail, errors, and warnings"
+        desc="Validation object: passed (bool), errors (list of issues blocking approval), "
+        "warnings (list of non-blocking issues), compliance_checks (agentskills.io validation results)"
     )
     integration_tests: list[TestCase] = dspy.OutputField(
-        desc="Test cases to verify skill functionality"
+        desc="2-5 test cases for skill verification. Each has: name, test_input, expected_behavior, "
+        "assertion. Tests should verify: (1) core capability works, (2) examples are executable, "
+        "(3) error handling works. Empty list [] if skill is pure documentation."
     )
     packaging_manifest: PackagingManifest = dspy.OutputField(
-        desc="Manifest describing the packaged skill"
+        desc="Packaging manifest with: skill_id, version, file_list (SKILL.md + subdirectories), "
+        "dependencies, compatibility, checksum. Used for skill distribution and versioning."
     )
-    quality_score: float = dspy.OutputField(desc="Overall quality score (0.0-1.0)")
+    quality_score: float = dspy.OutputField(
+        desc="Overall quality 0.0-1.0 using skill_quality_metric. >0.80 = excellent (approve), "
+        "0.60-0.80 = good (minor improvements), <0.60 = needs revision. "
+        "Based on: structure completeness, pattern quality, code examples, quality indicators."
+    )
 
 
 # =============================================================================
@@ -296,12 +337,10 @@ class PackageSkillForApproval(dspy.Signature):
 
 
 class IterateSkillWithFeedback(dspy.Signature):
-    """Manage HITL approval and skill evolution tracking.
+    """Process HITL feedback and determine next action.
 
-    Processes human feedback to determine:
-    - Approval status (approved, needs_revision, rejected)
-    - Revision plan if changes needed
-    - Evolution metadata for tracking
+    Analyze feedback to decide: approved (ship it), needs_revision (specific changes),
+    rejected (fundamental issues). Generate concrete revision plan if needed.
     """
 
     # Inputs
@@ -312,16 +351,24 @@ class IterateSkillWithFeedback(dspy.Signature):
 
     # Outputs - typed for structured decisions
     approval_status: Literal["approved", "needs_revision", "rejected"] = dspy.OutputField(
-        desc="Final approval decision"
+        desc="Decision: approved (quality_score >0.80 AND no critical errors), "
+        "needs_revision (fixable issues OR 0.60-0.80 score), "
+        "rejected (fundamental problems OR quality_score <0.60). "
+        "Be conservative with approval - quality matters."
     )
     revision_plan: RevisionPlan = dspy.OutputField(
-        desc="Plan for revisions if status is needs_revision"
+        desc="Revision plan object (required if needs_revision, null otherwise): "
+        "changes_needed (specific list), priority (high/medium/low), estimated_effort. "
+        "Be concrete: 'Add error handling section' not 'Improve quality'."
     )
     evolution_metadata: EvolutionMetadata = dspy.OutputField(
-        desc="Metadata tracking skill evolution"
+        desc="Evolution tracking object: version, revision_count, quality_history (scores over time), "
+        "feedback_summary. Used for skill lifecycle management and continuous improvement."
     )
     next_steps: str = dspy.OutputField(
-        desc="Concrete next steps based on approval status (1-3 bullet points)"
+        desc="1-3 concrete next steps based on status. Approved: 'Promote to production', "
+        "Needs revision: 'Address errors in revision_plan', Rejected: 'Restart with clearer requirements'. "
+        "Be actionable and specific."
     )
 
 

@@ -18,7 +18,7 @@ dependencies = [
   "litellm[proxy]>=1.80.16",
   "mlflow>=3.8.1",
   "openai>=2.14.0",
-  "psycopg>=3.2.5",
+  "psycopg[binary]>=3.2.5",
   "pydantic>=2.12.5",
   "pyyaml>=6.0.3",
   "python-dotenv>=1.2.1",
@@ -30,6 +30,7 @@ dependencies = [
   "uvicorn[standard]>=0.31.1",
   "prompt-toolkit>=3.0.52",
   "ty>=0.0.12",
+  "psycopg2-binary>=2.9.11",
 ]
 classifiers = [
   "Development Status :: 3 - Alpha",

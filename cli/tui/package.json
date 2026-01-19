@@ -1,0 +1,27 @@
+{
+  "name": "skills-fleet-tui",
+  "version": "0.1.0",
+  "description": "Interactive Terminal UI for Skills Fleet with streaming responses",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "ink": "^5.0.0",
+    "ink-text-input": "^5.0.0",
+    "react": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.2.0",
+    "typescript": "^5.0.0",
+    "tsx": "^4.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

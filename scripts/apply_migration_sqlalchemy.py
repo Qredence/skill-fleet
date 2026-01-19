@@ -27,6 +27,10 @@ if not DATABASE_URL:
     print('   export DATABASE_URL="postgresql://user:pass@host/db?sslmode=require"')
     sys.exit(1)
 
+# Ensure psycopg driver is specified for SQLAlchemy
+if not DATABASE_URL.startswith('postgresql+'):
+    DATABASE_URL = DATABASE_URL.replace('postgresql://', 'postgresql+psycopg://')
+
 
 def get_migration_script_path() -> str:
     """Get the path to the migration SQL file."""

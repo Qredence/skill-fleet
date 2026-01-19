@@ -1,8 +1,15 @@
-"""CLI command for interactive chat sessions."""
+"""CLI command for interactive chat sessions.
+
+Features:
+- Try to launch interactive Ink TUI with streaming support
+- Fallback to simple terminal chat if TUI unavailable
+- Support for agentic intent detection and command execution
+"""
 
 from __future__ import annotations
 
 import asyncio
+import logging
 from pathlib import Path
 
 import httpx
@@ -13,8 +20,10 @@ from rich.prompt import Prompt
 from rich.text import Text
 
 from ..hitl.runner import run_hitl_job
+from ..tui_spawner import spawn_tui
 
 console = Console()
+logger = logging.getLogger(__name__)
 
 
 def chat_command(
@@ -31,9 +40,36 @@ def chat_command(
         "--force-plain-text",
         help="Disable arrow-key dialogs and use plain-text prompts",
     ),
+    no_tui: bool = typer.Option(
+        False,
+        "--no-tui",
+        help="Disable Ink TUI and use simple terminal chat",
+    ),
 ):
-    """Start an interactive guided session to build a skill (job + HITL)."""
+    """Start an interactive guided session to build a skill (job + HITL).
+    
+    Try to launch interactive Ink TUI with real-time streaming responses,
+    thinking/reasoning display, and agentic suggestions. Falls back to
+    simple terminal chat if TUI is unavailable.
+    """
     config = ctx.obj
+
+    # Try to spawn TUI first (if available and not disabled)
+    if not no_tui and not force_plain_text:
+        try:
+            exit_code = spawn_tui(api_url=config.api_url, user_id=config.user_id, force_no_tui=False)
+            if exit_code == 0:
+                # TUI not available, continue with fallback
+                console.print("[dim]TUI not available, using terminal chat...[/dim]")
+            elif exit_code > 0:
+                # TUI exited successfully
+                return
+            else:
+                # TUI error, continue with fallback
+                console.print("[yellow]TUI error, falling back to terminal chat[/yellow]")
+        except Exception as e:
+            logger.debug(f"TUI spawn failed: {e}, using fallback")
+            pass
 
     async def _run():
         try:

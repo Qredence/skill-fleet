@@ -27,7 +27,7 @@ from .exceptions import (
     UnprocessableEntityException,
 )
 from .middleware.logging import ErrorHandlingMiddleware, LoggingMiddleware
-from .routes import drafts, evaluation, hitl, jobs, optimization, skills, taxonomy, validation
+from .routes import chat_streaming, drafts, evaluation, hitl, jobs, optimization, skills, taxonomy, validation
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -114,6 +114,7 @@ def create_app() -> FastAPI:
     app.include_router(validation.router, prefix="/api/v2/validation", tags=["validation"])
     app.include_router(evaluation.router, prefix="/api/v2/evaluation", tags=["evaluation"])
     app.include_router(optimization.router, prefix="/api/v2/optimization", tags=["optimization"])
+    app.include_router(chat_streaming.router, tags=["chat"])
 
     # Auto-discovery of DSPy modules
     discover_and_expose(app, programs, prefix="/api/v2/programs")

@@ -9,13 +9,12 @@ Usage:
     from skill_fleet.api.dependencies import get_taxonomy_manager, get_skills_root
 
     @router.get("/skills")
-    async def list_skills(manager: TaxonomyManager = Depends(get_taxonomy_manager)):
+    async def list_skills(manager: TaxonomyManager = Depends(get_taxonomy_manager)) -> list:
         return manager.list_skills()
 """
 
 from __future__ import annotations
 
-import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Annotated
@@ -26,16 +25,27 @@ from ..common.paths import ensure_skills_root_initialized
 from ..taxonomy.manager import TaxonomyManager
 
 
+@lru_cache(maxsize=1)
+def _get_settings():
+    """Get API settings module.
+
+    Import lazily to avoid circular dependencies.
+    """
+    from .config import get_settings
+    return get_settings()
+
+
 def get_skills_root() -> Path:
     """Get the configured skills root directory.
 
-    Reads from SKILL_FLEET_SKILLS_ROOT environment variable,
+    Reads from SKILL_FLEET_SKILLS_ROOT environment variable or config,
     defaulting to "skills" in the current working directory.
 
     Returns:
         Path to the skills root directory
     """
-    root = Path(os.environ.get("SKILL_FLEET_SKILLS_ROOT", "skills"))
+    settings = _get_settings()
+    root = Path(settings.skills_root)
     return ensure_skills_root_initialized(root)
 
 

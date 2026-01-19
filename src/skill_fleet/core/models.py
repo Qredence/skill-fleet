@@ -8,7 +8,7 @@ HITL interactions, and configuration. Follows agentskills.io specification.
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -38,7 +38,8 @@ class ClarifyingQuestion(BaseModel):
         description="Multi-select options (2-5 required, empty if free-form)",
     )
     allows_multiple: bool = Field(
-        default=True, description="Whether multiple options can be selected (default: true)",
+        default=True,
+        description="Whether multiple options can be selected (default: true)",
     )
     required: bool = Field(default=True, description="Whether an answer is required")
 
@@ -263,13 +264,17 @@ class SkillMetadata(BaseModel):
     All skills must have:
     - skill_id: Internal path-style identifier
     - name: Kebab-case name (1-64 chars, lowercase alphanumeric + hyphens)
-    - description: 1-1024 character description
+    - description: 1-1024 character description (triggering conditions, NOT workflow summary)
 
     For scalable discovery (500+ skills):
     - category: Hierarchical category path for domain grouping
     - keywords: Search keywords for discovery
     - scope: What the skill does AND doesn't cover (for differentiation)
     - see_also: Related skills for cross-referencing
+
+    v2 Golden Standard additions:
+    - allowed_tools: Tools the skill can use (e.g., ["bash", "write", "read_file"])
+    - skill_style: navigation_hub | comprehensive | minimal
     """
 
     skill_id: str = Field(
@@ -317,6 +322,17 @@ class SkillMetadata(BaseModel):
     # From core version
     tags: list[str] = Field(default_factory=list, description="Search tags for discovery")
     taxonomy_path: str = Field(default="", description="Full path in taxonomy")
+
+    # v2 Golden Standard fields
+    allowed_tools: list[str] | None = Field(
+        default=None,
+        description="Tools the skill is permitted to use (e.g., ['bash', 'write', 'read_file'])",
+    )
+    skill_style: Literal["navigation_hub", "comprehensive", "minimal"] | None = Field(
+        default=None,
+        description="Skill structure style: navigation_hub (short SKILL.md + subdirs), "
+        "comprehensive (long self-contained), or minimal (focused single-purpose)",
+    )
 
 
 class Capability(BaseModel):
@@ -379,43 +395,47 @@ class FileSpec(BaseModel):
 class SkillSkeleton(BaseModel):
     """Directory and file structure for a skill.
 
-    Standard skill directory structure:
+    Standard skill directory structure (v2 Golden Standard format):
     skill-name/
     ├── SKILL.md                    # Main skill documentation
     ├── metadata.json               # Extended metadata
-    ├── capabilities/               # Capability implementations
-    │   └── README.md
-    ├── examples/                   # Usage examples
-    │   └── README.md
-    ├── tests/                      # Integration tests
-    │   └── README.md
-    ├── resources/                  # Resource files
-    │   └── README.md
-    ├── references/                 # Reference documentation
+    ├── references/                 # Reference documentation (v2, replaces capabilities/)
     │   ├── README.md
     │   ├── quick-start.md
     │   ├── common-patterns.md
     │   ├── api-reference.md
     │   └── troubleshooting.md
+    ├── guides/                     # How-to guides (v2, replaces resources/)
+    │   └── README.md
+    ├── templates/                  # Code templates (v2)
+    │   └── README.md
     ├── scripts/                    # Utility scripts
+    │   └── README.md
+    ├── examples/                   # Usage examples
+    │   └── README.md
+    ├── tests/                      # Integration tests
     │   └── README.md
     └── assets/                     # Static assets
         └── README.md
+
+    Legacy directories (capabilities/, resources/) are included for backward compatibility.
     """
 
     root_path: str = Field(description="Path relative to skills root")
     files: list[FileSpec] = Field(default_factory=list, description="Files to create")
     directories: list[str] = Field(
         default_factory=lambda: [
-            "capabilities/",
+            "capabilities/",  # Legacy - use references/ for new skills
             "examples/",
             "tests/",
-            "resources/",
-            "references/",
+            "resources/",  # Legacy - use guides/ for new skills
+            "references/",  # v2 standard
+            "guides/",  # v2 standard
+            "templates/",  # v2 standard
             "scripts/",
             "assets/",
         ],
-        description="Directories to create following agentskills.io standard structure",
+        description="Directories to create following agentskills.io v2 standard structure",
     )
 
 
@@ -471,7 +491,10 @@ class CapabilityImplementation(BaseModel):
 
 
 class EditResult(BaseModel):
-    """Result from the Edit step (Step 4)."""
+    """Result from the Edit step (Step 4).
+
+    v2 Golden Standard: Supports progressive disclosure with subdirectory files.
+    """
 
     skill_content: str = Field(
         description="Full SKILL.md markdown body content (frontmatter added automatically)"
@@ -480,6 +503,14 @@ class EditResult(BaseModel):
     usage_examples: list[UsageExample] = Field(default_factory=list)
     best_practices: list[BestPractice] = Field(default_factory=list)
     integration_guide: str = Field(default="", description="Integration notes and patterns")
+
+    # v2 Golden Standard: Subdirectory files for progressive disclosure
+    subdirectory_files: dict[str, dict[str, str]] | None = Field(
+        default=None,
+        description="Files to create in skill subdirectories. Format: "
+        "{'references': {'concept.md': '...'}, 'guides': {'workflow.md': '...'}, "
+        "'templates': {'example.ts': '...'}, 'scripts': {'helper.py': '...'}}",
+    )
 
 
 # =============================================================================
@@ -595,6 +626,10 @@ class SkillCreationResult(BaseModel):
     validation_report: ValidationReport | None = Field(default=None)
     quality_assessment: dict | None = Field(
         default=None, description="Quality assessment from Phase 3 validation"
+    )
+    # v2 Golden Standard: DSPy Phase 2 edit result with subdirectory files
+    edit_result: Any | None = Field(
+        default=None, description="DSPy Phase 2 result containing subdirectory_files"
     )
     error: str | None = Field(default=None)
     timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))

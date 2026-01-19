@@ -61,23 +61,25 @@ def load_training_data(trainset_path: str = "config/training/trainset_v4.json") 
     return examples
 
 
+class SimpleSkillProgram(dspy.Module):
+    """Simple skill program for optimization testing."""
+    
+    def __init__(self):
+        super().__init__()
+        from skill_fleet.core.dspy.signatures.phase1_understanding import GatherRequirements
+        self.gather = dspy.ChainOfThought(GatherRequirements)
+    
+    def forward(self, task_description: str):
+        result = self.gather(task_description=task_description)
+        return result
+
+
 def create_simple_program() -> dspy.Module:
     """Create a simplified program for testing optimization.
     
     Returns a basic ChainOfThought module that we can optimize quickly.
     For full optimization, use the actual SkillCreationProgram.
     """
-    from skill_fleet.core.dspy.signatures.phase1_understanding import GatherRequirements
-    
-    class SimpleSkillProgram(dspy.Module):
-        def __init__(self):
-            super().__init__()
-            self.gather = dspy.ChainOfThought(GatherRequirements)
-        
-        def forward(self, task_description: str):
-            result = self.gather(task_description=task_description)
-            return result
-    
     return SimpleSkillProgram()
 
 
@@ -149,15 +151,38 @@ def run_optimization(
             num_candidate_programs=8,  # Reduced from default 16 for speed
         )
     
-    elif optimizer_type == "gepa":
-        # GEPA for faster, reflection-based optimization
-        optimizer = dspy.GEPA(
+    elif optimizer_type == "bootstrap":
+        # BootstrapFewShot for fastest, simplest optimization
+        optimizer = dspy.BootstrapFewShot(
             metric=simple_metric,
-            num_candidates=5,
-            num_iters=2,  # Quick iterations
+            max_bootstrapped_demos=2,
+            max_labeled_demos=1,
         )
         
-        logger.info("Running GEPA optimization (faster, 2-5 minutes)...")
+        logger.info("Running BootstrapFewShot optimization (fastest)...")
+        optimized = optimizer.compile(program, trainset=trainset)
+    
+    elif optimizer_type == "gepa":
+        # GEPA for faster, reflection-based optimization
+        # Requires reflection_lm for the optimization process
+        from skill_fleet.core.optimization.optimizer import get_lm
+        
+        reflection_lm = get_lm("gemini-3-flash-preview", temperature=1.0)
+        
+        # Wrap metric to match GEPA's signature: (gold, pred, trace, pred_name, pred_trace)
+        def gepa_metric(gold, pred, trace=None, pred_name=None, pred_trace=None):
+            """GEPA-compatible metric function."""
+            score = simple_metric(gold, pred, trace)
+            # Return dict with score and optional feedback for GEPA
+            return {"score": score, "feedback": f"Score: {score:.2f}"}
+        
+        optimizer = dspy.GEPA(
+            metric=gepa_metric,
+            reflection_lm=reflection_lm,
+            auto="light",  # Budget: light (fastest), medium, heavy
+        )
+        
+        logger.info("Running GEPA optimization (reflection-based, faster)...")
         optimized = optimizer.compile(program, trainset=trainset)
     
     else:
@@ -195,8 +220,22 @@ def evaluate_program(
     
     score = evaluator(program)
     
-    logger.info(f"Evaluation score: {score:.3f}")
-    return {"score": score, "num_examples": len(testset)}
+    # Convert to float if needed (DSPy may return EvaluationResult)
+    if hasattr(score, '__float__'):
+        score_float = float(score)
+    elif isinstance(score, (int, float)):
+        score_float = float(score)
+    else:
+        # Default to string representation and extract number
+        score_str = str(score)
+        try:
+            score_float = float(score_str)
+        except (ValueError, TypeError):
+            logger.warning(f"Could not convert score to float: {score_str}")
+            score_float = 0.0
+    
+    logger.info(f"Evaluation score: {score_float:.3f}")
+    return {"score": score_float, "num_examples": len(testset)}
 
 
 def main():
@@ -235,11 +274,11 @@ def main():
     logger.info("Running Optimization")
     logger.info("=" * 60)
     
-    # Quick GEPA optimization first (faster for testing)
+    # Quick BootstrapFewShot optimization first (faster for testing)
     optimized = run_optimization(
         trainset=train_examples,
         program=program,
-        optimizer_type="gepa",  # Faster than MIPROv2 for initial test
+        optimizer_type="bootstrap",  # Faster than MIPROv2 for initial test
     )
     
     # 6. Evaluate optimized
@@ -264,18 +303,23 @@ def main():
     output_dir = Path("config/optimized")
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    output_path = output_dir / "skill_program_gepa_v1.pkl"
+    output_path = output_dir / "skill_program_bootstrap_v1.pkl"
     
     logger.info(f"\n💾 Saving optimized program to {output_path}")
     
     import pickle
-    with open(output_path, "wb") as f:
-        pickle.dump(optimized, f)
+    try:
+        with open(output_path, "wb") as f:
+            pickle.dump(optimized, f)
+        logger.info("✅ Optimization program saved successfully")
+    except Exception as e:
+        logger.warning(f"⚠️  Could not pickle optimized program: {e}")
+        logger.warning("Results will still be saved, but program won't be pickled")
     
     # Save results
-    results_path = output_dir / "optimization_results_gepa_v1.json"
+    results_path = output_dir / "optimization_results_bootstrap_v1.json"
     results = {
-        "optimizer": "GEPA",
+        "optimizer": "BootstrapFewShot",
         "trainset_size": len(train_examples),
         "testset_size": len(test_examples),
         "baseline_score": baseline_results['score'],

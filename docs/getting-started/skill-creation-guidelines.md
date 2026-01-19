@@ -448,7 +448,7 @@ Every skill directory MUST follow this structure:
 skill-name/
 ├── metadata.json          # Required: Internal metadata
 ├── SKILL.md              # Required: Main doc with YAML frontmatter
-├── capabilities/         # Required: Detailed capability docs
+├── references/ (v2 standard, formerly capabilities/)         # Required: Detailed capability docs
 │   ├── capability-1.md
 │   ├── capability-2.md
 │   └── ...
@@ -462,7 +462,7 @@ skill-name/
 │   └── 02-example-name/
 ├── tests/                # Required: Test files
 │   └── test_skill.py
-└── resources/            # Required: Additional resources
+└── guides/ (v2 standard, formerly resources/)            # Required: Additional resources
     ├── requirements.json
     ├── config.yaml
     ├── reference.md
@@ -473,10 +473,10 @@ skill-name/
 
 - `metadata.json` - Internal metadata for the skill-fleet system
 - `SKILL.md` - Main documentation with agentskills.io-compliant YAML frontmatter
-- `capabilities/` - At least one capability file
+- `references/ (v2 standard, formerly capabilities/)` - At least one capability file
 - `examples/` - At least one example
 - `tests/` - At least one test file
-- `resources/` - Additional resources (minimum: requirements.json or equivalent)
+- `guides/ (v2 standard, formerly resources/)` - Additional resources (minimum: requirements.json or equivalent)
 
 **Optional files:**
 
@@ -694,7 +694,7 @@ Decision framework for when to apply this skill.
 
 ### Capability Files Format
 
-Each capability should have its own markdown file in `capabilities/`:
+Each capability should have its own markdown file in `references/ (v2 standard, formerly capabilities/)`:
 
 ````markdown
 # Capability Name
@@ -803,7 +803,7 @@ python example.py
 
 ## See Also
 
-- [Related Capability](../../capabilities/capability-name.md)
+- [Related Capability](../../references/ (v2 standard, formerly capabilities/)capability-name.md)
 
 ````
 
@@ -1024,7 +1024,85 @@ When a dependency updates:
 
 ## 6. Process Workflow
 
-Follow this 5-step process to create a new skill from concept to validated artifact.
+Follow this 6-step process to create a new skill from concept to validated artifact.
+
+### Step 0: Example Gathering
+
+**Goal:** Collect concrete usage examples and build domain understanding before diving into technical planning.
+
+**Purpose:**
+
+This step grounds the skill in real use cases, not assumptions. By collecting examples early, you ensure the skill addresses actual needs and build domain-specific vocabulary for consistent documentation.
+
+**Actions:**
+
+1. **Answer clarifying questions** about:
+   - Specific use cases for the skill
+   - Triggering conditions (when is this skill needed?)
+   - Edge cases and special scenarios
+   - Expected inputs and outputs
+
+2. **Provide concrete examples** with:
+   - **Input description**: What's the situation or problem?
+   - **Expected output**: What should happen?
+   - **Context**: Additional details (environment, constraints, etc.)
+
+3. **Build domain terminology**:
+   - Key terms and their definitions
+   - Abbreviations and acronyms
+   - Domain-specific language
+
+4. **Review readiness score** (0.0-1.0):
+   - **Diversity (40%)**: Are examples varied enough?
+   - **Clarity (30%)**: Are requirements well-defined?
+   - **Coverage (30%)**: Are edge cases addressed?
+
+**Configuration:**
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `min_examples` | 3 | Minimum examples before proceeding |
+| `readiness_threshold` | 0.8 | Score to advance (0.0-1.0) |
+| `max_questions` | 10 | Maximum clarifying questions |
+| `max_rounds` | 3 | Maximum feedback rounds |
+
+**Example gathering in practice:**
+
+```
+❌ Too vague:
+   "I need a skill for FastAPI databases"
+
+✅ Concrete examples:
+   Example 1:
+   - Input: FastAPI app with PostgreSQL, need async queries
+   - Output: Proper async database connection with lifecycle management
+   - Context: Production app, 1000 concurrent users
+
+   Example 2:
+   - Input: Testing async endpoints that hit database
+   - Output: Isolated tests with rollback between tests
+   - Context: CI/CD pipeline, needs to run in < 30 seconds
+```
+
+**Outputs:**
+
+- **Refined task**: Updated task description incorporating examples
+- **Collected examples**: 3+ concrete usage examples
+- **Domain terminology**: Dictionary of key terms
+- **Readiness score**: Confidence that requirements are understood (≥ 0.8 to proceed)
+
+**Checkpoint:** Can you answer "yes" to these?
+
+- Collected at least 3 concrete examples
+- Examples cover different scenarios (not just variations of the same case)
+- Triggering conditions are clear
+- Edge cases have been identified
+- Domain terminology is documented
+- Readiness score ≥ 0.8 (or max questions reached)
+
+**What happens next:**
+
+The refined task and examples feed into Step 1 (Discovery), where they inform the interrogation questions and help determine the skill's scope and boundaries.
 
 ### Step 1: Discovery
 
@@ -1088,7 +1166,7 @@ Follow this 5-step process to create a new skill from concept to validated artif
  skill-name/
  ├── metadata.json
  ├── SKILL.md
- ├── capabilities/
+ ├── references/ (v2 standard, formerly capabilities/)
  │   ├── capability-1.md
  │   ├── capability-2.md
  │   └── ...
@@ -1097,7 +1175,7 @@ Follow this 5-step process to create a new skill from concept to validated artif
  │   └── 02-example-2/
  ├── tests/
  │   └── test_skill.py
- └── resources/
+ └── guides/ (v2 standard, formerly resources/)
      ├── requirements.json
      └── reference.md
 ```
@@ -1159,7 +1237,7 @@ Follow this 5-step process to create a new skill from concept to validated artif
 
 4. **Create capability files:**
 
-- One file per capability in `capabilities/`
+- One file per capability in `references/ (v2 standard, formerly capabilities/)`
 - Follow the [Capability File Format](#capability-files-format)
 - Include problem statement, pattern, examples
 - Add cross-references
@@ -1330,7 +1408,7 @@ These practices ensure quality and consistency:
 
 2. **Include all required directories**
 
-- `capabilities/`, `examples/`, `tests/`, `resources/`
+- `references/ (v2 standard, formerly capabilities/)`, `examples/`, `tests/`, `guides/ (v2 standard, formerly resources/)`
 
 3. **Specify versions in dependencies**
 
@@ -1498,7 +1576,7 @@ Create directory structure and files:
 python-decorators/
 ├── metadata.json
 ├── SKILL.md
-├── capabilities/
+├── references/ (v2 standard, formerly capabilities/)
 │   ├── basic-function-decorators.md
 │   ├── class-decorators.md
 │   ├── decorators-with-arguments.md
@@ -1510,7 +1588,7 @@ python-decorators/
 │   └── 03-property-decorators/
 ├── tests/
 │   └── test_decorators.py
-└── resources/
+└── guides/ (v2 standard, formerly resources/)
     └── requirements.json
 ```
 
@@ -1601,7 +1679,7 @@ git commit -m "Add python-decorators: basic and class decorators, decorators wit
 Create file:
 
 ```
-fastapi-production-patterns/capabilities/rate-limiting.md
+fastapi-production-patterns/references/ (v2 standard, formerly capabilities/)rate-limiting.md
 ```
 
 Add example:
@@ -1644,10 +1722,10 @@ Use this checklist before committing any skill.
 
 ### Structure
 
-- All required directories exist (`capabilities/`, `examples/`, `tests/`, `resources/`)
+- All required directories exist (`references/ (v2 standard, formerly capabilities/)`, `examples/`, `tests/`, `guides/ (v2 standard, formerly resources/)`)
 - `metadata.json` present and valid JSON
 - `SKILL.md` present with YAML frontmatter
-- At least one capability file in `capabilities/`
+- At least one capability file in `references/ (v2 standard, formerly capabilities/)`
 - At least one example in `examples/`
 - At least one test file in `tests/`
 - Naming conventions followed (kebab-case)
@@ -1744,7 +1822,7 @@ ImportError: cannot import name 'X'
 
 **Fixes:**
 
-1. Check `resources/requirements.json` for dependencies
+1. Check `guides/ (v2 standard, formerly resources/)requirements.json` for dependencies
 2. Install dependencies: `uv sync`
 3. Verify imports in example files
 4. Check version specifications
@@ -1806,7 +1884,7 @@ A → B → A
 
 **Fixes:**
 
-1. List capabilities in `capabilities/` directory
+1. List capabilities in `references/ (v2 standard, formerly capabilities/)` directory
 2. Compare with `metadata.json` capabilities list
 3. Ensure exact match (kebab-case)
 

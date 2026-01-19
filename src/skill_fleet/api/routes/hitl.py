@@ -5,9 +5,10 @@ from __future__ import annotations
 import asyncio
 from typing import Any, cast
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
+from ..exceptions import NotFoundException
 from ..jobs import get_job, notify_hitl_response
 from ..schemas import StructuredQuestion, normalize_questions
 
@@ -121,7 +122,7 @@ async def get_prompt(job_id: str) -> HITLPromptResponse:
     """Retrieve the current HITL prompt for a job."""
     job = get_job(job_id)
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise NotFoundException("Job", job_id)
 
     # Extract all possible HITL data fields
     hitl_data = job.hitl_data or {}
@@ -209,7 +210,9 @@ async def get_prompt(job_id: str) -> HITLPromptResponse:
             }
         )
 
-    return HITLPromptResponse(**cast(dict[str, Any], response))
+    # Validate response structure using Pydantic for type safety and runtime validation
+    validated_response = HITLPromptResponse.model_validate(response)
+    return validated_response
 
 
 @router.post("/{job_id}/response", response_model=HITLResponseResult)
@@ -231,7 +234,7 @@ async def post_response(job_id: str, response: dict) -> HITLResponseResult:
     """
     job = get_job(job_id)
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise NotFoundException("Job", job_id)
 
     # Ensure lock is initialized (handles loaded sessions)
     if job.hitl_lock is None:

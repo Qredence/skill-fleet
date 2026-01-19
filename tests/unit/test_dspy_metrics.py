@@ -368,6 +368,9 @@ class TestComputeOverallScore:
             has_strong_guidance=True,
             has_good_bad_contrast=True,
             description_quality=0.8,
+            # v2 Golden Standard fields
+            has_when_to_use_section=True,
+            has_quick_start=True,
         )
         overall = compute_overall_score(scores)
 
@@ -407,6 +410,9 @@ class TestComputeOverallScore:
             has_strong_guidance=True,
             has_good_bad_contrast=True,
             description_quality=1.0,
+            # v2 Golden Standard fields
+            has_when_to_use_section=True,
+            has_quick_start=True,
         )
         # All metrics at max should give high score
         overall = compute_overall_score(scores)

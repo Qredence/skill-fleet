@@ -1,0 +1,9 @@
+{
+  "optimizer": "BootstrapFewShot",
+  "trainset_size": 40,
+  "testset_size": 10,
+  "baseline_score": 80.0,
+  "optimized_score": 80.0,
+  "improvement": 0.0,
+  "improvement_percent": 0.0
+}

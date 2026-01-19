@@ -4,33 +4,57 @@ This document describes the Phase 1 skill creation workflow, its DSPy implementa
 
 ## Architecture Overview
 
-The system uses a **6-step pipeline** orchestrated by DSPy to transform a high-level task description into a fully validated, standards-compliant agent skill.
+The system uses a **7-step pipeline** orchestrated by DSPy to transform a high-level task description into a fully validated, standards-compliant agent skill.
 
 ### Implementation Locations
 
 - **Orchestrator**: `src/skill_fleet/workflow/creator.py`
-- **Programs**: `src/skill_fleet/workflow/programs.py`
-- **Modules**: `src/skill_fleet/workflow/modules.py`
-- **Signatures**: `src/skill_fleet/workflow/signatures.py`
-- **Models**: `src/skill_fleet/workflow/models.py`
+- **Programs**: `src/skill_fleet/core/dspy/programs.py`
+- **Modules**: `src/skill_fleet/core/dspy/modules/` (phase0_research.py, phase1_planning.py, phase2_generation.py, phase3_validation.py)
+- **Signatures**: `src/skill_fleet/core/dspy/signatures/` (base.py, phase2_generation.py)
+- **Models**: `src/skill_fleet/core/models.py`
 - **Taxonomy Manager**: `src/skill_fleet/taxonomy/manager.py`
 
 ## Workflow Programs
 
 The system provides different DSPy Programs for various use cases:
 
-1.  **`SkillCreationProgram` (Standard)**: The default end-to-end pipeline (Steps 1-5).
+1.  **`SkillCreationProgram` (Standard)**: The default end-to-end pipeline (Steps 0-6).
 2.  **`SkillCreationProgramQA` (Quality Assured)**: A high-fidelity version that uses `dspy.Refine` and `dspy.BestOfN` for critical steps (Understanding, Planning, Editing) to maximize quality at the cost of latency.
-3.  **`QuickSkillProgram`**: A "fast path" for rapid prototyping that skips Initialization and Packaging (Steps 1, 2, 4 only).
+3.  **`QuickSkillProgram`**: A "fast path" for rapid prototyping that skips Initialization and Packaging (Steps 0, 1, 2, 4 only).
 4.  **`SkillRevisionProgram`**: Used during the Iterate phase to regenerate content based on feedback (Steps 4-5).
 
 ## Detailed Workflow Steps
 
 Each step is encapsulated in a DSPy Module that returns strict Pydantic models.
 
+### 0. GATHER EXAMPLES
+**Goal**: Collect concrete usage examples before creating skill content.
+- **Input**: Initial task description, user responses to clarifying questions.
+- **Module**: `GatherExamplesModule` (uses ReAct pattern: Reason → Act → Observe)
+- **Output**: `ExampleGatheringResult`
+    - `session.state`: `ExampleGatheringSession` with collected examples, domain terminology, and refined task.
+    - `questions`: 1-3 focused clarifying questions (or empty list when ready).
+    - `proceed`: Boolean indicating if readiness threshold is met.
+
+**Process**:
+1. Generates 1-3 focused clarifying questions about use cases, triggering conditions, and edge cases
+2. Extracts `UserExample` objects from user responses (`{input_description, expected_output, context}`)
+3. Builds domain-specific terminology dictionary
+4. Scores readiness (0.0-1.0) based on example diversity (40%), clarity (30%), edge case coverage (30%)
+5. Continues until `readiness_score >= threshold` (default 0.8) or max questions reached
+
+**Configuration** (`ExampleGatheringConfig`):
+- `min_examples`: Minimum examples before proceeding (default: 3)
+- `readiness_threshold`: Score threshold to advance (default: 0.8)
+- `max_questions`: Maximum clarifying questions (default: 10)
+- `max_rounds`: Maximum feedback rounds (default: 3)
+
+**Integration**: The `refined_task` output feeds into Step 1 (Understanding), and terminology is used throughout content generation. Examples become usage examples in the final skill.
+
 ### 1. UNDERSTAND
 **Goal**: Map a user task to a specific taxonomy path.
-- **Input**: User task description.
+- **Input**: Refined task description from Step 0.
 - **Module**: `UnderstandModule` / `UnderstandModuleQA` (uses `dspy.Refine`)
 - **Output**: `UnderstandingResult`
     - `task_intent`: Distilled requirements.
@@ -52,7 +76,7 @@ Each step is encapsulated in a DSPy Module that returns strict Pydantic models.
 - **Input**: Skill metadata.
 - **Module**: `InitializeModule`
 - **Output**: `InitializeResult`
-    - `skill_skeleton`: Directory tree (`capabilities/`, `tests/`, etc.) and file paths.
+    - `skill_skeleton`: Directory tree (`references/ (v2 standard, formerly capabilities/)`, `tests/`, etc.) and file paths.
 
 ### 4. EDIT
 **Goal**: Generate the actual content.

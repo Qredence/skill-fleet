@@ -425,7 +425,7 @@ name = skill_id_to_name("technical_skills/programming/languages/python/decorator
 name = skill_id_to_name("_core/reasoning")
 # Returns: "core-reasoning"
 
-name = skill_id_to_name("mcp_capabilities/tool_integration")
+name = skill_id_to_name("mcp_references/ (v2 standard, formerly capabilities/)tool_integration")
 # Returns: "tool-integration"
 
 name = skill_id_to_name("general/testing")

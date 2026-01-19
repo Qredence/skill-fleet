@@ -1,0 +1,150 @@
+"""API configuration using pydantic-settings.
+
+This module provides runtime validation for API-specific configuration,
+ensuring type safety and catching configuration errors early.
+"""
+
+from __future__ import annotations
+
+from functools import lru_cache
+from pathlib import Path
+
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class APISettings(BaseSettings):
+    """Configuration settings for FastAPI application.
+
+    Uses environment variables with SKILL_FLEET_ prefix for configuration.
+    """
+
+    model_config = SettingsConfigDict(
+        env_prefix="SKILL_FLEET_",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
+    )
+
+    # Application metadata
+    environment: str = Field(
+        default="development",  # Default to development for tests
+        description="Environment name (development, staging, production)",
+    )
+    api_title: str = Field(default="Skill Fleet API", description="API title for OpenAPI docs")
+    api_description: str = Field(
+        default="Reworked AI-powered skill creation API with HITL support",
+        description="API description for OpenAPI docs",
+    )
+    api_version: str = Field(default="2.0.0", description="API version")
+
+    # CORS configuration
+    cors_origins: str = Field(
+        default="*",  # Default to wildcard for tests
+        description="Comma-separated list of allowed CORS origins",
+    )
+
+    # Security
+    api_key: str | None = Field(default=None, description="API key for authentication (optional)")
+    require_api_key: bool = Field(
+        default=False,
+        description="Whether to require API key authentication",
+    )
+
+    # File paths
+    skills_root: str = Field(default="skills", description="Root directory for skills taxonomy")
+    drafts_root: str = Field(
+        default="skills/_drafts",
+        description="Directory for draft skills",
+    )
+
+    # Logging
+    log_level: str = Field(default="INFO", description="Logging level (DEBUG, INFO, WARNING, ERROR)")
+    log_format: str = Field(default="json", description="Log format (json, text)")
+
+    # Job configuration
+    hitl_timeout_seconds: int = Field(
+        default=300,
+        ge=30,
+        le=3600,
+        description="Timeout for HITL interactions in seconds",
+    )
+    job_session_directory: str = Field(
+        default=".job_sessions",
+        description="Directory for persisting job sessions",
+    )
+
+    @field_validator("environment", mode="before")
+    @classmethod
+    def validate_environment(cls, v: str) -> str:
+        """Validate environment is a known value."""
+        allowed = {"development", "staging", "production"}
+        v_lower = v.lower()
+        if v_lower not in allowed:
+            raise ValueError(f"Environment must be one of {allowed}, got '{v}'")
+        return v_lower
+
+    @field_validator("log_level", mode="before")
+    @classmethod
+    def validate_log_level(cls, v: str) -> str:
+        """Validate log level."""
+        allowed = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
+        v_upper = v.upper()
+        if v_upper not in allowed:
+            raise ValueError(f"Log level must be one of {allowed}, got '{v}'")
+        return v_upper
+
+    @field_validator("log_format", mode="before")
+    @classmethod
+    def validate_log_format(cls, v: str) -> str:
+        """Validate log format."""
+        allowed = {"json", "text"}
+        v_lower = v.lower()
+        if v_lower not in allowed:
+            raise ValueError(f"Log format must be one of {allowed}, got '{v}'")
+        return v_lower
+
+    @property
+    def is_development(self) -> bool:
+        """Check if running in development mode."""
+        return self.environment == "development"
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        """Parse comma-separated CORS origins into list."""
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @property
+    def skills_root_path(self) -> Path:
+        """Get skills root as Path object."""
+        return Path(self.skills_root)
+
+    @property
+    def drafts_root_path(self) -> Path:
+        """Get drafts root as Path object."""
+        return Path(self.drafts_root)
+
+    @property
+    def job_session_path(self) -> Path:
+        """Get job session directory as Path object."""
+        return Path(self.job_session_directory)
+
+
+@lru_cache(maxsize=1)
+def get_settings() -> APISettings:
+    """Get cached APISettings instance.
+
+    This ensures configuration is loaded once and reused, which is
+    important for performance and consistency.
+
+    Returns:
+        Cached APISettings instance
+    """
+    return APISettings()
+
+
+__all__ = [
+    "APISettings",
+    "get_settings",
+]

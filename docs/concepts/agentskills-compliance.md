@@ -73,7 +73,7 @@ Because the spec requires the `name` to match the skill directory name, the func
 # Examples:
 'technical_skills/programming/languages/python/python-decorators' → 'python-decorators'
 '_core/reasoning' → 'core-reasoning'
-'mcp_capabilities/tool_integration' → 'tool-integration'
+'mcp_references/ (v2 standard, formerly capabilities/)tool_integration' → 'tool-integration'
 'task_focus_areas/debug_fix' → 'debug-fix'
 ```
 

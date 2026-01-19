@@ -7,8 +7,9 @@ persisted artifacts.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
+from ..exceptions import NotFoundException
 from ..jobs import get_job
 from ..schemas import JobState
 
@@ -32,9 +33,9 @@ async def get_job_state(job_id: str) -> JobState:
         JobState with all job details
 
     Raises:
-        HTTPException: 404 if job not found
+        NotFoundException: If job not found
     """
     job = get_job(job_id)
     if job is None:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise NotFoundException("Job", job_id)
     return job

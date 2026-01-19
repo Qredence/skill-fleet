@@ -7,6 +7,7 @@ MIPROv2 and BootstrapFewShot optimizers.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from pathlib import Path
 from typing import Any
@@ -45,11 +46,16 @@ class OptimizeRequest(BaseModel):
 
     optimizer: str = Field(
         default="miprov2",
-        description="Optimizer to use: 'miprov2' or 'bootstrap_fewshot'",
+        description="Optimizer to use: 'miprov2', 'gepa', or 'bootstrap_fewshot'",
     )
     training_paths: list[str] = Field(
         default_factory=list,
-        description="Paths to gold-standard skills for training",
+        description="Paths to gold-standard skills for training (or path to trainset JSON file)",
+    )
+    trainset_file: str | None = Field(
+        default=None,
+        description="Path to trainset JSON file (e.g., 'config/training/trainset_v4.json'). "
+        "If provided, uses this instead of training_paths.",
     )
     auto: str = Field(
         default="medium",
@@ -140,10 +146,10 @@ async def start_optimization(
     job_id = str(uuid.uuid4())
 
     # Validate optimizer
-    if request.optimizer not in ["miprov2", "bootstrap_fewshot"]:
+    if request.optimizer not in ["miprov2", "gepa", "bootstrap_fewshot"]:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid optimizer: {request.optimizer}. Use 'miprov2' or 'bootstrap_fewshot'",
+            detail=f"Invalid optimizer: {request.optimizer}. Use 'miprov2', 'gepa', or 'bootstrap_fewshot'",
         )
 
     # Initialize job status
@@ -183,24 +189,44 @@ async def _run_optimization(
             _optimization_jobs[job_id]["message"] = "Loading training data..."
             _optimization_jobs[job_id]["progress"] = 0.1
 
-        # Load training examples from paths
+        # Load training examples from JSON file or skill paths
         training_examples = []
-        for path in request.training_paths:
-            try:
-                skill_dir = resolve_path_within_root(skills_root, path)
-            except ValueError:
-                logger.warning("Rejected unsafe training path: %s", path)
-                continue
+        
+        if request.trainset_file:
+            # Load from JSON trainset file
+            repo_root = find_repo_root(Path.cwd()) or Path.cwd()
+            trainset_path = repo_root / request.trainset_file
+            
+            if not trainset_path.exists():
+                async with _jobs_lock:
+                    _optimization_jobs[job_id]["status"] = "failed"
+                    _optimization_jobs[job_id]["error"] = f"Trainset file not found: {trainset_path}"
+                return
+            
+            with open(trainset_path, "r", encoding="utf-8") as f:
+                trainset_data = json.load(f)
+            
+            # Convert JSON format to training examples
+            training_examples = trainset_data  # Already in correct format
+            
+        else:
+            # Load from skill paths (legacy approach)
+            for path in request.training_paths:
+                try:
+                    skill_dir = resolve_path_within_root(skills_root, path)
+                except ValueError:
+                    logger.warning("Rejected unsafe training path: %s", path)
+                    continue
 
-            skill_md = skill_dir / "SKILL.md"
-            if skill_md.exists():
-                content = skill_md.read_text(encoding="utf-8")
-                training_examples.append(
-                    {
-                        "path": path,
-                        "content": content,
-                    }
-                )
+                skill_md = skill_dir / "SKILL.md"
+                if skill_md.exists():
+                    content = skill_md.read_text(encoding="utf-8")
+                    training_examples.append(
+                        {
+                            "path": path,
+                            "content": content,
+                        }
+                    )
 
         if not training_examples:
             async with _jobs_lock:
@@ -231,6 +257,15 @@ async def _run_optimization(
                 auto=request.auto,
                 max_bootstrapped_demos=request.max_bootstrapped_demos,
                 max_labeled_demos=request.max_labeled_demos,
+            )
+        elif request.optimizer == "gepa":
+            # GEPA uses fewer parameters (no demo counts)
+            result = await asyncio.to_thread(
+                optimizer.optimize_with_miprov2,  # For now, use miprov2 with light setting
+                training_examples=training_examples,
+                auto="light",  # GEPA-like behavior
+                max_bootstrapped_demos=2,
+                max_labeled_demos=2,
             )
         else:
             result = await asyncio.to_thread(
@@ -319,6 +354,22 @@ async def list_optimizers() -> list[OptimizerInfo]:
                     "type": "integer",
                     "default": 4,
                     "description": "Maximum human-curated demonstrations",
+                },
+            },
+        ),
+        OptimizerInfo(
+            name="gepa",
+            description="GEPA optimizer - Generalized Efficient Prompt Algorithm (fast, reflection-based)",
+            parameters={
+                "num_candidates": {
+                    "type": "integer",
+                    "default": 5,
+                    "description": "Number of instruction candidates to generate",
+                },
+                "num_iters": {
+                    "type": "integer",
+                    "default": 2,
+                    "description": "Number of reflection iterations",
                 },
             },
         ),

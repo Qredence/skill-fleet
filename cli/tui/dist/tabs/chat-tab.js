@@ -44,7 +44,11 @@ export const ChatTab = ({ apiUrl, isActive }) => {
         onProgress: (msg) => {
             setMessages((prev) => [
                 ...prev,
-                { id: `progress-${Date.now()}`, role: "thinking", content: `⏳ ${msg}` },
+                {
+                    id: `progress-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    role: "thinking",
+                    content: `⏳ ${msg}`
+                },
             ]);
         },
     });
@@ -122,11 +126,11 @@ export const ChatTab = ({ apiUrl, isActive }) => {
                 apiUrl,
                 message,
                 onThinking: (chunk) => {
-                    // Add thinking chunk to messages
+                    // Add thinking chunk to messages with unique ID
                     setMessages((prev) => [
                         ...prev,
                         {
-                            id: `think-${Date.now()}-${Math.random()}`,
+                            id: `think-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                             role: "thinking",
                             content: formatThinkingChunk(chunk),
                             step: chunk.step,

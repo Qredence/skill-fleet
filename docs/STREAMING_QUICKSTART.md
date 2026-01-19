@@ -6,6 +6,7 @@ Get real-time streaming responses with thinking/reasoning display in 5 minutes.
 
 - Python 3.12+
 - Node.js 18+ (for TUI)
+- npm 9+ or yarn 1.22+
 - Skills Fleet API running (`uv run skill-fleet serve`)
 
 ## 🚀 Quick Start

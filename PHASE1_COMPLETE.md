@@ -36,6 +36,14 @@ Endpoints:
 
 ### 3. **Ink TUI (TypeScript/React)**
 
+**Tech Stack**:
+- Ink 6.6.0 (React for terminal UIs)
+- React 19.0.0
+- ink-text-input 6.0.0
+- ink-select-input 6.2.0 (for future menus)
+- ink-spinner 5.0.0 (for loading states)
+- TypeScript 5.9.0
+
 **Location**: `cli/tui/src/`
 
 Components:

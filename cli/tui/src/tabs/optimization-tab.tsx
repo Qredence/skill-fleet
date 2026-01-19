@@ -83,7 +83,7 @@ export const OptimizationTab: React.FC<OptimizationTabProps> = ({
   }
 
   return (
-    <Box flexDirection="column" paddingX={2} height={20}>
+    <Box flexDirection="column" paddingX={2} flexGrow={1}>
       <Text color="blue" bold>
         🚀 Optimization Control
       </Text>
@@ -95,21 +95,22 @@ export const OptimizationTab: React.FC<OptimizationTabProps> = ({
         borderStyle="round"
         borderColor="green"
         paddingX={1}
+        paddingY={1}
       >
-        <Box flexDirection="column">
+        <Box flexDirection="column" gap={1}>
           <Text color="green" bold>
             ⚡ Reflection Metrics - FASTEST OPTIMIZER
           </Text>
-          <Text color="gray">
+          <Text color="gray" wrap="wrap">
             • 4400x faster than MIPROv2 (&lt;1 second)
           </Text>
-          <Text color="gray">
+          <Text color="gray" wrap="wrap">
             • Cost: $0.01-0.05 (vs $5-10 for MIPROv2)
           </Text>
-          <Text color="gray">
+          <Text color="gray" wrap="wrap">
             • Quality: +1.5% improvement over baseline
           </Text>
-          <Text color="cyan">
+          <Text color="cyan" wrap="wrap">
             Quick start: /optimize reflection_metrics trainset_v4.json
           </Text>
         </Box>
@@ -117,34 +118,28 @@ export const OptimizationTab: React.FC<OptimizationTabProps> = ({
 
       {/* Optimizer Selection */}
       {step === "optimizer" && (
-        <Box flexDirection="column">
+        <Box flexDirection="column" gap={1}>
           <Text color="cyan">Step 1: Select Optimizer</Text>
-          <Box marginTop={1}>
-            <SelectInput items={OPTIMIZERS} onSelect={handleOptimizerSelect} />
-          </Box>
+          <SelectInput items={OPTIMIZERS} onSelect={handleOptimizerSelect} />
         </Box>
       )}
 
       {/* Trainset Selection */}
       {step === "trainset" && (
-        <Box flexDirection="column">
+        <Box flexDirection="column" gap={1}>
           <Text color="green">
             ✓ Optimizer: {selectedOptimizer}
           </Text>
-          <Box marginTop={1}>
-            <Text color="cyan">
-              Step 2: Select Training Data
-            </Text>
-          </Box>
-          <Box marginTop={1}>
-            <SelectInput items={TRAINSETS} onSelect={handleTrainsetSelect} />
-          </Box>
+          <Text color="cyan">
+            Step 2: Select Training Data
+          </Text>
+          <SelectInput items={TRAINSETS} onSelect={handleTrainsetSelect} />
         </Box>
       )}
 
       {/* Confirmation */}
       {step === "confirm" && (
-        <Box flexDirection="column">
+        <Box flexDirection="column" gap={1}>
           <Text color="green">
             ✓ Optimizer: {selectedOptimizer}
           </Text>
@@ -152,42 +147,44 @@ export const OptimizationTab: React.FC<OptimizationTabProps> = ({
             ✓ Trainset: {selectedTrainset}
           </Text>
           
-          <Box marginTop={2} borderStyle="double" borderColor="yellow" paddingX={1}>
-            <Box flexDirection="column">
+          <Box marginTop={1} borderStyle="double" borderColor="yellow" paddingX={2} paddingY={1}>
+            <Box flexDirection="column" gap={1}>
               <Text color="yellow" bold>
                 Ready to optimize!
               </Text>
-              <Box marginTop={1}>
-                <Text color="gray">
-                  This will:
-                  - Train on {selectedTrainset.includes('v4') ? '50' : '24'} examples
-                  - Use {selectedOptimizer} algorithm
-                  - Save results to config/optimized/
+              <Box flexDirection="column">
+                <Text color="gray">This will:</Text>
+                <Text color="gray" wrap="wrap">
+                  • Train on {selectedTrainset.includes('v4') ? '50' : '24'} examples
+                </Text>
+                <Text color="gray" wrap="wrap">
+                  • Use {selectedOptimizer} algorithm
+                </Text>
+                <Text color="gray" wrap="wrap">
+                  • Save results to config/optimized/
                 </Text>
               </Box>
-              <Box marginTop={1}>
-                <Text color="cyan">
-                  Press Enter to confirm, or Esc to cancel
-                </Text>
-              </Box>
+              <Text color="cyan" wrap="wrap">
+                Press Enter to confirm, or Esc to cancel
+              </Text>
             </Box>
           </Box>
         </Box>
       )}
 
       {/* Comparison Table */}
-      <Box marginTop={2} borderStyle="single" borderColor="gray" paddingX={1}>
-        <Box flexDirection="column">
+      <Box marginTop={2} borderStyle="single" borderColor="gray" paddingX={1} paddingY={1}>
+        <Box flexDirection="column" gap={1}>
           <Text color="gray" bold>
             Optimizer Comparison:
           </Text>
-          <Text color="gray">
+          <Text color="gray" wrap="wrap">
             reflection_metrics: &lt;1s, $0.01, +1.5% quality
           </Text>
-          <Text color="gray">
+          <Text color="gray" wrap="wrap">
             mipro: 4-6min, $5-10, +10-15% quality
           </Text>
-          <Text color="gray">
+          <Text color="gray" wrap="wrap">
             bootstrap: 30s, $0.50, +5-8% quality
           </Text>
         </Box>

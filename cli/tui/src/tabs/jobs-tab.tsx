@@ -108,8 +108,8 @@ export const JobsTab: React.FC<JobsTabProps> = ({ apiUrl, isActive }) => {
   const failedJobs = jobs.filter((j) => j.status === "failed");
 
   return (
-    <Box flexDirection="column" paddingX={2} height={20}>
-      <Box flexDirection="row" justifyContent="space-between">
+    <Box flexDirection="column" paddingX={2} flexGrow={1}>
+      <Box flexDirection="row" justifyContent="space-between" marginBottom={1}>
         <Text color="blue" bold>
           ⚙️ Job Monitor ({jobs.length} total)
         </Text>
@@ -120,20 +120,20 @@ export const JobsTab: React.FC<JobsTabProps> = ({ apiUrl, isActive }) => {
 
       {/* Running Jobs */}
       {runningJobs.length > 0 && (
-        <Box flexDirection="column" marginTop={1}>
+        <Box flexDirection="column" marginTop={1} gap={1}>
           <Text color="cyan" bold>
             ⏳ Running ({runningJobs.length})
           </Text>
           {runningJobs.map((job) => (
-            <Box key={job.id} marginTop={1} flexDirection="column">
-              <Box flexDirection="row">
+            <Box key={job.id} flexDirection="column" gap={0}>
+              <Box flexDirection="row" gap={1}>
                 <Text color="cyan">
                   <Spinner type="dots" />
                 </Text>
-                <Text color="white"> {job.id}</Text>
+                <Text color="white">{job.id}</Text>
               </Box>
-              <Text color="gray">
-                {job.type} - {job.progress || 0}% complete
+              <Text color="gray" wrap="wrap">
+                  {job.type} - {job.progress || 0}% complete
               </Text>
             </Box>
           ))}
@@ -142,15 +142,15 @@ export const JobsTab: React.FC<JobsTabProps> = ({ apiUrl, isActive }) => {
 
       {/* Completed Jobs */}
       {completedJobs.length > 0 && (
-        <Box flexDirection="column" marginTop={1}>
+        <Box flexDirection="column" marginTop={1} gap={1}>
           <Text color="green" bold>
             ✅ Completed ({completedJobs.length})
           </Text>
           {completedJobs.slice(0, 3).map((job) => (
-            <Box key={job.id} marginTop={1}>
+            <Box key={job.id} flexDirection="row" gap={1}>
               <Text color="green">✓</Text>
-              <Text color="white"> {job.id}</Text>
-              <Text color="gray"> - {job.type}</Text>
+              <Text color="white">{job.id}</Text>
+              <Text color="gray">- {job.type}</Text>
             </Box>
           ))}
         </Box>
@@ -158,18 +158,18 @@ export const JobsTab: React.FC<JobsTabProps> = ({ apiUrl, isActive }) => {
 
       {/* Failed Jobs */}
       {failedJobs.length > 0 && (
-        <Box flexDirection="column" marginTop={1}>
+        <Box flexDirection="column" marginTop={1} gap={1}>
           <Text color="red" bold>
             ❌ Failed ({failedJobs.length})
           </Text>
           {failedJobs.slice(0, 2).map((job) => (
-            <Box key={job.id} marginTop={1} flexDirection="column">
-              <Box flexDirection="row">
+            <Box key={job.id} flexDirection="column" gap={0}>
+              <Box flexDirection="row" gap={1}>
                 <Text color="red">✗</Text>
-                <Text color="white"> {job.id}</Text>
+                <Text color="white">{job.id}</Text>
               </Box>
               {job.error && (
-                <Text color="gray">  Error: {job.error.substring(0, 50)}...</Text>
+                <Text color="gray" wrap="wrap">  Error: {job.error.substring(0, 80)}...</Text>
               )}
             </Box>
           ))}
@@ -183,8 +183,8 @@ export const JobsTab: React.FC<JobsTabProps> = ({ apiUrl, isActive }) => {
         </Box>
       )}
 
-      <Box marginTop={2} borderStyle="single" borderColor="gray" paddingX={1}>
-        <Text color="gray">
+      <Box marginTop={2} borderStyle="single" borderColor="gray" paddingX={1} paddingY={1}>
+        <Text color="gray" wrap="wrap">
           💡 Commands: /status job_id | /optimize | Press R to refresh
         </Text>
       </Box>

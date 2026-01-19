@@ -58,8 +58,8 @@ export const App = ({ apiUrl, userId = "default" }) => {
             setShowHelp(false);
         }
     });
-    return (React.createElement(Box, { flexDirection: "column", width: 100, height: 30 },
-        React.createElement(Box, { flexDirection: "column", marginBottom: 1, paddingX: 2 },
+    return (React.createElement(Box, { flexDirection: "column", height: "100%", paddingY: 1 },
+        React.createElement(Box, { flexDirection: "column", paddingX: 2 },
             React.createElement(Text, { color: "cyan", bold: true }, "\uD83D\uDE80 Skills Fleet TUI"),
             React.createElement(Text, { color: "gray" }, "Real-time skill creation & optimization with streaming responses")),
         React.createElement(Box, { flexDirection: "row", marginBottom: 1, paddingX: 2 }, TABS.map((tab, idx) => (React.createElement(Box, { key: tab, marginRight: 2, borderStyle: activeTab === tab ? "round" : undefined, borderColor: activeTab === tab ? "green" : undefined, paddingX: activeTab === tab ? 1 : 0 },
@@ -68,9 +68,7 @@ export const App = ({ apiUrl, userId = "default" }) => {
                 TAB_NAMES[tab]))))),
         React.createElement(Box, { marginBottom: 1, paddingX: 2 },
             React.createElement(Text, { color: "gray", dimColor: true }, "Tab to switch \u2022 1-4 to jump \u2022 ? for help")),
-        React.createElement(Box, { marginBottom: 1 },
-            React.createElement(Text, { color: "gray" }, "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500")),
-        React.createElement(Box, { flexDirection: "column", flexGrow: 1, marginBottom: 1 },
+        React.createElement(Box, { flexDirection: "column", flexGrow: 1, overflow: "hidden", marginY: 1 },
             React.createElement(ChatTab, { apiUrl: apiUrl, isActive: activeTab === "chat" }),
             React.createElement(SkillsTab, { apiUrl: apiUrl, isActive: activeTab === "skills" }),
             React.createElement(JobsTab, { apiUrl: apiUrl, isActive: activeTab === "jobs" }),
@@ -86,8 +84,8 @@ export const App = ({ apiUrl, userId = "default" }) => {
             React.createElement(Text, { color: "yellow" }, "?            : Toggle this help"),
             React.createElement(Text, { color: "yellow" }, "Esc          : Close help"),
             React.createElement(Text, { color: "yellow" }, "Ctrl+C       : Exit application"))),
-        React.createElement(Box, { marginTop: 1, paddingX: 2 },
-            React.createElement(Text, { color: "gray" },
+        React.createElement(Box, { paddingX: 2, paddingY: 1 },
+            React.createElement(Text, { color: "gray", wrap: "truncate-end" },
                 "API: ",
                 apiUrl,
                 " | User: ",

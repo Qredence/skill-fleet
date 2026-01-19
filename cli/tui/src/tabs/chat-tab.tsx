@@ -257,14 +257,14 @@ export const ChatTab: React.FC<ChatTabProps> = ({ apiUrl, isActive }) => {
     return null;
   }
 
-  // Calculate visible height (approximate)
-  const maxMessages = 15;
+  // Show recent messages (adaptive)
+  const maxMessages = 20;
   const visibleMessages = messages.slice(-maxMessages);
 
   return (
-    <Box flexDirection="column" width={80} height={24}>
-      {/* Messages Display */}
-      <Box flexDirection="column" marginBottom={1} flexGrow={1} overflowY="hidden">
+    <Box flexDirection="column" flexGrow={1} paddingX={2}>
+      {/* Messages Display - Scrollable */}
+      <Box flexDirection="column" flexGrow={1} overflow="hidden">
         {visibleMessages.map((msg) => {
           let prefix = "";
           let color: "cyan" | "green" | "yellow" | "gray" | "blue" = "cyan";
@@ -281,26 +281,27 @@ export const ChatTab: React.FC<ChatTabProps> = ({ apiUrl, isActive }) => {
           }
 
           return (
-            <Box key={msg.id} flexDirection="column" marginBottom={1}>
-              <Text color={color}>
-                {prefix}
-                {msg.content}
+            <Box key={msg.id} marginBottom={msg.role === "thinking" ? 0 : 1}>
+              <Text color={color} wrap="wrap">
+                {prefix}{msg.content}
               </Text>
             </Box>
           );
         })}
       </Box>
 
-      {/* Suggestions */}
+      {/* Suggestions - Better wrapping */}
       {suggestions.length > 0 && !isLoading && (
-        <Box flexDirection="column" marginBottom={1} borderStyle="single" borderColor="yellow" paddingX={1}>
+        <Box flexDirection="column" marginY={1} borderStyle="single" borderColor="yellow" paddingX={1} paddingY={1}>
           <Text color="yellow" bold>
             💡 Suggested next steps:
           </Text>
           {suggestions.map((sugg, idx) => (
-            <Text key={`suggestion-${idx}-${sugg.substring(0, 10)}`} color="yellow">
-              • {sugg}
-            </Text>
+            <Box key={`suggestion-${idx}-${sugg.substring(0, 10)}`} marginTop={idx > 0 ? 1 : 0}>
+              <Text color="yellow" wrap="wrap">
+                • {sugg}
+              </Text>
+            </Box>
           ))}
         </Box>
       )}
@@ -313,19 +314,21 @@ export const ChatTab: React.FC<ChatTabProps> = ({ apiUrl, isActive }) => {
       )}
 
       {/* Input */}
-      <Box flexDirection="row" paddingX={1}>
-        <Text color="blue">&gt; </Text>
-        <TextInput
-          value={input}
-          onChange={setInput}
-          onSubmit={handleSubmit}
-          placeholder="Type your request..."
-        />
+      <Box flexDirection="row" marginY={1} gap={1}>
+        <Text color="blue">&gt;</Text>
+        <Box flexGrow={1}>
+          <TextInput
+            value={input}
+            onChange={setInput}
+            onSubmit={handleSubmit}
+            placeholder="Type your request..."
+          />
+        </Box>
       </Box>
 
       {/* Help Text */}
-      <Box marginTop={1}>
-        <Text color="gray">
+      <Box>
+        <Text color="gray" wrap="wrap">
           Commands: /help, /optimize, /list, /validate, /status, /promote
         </Text>
       </Box>

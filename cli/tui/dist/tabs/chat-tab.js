@@ -218,11 +218,11 @@ export const ChatTab = ({ apiUrl, isActive }) => {
     if (!isActive) {
         return null;
     }
-    // Calculate visible height (approximate)
-    const maxMessages = 15;
+    // Show recent messages (adaptive)
+    const maxMessages = 20;
     const visibleMessages = messages.slice(-maxMessages);
-    return (React.createElement(Box, { flexDirection: "column", width: 80, height: 24 },
-        React.createElement(Box, { flexDirection: "column", marginBottom: 1, flexGrow: 1, overflowY: "hidden" }, visibleMessages.map((msg) => {
+    return (React.createElement(Box, { flexDirection: "column", flexGrow: 1, paddingX: 2 },
+        React.createElement(Box, { flexDirection: "column", flexGrow: 1, overflow: "hidden" }, visibleMessages.map((msg) => {
             let prefix = "";
             let color = "cyan";
             if (msg.role === "user") {
@@ -237,22 +237,24 @@ export const ChatTab = ({ apiUrl, isActive }) => {
                 prefix = "Assistant: ";
                 color = "green";
             }
-            return (React.createElement(Box, { key: msg.id, flexDirection: "column", marginBottom: 1 },
-                React.createElement(Text, { color: color },
+            return (React.createElement(Box, { key: msg.id, marginBottom: msg.role === "thinking" ? 0 : 1 },
+                React.createElement(Text, { color: color, wrap: "wrap" },
                     prefix,
                     msg.content)));
         })),
-        suggestions.length > 0 && !isLoading && (React.createElement(Box, { flexDirection: "column", marginBottom: 1, borderStyle: "single", borderColor: "yellow", paddingX: 1 },
+        suggestions.length > 0 && !isLoading && (React.createElement(Box, { flexDirection: "column", marginY: 1, borderStyle: "single", borderColor: "yellow", paddingX: 1, paddingY: 1 },
             React.createElement(Text, { color: "yellow", bold: true }, "\uD83D\uDCA1 Suggested next steps:"),
-            suggestions.map((sugg, idx) => (React.createElement(Text, { key: `suggestion-${idx}-${sugg.substring(0, 10)}`, color: "yellow" },
-                "\u2022 ",
-                sugg))))),
+            suggestions.map((sugg, idx) => (React.createElement(Box, { key: `suggestion-${idx}-${sugg.substring(0, 10)}`, marginTop: idx > 0 ? 1 : 0 },
+                React.createElement(Text, { color: "yellow", wrap: "wrap" },
+                    "\u2022 ",
+                    sugg)))))),
         isLoading && (React.createElement(Box, { marginBottom: 1 },
             React.createElement(Text, { color: "blue" }, "\u23F3 Processing..."))),
-        React.createElement(Box, { flexDirection: "row", paddingX: 1 },
-            React.createElement(Text, { color: "blue" }, "> "),
-            React.createElement(TextInput, { value: input, onChange: setInput, onSubmit: handleSubmit, placeholder: "Type your request..." })),
-        React.createElement(Box, { marginTop: 1 },
-            React.createElement(Text, { color: "gray" }, "Commands: /help, /optimize, /list, /validate, /status, /promote"))));
+        React.createElement(Box, { flexDirection: "row", marginY: 1, gap: 1 },
+            React.createElement(Text, { color: "blue" }, ">"),
+            React.createElement(Box, { flexGrow: 1 },
+                React.createElement(TextInput, { value: input, onChange: setInput, onSubmit: handleSubmit, placeholder: "Type your request..." }))),
+        React.createElement(Box, null,
+            React.createElement(Text, { color: "gray", wrap: "wrap" }, "Commands: /help, /optimize, /list, /validate, /status, /promote"))));
 };
 //# sourceMappingURL=chat-tab.js.map

@@ -75,25 +75,25 @@ export const SkillsTab = ({ apiUrl, isActive }) => {
         label: `${skill.path} - ${skill.description || 'No description'}`,
         value: skill.path,
     }));
-    return (React.createElement(Box, { flexDirection: "column", paddingX: 2, height: 20 },
+    return (React.createElement(Box, { flexDirection: "column", paddingX: 2, flexGrow: 1 },
         React.createElement(Text, { color: "blue", bold: true },
             "\uD83D\uDCDA Skills Manager (",
             skills.length,
             " skills)"),
-        React.createElement(Box, { marginTop: 1, flexDirection: "column" }, selectedSkill ? (React.createElement(Box, { flexDirection: "column" },
+        React.createElement(Box, { marginTop: 1, flexDirection: "column", flexGrow: 1 }, selectedSkill ? (React.createElement(Box, { flexDirection: "column", gap: 1 },
             React.createElement(Text, { color: "green", bold: true },
                 "Selected: ",
                 selectedSkill.path),
-            React.createElement(Text, { color: "gray" }, selectedSkill.description),
+            React.createElement(Text, { color: "gray", wrap: "wrap" }, selectedSkill.description),
             React.createElement(Box, { marginTop: 1 },
-                React.createElement(Text, { color: "cyan" },
+                React.createElement(Text, { color: "cyan", wrap: "wrap" },
                     "Actions: /validate ",
                     selectedSkill.path,
-                    " | /promote | [Esc] to deselect")))) : (React.createElement(Box, { flexDirection: "column" },
+                    " | /promote | [Esc] to deselect")))) : (React.createElement(Box, { flexDirection: "column", gap: 1 },
             React.createElement(Text, { color: "gray" }, "Select a skill:"),
             React.createElement(Box, { marginTop: 1 },
                 React.createElement(SelectInput, { items: skillItems, onSelect: handleSelect }))))),
-        React.createElement(Box, { marginTop: 2, borderStyle: "single", borderColor: "gray", paddingX: 1 },
-            React.createElement(Text, { color: "gray" }, "\uD83D\uDCA1 Commands: /list [--filter cat] | /validate path | /promote job_id"))));
+        React.createElement(Box, { marginTop: 2, borderStyle: "single", borderColor: "gray", paddingX: 1, paddingY: 1 },
+            React.createElement(Text, { color: "gray", wrap: "wrap" }, "\uD83D\uDCA1 Commands: /list [--filter cat] | /validate path | /promote job_id"))));
 };
 //# sourceMappingURL=skills-tab.js.map

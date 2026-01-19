@@ -75,9 +75,9 @@ export const App: React.FC<AppProps> = ({ apiUrl, userId = "default" }) => {
   });
 
   return (
-    <Box flexDirection="column" width={100} height={30}>
+    <Box flexDirection="column" height="100%" paddingY={1}>
       {/* Header */}
-      <Box flexDirection="column" marginBottom={1} paddingX={2}>
+      <Box flexDirection="column" paddingX={2}>
         <Text color="cyan" bold>
           🚀 Skills Fleet TUI
         </Text>
@@ -113,13 +113,8 @@ export const App: React.FC<AppProps> = ({ apiUrl, userId = "default" }) => {
         </Text>
       </Box>
 
-      {/* Tab Divider */}
-      <Box marginBottom={1}>
-        <Text color="gray">─────────────────────────────────────────</Text>
-      </Box>
-
-      {/* Tab Content */}
-      <Box flexDirection="column" flexGrow={1} marginBottom={1}>
+      {/* Tab Content - Fills available space */}
+      <Box flexDirection="column" flexGrow={1} overflow="hidden" marginY={1}>
         <ChatTab apiUrl={apiUrl} isActive={activeTab === "chat"} />
         <SkillsTab apiUrl={apiUrl} isActive={activeTab === "skills"} />
         <JobsTab apiUrl={apiUrl} isActive={activeTab === "jobs"} />
@@ -149,8 +144,8 @@ export const App: React.FC<AppProps> = ({ apiUrl, userId = "default" }) => {
       )}
 
       {/* Footer */}
-      <Box marginTop={1} paddingX={2}>
-        <Text color="gray">
+      <Box paddingX={2} paddingY={1}>
+        <Text color="gray" wrap="truncate-end">
           API: {apiUrl} | User: {userId} | Press ? for help | Ctrl+C to exit
         </Text>
       </Box>

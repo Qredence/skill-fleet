@@ -129,27 +129,27 @@ export const SkillsTab: React.FC<SkillsTabProps> = ({ apiUrl, isActive }) => {
   }));
 
   return (
-    <Box flexDirection="column" paddingX={2} height={20}>
+    <Box flexDirection="column" paddingX={2} flexGrow={1}>
       <Text color="blue" bold>
         📚 Skills Manager ({skills.length} skills)
       </Text>
 
-      <Box marginTop={1} flexDirection="column">
+      <Box marginTop={1} flexDirection="column" flexGrow={1}>
         {selectedSkill ? (
-          <Box flexDirection="column">
+          <Box flexDirection="column" gap={1}>
             <Text color="green" bold>
               Selected: {selectedSkill.path}
             </Text>
-            <Text color="gray">{selectedSkill.description}</Text>
+            <Text color="gray" wrap="wrap">{selectedSkill.description}</Text>
             
             <Box marginTop={1}>
-              <Text color="cyan">
+              <Text color="cyan" wrap="wrap">
                 Actions: /validate {selectedSkill.path} | /promote | [Esc] to deselect
               </Text>
             </Box>
           </Box>
         ) : (
-          <Box flexDirection="column">
+          <Box flexDirection="column" gap={1}>
             <Text color="gray">Select a skill:</Text>
             <Box marginTop={1}>
               <SelectInput items={skillItems} onSelect={handleSelect} />
@@ -158,8 +158,8 @@ export const SkillsTab: React.FC<SkillsTabProps> = ({ apiUrl, isActive }) => {
         )}
       </Box>
 
-      <Box marginTop={2} borderStyle="single" borderColor="gray" paddingX={1}>
-        <Text color="gray">
+      <Box marginTop={2} borderStyle="single" borderColor="gray" paddingX={1} paddingY={1}>
+        <Text color="gray" wrap="wrap">
           💡 Commands: /list [--filter cat] | /validate path | /promote job_id
         </Text>
       </Box>

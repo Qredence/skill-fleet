@@ -9,32 +9,35 @@ TOKEN BUDGET (Critical for agent context efficiency)
 ═══════════════════════════════════════════════════════════════════
 
 Frontmatter: ~100 tokens (name + description injected into XML prompt)
-Body by skill type: - Getting-started/frequent: <150 words - Standard skills: <500 words  
- - Complex technical: <5000 tokens (~500 lines max)
+Body by skill type: - Getting-started/frequent: <150 words - Standard skills: <500 words
 
-Use capabilities/ for deep dives that load on demand.
+- Complex technical: <5000 tokens (~500 lines max)
+
+Use subdirectories for deep dives that load on demand.
 
 ═══════════════════════════════════════════════════════════════════
-DIRECTORY STRUCTURE (skill-fleet convention)
+DIRECTORY STRUCTURE (v2 convention)
 ═══════════════════════════════════════════════════════════════════
 
+MINIMAL (most common - start here):
+skill-name/
+└── SKILL.md # Required - main skill document
+
+WITH SUBDIRECTORIES (add only when needed):
 skill-name/
 ├── SKILL.md # Required - main skill document
-├── metadata.json # Optional - tooling metadata (see metadata*template.json)
-├── best_practices.md # Optional - supporting guidelines
-├── integration.md # Optional - integration patterns
-├── capabilities/ # Optional - deep-dive pattern docs (progressive disclosure)
-│ ├── pattern-one.md
-│ └── pattern-two.md
-├── examples/ # Optional - runnable demos
-│ └── example-name/
-│ ├── README.md
-│ └── implementation files
-├── resources/ # Optional - reference materials
-│ ├── quick-reference.md
-│ └── troubleshooting.md
-└── tests/ # Optional - test scenarios for skill validation
-└── test*\*.json
+├── references/ # Optional - deep-dive documentation, API refs
+│ └── advanced.md
+├── guides/ # Optional - step-by-step procedures, tutorials
+│ └── setup.md
+├── templates/ # Optional - reusable code templates, boilerplate
+│ └── starter.py
+├── scripts/ # Optional - automation scripts, tooling
+│ └── setup.sh
+└── examples/ # Optional - runnable demos, sample code
+└── basic.py
+
+Note: metadata.json is optional (for backward compatibility with v1 skills).
 
 ═══════════════════════════════════════════════════════════════════
 FRONTMATTER (agentskills.io compliant)
@@ -95,6 +98,7 @@ ANTI-PATTERNS (from writing-skills)
 ## --}}
 
 ---
+
 name: {{skill_name_kebab}}
 description: Use when {{triggering_conditions}}
 {{#if license}}
@@ -195,13 +199,13 @@ digraph when_to_use {
 
 **Key insight:** {{key_insight}}
 
-{{!-- For complex skills with multiple patterns, link to capabilities/ --}}
-{{#if capabilities}}
+{{!-- For complex skills with multiple reference documents, link to references/ --}}
+{{#if references}}
 
-> **Deep dives:** See `capabilities/` for detailed pattern documentation:
-> {{#each capabilities}}
+> **Deep dives:** See `references/` for detailed documentation:
+> {{#each references}}
 >
-> - [{{this}}](capabilities/{{this}}.md)
+> - [{{this}}](references/{{this}}.md)
 >   {{/each}}
 >   {{/if}}
 
@@ -242,13 +246,14 @@ digraph when_to_use {
 
 {{#if strong_guidance}}
 {{#each strong_guidance}}
+
 - **{{this}}**
-{{/each}}
-{{else}}
+  {{/each}}
+  {{else}}
 - **NO [action] WITHOUT [prerequisite]** — [explanation]
 - **ALWAYS [action]** — [explanation]
 - **NEVER [action]** — [explanation]
-{{/if}}
+  {{/if}}
 
 ## Red Flags
 

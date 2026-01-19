@@ -69,33 +69,54 @@ async def chat_stream(request: ChatMessageRequest):
     Returns:
         Server-Sent Events stream
     """
+    logger.info(f"Chat stream request received: message='{request.message}'")
+    
     try:
+        # Check DSPy configuration
+        import dspy
+        if not hasattr(dspy.settings, 'lm') or dspy.settings.lm is None:
+            logger.error("DSPy not configured - no LM available")
+            raise HTTPException(
+                status_code=503,
+                detail="DSPy not configured. Please ensure GOOGLE_API_KEY is set and server was restarted."
+            )
+        
+        logger.info(f"DSPy LM configured: {dspy.settings.lm}")
         assistant = StreamingAssistant()
+        logger.info("StreamingAssistant initialized")
 
         async def event_generator():
             """Generate streaming events."""
             try:
+                event_count = 0
                 async for event in assistant.forward_streaming(
                     user_message=request.message, context=request.context
                 ):
+                    event_count += 1
+                    logger.debug(f"Event {event_count}: {event.get('type')}")
                     yield event
+                logger.info(f"Streaming completed successfully ({event_count} events)")
             except Exception as e:
-                logger.exception("Error in streaming")
-                yield {"type": "error", "data": str(e)}
+                logger.exception("Error during streaming generation")
+                yield {"type": "error", "data": json.dumps({"error": str(e), "type": type(e).__name__})}
 
         # Convert to SSE format and return as StreamingResponse
+        logger.info("Creating StreamingResponse")
         return StreamingResponse(
             stream_events_to_sse(event_generator()),
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",
                 "X-Accel-Buffering": "no",
+                "Connection": "keep-alive",
             },
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception("Error in chat stream endpoint")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Internal error: {type(e).__name__}: {str(e)}")
 
 
 @router.post("/sync")

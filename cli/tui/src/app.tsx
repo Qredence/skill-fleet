@@ -12,6 +12,9 @@
 import React, { useEffect, useState } from "react";
 import { Box, Text } from "ink";
 import { ChatTab } from "./tabs/chat-tab.js";
+import { SkillsTab } from "./tabs/skills-tab.js";
+import { JobsTab } from "./tabs/jobs-tab.js";
+import { OptimizationTab } from "./tabs/optimization-tab.js";
 
 interface AppProps {
   apiUrl: string;
@@ -120,51 +123,17 @@ export const App: React.FC<AppProps> = ({ apiUrl, userId = "default" }) => {
 
       {/* Tab Content */}
       <Box flexDirection="column" flexGrow={1} marginBottom={1}>
-        {activeTab === "chat" && (
-          <ChatTab apiUrl={apiUrl} isActive={activeTab === "chat"} />
-        )}
-
-        {activeTab === "skills" && (
-          <Box flexDirection="column" paddingX={2}>
-            <Text color="blue" bold>
-              📚 Skills Manager
-            </Text>
-            <Text color="gray">
-              [Coming soon - Browse, validate, and promote skills]
-            </Text>
-            <Text color="gray">
-              Commands: /list, /validate, /promote, /delete
-            </Text>
-          </Box>
-        )}
-
-        {activeTab === "jobs" && (
-          <Box flexDirection="column" paddingX={2}>
-            <Text color="blue" bold>
-              ⚙️ Job Monitor
-            </Text>
-            <Text color="gray">
-              [Coming soon - Monitor running optimization jobs]
-            </Text>
-            <Text color="gray">
-              Commands: /status, /cancel, /results
-            </Text>
-          </Box>
-        )}
-
-        {activeTab === "optimization" && (
-          <Box flexDirection="column" paddingX={2}>
-            <Text color="blue" bold>
-              🚀 Optimization Control
-            </Text>
-            <Text color="gray">
-              [Coming soon - Configure and run optimizers]
-            </Text>
-            <Text color="gray">
-              Commands: /optimize, /list-optimizers, /configure
-            </Text>
-          </Box>
-        )}
+        <ChatTab apiUrl={apiUrl} isActive={activeTab === "chat"} />
+        <SkillsTab apiUrl={apiUrl} isActive={activeTab === "skills"} />
+        <JobsTab apiUrl={apiUrl} isActive={activeTab === "jobs"} />
+        <OptimizationTab
+          apiUrl={apiUrl}
+          isActive={activeTab === "optimization"}
+          onOptimize={(optimizer, trainset) => {
+            // Switch to jobs tab to monitor
+            setActiveTab("jobs");
+          }}
+        />
       </Box>
 
       {/* Help Section */}

@@ -12,6 +12,7 @@ import React, { useState } from "react";
 import { Box, Text } from "ink";
 import TextInput from "ink-text-input";
 import { StreamingClient, ThinkingChunk, ResponseChunk } from "../streaming-client.js";
+import { CommandExecutor } from "../commands/executor.js";
 
 interface Message {
   id: string;
@@ -57,6 +58,15 @@ export const ChatTab: React.FC<ChatTabProps> = ({ apiUrl, isActive }) => {
   const [suggestions, setSuggestions] = useState<string[]>([]);
 
   const streamingClient = new StreamingClient();
+  const commandExecutor = new CommandExecutor({
+    apiUrl,
+    onProgress: (msg) => {
+      setMessages((prev) => [
+        ...prev,
+        { id: `progress-${Date.now()}`, role: "thinking", content: `⏳ ${msg}` },
+      ]);
+    },
+  });
 
   const getNextMessageId = () => {
     const id = `msg-${messageIdCounter}`;
@@ -67,6 +77,61 @@ export const ChatTab: React.FC<ChatTabProps> = ({ apiUrl, isActive }) => {
   const handleSubmit = async (message: string) => {
     if (!message.trim() || isLoading) return;
 
+    // Check if it's a command
+    if (message.startsWith('/')) {
+      return await handleCommand(message);
+    }
+
+    // Otherwise, use streaming assistant
+    return await handleStreamingChat(message);
+  };
+
+  const handleCommand = async (command: string) => {
+    // Add user command
+    setMessages((prev) => [
+      ...prev,
+      { id: getNextMessageId(), role: "user", content: command },
+    ]);
+    setInput("");
+    setIsLoading(true);
+    setSuggestions([]);
+
+    try {
+      const result = await commandExecutor.execute(command);
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: getNextMessageId(),
+          role: "assistant",
+          content: result.message,
+        },
+      ]);
+
+      // Generate context-aware suggestions
+      if (result.jobId) {
+        setSuggestions([`/status ${result.jobId}`, '/list', '/help']);
+      } else if (command.startsWith('/list')) {
+        setSuggestions(['/validate skills/...', '/optimize', '/help']);
+      } else {
+        setSuggestions(['/list', '/optimize', '/help']);
+      }
+
+      setIsLoading(false);
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: getNextMessageId(),
+          role: "assistant",
+          content: `❌ Command failed: ${error instanceof Error ? error.message : String(error)}`,
+        },
+      ]);
+      setIsLoading(false);
+    }
+  };
+
+  const handleStreamingChat = async (message: string) => {
     // Add user message
     setMessages((prev) => [
       ...prev,

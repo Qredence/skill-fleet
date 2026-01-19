@@ -11,6 +11,9 @@
 import React, { useEffect, useState } from "react";
 import { Box, Text } from "ink";
 import { ChatTab } from "./tabs/chat-tab.js";
+import { SkillsTab } from "./tabs/skills-tab.js";
+import { JobsTab } from "./tabs/jobs-tab.js";
+import { OptimizationTab } from "./tabs/optimization-tab.js";
 const TABS = ["chat", "skills", "jobs", "optimization"];
 const TAB_NAMES = {
     chat: "💬 Chat",
@@ -73,19 +76,13 @@ export const App = ({ apiUrl, userId = "default" }) => {
         React.createElement(Box, { marginBottom: 1 },
             React.createElement(Text, { color: "gray" }, "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500")),
         React.createElement(Box, { flexDirection: "column", flexGrow: 1, marginBottom: 1 },
-            activeTab === "chat" && (React.createElement(ChatTab, { apiUrl: apiUrl, isActive: activeTab === "chat" })),
-            activeTab === "skills" && (React.createElement(Box, { flexDirection: "column", paddingX: 2 },
-                React.createElement(Text, { color: "blue", bold: true }, "\uD83D\uDCDA Skills Manager"),
-                React.createElement(Text, { color: "gray" }, "[Coming soon - Browse, validate, and promote skills]"),
-                React.createElement(Text, { color: "gray" }, "Commands: /list, /validate, /promote, /delete"))),
-            activeTab === "jobs" && (React.createElement(Box, { flexDirection: "column", paddingX: 2 },
-                React.createElement(Text, { color: "blue", bold: true }, "\u2699\uFE0F Job Monitor"),
-                React.createElement(Text, { color: "gray" }, "[Coming soon - Monitor running optimization jobs]"),
-                React.createElement(Text, { color: "gray" }, "Commands: /status, /cancel, /results"))),
-            activeTab === "optimization" && (React.createElement(Box, { flexDirection: "column", paddingX: 2 },
-                React.createElement(Text, { color: "blue", bold: true }, "\uD83D\uDE80 Optimization Control"),
-                React.createElement(Text, { color: "gray" }, "[Coming soon - Configure and run optimizers]"),
-                React.createElement(Text, { color: "gray" }, "Commands: /optimize, /list-optimizers, /configure")))),
+            React.createElement(ChatTab, { apiUrl: apiUrl, isActive: activeTab === "chat" }),
+            React.createElement(SkillsTab, { apiUrl: apiUrl, isActive: activeTab === "skills" }),
+            React.createElement(JobsTab, { apiUrl: apiUrl, isActive: activeTab === "jobs" }),
+            React.createElement(OptimizationTab, { apiUrl: apiUrl, isActive: activeTab === "optimization", onOptimize: (optimizer, trainset) => {
+                    // Switch to jobs tab to monitor
+                    setActiveTab("jobs");
+                } })),
         showHelp && (React.createElement(Box, { flexDirection: "column", marginBottom: 1, paddingX: 2 },
             React.createElement(Text, { color: "yellow", bold: true }, "\u2328\uFE0F Keyboard Shortcuts"),
             React.createElement(Text, { color: "yellow" }, "Tab / Ctrl+Tab : Switch tabs"),

@@ -45,7 +45,7 @@ function formatThinkingChunk(chunk: ThinkingChunk): string {
 
 export const ChatTab: React.FC<ChatTabProps> = ({ apiUrl, isActive }) => {
   const [input, setInput] = useState("");
-  const [messageIdCounter, setMessageIdCounter] = useState(0);
+  const [messageIdCounter, setMessageIdCounter] = useState(1); // Start at 1 to avoid conflict with welcome-0
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome-0",

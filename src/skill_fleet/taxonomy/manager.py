@@ -675,25 +675,33 @@ class TaxonomyManager:
     def _create_skill_subdirectories(self, skill_dir: Path, skill_name: str) -> None:
         """Create standard skill subdirectories with README.md files.
 
-        Creates the following structure:
-        - capabilities/README.md
+        Creates the following structure (v2 Golden Standard format):
+        - references/README.md, quick-start.md, common-patterns.md, api-reference.md, troubleshooting.md
+        - guides/README.md (formerly resources/)
+        - templates/README.md
+        - scripts/README.md
         - examples/README.md
         - tests/README.md
-        - resources/README.md
-        - references/README.md, quick-start.md, common-patterns.md, api-reference.md, troubleshooting.md
-        - scripts/README.md
         - assets/README.md
+
+        Legacy directories (capabilities/, resources/) are created for backward compatibility
+        but new skills should use references/ and guides/ instead.
         """
         # Define subdirectories and their README content
+        # Legacy directories (for backward compatibility)
         subdirs = {
-            "capabilities": f"# Capabilities\n\nCapability implementations for `{skill_name}`.\n\nEach file in this directory documents a specific capability provided by this skill.\n",
+            "capabilities": f"# Capabilities (Legacy)\n\n**Note:** This directory is deprecated. Use `references/` instead for new skills.\n\nCapability implementations for `{skill_name}`.\n\nEach file in this directory documents a specific capability provided by this skill.\n",
+            "resources": f"# Resources (Legacy)\n\n**Note:** This directory is deprecated. Use `guides/` instead for new skills.\n\nResource files for `{skill_name}`.\n\nIncludes configuration files, data files, and other resources needed by the skill.\n",
+        }
+        # Standard v2 directories
+        subdirs.update({
             "examples": f"# Examples\n\nUsage examples for `{skill_name}`.\n\nEach file demonstrates a specific use case or pattern.\n",
             "tests": f"# Tests\n\nIntegration tests for `{skill_name}`.\n\nThese tests verify the skill's capabilities work as expected.\n",
-            "resources": f"# Resources\n\nResource files for `{skill_name}`.\n\nIncludes configuration files, data files, and other resources needed by the skill.\n",
+            "guides": f"# Guides\n\nHow-to guides and tutorials for `{skill_name}`.\n\nStep-by-step instructions for common tasks and workflows.\n",
             "references": f"# References\n\nReference documentation for `{skill_name}`.\n\n## Contents\n\n- [Quick Start](quick-start.md) - Get started quickly\n- [Common Patterns](common-patterns.md) - Frequently used patterns\n- [API Reference](api-reference.md) - Detailed API documentation\n- [Troubleshooting](troubleshooting.md) - Common issues and solutions\n",
             "scripts": f"# Scripts\n\nUtility scripts for `{skill_name}`.\n\nThese scripts help with setup, maintenance, or automation tasks.\n",
             "assets": f"# Assets\n\nStatic assets for `{skill_name}`.\n\nIncludes images, diagrams, and other static files.\n",
-        }
+        })
 
         # Create each subdirectory with README.md
         for subdir, readme_content in subdirs.items():

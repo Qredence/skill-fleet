@@ -1,0 +1,383 @@
+[
+  {
+    "task_description": "Create a dspy advanced skill: Advanced DSPy modules including ReAct agents, tool calling, output refinement (BestOfN, Refine), and adapters. Use when building agent systems, integrating external tools, or implementing multi-step reasoning.",
+    "expected_taxonomy_path": "dspy/dspy-advanced",
+    "expected_name": "dspy-advanced",
+    "expected_skill_style": "navigation_hub",
+    "expected_subdirectories": [
+      "references"
+    ],
+    "expected_keywords": [
+      "dspy",
+      "advanced"
+    ],
+    "expected_description": "Advanced DSPy modules including ReAct agents, tool calling, output refinement (BestOfN, Refine), and adapters. Use when building agent systems, integrating external tools, or implementing multi-step r",
+    "source": "golden_example"
+  },
+  {
+    "task_description": "Create a dspy basics skill: Core DSPy fundamentals for signature design, basic modules (Predict, ChainOfThought), and program composition patterns. Use when creating new signatures, building simple DSPy programs, or learning foundational DSPy concepts.",
+    "expected_taxonomy_path": "dspy/dspy-basics",
+    "expected_name": "dspy-basics",
+    "expected_skill_style": "navigation_hub",
+    "expected_subdirectories": [
+      "references"
+    ],
+    "expected_keywords": [
+      "dspy",
+      "basics"
+    ],
+    "expected_description": "Core DSPy fundamentals for signature design, basic modules (Predict, ChainOfThought), and program composition patterns. Use when creating new signatures, building simple DSPy programs, or learning fou",
+    "source": "golden_example"
+  },
+  {
+    "task_description": "Create a dspy configuration skill: DSPy configuration, LM setup, caching, and version management. Use when configuring language models, enabling caching, managing dependencies, or setting up multi-provider configurations.",
+    "expected_taxonomy_path": "dspy/dspy-configuration",
+    "expected_name": "dspy-configuration",
+    "expected_skill_style": "navigation_hub",
+    "expected_subdirectories": [
+      "references"
+    ],
+    "expected_keywords": [
+      "dspy",
+      "configuration"
+    ],
+    "expected_description": "DSPy configuration, LM setup, caching, and version management. Use when configuring language models, enabling caching, managing dependencies, or setting up multi-provider configurations.",
+    "source": "golden_example"
+  },
+  {
+    "task_description": "Create a dspy development skill: Provides comprehensive guidance for DSPy framework development including signature design, program construction, optimization workflows, and best practices. Use when working with DSPy modules, creating new signatures, optimizing teleprompters, or debugging DSPy code .",
+    "expected_taxonomy_path": "dspy/dspy-development",
+    "expected_name": "dspy-development",
+    "expected_skill_style": "navigation_hub",
+    "expected_subdirectories": [
+      "references"
+    ],
+    "expected_keywords": [
+      "dspy",
+      "development"
+    ],
+    "expected_description": "Provides comprehensive guidance for DSPy framework development including signature design, program construction, optimization workflows, and best practices. Use when working with DSPy modules, creatin",
+    "source": "golden_example"
+  },
+  {
+    "task_description": "Create a dspy optimization skill: DSPy optimizers (teleprompters), evaluation metrics, and optimization workflows. Use when compiling programs with BootstrapFewShot, KNNFewShot, MIPROv2, GEPA, or defining custom metrics.",
+    "expected_taxonomy_path": "dspy/dspy-optimization",
+    "expected_name": "dspy-optimization",
+    "expected_skill_style": "navigation_hub",
+    "expected_subdirectories": [
+      "references"
+    ],
+    "expected_keywords": [
+      "dspy",
+      "optimization"
+    ],
+    "expected_description": "DSPy optimizers (teleprompters), evaluation metrics, and optimization workflows. Use when compiling programs with BootstrapFewShot, KNNFewShot, MIPROv2, GEPA, or defining custom metrics.",
+    "source": "golden_example"
+  },
+  {
+    "task_description": "Create a FastAPI Stack Development skill: Comprehensive guidance for FastAPI, Typer, and SQLModel development including patterns, best practices, API design, CLI development, database integration, testing, and common workflows. Use this skill when building applications with any of these frameworks.",
+    "expected_taxonomy_path": "general/FastAPI Stack Development",
+    "expected_name": "FastAPI Stack Development",
+    "expected_skill_style": "comprehensive",
+    "expected_subdirectories": [],
+    "expected_keywords": [
+      "FastAPI Stack Development"
+    ],
+    "expected_description": "Comprehensive guidance for FastAPI, Typer, and SQLModel development including patterns, best practices, API design, CLI development, database integration, testing, and common workflows. Use this skill",
+    "source": "golden_example"
+  },
+  {
+    "task_description": "Create a frontend ui integration skill: Implement or extend a user-facing workflow in a web application, integrating with existing backend APIs. Use when the feature is primarily a UI/UX change backed by existing APIs, affects only the web frontend, and requires following design system, routing, and testing conventions.",
+    "expected_taxonomy_path": "frontend/frontend-ui-integration",
+    "expected_name": "frontend-ui-integration",
+    "expected_skill_style": "comprehensive",
+    "expected_subdirectories": [],
+    "expected_keywords": [
+      "frontend",
+      "ui",
+      "integration"
+    ],
+    "expected_description": "Implement or extend a user-facing workflow in a web application, integrating with existing backend APIs. Use when the feature is primarily a UI/UX change backed by existing APIs, affects only the web ",
+    "source": "golden_example"
+  },
+  {
+    "task_description": "Create a add neon docs skill: Use this skill when the user asks to add documentation, add docs, add references, or install documentation about Neon. Adds Neon best practices reference links to project AI documentation (CLAUDE.md, AGENTS.md, or Cursor rules). Does not install packages or modify code.",
+    "expected_taxonomy_path": "add/add-neon-docs",
+    "expected_name": "add-neon-docs",
+    "expected_skill_style": "comprehensive",
+    "expected_subdirectories": [],
+    "expected_keywords": [
+      "add",
+      "neon",
+      "docs"
+    ],
+    "expected_description": "Use this skill when the user asks to add documentation, add docs, add references, or install documentation about Neon. Adds Neon best practices reference links to project AI documentation (CLAUDE.md, ",
+    "source": "golden_example"
+  },
+  {
+    "task_description": "Create a neon auth skill: Sets up Neon Auth for your application. Configures authentication, creates auth routes, and generates UI components. Use when adding authentication to Next.js, React SPA, or Node.js projects.",
+    "expected_taxonomy_path": "neon/neon-auth",
+    "expected_name": "neon-auth",
+    "expected_skill_style": "comprehensive",
+    "expected_subdirectories": [
+      "guides"
+    ],
+    "expected_keywords": [
+      "neon",
+      "auth"
+    ],
+    "expected_description": "Sets up Neon Auth for your application. Configures authentication, creates auth routes, and generates UI components. Use when adding authentication to Next.js, React SPA, or Node.js projects.",
+    "source": "golden_example"
+  },
+  {
+    "task_description": "Create a neon drizzle skill: Creates a fully functional Drizzle ORM setup with a provisioned Neon database. Installs dependencies, provisions database credentials, configures connections, generates schemas, and runs migrations. Results in working code that can immediately connect to and query the database. Use when creating new projects with Drizzle, adding ORM to existing applications, or modifying database schemas.",
+    "expected_taxonomy_path": "neon/neon-drizzle",
+    "expected_name": "neon-drizzle",
+    "expected_skill_style": "navigation_hub",
+    "expected_subdirectories": [
+      "references",
+      "guides"
+    ],
+    "expected_keywords": [
+      "neon",
+      "drizzle"
+    ],
+    "expected_description": "Creates a fully functional Drizzle ORM setup with a provisioned Neon database. Installs dependencies, provisions database credentials, configures connections, generates schemas, and runs migrations. R",
+    "source": "golden_example"
+  },
+  {
+    "task_description": "Create a neon js skill: Sets up the full Neon JS SDK with unified auth and PostgREST-style database queries. Configures auth client, data client, and type generation. Use when building apps that need both authentication and database access in one SDK.",
+    "expected_taxonomy_path": "neon/neon-js",
+    "expected_name": "neon-js",
+    "expected_skill_style": "comprehensive",
+    "expected_subdirectories": [
+      "guides"
+    ],
+    "expected_keywords": [
+      "neon",
+      "js"
+    ],
+    "expected_description": "Sets up the full Neon JS SDK with unified auth and PostgREST-style database queries. Configures auth client, data client, and type generation. Use when building apps that need both authentication and ",
+    "source": "golden_example"
+  },
+  {
+    "task_description": "Create a neon serverless skill: Configures Neon Serverless Driver for Next.js, Vercel Edge Functions, AWS Lambda, and other serverless environments. Installs @neondatabase/serverless, sets up environment variables, and creates working API route examples with TypeScript types. Use when users need to connect their application to Neon, fetch or query data from a Neon database, integrate Neon with Next.js or serverless frameworks, or set up database access in edge/serverless environments where traditional PostgreSQL clients don't work.",
+    "expected_taxonomy_path": "neon/neon-serverless",
+    "expected_name": "neon-serverless",
+    "expected_skill_style": "navigation_hub",
+    "expected_subdirectories": [],
+    "expected_keywords": [
+      "neon",
+      "serverless"
+    ],
+    "expected_description": "Configures Neon Serverless Driver for Next.js, Vercel Edge Functions, AWS Lambda, and other serverless environments. Installs @neondatabase/serverless, sets up environment variables, and creates worki",
+    "source": "golden_example"
+  },
+  {
+    "task_description": "Create a neon toolkit skill: Creates and manages ephemeral Neon databases for testing, CI/CD pipelines, and isolated development environments. Use when building temporary databases for automated tests or rapid prototyping.",
+    "expected_taxonomy_path": "neon/neon-toolkit",
+    "expected_name": "neon-toolkit",
+    "expected_skill_style": "navigation_hub",
+    "expected_subdirectories": [],
+    "expected_keywords": [
+      "neon",
+      "toolkit"
+    ],
+    "expected_description": "Creates and manages ephemeral Neon databases for testing, CI/CD pipelines, and isolated development environments. Use when building temporary databases for automated tests or rapid prototyping.",
+    "source": "golden_example"
+  },
+  {
+    "task_description": "Create a product management skill: Assist with core product management activities including writing PRDs, analyzing features, synthesizing user research, planning roadmaps, and communicating product decisions. Use when you need help with PM documentation, analysis, or planning workflows that integrate with your codebase.",
+    "expected_taxonomy_path": "product/product-management",
+    "expected_name": "product-management",
+    "expected_skill_style": "comprehensive",
+    "expected_subdirectories": [],
+    "expected_keywords": [
+      "product",
+      "management"
+    ],
+    "expected_description": "Assist with core product management activities including writing PRDs, analyzing features, synthesizing user research, planning roadmaps, and communicating product decisions. Use when you need help wi",
+    "source": "golden_example"
+  },
+  {
+    "task_description": "Create a vibe coding skill: Rapidly prototype and build modern, responsive web applications from scratch using current frameworks and libraries. Use when you want to quickly create a new web app with full local control, creative flow, and modern best practices. Local alternative to Lovable, Bolt, and v0.",
+    "expected_taxonomy_path": "vibe/vibe-coding",
+    "expected_name": "vibe-coding",
+    "expected_skill_style": "comprehensive",
+    "expected_subdirectories": [],
+    "expected_keywords": [
+      "vibe",
+      "coding"
+    ],
+    "expected_description": "Rapidly prototype and build modern, responsive web applications from scratch using current frameworks and libraries. Use when you want to quickly create a new web app with full local control, creative",
+    "source": "golden_example"
+  },
+  {
+    "task_description": "Create a prompt-refiner-claude skill: Refine prompts for Claude models (Opus, Sonnet, Haiku) using Anthropic's best practices. Use when preparing complex tasks for Claude.",
+    "expected_taxonomy_path": "prompt-refiner-claude",
+    "expected_name": "prompt-refiner-claude",
+    "expected_skill_style": "minimal",
+    "expected_subdirectories": [],
+    "expected_keywords": [
+      "prompt",
+      "refiner",
+      "claude"
+    ],
+    "expected_description": "Refine prompts for Claude models (Opus, Sonnet, Haiku) using Anthropic's best practices. Use when preparing complex tasks for Claude.",
+    "source": "extracted_from_existing"
+  },
+  {
+    "task_description": "Create a astral-ty-integration skill: Standardized workflow for integrating Astral's 'ty' type checker into existing Python projects, focusing on incremental adoption and high-performance CI/CD pipelines.",
+    "expected_taxonomy_path": "_drafts/26f10af6-4566-4ac3-90a2-33cbf5174c4b/technical_skills/python/type_checking/astral-ty-integration",
+    "expected_name": "astral-ty-integration",
+    "expected_skill_style": "comprehensive",
+    "expected_subdirectories": [
+      "examples"
+    ],
+    "expected_keywords": [
+      "astral",
+      "integration",
+      "python"
+    ],
+    "expected_description": "Standardized workflow for integrating Astral's 'ty' type checker into existing Python projects, focusing on incremental adoption and high-performance CI/CD pipelines.",
+    "source": "extracted_from_existing"
+  },
+  {
+    "task_description": "Create a tavily-rest-api-tool skill: A Python implementation of a REST API wrapper for the Tavily Search service, designed to provide structured web search capabilities to AI agents.",
+    "expected_taxonomy_path": "_drafts/51a31ca6-3c08-47eb-b2de-d0b5bf962271/tools/web_search/tavily",
+    "expected_name": "tavily-rest-api-tool",
+    "expected_skill_style": "comprehensive",
+    "expected_subdirectories": [
+      "references",
+      "scripts",
+      "examples"
+    ],
+    "expected_keywords": [
+      "tavily",
+      "rest",
+      "api",
+      "tool",
+      "api",
+      "python"
+    ],
+    "expected_description": "A Python implementation of a REST API wrapper for the Tavily Search service, designed to provide structured web search capabilities to AI agents.",
+    "source": "extracted_from_existing"
+  },
+  {
+    "task_description": "Create a ephemeral-memory-protocol skill: A markdown-based protocol for managing temporary, session-specific information. to prevent context clutter in local AI interactions.",
+    "expected_taxonomy_path": "_drafts/54dbf8d8-887a-43da-9eba-f4fb0819282d/memory_blocks/ephemeral-memory-protocol",
+    "expected_name": "ephemeral-memory-protocol",
+    "expected_skill_style": "comprehensive",
+    "expected_subdirectories": [
+      "references",
+      "scripts",
+      "examples"
+    ],
+    "expected_keywords": [
+      "ephemeral",
+      "memory",
+      "protocol"
+    ],
+    "expected_description": "A markdown-based protocol for managing temporary, session-specific information. to prevent context clutter in local AI interactions.",
+    "source": "extracted_from_existing"
+  },
+  {
+    "task_description": "Create a python-advanced-typing-utility-types skill: Advanced technical reference for Python static typing, covering Protocols, Generics, Type Narrowing, and complex utility types for production-grade software.",
+    "expected_taxonomy_path": "_drafts/a7d042f0-4234-4e8b-9083-6f6951317080/technical_skills/programming/python/typing/python-advanced-typing-utility-types",
+    "expected_name": "python-advanced-typing-utility-types",
+    "expected_skill_style": "comprehensive",
+    "expected_subdirectories": [
+      "examples"
+    ],
+    "expected_keywords": [
+      "python",
+      "advanced",
+      "typing",
+      "utility",
+      "types",
+      "python"
+    ],
+    "expected_description": "Advanced technical reference for Python static typing, covering Protocols, Generics, Type Narrowing, and complex utility types for production-grade software.",
+    "source": "extracted_from_existing"
+  },
+  {
+    "task_description": "Create a fastapi-pytest-workflow skill: Standardized workflow and fixtures for isolated unit testing in FastAPI, including SQLAlchemy session mocking and pyfakefs integration.",
+    "expected_taxonomy_path": "_drafts/be481007-7f46-4678-a959-f22cfb6468ce/technical_skills/python/testing/pytest/fastapi",
+    "expected_name": "fastapi-pytest-workflow",
+    "expected_skill_style": "comprehensive",
+    "expected_subdirectories": [
+      "references",
+      "scripts",
+      "examples"
+    ],
+    "expected_keywords": [
+      "fastapi",
+      "pytest",
+      "workflow",
+      "fastapi",
+      "testing"
+    ],
+    "expected_description": "Standardized workflow and fixtures for isolated unit testing in FastAPI, including SQLAlchemy session mocking and pyfakefs integration.",
+    "source": "extracted_from_existing"
+  },
+  {
+    "task_description": "Create a react-vite-production-setup skill: A comprehensive workflow for initializing and configuring a production-ready React SPA using Vite, TypeScript, Tailwind CSS, and TanStack Query with a feature-based architecture.",
+    "expected_taxonomy_path": "_drafts/e6f8da04-794a-40d4-963f-f69a4aecb867/technical_skills/web_development/frontend/react/react-vite-production-setup",
+    "expected_name": "react-vite-production-setup",
+    "expected_skill_style": "comprehensive",
+    "expected_subdirectories": [
+      "references",
+      "scripts",
+      "examples"
+    ],
+    "expected_keywords": [
+      "react",
+      "vite",
+      "production",
+      "setup",
+      "react",
+      "typescript"
+    ],
+    "expected_description": "A comprehensive workflow for initializing and configuring a production-ready React SPA using Vite, TypeScript, Tailwind CSS, and TanStack Query with a feature-based architecture.",
+    "source": "extracted_from_existing"
+  },
+  {
+    "task_description": "Create a shadcn-custom-registry skill: Architect and distribute an organizational design system using the shadcn/uiregistry pattern, allowing teams to install custom components via the shadcn CLI.",
+    "expected_taxonomy_path": "_drafts/f1d7b1a8-b4fd-4ecf-bf01-de283f470d5f/software_development/frontend/design_systems/shadcn-custom-registry",
+    "expected_name": "shadcn-custom-registry",
+    "expected_skill_style": "comprehensive",
+    "expected_subdirectories": [
+      "references",
+      "scripts",
+      "examples"
+    ],
+    "expected_keywords": [
+      "shadcn",
+      "custom",
+      "registry",
+      "cli"
+    ],
+    "expected_description": "Architect and distribute an organizational design system using the shadcn/uiregistry pattern, allowing teams to install custom components via the shadcn CLI.",
+    "source": "extracted_from_existing"
+  },
+  {
+    "task_description": "Create a fastapi-production-patterns skill: Use when building FastAPI apps with async database operations, complex dependency injection, partial update endpoints, async testing, or converting Python utilities to API endpoints",
+    "expected_taxonomy_path": "python/fastapi-production",
+    "expected_name": "fastapi-production-patterns",
+    "expected_skill_style": "comprehensive",
+    "expected_subdirectories": [
+      "examples"
+    ],
+    "expected_keywords": [
+      "fastapi",
+      "production",
+      "patterns",
+      "api",
+      "async",
+      "database",
+      "fastapi"
+    ],
+    "expected_description": "Use when building FastAPI apps with async database operations, complex dependency injection, partial update endpoints, async testing, or converting Python utilities to API endpoints",
+    "source": "extracted_from_existing"
+  }
+]

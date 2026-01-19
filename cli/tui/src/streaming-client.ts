@@ -178,6 +178,10 @@ export class StreamingClient {
       );
     }
 
-    return response.json();
+    return response.json() as Promise<{
+      thinking: string[];
+      response: string;
+      thinking_summary: string;
+    }>;
   }
 }

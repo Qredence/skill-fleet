@@ -12,6 +12,7 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from ...core.dspy.streaming import StreamingAssistant, stream_events_to_sse
@@ -82,8 +83,15 @@ async def chat_stream(request: ChatMessageRequest):
                 logger.exception("Error in streaming")
                 yield {"type": "error", "data": str(e)}
 
-        # Convert to SSE format and return
-        return stream_events_to_sse(event_generator())
+        # Convert to SSE format and return as StreamingResponse
+        return StreamingResponse(
+            stream_events_to_sse(event_generator()),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",
+            },
+        )
 
     except Exception as e:
         logger.exception("Error in chat stream endpoint")

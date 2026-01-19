@@ -61,9 +61,11 @@ class StreamingModule(dspy.Module):
         """
         self._thinking_buffer.append(content)
         self._step_counter += 1
-        return ThinkingChunk(
-            type=thinking_type, content=content, step=self._step_counter
-        )
+        return {
+            "type": thinking_type,
+            "content": content,
+            "step": self._step_counter,
+        }
 
     def get_thinking_summary(self) -> str:
         """Get full thinking summary."""
@@ -100,70 +102,60 @@ class StreamingIntentParser(StreamingModule):
         self.clear_thinking()
 
         # Yield thinking steps
-        yield StreamEvent(
-            type="thinking",
-            data=json.dumps(
-                ThinkingChunk(
-                    type="thought",
-                    content=f"Analyzing user message: {user_message[:50]}...",
-                    step=1,
-                )
-            ),
-        )
+        yield {
+            "type": "thinking",
+            "data": json.dumps({
+                "type": "thought",
+                "content": f"Analyzing user message: {user_message[:50]}...",
+                "step": 1,
+            }),
+        }
 
-        yield StreamEvent(
-            type="thinking",
-            data=json.dumps(
-                ThinkingChunk(
-                    type="reasoning",
-                    content="Looking for keywords: 'optimize', 'create', 'list', 'validate'...",
-                    step=2,
-                )
-            ),
-        )
+        yield {
+            "type": "thinking",
+            "data": json.dumps({
+                "type": "reasoning",
+                "content": "Looking for keywords: 'optimize', 'create', 'list', 'validate'...",
+                "step": 2,
+            }),
+        }
 
         # Run classification
-        yield StreamEvent(
-            type="thinking",
-            data=json.dumps(
-                ThinkingChunk(
-                    type="reasoning",
-                    content="Running LM-based intent classification...",
-                    step=3,
-                )
-            ),
-        )
+        yield {
+            "type": "thinking",
+            "data": json.dumps({
+                "type": "reasoning",
+                "content": "Running LM-based intent classification...",
+                "step": 3,
+            }),
+        }
 
         try:
             result = self.classify(user_message=user_message)
 
-            yield StreamEvent(
-                type="thinking",
-                data=json.dumps(
-                    ThinkingChunk(
-                        type="internal",
-                        content=f"Intent: {result.intent} (confidence: {result.confidence})",
-                        step=4,
-                    )
-                ),
-            )
+            yield {
+                "type": "thinking",
+                "data": json.dumps({
+                    "type": "internal",
+                    "content": f"Intent: {result.intent} (confidence: {result.confidence})",
+                    "step": 4,
+                }),
+            }
 
             # Yield final response
-            yield StreamEvent(
-                type="response",
-                data=json.dumps(
-                    ResponseChunk(
-                        type="response",
-                        content=f"**Intent:** {result.intent}\n**Confidence:** {result.confidence}\n**Parameters:** {result.parameters}",
-                    )
-                ),
-            )
+            yield {
+                "type": "response",
+                "data": json.dumps({
+                    "type": "response",
+                    "content": f"**Intent:** {result.intent}\n**Confidence:** {result.confidence}\n**Parameters:** {result.parameters}",
+                }),
+            }
 
-            yield StreamEvent(type="complete", data="")
+            yield {"type": "complete", "data": ""}
 
         except Exception as e:
             logger.exception("Error in streaming intent parsing")
-            yield StreamEvent(type="error", data=str(e))
+            yield {"type": "error", "data": str(e)}
 
 
 class StreamingAssistant(StreamingModule):
@@ -190,16 +182,14 @@ class StreamingAssistant(StreamingModule):
         context = context or {}
 
         # Step 1: Parse intent with streaming
-        yield StreamEvent(
-            type="thinking",
-            data=json.dumps(
-                ThinkingChunk(
-                    type="thought",
-                    content="Step 1: Understanding user intent...",
-                    step=1,
-                )
-            ),
-        )
+        yield {
+            "type": "thinking",
+            "data": json.dumps({
+                "type": "thought",
+                "content": "Step 1: Understanding user intent...",
+                "step": 1,
+            }),
+        }
 
         # Get intent through streaming
         intent_data = None
@@ -213,56 +203,51 @@ class StreamingAssistant(StreamingModule):
                     pass
 
         # Step 2: Generate response
-        yield StreamEvent(
-            type="thinking",
-            data=json.dumps(
-                ThinkingChunk(
-                    type="thought",
-                    content="Step 2: Generating response with suggested actions...",
-                    step=5,
-                )
-            ),
-        )
+        yield {
+            "type": "thinking",
+            "data": json.dumps({
+                "type": "thought",
+                "content": "Step 2: Generating response with suggested actions...",
+                "step": 5,
+            }),
+        }
 
         try:
             result = self.responder(intent=intent_data or "", context=json.dumps(context))
 
-            yield StreamEvent(
-                type="thinking",
-                data=json.dumps(
-                    ThinkingChunk(
-                        type="internal",
-                        content=f"Response ready. Suggested actions: {result.suggested_actions}",
-                        step=6,
-                    )
-                ),
-            )
+            yield {
+                "type": "thinking",
+                "data": json.dumps({
+                    "type": "internal",
+                    "content": f"Response ready. Suggested actions: {result.suggested_actions}",
+                    "step": 6,
+                }),
+            }
 
             # Yield streamed response (simulating chunked generation)
             response = result.response
             chunk_size = 50
             for i in range(0, len(response), chunk_size):
                 chunk = response[i : i + chunk_size]
-                yield StreamEvent(
-                    type="response", data=json.dumps(ResponseChunk(type="response", content=chunk))
-                )
+                yield {
+                    "type": "response",
+                    "data": json.dumps({"type": "response", "content": chunk}),
+                }
 
             # Yield suggested actions
-            yield StreamEvent(
-                type="response",
-                data=json.dumps(
-                    ResponseChunk(
-                        type="response",
-                        content=f"\n\n**Suggested Actions:**\n{result.suggested_actions}",
-                    )
-                ),
-            )
+            yield {
+                "type": "response",
+                "data": json.dumps({
+                    "type": "response",
+                    "content": f"\n\n**Suggested Actions:**\n{result.suggested_actions}",
+                }),
+            }
 
-            yield StreamEvent(type="complete", data="")
+            yield {"type": "complete", "data": ""}
 
         except Exception as e:
             logger.exception("Error in streaming assistant")
-            yield StreamEvent(type="error", data=str(e))
+            yield {"type": "error", "data": str(e)}
 
 
 async def stream_events_to_sse(

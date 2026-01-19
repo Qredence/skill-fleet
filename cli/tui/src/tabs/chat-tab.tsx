@@ -8,7 +8,7 @@
  * - Command parsing (/optimize, /list, /validate, etc.)
  */
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Box, Text } from "ink";
 import TextInput from "ink-text-input";
 import { StreamingClient, ThinkingChunk, ResponseChunk } from "../streaming-client";
@@ -205,7 +205,7 @@ export const ChatTab: React.FC<ChatTabProps> = ({ apiUrl, isActive }) => {
 
           return (
             <Box key={idx} flexDirection="column" marginBottom={1}>
-              <Text color={color} wrap="word">
+              <Text color={color}>
                 {prefix}
                 {msg.content}
               </Text>
@@ -236,20 +236,19 @@ export const ChatTab: React.FC<ChatTabProps> = ({ apiUrl, isActive }) => {
       )}
 
       {/* Input */}
-      <Box flexDirection="row" borderStyle="single" borderColor="blue" paddingX={1}>
+      <Box flexDirection="row" paddingX={1}>
         <Text color="blue">&gt; </Text>
         <TextInput
           value={input}
           onChange={setInput}
           onSubmit={handleSubmit}
           placeholder="Type your request..."
-          isHidden={!isActive}
         />
       </Box>
 
       {/* Help Text */}
       <Box marginTop={1}>
-        <Text color="gray" fontSize={10}>
+        <Text color="gray">
           Commands: /help, /optimize, /list, /validate, /status, /promote
         </Text>
       </Box>

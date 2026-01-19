@@ -84,17 +84,11 @@ export const App: React.FC<AppProps> = ({ apiUrl, userId = "default" }) => {
   return (
     <Box flexDirection="column" width={100} height={30}>
       {/* Header */}
-      <Box
-        flexDirection="column"
-        marginBottom={1}
-        paddingX={2}
-        borderStyle="round"
-        borderColor="cyan"
-      >
-        <Text color="cyan" bold fontSize={16}>
+      <Box flexDirection="column" marginBottom={1} paddingX={2}>
+        <Text color="cyan" bold>
           🚀 Skills Fleet TUI
         </Text>
-        <Text color="gray" fontSize={10}>
+        <Text color="gray">
           Real-time skill creation & optimization with streaming responses
         </Text>
       </Box>
@@ -120,12 +114,9 @@ export const App: React.FC<AppProps> = ({ apiUrl, userId = "default" }) => {
       </Box>
 
       {/* Tab Divider */}
-      <Box
-        width={100}
-        marginBottom={1}
-        borderStyle="horizontal"
-        borderColor="gray"
-      />
+      <Box marginBottom={1}>
+        <Text color="gray">─────────────────────────────────────────</Text>
+      </Box>
 
       {/* Tab Content */}
       <Box flexDirection="column" flexGrow={1} marginBottom={1}>
@@ -138,10 +129,10 @@ export const App: React.FC<AppProps> = ({ apiUrl, userId = "default" }) => {
             <Text color="blue" bold>
               📚 Skills Manager
             </Text>
-            <Text color="gray" marginTop={1}>
+            <Text color="gray">
               [Coming soon - Browse, validate, and promote skills]
             </Text>
-            <Text color="gray" marginTop={2}>
+            <Text color="gray">
               Commands: /list, /validate, /promote, /delete
             </Text>
           </Box>
@@ -152,10 +143,10 @@ export const App: React.FC<AppProps> = ({ apiUrl, userId = "default" }) => {
             <Text color="blue" bold>
               ⚙️ Job Monitor
             </Text>
-            <Text color="gray" marginTop={1}>
+            <Text color="gray">
               [Coming soon - Monitor running optimization jobs]
             </Text>
-            <Text color="gray" marginTop={2}>
+            <Text color="gray">
               Commands: /status, /cancel, /results
             </Text>
           </Box>
@@ -166,10 +157,10 @@ export const App: React.FC<AppProps> = ({ apiUrl, userId = "default" }) => {
             <Text color="blue" bold>
               🚀 Optimization Control
             </Text>
-            <Text color="gray" marginTop={1}>
+            <Text color="gray">
               [Coming soon - Configure and run optimizers]
             </Text>
-            <Text color="gray" marginTop={2}>
+            <Text color="gray">
               Commands: /optimize, /list-optimizers, /configure
             </Text>
           </Box>
@@ -178,7 +169,7 @@ export const App: React.FC<AppProps> = ({ apiUrl, userId = "default" }) => {
 
       {/* Help Section */}
       {showHelp && (
-        <Box flexDirection="column" marginBottom={1} paddingX={2} borderStyle="round" borderColor="yellow">
+        <Box flexDirection="column" marginBottom={1} paddingX={2}>
           <Text color="yellow" bold>
             ⌨️ Keyboard Shortcuts
           </Text>
@@ -190,14 +181,8 @@ export const App: React.FC<AppProps> = ({ apiUrl, userId = "default" }) => {
       )}
 
       {/* Footer */}
-      <Box
-        width={100}
-        marginTop={1}
-        paddingX={2}
-        borderStyle="horizontal"
-        borderColor="gray"
-      >
-        <Text color="gray" fontSize={9}>
+      <Box marginTop={1} paddingX={2}>
+        <Text color="gray">
           API: {apiUrl} | User: {userId} | Press ? for help | Ctrl+C to exit
         </Text>
       </Box>

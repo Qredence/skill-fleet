@@ -429,7 +429,15 @@ class QuickSkillProgram(dspy.Module):
             "skill_skeleton": {
                 "root_path": f"skills/{understanding['taxonomy_path']}/",
                 "files": [],
-                "directories": ["capabilities/", "examples/", "tests/", "resources/"],
+                "directories": [
+                    "references/",  # v2 standard
+                    "guides/",  # v2 standard
+                    "templates/",  # v2 standard
+                    "scripts/",
+                    "examples/",
+                    "tests/",
+                    "assets/",
+                ],
             }
         }
 
@@ -482,7 +490,15 @@ class QuickSkillProgram(dspy.Module):
             "skill_skeleton": {
                 "root_path": f"skills/{understanding['taxonomy_path']}/",
                 "files": [],
-                "directories": ["capabilities/", "examples/", "tests/", "resources/"],
+                "directories": [
+                    "references/",  # v2 standard
+                    "guides/",  # v2 standard
+                    "templates/",  # v2 standard
+                    "scripts/",
+                    "examples/",
+                    "tests/",
+                    "assets/",
+                ],
             }
         }
 

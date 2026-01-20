@@ -8,7 +8,7 @@ import os
 from collections.abc import Generator
 from contextlib import contextmanager
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -20,14 +20,13 @@ from skill_fleet.db.models import Base
 
 # Database URL from environment or default
 DATABASE_URL = os.getenv(
-    'DATABASE_URL',
-    'postgresql://neondb_owner:your_password@ep-something.aws.us-east-1.aws.neon.tech/neondb?sslmode=require'
+    "DATABASE_URL",
+    "postgresql://neondb_owner:your_password@ep-something.aws.us-east-1.aws.neon.tech/neondb?sslmode=require",
 )
 
 # Async database URL (convert postgresql:// to postgresql+asyncpg://)
 ASYNC_DATABASE_URL = os.getenv(
-    'ASYNC_DATABASE_URL',
-    DATABASE_URL.replace('postgresql://', 'postgresql+asyncpg://')
+    "ASYNC_DATABASE_URL", DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
 )
 
 # Synchronous engine
@@ -36,7 +35,7 @@ engine = create_engine(
     pool_pre_ping=True,
     pool_size=10,
     max_overflow=20,
-    echo=os.getenv('SQL_ECHO', 'false').lower() == 'true',
+    echo=os.getenv("SQL_ECHO", "false").lower() == "true",
 )
 
 # Synchronous session factory
@@ -52,7 +51,7 @@ async_engine = create_async_engine(
     pool_pre_ping=True,
     pool_size=10,
     max_overflow=20,
-    echo=os.getenv('SQL_ECHO', 'false').lower() == 'true',
+    echo=os.getenv("SQL_ECHO", "false").lower() == "true",
 )
 
 # Async session factory
@@ -132,6 +131,11 @@ def init_db() -> None:
     This should only be used for development. In production,
     use Alembic migrations instead.
     """
+    # Ensure uuid-ossp extension exists
+    with engine.connect() as conn:
+        conn.execute(text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
+        conn.commit()
+
     Base.metadata.create_all(bind=engine)
 
 
@@ -141,6 +145,66 @@ def drop_db() -> None:
 
     WARNING: This will delete all data!
     """
+    # Drop dependent views/materialized views first
+    with engine.connect() as conn:
+        conn.execute(text("DROP MATERIALIZED VIEW IF EXISTS skill_statistics CASCADE"))
+        conn.execute(text("DROP VIEW IF EXISTS popular_skills_view CASCADE"))
+        conn.execute(text("DROP VIEW IF EXISTS skills_attention_view CASCADE"))
+        conn.execute(text("DROP VIEW IF EXISTS active_skills_view CASCADE"))
+        conn.execute(text("DROP VIEW IF EXISTS draft_skills_view CASCADE"))
+
+        # Manually drop all known tables in dependency order with CASCADE
+        tables_to_drop = [
+            "optimization_jobs",
+            "usage_events",
+            "skill_test_coverage",
+            "validation_checks",
+            "validation_reports",
+            "tdd_workflow_state",
+            "deep_understanding_state",
+            "hitl_interactions",
+            "jobs",
+            "skill_allowed_tools",
+            "skill_files",
+            "tag_stats",
+            "skill_tags",
+            "skill_keywords",
+            "skill_references",
+            "dependency_closure",
+            "skill_dependencies",
+            "capabilities",
+            "facet_definitions",
+            "skill_facets",
+            "skill_aliases",
+            "skill_categories",
+            "taxonomy_closure",
+            "taxonomy_categories",
+            "skills",
+        ]
+
+        for table in tables_to_drop:
+            conn.execute(text(f"DROP TABLE IF EXISTS {table} CASCADE"))
+
+        # Drop types
+        types_to_drop = [
+            "skill_status_enum",
+            "skill_type_enum",
+            "skill_weight_enum",
+            "load_priority_enum",
+            "skill_style_enum",
+            "dependency_type_enum",
+            "job_status_enum",
+            "hitl_type_enum",
+            "validation_status_enum",
+            "severity_enum",
+            "file_type_enum",
+        ]
+
+        for type_name in types_to_drop:
+            conn.execute(text(f"DROP TYPE IF EXISTS {type_name} CASCADE"))
+
+        conn.commit()
+
     Base.metadata.drop_all(bind=engine)
 
 
@@ -152,6 +216,7 @@ async def init_async_db() -> None:
     use Alembic migrations instead.
     """
     async with async_engine.begin() as conn:
+        await conn.execute(text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
         await conn.run_sync(Base.metadata.create_all)
 
 

@@ -760,9 +760,7 @@ class Job(Base):
 
     __tablename__ = "jobs"
 
-    job_id: Mapped[UUID] = mapped_column(
-        UUID, primary_key=True, server_default=func.uuid_generate_v4()
-    )
+    job_id: Mapped[UUID] = mapped_column(primary_key=True, server_default=func.uuid_generate_v4())
     status: Mapped[str] = mapped_column(
         Enum(
             JobStatusEnum.PENDING,
@@ -838,7 +836,7 @@ class HITLInteraction(Base):
 
     interaction_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     job_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("jobs.job_id", ondelete="CASCADE"), nullable=False
+        ForeignKey("jobs.job_id", ondelete="CASCADE"), nullable=False
     )
     interaction_type: Mapped[str] = mapped_column(
         Enum(
@@ -886,7 +884,7 @@ class DeepUnderstandingState(Base):
 
     state_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     job_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("jobs.job_id", ondelete="CASCADE"), unique=True, nullable=False
+        ForeignKey("jobs.job_id", ondelete="CASCADE"), unique=True, nullable=False
     )
     questions_asked: Mapped[list] = mapped_column(JSONB, server_default=text("'[]'::jsonb"))
     answers: Mapped[list] = mapped_column(JSONB, server_default=text("'[]'::jsonb"))
@@ -913,7 +911,7 @@ class TDDWorkflowState(Base):
 
     state_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     job_id: Mapped[UUID] = mapped_column(
-        UUID, ForeignKey("jobs.job_id", ondelete="CASCADE"), unique=True, nullable=False
+        ForeignKey("jobs.job_id", ondelete="CASCADE"), unique=True, nullable=False
     )
     phase: Mapped[str | None] = mapped_column(String(32), nullable=True)
     baseline_tests_run: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
@@ -947,7 +945,7 @@ class ValidationReport(Base):
         Integer, ForeignKey("skills.skill_id", ondelete="SET NULL"), nullable=True
     )
     job_id: Mapped[UUID | None] = mapped_column(
-        UUID, ForeignKey("jobs.job_id", ondelete="SET NULL"), nullable=True
+        ForeignKey("jobs.job_id", ondelete="SET NULL"), nullable=True
     )
     status: Mapped[str] = mapped_column(
         Enum(
@@ -1074,11 +1072,11 @@ class UsageEvent(Base):
     event_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     skill_id: Mapped[int] = mapped_column(Integer, ForeignKey("skills.skill_id"), nullable=False)
     user_id: Mapped[str] = mapped_column(String(128), nullable=False)
-    task_id: Mapped[UUID | None] = mapped_column(UUID, nullable=True)
+    task_id: Mapped[UUID | None] = mapped_column(nullable=True)
     success: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     error_type: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    session_id: Mapped[UUID | None] = mapped_column(UUID, nullable=True)
+    session_id: Mapped[UUID | None] = mapped_column(nullable=True)
     event_metadata: Mapped[dict] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
     occurred_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
@@ -1103,9 +1101,7 @@ class OptimizationJob(Base):
 
     __tablename__ = "optimization_jobs"
 
-    job_id: Mapped[UUID] = mapped_column(
-        UUID, primary_key=True, server_default=func.uuid_generate_v4()
-    )
+    job_id: Mapped[UUID] = mapped_column(primary_key=True, server_default=func.uuid_generate_v4())
     optimizer: Mapped[str] = mapped_column(String(64), nullable=False)
     auto_config: Mapped[str] = mapped_column(String(32), nullable=False, default="medium")
     max_bootstrapped_demos: Mapped[int] = mapped_column(Integer, nullable=False, default=4)

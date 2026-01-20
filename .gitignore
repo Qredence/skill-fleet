@@ -63,3 +63,16 @@ plans/README.md
 plans/skills-fleet_codebase_restructure_4833ae18.plan.md
 reports/
 cli/tui/dist
+.skill_fleet_logs
+cli/tui/dist/app.d.ts
+cli/tui/dist/app.js
+cli/tui/dist/app.js.map
+cli/tui/dist/streaming-client.d.ts
+cli/tui/dist/streaming-client.js
+cli/tui/dist/streaming-client.js.map
+cli/tui/dist/tabs/chat-tab.d.ts
+cli/tui/dist/tabs/chat-tab.js
+cli/tui/dist/tabs/chat-tab.js.map
+cli/tui/dist/tabs/jobs-tab.d.ts
+cli/tui/dist/tabs/jobs-tab.js
+cli/tui/dist/tabs/jobs-tab.js.map

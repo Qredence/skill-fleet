@@ -63,36 +63,34 @@ def _canonicalize_skill_md_frontmatter(skill_content: str, skill_metadata: Any) 
                 # Invalid frontmatter (no closing marker) — drop the opening delimiter.
                 body_content = "".join(lines[1:]).lstrip("\n")
 
-    # Build frontmatter (keep in sync with TaxonomyManager._generate_skill_md_with_frontmatter)
-    frontmatter: dict[str, Any] = {
-        "name": name,
-        "description": description[:1024],
-    }
+    # Build minimal frontmatter (v0.2: name + description ONLY)
+    # All tooling metadata belongs in metadata.json (separate concerns)
+    # This keeps SKILL.md optimized for agent discovery (CSO)
 
-    extended_meta: dict[str, Any] = {}
-    skill_id = str(meta.get("skill_id", "")).strip()
-    if skill_id:
-        extended_meta["skill_id"] = skill_id
-    version = str(meta.get("version", "")).strip()
-    if version:
-        extended_meta["version"] = version
-    skill_type = str(meta.get("type", "")).strip()
-    if skill_type:
-        extended_meta["type"] = skill_type
-    weight = str(meta.get("weight", "")).strip()
-    if weight:
-        extended_meta["weight"] = weight
-
-    if extended_meta:
-        frontmatter["metadata"] = extended_meta
-
-    yaml_content = yaml.dump(
-        frontmatter,
-        default_flow_style=False,
-        allow_unicode=True,
-        sort_keys=False,
-    )
-    return f"---\n{yaml_content}---\n\n{body_content}"
+    # Use folded scalar for multi-line descriptions to fix indentation errors
+    desc_value = description[:1024]
+    if "\n" in desc_value or len(desc_value) > 80:
+        # Use folded scalar syntax: >
+        # The content must be indented after > indicator
+        frontmatter_str = f"---\nname: {name}\ndescription: >\n"
+        for line in desc_value.split("\n"):
+            frontmatter_str += f"  {line}\n"
+        frontmatter_str += "---\n\n"
+        return frontmatter_str + body_content
+    else:
+        # Simple inline description
+        frontmatter: dict[str, Any] = {
+            "name": name,
+            "description": desc_value,
+        }
+        yaml_content = yaml.dump(
+            frontmatter,
+            default_flow_style=False,
+            allow_unicode=True,
+            sort_keys=False,
+            width=1000,  # Prevent unwanted line breaks
+        )
+        return f"---\n{yaml_content}---\n\n{body_content}"
 
 
 class SkillValidatorModule(dspy.Module):

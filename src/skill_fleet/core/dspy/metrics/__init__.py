@@ -16,6 +16,12 @@ Usage:
 
 from __future__ import annotations
 
+from .enhanced_metrics import (
+    create_metric_for_phase,
+    metadata_quality_metric,
+    skill_style_alignment_metric,
+    taxonomy_accuracy_metric,
+)
 from .gepa_reflection import (
     gepa_composite_metric,
     gepa_semantic_match_metric,
@@ -46,6 +52,11 @@ __all__ = [
     "parse_skill_content",
     "skill_quality_metric",
     "skill_quality_metric_detailed",
+    # Enhanced metrics
+    "taxonomy_accuracy_metric",
+    "metadata_quality_metric",
+    "skill_style_alignment_metric",
+    "create_metric_for_phase",
     # GEPA-specific reflection metrics
     "gepa_skill_quality_metric",
     "gepa_semantic_match_metric",

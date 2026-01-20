@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, AsyncGenerator, Callable, TypedDict
+from typing import Any, AsyncGenerator, TypedDict
 
 import dspy
 

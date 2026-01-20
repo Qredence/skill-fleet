@@ -6,7 +6,7 @@ Additional metrics beyond basic skill_quality_metric for comprehensive evaluatio
 from __future__ import annotations
 
 import re
-from typing import Any, Callable
+from typing import Callable
 
 import dspy
 

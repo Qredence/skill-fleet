@@ -42,14 +42,18 @@ SkillStyle = Literal["navigation_hub", "comprehensive", "minimal"]
 
 
 class GenerateSkillContent(dspy.Signature):
-    """Generate production-ready SKILL.md following agentskills.io v2 Golden Standard.
+    """Generate production-ready SKILL.md following agentskills.io v2 Golden Standard (Jan 2026).
 
     Create comprehensive, well-structured documentation with ❌/✅ contrast patterns,
-    core principles, and actionable guidance.
+    core principles, actionable guidance, and real-world impact.
 
-    Required sections: When to Use This Skill, Quick Start, patterns with contrasts.
-    Quality indicators: core principle statement, strong guidance (Iron Law style),
-    paired Good/Bad examples.
+    FRONTMATTER (v0.2): Keep minimal - name + description ONLY.
+    - name: kebab-case, max 64 chars (must match directory)
+    - description: Triggering conditions (WHEN to use), not workflow summary. Max 1024 chars.
+    - NO metadata block in SKILL.md (move to metadata.json for tooling)
+    
+    REQUIRED SECTIONS: When to Use, Quick Start, Core Patterns with ❌/✅, Real-World Impact, Validation.
+    QUALITY INDICATORS: Core principle statement, Iron Law style guidance, paired Good/Bad examples.
 
     Match style to content:
     - navigation_hub (~100-300 lines): Complex topics, use subdirectory references
@@ -80,9 +84,11 @@ class GenerateSkillContent(dspy.Signature):
 
     # Outputs - Core content
     skill_content: str = dspy.OutputField(
-        desc="Complete SKILL.md with YAML frontmatter. MUST include: (1) **Core principle:** statement, "
-        "(2) When to Use This Skill section, (3) Quick Start with copy-paste examples, "
-        "(4) patterns with ❌ anti-patterns and ✅ production patterns. "
+        desc="Complete SKILL.md with minimal YAML frontmatter (v0.2: name + description only). "
+        "MUST include: (1) **Core principle:** statement, "
+        "(2) When to Use section (triggering conditions), (3) Quick Start (copy-paste ready), "
+        "(4) Core Patterns with ❌ anti-patterns and ✅ production patterns, "
+        "(5) Real-World Impact (measurable outcomes), (6) Validation section with CLI commands. "
         "For navigation_hub: reference subdirectory files. For comprehensive: inline all content. "
         "Use strong imperative guidance (ALWAYS/NEVER/MUST). Min 50 lines, production-ready quality."
     )

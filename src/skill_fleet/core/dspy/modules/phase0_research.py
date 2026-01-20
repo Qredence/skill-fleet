@@ -7,7 +7,6 @@ before generation. This improves quality by grounding skills in concrete example
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 import dspy
 

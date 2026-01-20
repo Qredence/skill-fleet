@@ -217,10 +217,17 @@ class AnalyzeDependencies(dspy.Signature):
 
 
 class SynthesizePlan(dspy.Signature):
-    """Combine all Phase 1 analyses into a coherent, executable skill plan.
+    """Combine all Phase 1 analyses into a coherent, executable skill plan (v0.2).
 
     Create unified plan incorporating intent, taxonomy placement, dependencies,
     and any HITL feedback. This plan drives Phase 2 generation quality.
+    
+    IMPORTANT: v0.2 Changes (Jan 2026)
+    - Description must emphasize WHEN to use (triggering conditions, symptoms)
+      NOT what the skill teaches. This enables CSO (Claude Search Optimization).
+    - Minimal frontmatter in generated SKILL.md: name + description ONLY
+      (no metadata block; metadata goes in separate metadata.json)
+    - Include Real-World Impact section in content plan (measurable outcomes)
     """
 
     # Inputs
@@ -240,8 +247,9 @@ class SynthesizePlan(dspy.Signature):
 
     # Outputs
     skill_metadata: SkillMetadata = dspy.OutputField(
-        desc="Complete metadata object: name (kebab-case), description (starts with 'Use when...'), "
-        "taxonomy_path, tags (3-7 keywords), version (1.0.0), type (matches skill_type from intent). "
+        desc="Complete metadata object: name (kebab-case), description (CSO-optimized: 'Use when...' + symptoms/triggers, "
+        "NOT workflow summary), taxonomy_path, tags (3-7 keywords), version (1.0.0), type (matches skill_type). "
+        "Description is CRITICAL for agent discovery—focus on WHEN to use, not WHAT it teaches. "
         "Ensure name matches taxonomy path leaf for agentskills.io compliance."
     )
     content_plan: str = dspy.OutputField(

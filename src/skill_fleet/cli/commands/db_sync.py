@@ -166,7 +166,7 @@ def import_from_db_command(
             console.print(f"Database: {os.getenv('DATABASE_URL', '').split('@')[1] if '@' in os.getenv('DATABASE_URL', '') else 'unknown'}")
 
             # Build query
-            from skill_fleet.db.models import Skill, TaxonomyCategory, SkillCategory, SkillKeyword, SkillTag, Capability, skill_status_enum
+            from skill_fleet.db.models import Skill, TaxonomyCategory, SkillCategory, skill_status_enum
 
             query = session.query(Skill).join(SkillCategory).join(TaxonomyCategory)
 
@@ -192,7 +192,6 @@ def import_from_db_command(
             # Import skills
             created_count = 0
             updated_count = 0
-            skipped_count = 0
 
             for skill in skills:
                 # Resolve target directory

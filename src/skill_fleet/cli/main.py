@@ -12,7 +12,6 @@ from typing import Any
 
 from ..core.creator import TaxonomySkillCreator
 from ..llm.dspy_config import configure_dspy
-from ..llm.fleet_config import load_fleet_config
 from ..taxonomy.manager import TaxonomyManager
 from ..validators.skill_validator import SkillValidator
 
@@ -29,7 +28,6 @@ def create_skill(args: Any) -> int:
     """
     # Load fleet config (tests patch this)
     config_path_arg = Path(args.config) if getattr(args, "config", None) else None
-    config = load_fleet_config(config_path_arg) if config_path_arg else {}
 
     # Configure DSPy (tests patch configure_dspy)
     configure_dspy(config_path_arg)

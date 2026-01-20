@@ -15,19 +15,21 @@ from ..llm.dspy_config import configure_dspy
 from .config import get_settings
 from .discovery import discover_and_expose
 from .exceptions import (
-    BadRequestException,
-    ConflictException,
-    ForbiddenException,
-    InternalServerErrorException,
-    NotFoundException,
-    ServiceUnavailableException,
     SkillFleetAPIException,
-    TooManyRequestsException,
-    UnauthorizedException,
-    UnprocessableEntityException,
 )
+from .lifespan import lifespan
 from .middleware.logging import ErrorHandlingMiddleware, LoggingMiddleware
-from .routes import chat_streaming, drafts, evaluation, hitl, jobs, optimization, skills, taxonomy, validation
+from .routes import (
+    chat_streaming,
+    drafts,
+    evaluation,
+    hitl,
+    jobs,
+    optimization,
+    skills,
+    taxonomy,
+    validation,
+)
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -53,6 +55,7 @@ def create_app() -> FastAPI:
         title=settings.api_title,
         description=settings.api_description,
         version=settings.api_version,
+        lifespan=lifespan,
     )
 
     # Add custom middleware

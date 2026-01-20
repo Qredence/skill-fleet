@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 from typing import Literal, cast
@@ -9,6 +10,7 @@ from typing import Literal, cast
 import click
 import typer
 
+from ...core.dspy.optimization.selector import OptimizerContext, OptimizerSelector
 from ...core.dspy.programs import SkillCreationProgram
 from ...core.optimization.optimizer import (
     APPROVED_MODELS,
@@ -23,8 +25,8 @@ def optimize_command(
     optimizer: str = typer.Option(
         "miprov2",
         "--optimizer",
-        help="Optimizer algorithm (default: miprov2)",
-        click_type=click.Choice(["miprov2", "gepa"]),
+        help="Optimizer algorithm. Use --auto-select to auto-choose.",
+        click_type=click.Choice(["miprov2", "gepa", "bootstrap_fewshot", "reflection_metrics"]),
     ),
     model: str = typer.Option(
         "gemini-3-flash-preview",
@@ -66,13 +68,42 @@ def optimize_command(
     evaluate_only: bool = typer.Option(
         False, "--evaluate-only", help="Only run evaluation, don't optimize"
     ),
-    n_examples: int = typer.Option(
+    n_examples: int | None = typer.Option(
         None,
         "--n-examples",
         help="Number of examples to evaluate (for --evaluate-only)",
     ),
-):
-    """Optimize the skill creation workflow using MIPROv2 or GEPA."""
+    auto_select: bool = typer.Option(
+        False,
+        "--auto-select",
+        help="Automatically select best optimizer based on trainset, budget, and task",
+    ),
+    budget: float = typer.Option(
+        10.0,
+        "--budget",
+        help="Budget in USD for optimization (used with --auto-select)",
+    ),
+    quality_target: float = typer.Option(
+        0.85,
+        "--quality-target",
+        help="Target quality score 0.0-1.0 (used with --auto-select)",
+    ),
+    time_limit: int | None = typer.Option(
+        None,
+        "--time-limit",
+        help="Maximum time in minutes (used with --auto-select)",
+    ),
+) -> None:
+    """Optimize the skill creation workflow using MIPROv2, GEPA, or auto-selected optimizer."""
+    # Handle auto-selection
+    if auto_select:
+        optimizer, auto = _handle_auto_selection(
+            trainset_path=trainset,
+            budget=budget,
+            quality_target=quality_target,
+            time_limit=time_limit,
+        )
+
     # Validate model
     if model not in APPROVED_MODELS:
         print(f"Error: Model '{model}' is not approved.", file=sys.stderr)
@@ -139,3 +170,84 @@ def optimize_command(
     except Exception as e:
         print(f"\nError during optimization: {e}", file=sys.stderr)
         raise typer.Exit(code=1) from e
+
+
+def _handle_auto_selection(
+    trainset_path: str,
+    budget: float,
+    quality_target: float,
+    time_limit: int | None,
+) -> tuple[str, str]:
+    """Handle auto-selection of optimizer.
+
+    Returns:
+        Tuple of (optimizer_name, auto_setting)
+    """
+    # Load trainset to get size
+    path = Path(trainset_path)
+    if not path.exists():
+        print(f"Error: Trainset not found: {trainset_path}", file=sys.stderr)
+        raise typer.Exit(code=2)
+
+    with open(path) as f:
+        trainset_data = json.load(f)
+        if isinstance(trainset_data, dict) and "examples" in trainset_data:
+            trainset_size = len(trainset_data["examples"])
+        elif isinstance(trainset_data, list):
+            trainset_size = len(trainset_data)
+        else:
+            trainset_size = 50  # Default fallback
+
+    # Create context
+    context = OptimizerContext(
+        trainset_size=trainset_size,
+        budget_dollars=budget,
+        quality_target=quality_target,
+        time_constraint_minutes=time_limit,
+    )
+
+    # Get recommendation
+    selector = OptimizerSelector()
+    recommendation = selector.recommend(context)
+
+    # Display recommendation
+    print(f"\n{'=' * 60}")
+    print("🤖 Optimizer Auto-Selection")
+    print(f"{'=' * 60}")
+    print(f"Trainset size: {trainset_size}")
+    print(f"Budget: ${budget:.2f}")
+    print(f"Quality target: {quality_target}")
+    if time_limit:
+        print(f"Time limit: {time_limit} min")
+
+    print(f"\n✅ Recommended: {recommendation.recommended.value}")
+    print(f"   Config: auto={recommendation.config.auto}")
+    print(f"   Estimated cost: ${recommendation.estimated_cost:.2f}")
+    print(f"   Estimated time: {recommendation.estimated_time_minutes} minutes")
+    print(f"   Confidence: {recommendation.confidence:.0%}")
+    print(f"\n📝 Reasoning: {recommendation.reasoning}")
+
+    if recommendation.alternatives:
+        print("\n🔄 Alternatives:")
+        for alt in recommendation.alternatives:
+            risk = alt.get("quality_risk", "N/A")
+            risk_str = f"{risk:+.0%}" if isinstance(risk, float) else str(risk)
+            print(f"   - {alt['optimizer']}: {alt['cost']} | {alt['time']} | Risk: {risk_str}")
+
+    print(f"{'=' * 60}\n")
+
+    # Ask for confirmation
+    confirm = typer.confirm("Proceed with recommended optimizer?", default=True)
+    if not confirm:
+        # Let user override
+        override = typer.prompt(
+            "Enter optimizer to use",
+            default=recommendation.recommended.value,
+        )
+        auto_override = typer.prompt(
+            "Enter auto setting",
+            default=recommendation.config.auto,
+        )
+        return override, auto_override
+
+    return recommendation.recommended.value, recommendation.config.auto

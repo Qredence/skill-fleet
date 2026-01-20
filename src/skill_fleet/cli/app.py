@@ -14,6 +14,8 @@ from .client import SkillFleetClient
 from .commands.analytics import analytics_command
 from .commands.chat import chat_command
 from .commands.create import create_command
+from .commands.db import db_app
+from .commands.dev import dev_command
 from .commands.evaluate import evaluate_batch_command, evaluate_command
 from .commands.generate_xml import generate_xml_command
 from .commands.list_skills import list_command
@@ -68,6 +70,7 @@ def main_callback(
 app.command(name="create")(create_command)
 app.command(name="list")(list_command)
 app.command(name="serve")(serve_command)
+app.command(name="dev")(dev_command)
 app.command(name="chat")(chat_command)
 app.command(name="validate")(validate_command)
 app.command(name="onboard")(onboard_command)
@@ -78,6 +81,9 @@ app.command(name="optimize")(optimize_command)
 app.command(name="promote")(promote_command)
 app.command(name="evaluate")(evaluate_command)
 app.command(name="evaluate-batch")(evaluate_batch_command)
+
+# Register database command group
+app.add_typer(db_app, name="db")
 
 if __name__ == "__main__":
     app()

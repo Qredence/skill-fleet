@@ -22,6 +22,10 @@ from ...common.security import (
     sanitize_taxonomy_path,
 )
 from ...core.dspy.optimization import SkillOptimizer
+from ...core.dspy.optimization.selector import (
+    OptimizerContext,
+    OptimizerSelector,
+)
 from ..dependencies import SkillsRoot
 
 router = APIRouter()
@@ -130,6 +134,112 @@ class OptimizerInfo(BaseModel):
     parameters: dict[str, Any]
 
 
+# =============================================================================
+# Optimizer Auto-Selection Schemas
+# =============================================================================
+
+
+class RecommendRequest(BaseModel):
+    """Request body for optimizer recommendation."""
+
+    trainset_size: int = Field(
+        ge=1,
+        description="Number of training examples available",
+    )
+    budget_dollars: float = Field(
+        default=10.0,
+        ge=0.0,
+        description="Maximum budget in USD",
+    )
+    quality_target: float = Field(
+        default=0.85,
+        ge=0.0,
+        le=1.0,
+        description="Target quality score (0.0-1.0)",
+    )
+    complexity_score: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="Task complexity (0.0=simple, 1.0=complex)",
+    )
+    domain: str = Field(
+        default="general",
+        description="Skill domain/category",
+    )
+    time_constraint_minutes: int | None = Field(
+        default=None,
+        description="Maximum time allowed in minutes (optional)",
+    )
+
+
+class RecommendResponse(BaseModel):
+    """Response model for optimizer recommendation."""
+
+    recommended: str = Field(description="Recommended optimizer name")
+    config: dict[str, Any] = Field(description="Suggested optimizer configuration")
+    estimated_cost: float = Field(description="Estimated cost in USD")
+    estimated_time_minutes: int = Field(description="Estimated time in minutes")
+    confidence: float = Field(description="Confidence in recommendation (0.0-1.0)")
+    reasoning: str = Field(description="Human-readable explanation")
+    alternatives: list[dict[str, Any]] = Field(description="Alternative optimizer options")
+
+
+# =============================================================================
+# Optimizer Auto-Selection Endpoint
+# =============================================================================
+
+
+@router.post("/recommend", response_model=RecommendResponse)
+async def recommend_optimizer(request: RecommendRequest) -> RecommendResponse:
+    """Recommend the best optimizer for given context.
+
+    Uses intelligent decision rules based on:
+    - Training set size
+    - Budget constraints
+    - Quality targets
+    - Time constraints
+    - Historical performance data
+
+    Returns a recommendation with cost/time estimates and alternatives.
+    """
+    # Initialize selector (with optional metrics path)
+    repo_root = find_repo_root(Path.cwd())
+    metrics_path = None
+    if repo_root:
+        metrics_path = str(repo_root / "config" / "selector_metrics.jsonl")
+
+    selector = OptimizerSelector(metrics_path=metrics_path)
+
+    # Build context
+    context = OptimizerContext(
+        trainset_size=request.trainset_size,
+        budget_dollars=request.budget_dollars,
+        quality_target=request.quality_target,
+        complexity_score=request.complexity_score,
+        domain=request.domain,
+        time_constraint_minutes=request.time_constraint_minutes,
+    )
+
+    # Get recommendation
+    result = selector.recommend(context)
+
+    return RecommendResponse(
+        recommended=result.recommended.value,
+        config={
+            "auto": result.config.auto,
+            "max_bootstrapped_demos": result.config.max_bootstrapped_demos,
+            "max_labeled_demos": result.config.max_labeled_demos,
+            "num_threads": result.config.num_threads,
+        },
+        estimated_cost=result.estimated_cost,
+        estimated_time_minutes=result.estimated_time_minutes,
+        confidence=result.confidence,
+        reasoning=result.reasoning,
+        alternatives=result.alternatives,
+    )
+
+
 @router.post("/fast", response_model=OptimizeResponse)
 async def fast_optimization(
     request: OptimizeRequest,
@@ -236,7 +346,7 @@ async def _run_fast_optimization(
     skills_root: Path,
 ) -> None:
     """Run fast optimization with Reflection Metrics in background.
-    
+
     This is the recommended path for quick iteration:
     - Uses BootstrapFewShot with Reflection Metrics
     - Completes in <1 second
@@ -251,21 +361,23 @@ async def _run_fast_optimization(
 
         # Load training examples from JSON file or skill paths
         training_examples = []
-        
+
         if request.trainset_file:
             # Load from JSON trainset file
             repo_root = find_repo_root(Path.cwd()) or Path.cwd()
             trainset_path = repo_root / request.trainset_file
-            
+
             if not trainset_path.exists():
                 async with _jobs_lock:
                     _optimization_jobs[job_id]["status"] = "failed"
-                    _optimization_jobs[job_id]["error"] = f"Trainset file not found: {trainset_path}"
+                    _optimization_jobs[job_id]["error"] = (
+                        f"Trainset file not found: {trainset_path}"
+                    )
                 return
-            
-            with open(trainset_path, "r", encoding="utf-8") as f:
+
+            with open(trainset_path, encoding="utf-8") as f:
                 trainset_data = json.load(f)
-            
+
             training_examples = trainset_data
         else:
             # Load from skill paths
@@ -346,32 +458,34 @@ def _reflection_metrics_optimize(
     training_examples: list[dict[str, Any]],
 ) -> dict[str, Any]:
     """Run reflection metrics optimization (sync, runs in thread).
-    
+
     Uses BootstrapFewShot with Reflection Metrics for fast iteration.
     """
     import time
+
     import dspy
+
     from skill_fleet.core.dspy.metrics.gepa_reflection import gepa_composite_metric
-    from skill_fleet.core.optimization.optimizer import get_lm
     from skill_fleet.core.dspy.signatures.phase1_understanding import GatherRequirements
+    from skill_fleet.core.optimization.optimizer import get_lm
 
     start_time = time.time()
-    
+
     # Configure LM
     lm = get_lm("gemini-3-flash-preview", temperature=1.0)
     dspy.configure(lm=lm)
-    
+
     # Create simple program
     class SimpleProgram(dspy.Module):
         def __init__(self):
             super().__init__()
             self.gather = dspy.ChainOfThought(GatherRequirements)
-        
+
         def forward(self, task_description: str):
             return self.gather(task_description=task_description)
-    
+
     program = SimpleProgram()
-    
+
     # Convert training examples to DSPy format
     trainset = []
     for item in training_examples:
@@ -379,16 +493,17 @@ def _reflection_metrics_optimize(
             task_description=item.get("task_description", item.get("content", "")),
         ).with_inputs("task_description")
         trainset.append(example)
-    
+
     # Metric wrapper (DSPy Evaluate expects float)
     def metric_fn(example, pred, trace=None):
         result = gepa_composite_metric(example, pred, trace)
         if isinstance(result, dict) and "score" in result:
             return result["score"]
         return result
-    
+
     # Baseline evaluation
     from dspy.evaluate import Evaluate
+
     evaluator = Evaluate(
         devset=trainset[:5] if len(trainset) > 5 else trainset,
         metric=metric_fn,
@@ -396,17 +511,17 @@ def _reflection_metrics_optimize(
         display_progress=False,
     )
     baseline_score = float(evaluator(program))
-    
+
     # Optimize with BootstrapFewShot + Reflection Metrics
     optimizer = dspy.BootstrapFewShot(metric=metric_fn)
     optimized = optimizer.compile(program, trainset=trainset)
-    
+
     # Evaluate optimized
     optimized_score = float(evaluator(optimized))
-    
+
     elapsed = time.time() - start_time
     improvement = optimized_score - baseline_score
-    
+
     return {
         "optimizer": "reflection_metrics",
         "baseline_score": baseline_score,
@@ -432,24 +547,26 @@ async def _run_optimization(
 
         # Load training examples from JSON file or skill paths
         training_examples = []
-        
+
         if request.trainset_file:
             # Load from JSON trainset file
             repo_root = find_repo_root(Path.cwd()) or Path.cwd()
             trainset_path = repo_root / request.trainset_file
-            
+
             if not trainset_path.exists():
                 async with _jobs_lock:
                     _optimization_jobs[job_id]["status"] = "failed"
-                    _optimization_jobs[job_id]["error"] = f"Trainset file not found: {trainset_path}"
+                    _optimization_jobs[job_id]["error"] = (
+                        f"Trainset file not found: {trainset_path}"
+                    )
                 return
-            
-            with open(trainset_path, "r", encoding="utf-8") as f:
+
+            with open(trainset_path, encoding="utf-8") as f:
                 trainset_data = json.load(f)
-            
+
             # Convert JSON format to training examples
             training_examples = trainset_data  # Already in correct format
-            
+
         else:
             # Load from skill paths (legacy approach)
             for path in request.training_paths:
@@ -543,7 +660,7 @@ async def _run_optimization(
         async with _jobs_lock:
             _optimization_jobs[job_id]["status"] = "completed"
             _optimization_jobs[job_id]["progress"] = 1.0
-            
+
             # Handle different result formats
             if isinstance(result, dict):
                 # Reflection metrics returns a dict with scores

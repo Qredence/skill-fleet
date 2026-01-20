@@ -5,7 +5,7 @@ Repository layer for common CRUD operations on skills fleet entities.
 """
 
 from datetime import datetime
-from typing import Any, Generic, List, Optional, Type, TypeVar
+from typing import Any, Generic, TypeVar
 
 from sqlalchemy import asc, desc
 from sqlalchemy.orm import Session, joinedload
@@ -34,11 +34,11 @@ class BaseRepository(Generic[ModelType]):
     Base repository with common CRUD operations.
     """
 
-    def __init__(self, model: Type[ModelType], db: Session):
+    def __init__(self, model: type[ModelType], db: Session):
         self.model = model
         self.db = db
 
-    def get(self, id: int) -> Optional[ModelType]:
+    def get(self, id: int) -> ModelType | None:
         """Get a single entity by ID."""
         return self.db.query(self.model).filter(self.model.id == id).first()
 
@@ -47,10 +47,10 @@ class BaseRepository(Generic[ModelType]):
         *,
         skip: int = 0,
         limit: int = 100,
-        order_by: Optional[str] = None,
+        order_by: str | None = None,
         order_desc: bool = False,
         **filters: Any,
-    ) -> List[ModelType]:
+    ) -> list[ModelType]:
         """
         Get multiple entities with optional filtering and pagination.
 
@@ -93,7 +93,7 @@ class BaseRepository(Generic[ModelType]):
         self.db.refresh(db_obj)
         return db_obj
 
-    def delete(self, *, id: int) -> Optional[ModelType]:
+    def delete(self, *, id: int) -> ModelType | None:
         """Delete an entity by ID."""
         obj = self.db.query(self.model).get(id)
         if obj:
@@ -116,7 +116,7 @@ class SkillRepository(BaseRepository[Skill]):
     def __init__(self, db: Session):
         super().__init__(Skill, db)
 
-    def get_by_path(self, skill_path: str) -> Optional[Skill]:
+    def get_by_path(self, skill_path: str) -> Skill | None:
         """Get a skill by its path."""
         return self.db.query(Skill).filter(Skill.skill_path == skill_path).first()
 
@@ -127,7 +127,7 @@ class SkillRepository(BaseRepository[Skill]):
         load_dependencies: bool = True,
         load_keywords: bool = True,
         load_tags: bool = True,
-    ) -> Optional[Skill]:
+    ) -> Skill | None:
         """Get a skill by path with specified relations loaded."""
         query = self.db.query(Skill).filter(Skill.skill_path == skill_path)
 
@@ -148,11 +148,11 @@ class SkillRepository(BaseRepository[Skill]):
         self,
         *,
         query: str,
-        status: Optional[str] = SkillStatusEnum.ACTIVE,
-        skill_type: Optional[str] = None,
-        weight: Optional[str] = None,
+        status: str | None = SkillStatusEnum.ACTIVE,
+        skill_type: str | None = None,
+        weight: str | None = None,
         limit: int = 20,
-    ) -> List[Skill]:
+    ) -> list[Skill]:
         """
         Full-text search for skills.
 
@@ -192,8 +192,8 @@ class SkillRepository(BaseRepository[Skill]):
         *,
         skip: int = 0,
         limit: int = 100,
-        type: Optional[str] = None,
-    ) -> List[Skill]:
+        type: str | None = None,
+    ) -> list[Skill]:
         """Get all active (published) skills."""
         query = self.db.query(Skill).filter(Skill.status == SkillStatusEnum.ACTIVE)
 
@@ -202,7 +202,7 @@ class SkillRepository(BaseRepository[Skill]):
 
         return query.order_by(Skill.name).offset(skip).limit(limit).all()
 
-    def get_dependent_skills(self, skill_id: int) -> List[Skill]:
+    def get_dependent_skills(self, skill_id: int) -> list[Skill]:
         """Get all skills that depend on this skill."""
         return (
             self.db.query(Skill)
@@ -244,11 +244,11 @@ class SkillRepository(BaseRepository[Skill]):
         self,
         *,
         skill_data: dict,
-        capabilities: Optional[List[dict]] = None,
-        dependencies: Optional[List[dict]] = None,
-        keywords: Optional[list[str]] = None,
-        tags: Optional[List[str]] = None,
-        allowed_tools: Optional[List[str]] = None,
+        capabilities: list[dict] | None = None,
+        dependencies: list[dict] | None = None,
+        keywords: list[str] | None = None,
+        tags: list[str] | None = None,
+        allowed_tools: list[str] | None = None,
     ) -> Skill:
         """Create a skill with its relations in a single transaction."""
         # Create skill
@@ -285,7 +285,7 @@ class SkillRepository(BaseRepository[Skill]):
         self.db.refresh(skill)
         return skill
 
-    def publish(self, skill_id: int) -> Optional[Skill]:
+    def publish(self, skill_id: int) -> Skill | None:
         """Publish a skill (change status to active)."""
         skill = self.get(skill_id)
         if skill:
@@ -295,7 +295,7 @@ class SkillRepository(BaseRepository[Skill]):
             self.db.refresh(skill)
         return skill
 
-    def deprecate(self, skill_id: int) -> Optional[Skill]:
+    def deprecate(self, skill_id: int) -> Skill | None:
         """Deprecate a skill."""
         skill = self.get(skill_id)
         if skill:
@@ -311,7 +311,7 @@ class JobRepository(BaseRepository[Job]):
     def __init__(self, db: Session):
         super().__init__(Job, db)
 
-    def get_by_id(self, job_id: Any) -> Optional[Job]:
+    def get_by_id(self, job_id: Any) -> Job | None:
         """Get a job by its ID (UUID).
         
         Args:
@@ -325,7 +325,7 @@ class JobRepository(BaseRepository[Job]):
             job_id = UUID(job_id)
         return self.db.query(Job).filter(Job.job_id == job_id).first()
 
-    def get_by_status(self, status: str, *, limit: int = 100) -> List[Job]:
+    def get_by_status(self, status: str, *, limit: int = 100) -> list[Job]:
         """Get all jobs with a specific status.
         
         Args:
@@ -349,8 +349,8 @@ class JobRepository(BaseRepository[Job]):
         *,
         skip: int = 0,
         limit: int = 50,
-        status: Optional[str] = None,
-    ) -> List[Job]:
+        status: str | None = None,
+    ) -> list[Job]:
         """Get jobs for a specific user."""
         query = self.db.query(Job).filter(Job.user_id == user_id)
 
@@ -359,7 +359,7 @@ class JobRepository(BaseRepository[Job]):
 
         return query.order_by(Job.created_at.desc()).offset(skip).limit(limit).all()
 
-    def get_pending_hitl(self, *, limit: int = 10) -> List[Job]:
+    def get_pending_hitl(self, *, limit: int = 10) -> list[Job]:
         """Get jobs that are waiting for human input."""
         return (
             self.db.query(Job)
@@ -369,7 +369,7 @@ class JobRepository(BaseRepository[Job]):
             .all()
         )
 
-    def update_status(self, job_id: str, status: str, **updates: Any) -> Optional[Job]:
+    def update_status(self, job_id: str, status: str, **updates: Any) -> Job | None:
         """Update job status and optionally other fields."""
         job = self.db.query(Job).filter(Job.job_id == job_id).first()
         if job:
@@ -398,7 +398,7 @@ class JobRepository(BaseRepository[Job]):
         self.db.refresh(interaction)
         return interaction
 
-    def complete_job(self, job_id: str, result: dict) -> Optional[Job]:
+    def complete_job(self, job_id: str, result: dict) -> Job | None:
         """Mark a job as completed with result."""
         job = self.db.query(Job).filter(Job.job_id == job_id).first()
         if job:
@@ -417,11 +417,11 @@ class TaxonomyRepository(BaseRepository[TaxonomyCategory]):
     def __init__(self, db: Session):
         super().__init__(TaxonomyCategory, db)
 
-    def get_by_path(self, path: str) -> Optional[TaxonomyCategory]:
+    def get_by_path(self, path: str) -> TaxonomyCategory | None:
         """Get a category by its path."""
         return self.db.query(TaxonomyCategory).filter(TaxonomyCategory.path == path).first()
 
-    def get_tree(self, root_path: Optional[str] = None) -> List[dict]:
+    def get_tree(self, root_path: str | None = None) -> list[dict]:
         """
         Get the taxonomy tree structure.
 
@@ -451,7 +451,7 @@ class TaxonomyRepository(BaseRepository[TaxonomyCategory]):
 
         return result
 
-    def _get_children(self, parent_id: int) -> List[dict]:
+    def _get_children(self, parent_id: int) -> list[dict]:
         """Recursively get child categories."""
         children = (
             self.db.query(TaxonomyCategory)
@@ -473,7 +473,7 @@ class TaxonomyRepository(BaseRepository[TaxonomyCategory]):
 
         return result
 
-    def get_skills_in_category(self, category_id: int) -> List[Skill]:
+    def get_skills_in_category(self, category_id: int) -> list[Skill]:
         """Get all skills in a category (including subcategories)."""
         # Get all descendant category IDs using closure table
 
@@ -501,7 +501,7 @@ class ValidationRepository(BaseRepository[ValidationReport]):
     def __init__(self, db: Session):
         super().__init__(ValidationReport, db)
 
-    def get_latest_for_skill(self, skill_id: int) -> Optional[ValidationReport]:
+    def get_latest_for_skill(self, skill_id: int) -> ValidationReport | None:
         """Get the latest validation report for a skill."""
         return (
             self.db.query(ValidationReport)
@@ -510,7 +510,7 @@ class ValidationRepository(BaseRepository[ValidationReport]):
             .first()
         )
 
-    def get_failed_validations(self, *, limit: int = 50) -> List[ValidationReport]:
+    def get_failed_validations(self, *, limit: int = 50) -> list[ValidationReport]:
         """Get all failed validation reports."""
         return (
             self.db.query(ValidationReport)
@@ -533,10 +533,10 @@ class UsageRepository:
         user_id: str,
         *,
         success: bool = True,
-        duration_ms: Optional[int] = None,
-        error_type: Optional[str] = None,
-        session_id: Optional[str] = None,
-        metadata: Optional[dict] = None,
+        duration_ms: int | None = None,
+        error_type: str | None = None,
+        session_id: str | None = None,
+        metadata: dict | None = None,
     ) -> UsageEvent:
         """Record a skill usage event."""
         event = UsageEvent(
@@ -560,8 +560,9 @@ class UsageRepository:
         days: int = 30,
     ) -> dict:
         """Get usage statistics for a skill."""
-        from sqlalchemy import func
         from datetime import timedelta
+
+        from sqlalchemy import func
 
         since = datetime.utcnow() - timedelta(days=days)
 
@@ -586,10 +587,11 @@ class UsageRepository:
             'avg_duration_ms': float(stats.avg_duration_ms or 0),
         }
 
-    def get_popular_skills(self, *, days: int = 30, limit: int = 20) -> List[dict]:
+    def get_popular_skills(self, *, days: int = 30, limit: int = 20) -> list[dict]:
         """Get the most popular skills by usage."""
-        from sqlalchemy import desc, func
         from datetime import timedelta
+
+        from sqlalchemy import desc, func
 
         since = datetime.utcnow() - timedelta(days=days)
 

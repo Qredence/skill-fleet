@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 
-class SkillCreationProgram(dspy.Module):
+class LegacySkillCreationProgram(dspy.Module):
     """Complete skill creation program (Steps 1-5).
 
     This program executes the core creation workflow without
@@ -264,7 +264,7 @@ class SkillCreationProgram(dspy.Module):
 # =============================================================================
 
 
-class SkillCreationProgramQA(SkillCreationProgram):
+class LegacySkillCreationProgramQA(LegacySkillCreationProgram):
     """Quality-assured skill creation program.
 
     Convenience class that initializes SkillCreationProgram
@@ -537,4 +537,4 @@ def create_skill_creation_program(
     """
     if quick:
         return QuickSkillProgram(quality_assured=quality_assured)
-    return SkillCreationProgram(quality_assured=quality_assured)
+    return LegacySkillCreationProgram(quality_assured=quality_assured)

@@ -6,7 +6,8 @@ Combines multiple module executions or optimized programs for improved quality.
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import dspy
 

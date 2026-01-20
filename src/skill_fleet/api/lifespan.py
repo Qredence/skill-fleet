@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 from fastapi import FastAPI
 
@@ -36,9 +36,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # STARTUP
     # =========================================================================
 
-    from .job_manager import initialize_job_manager, get_job_manager
-    from ..db.database import init_db, SessionLocal
+    from ..db.database import SessionLocal, init_db
     from ..db.repositories import JobRepository
+    from .job_manager import initialize_job_manager
 
     try:
         # Initialize database tables
@@ -49,16 +49,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         # Create a session and initialize JobManager with DB repo
         db_session = SessionLocal()
         job_repo = JobRepository(db_session)
-        
+
         # Initialize JobManager with database backing
-        job_manager = initialize_job_manager(job_repo)
+        initialize_job_manager(job_repo)
         logger.info("✅ JobManager initialized with database persistence")
 
         # Resume any pending jobs from database
-        pending_jobs = job_repo.get_by_status('pending')
-        running_jobs = job_repo.get_by_status('running')
-        pending_hitl_jobs = job_repo.get_by_status('pending_hitl')
-        
+        pending_jobs = job_repo.get_by_status("pending")
+        running_jobs = job_repo.get_by_status("running")
+        pending_hitl_jobs = job_repo.get_by_status("pending_hitl")
+
         total_resumed = len(pending_jobs) + len(running_jobs) + len(pending_hitl_jobs)
         if total_resumed > 0:
             logger.info(f"📋 Resuming {total_resumed} jobs from database")

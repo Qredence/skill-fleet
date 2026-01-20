@@ -11,7 +11,6 @@ from datetime import datetime
 from typing import Any
 
 
-
 @dataclass
 class TraceEntry:
     """Single trace entry for a module execution."""

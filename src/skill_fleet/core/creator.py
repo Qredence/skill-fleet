@@ -16,7 +16,7 @@ from ..common.utils import json_serialize
 from ..taxonomy.manager import TaxonomyManager
 from ..validators.skill_validator import SkillValidator
 from .dspy.modules import IterateModule
-from .dspy.programs import SkillCreationProgram, SkillRevisionProgram
+from .dspy.programs import LegacySkillCreationProgram, SkillRevisionProgram
 from .hitl import FeedbackHandler, create_feedback_handler
 from .optimization import WorkflowOptimizer
 
@@ -68,7 +68,7 @@ class TaxonomySkillCreator(dspy.Module):
             dspy.settings.configure(lm=lm)
 
         # Initialize DSPy programs
-        self.creation_program = SkillCreationProgram()
+        self.creation_program = LegacySkillCreationProgram()
         self.revision_program = SkillRevisionProgram()
         self.iterate_module = IterateModule()
 

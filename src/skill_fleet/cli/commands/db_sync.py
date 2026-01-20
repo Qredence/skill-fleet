@@ -4,12 +4,13 @@ Database Export/Import Commands for Skill Fleet
 Export skills from local directory to database, and import from database to local directory.
 """
 
+import os
+import sys
+from pathlib import Path
+
 import typer
 from rich.console import Console
 from rich.table import Table
-from pathlib import Path
-import os
-import sys
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent.parent.parent
@@ -52,8 +53,8 @@ def export_to_db_command(
     """
     try:
         # Import here to avoid issues if DATABASE_URL not set
-        from scripts.import_skills import SkillImporter
         from dotenv import load_dotenv
+        from scripts.import_skills import SkillImporter
 
         load_dotenv()
 
@@ -73,7 +74,7 @@ def export_to_db_command(
         importer = SkillImporter(str(skills_path), db_url)
 
         # Run import
-        console.print(f"\n[bold]Exporting skills to database...[/bold]")
+        console.print("\n[bold]Exporting skills to database...[/bold]")
         console.print(f"Source: {skills_path}")
         console.print(f"Database: {db_url.split('@')[1] if '@' in db_url else 'unknown'}")
 
@@ -161,12 +162,17 @@ def import_from_db_command(
         engine = create_engine(db_url)
 
         with Session(engine) as session:
-            console.print(f"\n[bold]Importing skills from database...[/bold]")
+            console.print("\n[bold]Importing skills from database...[/bold]")
             console.print(f"Target: {skills_dir}")
             console.print(f"Database: {os.getenv('DATABASE_URL', '').split('@')[1] if '@' in os.getenv('DATABASE_URL', '') else 'unknown'}")
 
             # Build query
-            from skill_fleet.db.models import Skill, TaxonomyCategory, SkillCategory, skill_status_enum
+            from skill_fleet.db.models import (
+                Skill,
+                SkillCategory,
+                TaxonomyCategory,
+                skill_status_enum,
+            )
 
             query = session.query(Skill).join(SkillCategory).join(TaxonomyCategory)
 
@@ -177,10 +183,10 @@ def import_from_db_command(
             else:
                 if status_filter == "active":
                     query = query.filter(Skill.status == skill_status_enum.active)
-                    console.print(f"Filter: status=active")
+                    console.print("Filter: status=active")
                 elif status_filter == "draft":
                     query = query.filter(Skill.status == skill_status_enum.draft)
-                    console.print(f"Filter: status=draft")
+                    console.print("Filter: status=draft")
                 # If "all", no filter
 
             skills = query.order_by(Skill.skill_path).all()

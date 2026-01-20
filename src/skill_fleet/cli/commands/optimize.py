@@ -11,7 +11,7 @@ import click
 import typer
 
 from ...core.dspy.optimization.selector import OptimizerContext, OptimizerSelector
-from ...core.dspy.programs import SkillCreationProgram
+from ...core.dspy.programs import LegacySkillCreationProgram
 from ...core.optimization.optimizer import (
     APPROVED_MODELS,
     optimize_with_gepa,
@@ -121,7 +121,7 @@ def optimize_command(
 
     if evaluate_only:
         print("\n[EVALUATE ONLY MODE]\n")
-        program = SkillCreationProgram()
+        program = LegacySkillCreationProgram()
         quick_evaluate(program, trainset, model, n_examples=n_examples)
         return
 
@@ -131,7 +131,7 @@ def optimize_command(
     print(f"{'=' * 60}\n")
 
     # Create program
-    program = SkillCreationProgram()
+    program = LegacySkillCreationProgram()
 
     # Run optimization
     try:

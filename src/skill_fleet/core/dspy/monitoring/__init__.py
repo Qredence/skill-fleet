@@ -18,9 +18,9 @@ Usage:
 
 from __future__ import annotations
 
-from .module_monitor import ModuleMonitor
 from .execution_tracer import ExecutionTracer, TraceEntry
 from .mlflow_logger import MLflowLogger, configure_mlflow
+from .module_monitor import ModuleMonitor
 
 __all__ = [
     "ModuleMonitor",

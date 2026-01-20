@@ -9,7 +9,6 @@ Provides CLI commands for:
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 import typer
 
@@ -31,8 +30,8 @@ def init(
     Creates all necessary tables for skills-fleet persistence.
     Idempotent - safe to run multiple times.
     """
-    from skill_fleet.db.database import init_db, drop_db, SessionLocal
-    from skill_fleet.db.models import Job, Skill, HITLInteraction
+    from skill_fleet.db.database import SessionLocal, drop_db, init_db
+    from skill_fleet.db.models import HITLInteraction, Job, Skill
     
     try:
         if force:
@@ -75,7 +74,7 @@ def status() -> None:
     tables exist.
     """
     from skill_fleet.db.database import SessionLocal
-    from skill_fleet.db.models import Job, Skill, HITLInteraction, TaxonomyCategory
+    from skill_fleet.db.models import HITLInteraction, Job, Skill, TaxonomyCategory
     
     try:
         session = SessionLocal()

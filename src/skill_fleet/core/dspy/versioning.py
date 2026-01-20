@@ -88,7 +88,7 @@ class ProgramRegistry:
     def _load_registry(self) -> None:
         """Load registry from disk."""
         if self.registry_file.exists():
-            with open(self.registry_file, "r", encoding="utf-8") as f:
+            with open(self.registry_file, encoding="utf-8") as f:
                 self.versions = json.load(f)
         else:
             self.versions: dict[str, dict] = {}

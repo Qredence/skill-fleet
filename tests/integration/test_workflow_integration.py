@@ -3,7 +3,7 @@
 import dspy
 import pytest
 
-from skill_fleet.core.dspy.programs import SkillCreationProgram
+from skill_fleet.core.dspy.programs import LegacySkillCreationProgram
 
 
 @pytest.fixture(autouse=True)
@@ -22,7 +22,7 @@ async def test_workflow_with_real_llm():
     dspy.settings.configure(lm=lm)
 
     # Create program without quality assurance for faster testing
-    program = SkillCreationProgram(quality_assured=False)
+    program = LegacySkillCreationProgram(quality_assured=False)
 
     # Use a simple task that should succeed quickly
     task = "Create a skill that teaches how to use Python list comprehensions"

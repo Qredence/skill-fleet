@@ -15,11 +15,10 @@ import asyncio
 import json
 import logging
 from datetime import UTC, datetime, timedelta
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import Session
     from ..db.repositories import JobRepository
 
 from .schemas import DeepUnderstandingState, JobState, TDDWorkflowState
@@ -52,7 +51,7 @@ class JobMemoryStore:
         """
         self.store[job_id] = (job, datetime.now(UTC))
 
-    def get(self, job_id: str) -> Optional[JobState]:
+    def get(self, job_id: str) -> JobState | None:
         """Get job from memory if not expired.
 
         Args:
@@ -129,7 +128,7 @@ class JobManager:
     - Persisting to database
     """
 
-    def __init__(self, memory_store: Optional[JobMemoryStore] = None, db_session_factory=None):
+    def __init__(self, memory_store: JobMemoryStore | None = None, db_session_factory=None):
         """Initialize job manager.
 
         Args:
@@ -137,7 +136,7 @@ class JobManager:
             db_session_factory: Optional SQLAlchemy session factory for async DB operations
         """
         self.memory = memory_store or JobMemoryStore(ttl_minutes=60)
-        self.db_repo: Optional[JobRepository] = None
+        self.db_repo: JobRepository | None = None
         self.db_session_factory = db_session_factory
 
     def set_db_repo(self, db_repo: JobRepository) -> None:
@@ -158,7 +157,7 @@ class JobManager:
         self.db_session_factory = factory
         logger.debug("JobManager database session factory configured")
 
-    def get_job(self, job_id: str) -> Optional[JobState]:
+    def get_job(self, job_id: str) -> JobState | None:
         """Retrieve job from memory (fast), fall back to DB (durable).
 
         Implements two-tier lookup:
@@ -220,7 +219,7 @@ class JobManager:
         else:
             logger.warning(f"Job {job_state.job_id} created (memory only, no database backing)")
 
-    def update_job(self, job_id: str, updates: dict[str, Any]) -> Optional[JobState]:
+    def update_job(self, job_id: str, updates: dict[str, Any]) -> JobState | None:
         """Update job in both layers.
 
         Updates both memory cache and database:
@@ -355,7 +354,7 @@ class JobManager:
             logger.error(f"Database upsert failed for job {job.job_id}: {e}")
             raise
 
-    def _serialize_json(self, obj: Any) -> Optional[dict]:
+    def _serialize_json(self, obj: Any) -> dict | None:
         """Serialize an object to JSON-compatible dict.
         
         Args:
@@ -430,7 +429,7 @@ class JobManager:
 
 
 # Global instance
-_job_manager: Optional[JobManager] = None
+_job_manager: JobManager | None = None
 
 
 def get_job_manager() -> JobManager:

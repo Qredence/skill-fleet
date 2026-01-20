@@ -6,7 +6,8 @@ Wraps DSPy modules to provide automatic monitoring, logging, and metrics collect
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import dspy
 

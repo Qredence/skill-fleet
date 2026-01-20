@@ -1,7 +1,11 @@
 /**
  * Streaming client for consuming Server-Sent Events from the backend.
  * Handles thinking chunks, responses, and errors in real-time.
+ *
+ * Uses eventsource-parser for robust SSE parsing with proper event buffering.
  */
+
+import { createParser, type EventSourceMessage } from "eventsource-parser";
 
 export interface ThinkingChunk {
   type: "thinking" | "reasoning" | "thought" | "internal" | "step";
@@ -42,6 +46,9 @@ export interface StreamingOptions {
  * ```
  */
 export class StreamingClient {
+  private maxRetries: number = 3;
+  private retryDelayMs: number = 1000;
+
   async streamChat(options: StreamingOptions): Promise<void> {
     const {
       apiUrl,
@@ -54,99 +61,128 @@ export class StreamingClient {
     } = options;
 
     const url = `${apiUrl}/api/v1/chat/stream`;
+    let retries = 0;
 
-    try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ message, context }),
-      });
+    while (retries <= this.maxRetries) {
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "text/event-stream",
+          },
+          body: JSON.stringify({ message, context }),
+        });
 
-      if (!response.ok) {
-        throw new Error(
-          `HTTP ${response.status}: ${response.statusText}`
-        );
-      }
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
 
-      // Parse SSE response
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error("No response body");
+        const reader = response.body?.getReader();
+        if (!reader) throw new Error("No response body");
 
-      const decoder = new TextDecoder();
-      let buffer = "";
+        const decoder = new TextDecoder();
 
-      while (true) {
-        const { done, value } = await reader.read();
+        // Create SSE parser with proper event handling
+        const parser = createParser({
+          onEvent: (event: EventSourceMessage) => {
+            // Handle event
+            const eventType = event.event || "message";
+            const data = event.data;
 
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-
-        // Keep the last incomplete line in buffer
-        buffer = lines.pop() || "";
-
-        for (const line of lines) {
-          if (line.startsWith("event:")) {
-            const eventType = line.substring(6).trim();
-
-            // Try to read the data line
-            const nextIdx = lines.indexOf(line) + 1;
-            if (nextIdx < lines.length && lines[nextIdx].startsWith("data:")) {
-              const dataLine = lines[nextIdx];
-              const dataStr = dataLine.substring(5).trim();
-
-              if (!dataStr) {
-                // Empty data line for complete event
-                if (eventType === "complete" && onComplete) {
-                  onComplete();
-                }
-                continue;
+            if (!data || data.trim() === "") {
+              // Empty data for complete event
+              if (eventType === "complete" && onComplete) {
+                onComplete();
               }
+              return;
+            }
 
-              try {
-                const data = JSON.parse(dataStr);
+            try {
+              const parsed = JSON.parse(data);
 
-                if (eventType === "thinking" && onThinking) {
-                  onThinking(data as ThinkingChunk);
-                } else if (eventType === "response" && onResponse) {
-                  onResponse(data as ResponseChunk);
-                } else if (eventType === "error" && onError) {
-                  onError(data);
-                } else if (eventType === "complete" && onComplete) {
-                  onComplete();
-                }
-              } catch (e) {
-                console.error("Failed to parse stream data:", dataStr, e);
+              switch (eventType) {
+                case "thinking":
+                  if (onThinking) {
+                    onThinking(parsed as ThinkingChunk);
+                  }
+                  break;
+                case "response":
+                  if (onResponse) {
+                    onResponse(parsed as ResponseChunk);
+                  }
+                  break;
+                case "error":
+                  if (onError) {
+                    onError(
+                      typeof parsed === "string"
+                        ? parsed
+                        : JSON.stringify(parsed),
+                    );
+                  }
+                  break;
+                case "complete":
+                  if (onComplete) {
+                    onComplete();
+                  }
+                  break;
+                default:
+                  // Unknown event type, log for debugging
+                  console.debug(`Unknown SSE event type: ${eventType}`, parsed);
+              }
+            } catch (parseError) {
+              // JSON parse failed - might be plain text error
+              if (eventType === "error" && onError) {
+                onError(data);
+              } else {
+                console.error("Failed to parse SSE data:", data, parseError);
               }
             }
-          }
-        }
-      }
+          },
+        });
 
-      // Process any remaining buffer
-      if (buffer.trim()) {
-        try {
-          if (buffer.startsWith("event:")) {
-            // Handle remaining event
-            const eventType = buffer.substring(6).split("\n")[0].trim();
-            if (eventType === "complete" && onComplete) {
-              onComplete();
-            }
+        // Read stream and feed to parser
+        while (true) {
+          const { done, value } = await reader.read();
+
+          if (done) {
+            // Stream ended - trigger complete if not already done
+            break;
           }
-        } catch (e) {
-          console.error("Failed to process remaining buffer:", buffer);
+
+          // Feed chunk to parser
+          const chunk = decoder.decode(value, { stream: true });
+          parser.feed(chunk);
         }
+
+        // Successful completion - no retry needed
+        return;
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+
+        // Check if retryable (network errors, not HTTP errors)
+        const isRetryable =
+          errorMsg.includes("fetch") ||
+          errorMsg.includes("network") ||
+          errorMsg.includes("ECONNREFUSED");
+
+        if (isRetryable && retries < this.maxRetries) {
+          retries++;
+          console.warn(
+            `SSE connection failed, retrying (${retries}/${this.maxRetries})...`,
+          );
+          await new Promise((resolve) =>
+            setTimeout(resolve, this.retryDelayMs * retries),
+          );
+          continue;
+        }
+
+        // Non-retryable or max retries exceeded
+        if (onError) {
+          onError(errorMsg);
+        }
+        throw error;
       }
-    } catch (error) {
-      const errorMsg =
-        error instanceof Error ? error.message : String(error);
-      if (onError) {
-        onError(errorMsg);
-      }
-      throw error;
     }
   }
 
@@ -173,9 +209,7 @@ export class StreamingClient {
     });
 
     if (!response.ok) {
-      throw new Error(
-        `HTTP ${response.status}: ${response.statusText}`
-      );
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
     return response.json() as Promise<{

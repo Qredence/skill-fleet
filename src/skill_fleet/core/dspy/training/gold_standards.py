@@ -305,7 +305,7 @@ class GoldStandardLoader:
                         f"Discovered high-quality skill: {skill_name} ({scores.overall_score:.2f})"
                     )
 
-            except (OSError, IOError, UnicodeDecodeError) as e:
+            except (OSError, UnicodeDecodeError) as e:
                 logger.warning(f"Error processing {skill_file}: {e}")
 
         return entries
@@ -442,7 +442,7 @@ class GoldStandardLoader:
                     subdirectory_files=subdirectory_files,
                     allowed_tools=allowed_tools,
                 )
-            except (OSError, IOError, UnicodeDecodeError, yaml.YAMLError) as e:
+            except (OSError, UnicodeDecodeError, yaml.YAMLError) as e:
                 logger.warning(f"Error processing {skill_path}: {e}")
                 return None
 
@@ -574,7 +574,7 @@ class GoldStandardLoader:
             logger.info(f"Added gold skill: {skill_id} (score: {scores.overall_score:.2f})")
             return entry
 
-        except (OSError, IOError, UnicodeDecodeError, json.JSONDecodeError, yaml.YAMLError) as e:
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError, yaml.YAMLError) as e:
             logger.error(f"Error adding gold skill {skill_path}: {e}")
             return None
 

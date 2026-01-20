@@ -21,6 +21,7 @@ from .enhanced_metrics import (
     metadata_quality_metric,
     skill_style_alignment_metric,
     taxonomy_accuracy_metric,
+    comprehensive_metric,
 )
 from .gepa_reflection import (
     gepa_composite_metric,
@@ -57,6 +58,7 @@ __all__ = [
     "metadata_quality_metric",
     "skill_style_alignment_metric",
     "create_metric_for_phase",
+    "comprehensive_metric",
     # GEPA-specific reflection metrics
     "gepa_skill_quality_metric",
     "gepa_semantic_match_metric",

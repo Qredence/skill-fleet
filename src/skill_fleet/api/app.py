@@ -28,6 +28,7 @@ from .routes import (
     optimization,
     skills,
     taxonomy,
+    training,
     validation,
 )
 
@@ -132,6 +133,7 @@ def create_app() -> FastAPI:
     app.include_router(validation.router, prefix="/api/v2/validation", tags=["validation"])
     app.include_router(evaluation.router, prefix="/api/v2/evaluation", tags=["evaluation"])
     app.include_router(optimization.router, prefix="/api/v2/optimization", tags=["optimization"])
+    app.include_router(training.router, prefix="/api/v2/training", tags=["training"])
     app.include_router(chat_streaming.router, tags=["chat"])
 
     # Auto-discovery of DSPy modules

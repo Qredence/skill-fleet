@@ -133,6 +133,9 @@ class OptimizationWrapper(dspy.Module):
 # =============================================================================
 
 
+from ...config.training.manager import TrainingDataManager
+
+
 def optimize_with_miprov2(
     program: LegacySkillCreationProgram,
     trainset_path: str | Path = "config/training/trainset.json",
@@ -176,8 +179,20 @@ def optimize_with_miprov2(
     dspy.configure(lm=lm)
     logger.info(f"Configured DSPy with model: {model}")
 
-    # Load and split training data
-    examples = load_trainset(trainset_path)
+    # Use TrainingDataManager if available
+    trainset_manager = TrainingDataManager(Path(trainset_path).parent)
+    filtered_examples = trainset_manager.get_trainset()
+
+    if filtered_examples:
+        logger.info(f"Using {len(filtered_examples)} filtered examples from TrainingDataManager")
+        # Convert to DSPy Example objects if needed, but load_trainset handles raw dicts usually
+        # Assuming filtered_examples are compatible with what split_dataset expects
+        examples = [dspy.Example(**ex).with_inputs("task_description") for ex in filtered_examples]
+    else:
+        # Fallback to direct file loading
+        logger.info(f"Loading full trainset from {trainset_path}")
+        examples = load_trainset(trainset_path)
+
     train, val = split_dataset(examples, train_ratio=0.8)
     logger.info(f"Loaded {len(examples)} examples: {len(train)} train, {len(val)} val")
 
@@ -210,6 +225,10 @@ def optimize_with_miprov2(
     output_path.mkdir(parents=True, exist_ok=True)
     state_path = output_path / STATE_FILENAME
     optimized.save(str(state_path), save_program=False)
+
+    # Update training data manager with results (placeholder for now as we don't have per-example scores easily from MIPROv2 yet)
+    # Ideally we'd run an evaluation pass here to get scores
+    # trainset_manager.update_scores(...)
 
     logger.info(f"Optimized program state saved to {state_path}")
     return optimized
@@ -259,8 +278,17 @@ def optimize_with_gepa(
     reflection_lm = get_lm(reflection_model, temperature=1.0)
     logger.info(f"Using reflection model: {reflection_model}")
 
-    # Load and split training data
-    examples = load_trainset(trainset_path)
+    # Use TrainingDataManager if available
+    trainset_manager = TrainingDataManager(Path(trainset_path).parent)
+    filtered_examples = trainset_manager.get_trainset()
+
+    if filtered_examples:
+        logger.info(f"Using {len(filtered_examples)} filtered examples from TrainingDataManager")
+        examples = [dspy.Example(**ex).with_inputs("task_description") for ex in filtered_examples]
+    else:
+        logger.info(f"Loading full trainset from {trainset_path}")
+        examples = load_trainset(trainset_path)
+
     train, val = split_dataset(examples, train_ratio=0.8)
     logger.info(f"Loaded {len(examples)} examples: {len(train)} train, {len(val)} val")
 

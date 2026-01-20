@@ -183,20 +183,39 @@ def _handle_auto_selection(
     Returns:
         Tuple of (optimizer_name, auto_setting)
     """
-    # Load trainset to get size
+    from ...config.training.manager import TrainingDataManager
+
+    # Use TrainingDataManager to get size
     path = Path(trainset_path)
     if not path.exists():
         print(f"Error: Trainset not found: {trainset_path}", file=sys.stderr)
         raise typer.Exit(code=2)
 
-    with open(path) as f:
-        trainset_data = json.load(f)
-        if isinstance(trainset_data, dict) and "examples" in trainset_data:
-            trainset_size = len(trainset_data["examples"])
-        elif isinstance(trainset_data, list):
-            trainset_size = len(trainset_data)
-        else:
-            trainset_size = 50  # Default fallback
+    try:
+        manager = TrainingDataManager(path.parent)
+        examples = manager.get_trainset()
+        trainset_size = len(examples) if examples else 0
+
+        # Fallback to file reading if manager returns empty but file exists
+        if trainset_size == 0 and path.exists():
+            with open(path) as f:
+                trainset_data = json.load(f)
+                if isinstance(trainset_data, dict) and "examples" in trainset_data:
+                    trainset_size = len(trainset_data["examples"])
+                elif isinstance(trainset_data, list):
+                    trainset_size = len(trainset_data)
+                else:
+                    trainset_size = 50
+    except Exception:
+        # Fallback logic
+        with open(path) as f:
+            trainset_data = json.load(f)
+            if isinstance(trainset_data, dict) and "examples" in trainset_data:
+                trainset_size = len(trainset_data["examples"])
+            elif isinstance(trainset_data, list):
+                trainset_size = len(trainset_data)
+            else:
+                trainset_size = 50
 
     # Create context
     context = OptimizerContext(

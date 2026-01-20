@@ -6,15 +6,13 @@ These models map to the PostgreSQL tables defined in migrations/001_init_skills_
 """
 
 from datetime import datetime
-from decimal import Decimal
-from typing import Any, Optional
-from uuid import UUID, uuid4
+from typing import Optional
+from uuid import UUID
 
 from sqlalchemy import (
     ARRAY,
     Boolean,
     CheckConstraint,
-    Column,
     DateTime,
     Enum,
     ForeignKey,
@@ -157,7 +155,14 @@ class Skill(Base):
     # Classification
     type: Mapped[str] = mapped_column(
         Enum(
-            *SkillTypeEnum.__dict__.values(),
+            SkillTypeEnum.COGNITIVE,
+            SkillTypeEnum.TECHNICAL,
+            SkillTypeEnum.DOMAIN,
+            SkillTypeEnum.TOOL,
+            SkillTypeEnum.MCP,
+            SkillTypeEnum.SPECIALIZATION,
+            SkillTypeEnum.TASK_FOCUS,
+            SkillTypeEnum.MEMORY,
             name='skill_type_enum',
             create_constraint=True
         ),
@@ -165,7 +170,9 @@ class Skill(Base):
     )
     weight: Mapped[str] = mapped_column(
         Enum(
-            *SkillWeightEnum.__dict__.values(),
+            SkillWeightEnum.LIGHTWEIGHT,
+            SkillWeightEnum.MEDIUM,
+            SkillWeightEnum.HEAVYWEIGHT,
             name='skill_weight_enum',
             create_constraint=True
         ),
@@ -174,7 +181,10 @@ class Skill(Base):
     )
     load_priority: Mapped[str] = mapped_column(
         Enum(
-            *LoadPriorityEnum.__dict__.values(),
+            LoadPriorityEnum.ALWAYS,
+            LoadPriorityEnum.TASK_SPECIFIC,
+            LoadPriorityEnum.ON_DEMAND,
+            LoadPriorityEnum.DORMANT,
             name='load_priority_enum',
             create_constraint=True
         ),
@@ -183,7 +193,10 @@ class Skill(Base):
     )
     status: Mapped[str] = mapped_column(
         Enum(
-            *SkillStatusEnum.__dict__.values(),
+            SkillStatusEnum.DRAFT,
+            SkillStatusEnum.ACTIVE,
+            SkillStatusEnum.DEPRECATED,
+            SkillStatusEnum.ARCHIVED,
             name='skill_status_enum',
             create_constraint=True
         ),
@@ -192,7 +205,9 @@ class Skill(Base):
     )
     skill_style: Mapped[Optional[str]] = mapped_column(
         Enum(
-            *SkillStyleEnum.__dict__.values(),
+            SkillStyleEnum.NAVIGATION_HUB,
+            SkillStyleEnum.COMPREHENSIVE,
+            SkillStyleEnum.MINIMAL,
             name='skill_style_enum',
             create_constraint=True
         ),
@@ -228,7 +243,7 @@ class Skill(Base):
     performance_stats: Mapped[dict] = mapped_column(
         JSONB,
         nullable=False,
-        server_default=text="'{}'::jsonb")
+        server_default=text("'{}'::jsonb")
     )
 
     # Relationships
@@ -581,7 +596,9 @@ class SkillDependency(Base):
     )
     dependency_type: Mapped[str] = mapped_column(
         Enum(
-            *DependencyTypeEnum.__dict__.values(),
+            DependencyTypeEnum.REQUIRED,
+            DependencyTypeEnum.RECOMMENDED,
+            DependencyTypeEnum.CONFLICT,
             name='dependency_type_enum',
             create_constraint=True
         ),
@@ -768,7 +785,13 @@ class SkillFile(Base):
     )
     file_type: Mapped[str] = mapped_column(
         Enum(
-            *FileTypeEnum.__dict__.values(),
+            FileTypeEnum.REFERENCE,
+            FileTypeEnum.GUIDE,
+            FileTypeEnum.TEMPLATE,
+            FileTypeEnum.SCRIPT,
+            FileTypeEnum.EXAMPLE,
+            FileTypeEnum.ASSET,
+            FileTypeEnum.TEST,
             name='file_type_enum',
             create_constraint=True
         ),
@@ -849,7 +872,12 @@ class Job(Base):
     )
     status: Mapped[str] = mapped_column(
         Enum(
-            *JobStatusEnum.__dict__.values(),
+            JobStatusEnum.PENDING,
+            JobStatusEnum.RUNNING,
+            JobStatusEnum.PENDING_HITL,
+            JobStatusEnum.COMPLETED,
+            JobStatusEnum.FAILED,
+            JobStatusEnum.CANCELLED,
             name='job_status_enum',
             create_constraint=True
         ),
@@ -874,7 +902,9 @@ class Job(Base):
     validation_passed: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
     validation_status: Mapped[Optional[str]] = mapped_column(
         Enum(
-            *ValidationStatusEnum.__dict__.values(),
+            ValidationStatusEnum.PASSED,
+            ValidationStatusEnum.FAILED,
+            ValidationStatusEnum.WARNINGS,
             name='validation_status_enum',
             create_constraint=True
         ),
@@ -894,7 +924,7 @@ class Job(Base):
     )
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    metadata: Mapped[dict] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
+    job_metadata: Mapped[dict] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
 
     # Relationships
     hitl_interactions: Mapped[list['HITLInteraction']] = relationship(
@@ -927,7 +957,14 @@ class HITLInteraction(Base):
     )
     interaction_type: Mapped[str] = mapped_column(
         Enum(
-            *HITLTypeEnum.__dict__.values(),
+            HITLTypeEnum.CLARIFY,
+            HITLTypeEnum.CONFIRM,
+            HITLTypeEnum.PREVIEW,
+            HITLTypeEnum.VALIDATE,
+            HITLTypeEnum.DEEP_UNDERSTANDING,
+            HITLTypeEnum.TDD_RED,
+            HITLTypeEnum.TDD_GREEN,
+            HITLTypeEnum.TDD_REFACTOR,
             name='hitl_type_enum',
             create_constraint=True
         ),
@@ -944,7 +981,7 @@ class HITLInteraction(Base):
         server_default=func.now()
     )
     timeout_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    metadata: Mapped[dict] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
+    hitl_metadata: Mapped[dict] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
 
     # Relationships
     job: Mapped['Job'] = relationship('Job', back_populates='hitl_interactions')
@@ -1045,7 +1082,9 @@ class ValidationReport(Base):
     )
     status: Mapped[str] = mapped_column(
         Enum(
-            *ValidationStatusEnum.__dict__.values(),
+            ValidationStatusEnum.PASSED,
+            ValidationStatusEnum.FAILED,
+            ValidationStatusEnum.WARNINGS,
             name='validation_status_enum',
             create_constraint=True
         ),
@@ -1097,7 +1136,9 @@ class ValidationCheck(Base):
     check_description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     severity: Mapped[str] = mapped_column(
         Enum(
-            *SeverityEnum.__dict__.values(),
+            SeverityEnum.CRITICAL,
+            SeverityEnum.WARNING,
+            SeverityEnum.INFO,
             name='severity_enum',
             create_constraint=True
         ),
@@ -1179,7 +1220,7 @@ class UsageEvent(Base):
     duration_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     error_type: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     session_id: Mapped[Optional[UUID]] = mapped_column(UUID, nullable=True)
-    metadata: Mapped[dict] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
+    event_metadata: Mapped[dict] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
     occurred_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

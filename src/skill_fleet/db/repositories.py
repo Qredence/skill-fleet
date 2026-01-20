@@ -7,27 +7,20 @@ Repository layer for common CRUD operations on skills fleet entities.
 from datetime import datetime
 from typing import Any, Generic, List, Optional, Type, TypeVar
 
-from sqlalchemy import Select, UnaryExpression, asc, desc, select
+from sqlalchemy import asc, desc
 from sqlalchemy.orm import Session, joinedload
 
 from skill_fleet.db.models import (
     Capability,
-    DeepUnderstandingState,
     HITLInteraction,
     Job,
     Skill,
     SkillAllowedTool,
-    SkillAlias,
     SkillCategory,
     SkillDependency,
-    SkillFacet,
-    SkillFile,
     SkillKeyword,
-    SkillReference,
-    SkillTag,
     SkillStatusEnum,
-    TagStats,
-    TDDWorkflowState,
+    SkillTag,
     TaxonomyCategory,
     UsageEvent,
     ValidationReport,
@@ -253,7 +246,7 @@ class SkillRepository(BaseRepository[Skill]):
         skill_data: dict,
         capabilities: Optional[List[dict]] = None,
         dependencies: Optional[List[dict]] = None,
-        keywords: Optional[List[str]] = None,
+        keywords: Optional[list[str]] = None,
         tags: Optional[List[str]] = None,
         allowed_tools: Optional[List[str]] = None,
     ) -> Skill:
@@ -317,6 +310,38 @@ class JobRepository(BaseRepository[Job]):
 
     def __init__(self, db: Session):
         super().__init__(Job, db)
+
+    def get_by_id(self, job_id: Any) -> Optional[Job]:
+        """Get a job by its ID (UUID).
+        
+        Args:
+            job_id: UUID of the job
+            
+        Returns:
+            Job instance or None if not found
+        """
+        from uuid import UUID
+        if isinstance(job_id, str):
+            job_id = UUID(job_id)
+        return self.db.query(Job).filter(Job.job_id == job_id).first()
+
+    def get_by_status(self, status: str, *, limit: int = 100) -> List[Job]:
+        """Get all jobs with a specific status.
+        
+        Args:
+            status: Job status (pending, running, pending_hitl, completed, failed, cancelled)
+            limit: Maximum number of jobs to return
+            
+        Returns:
+            List of Job instances
+        """
+        return (
+            self.db.query(Job)
+            .filter(Job.status == status)
+            .order_by(Job.created_at.asc())
+            .limit(limit)
+            .all()
+        )
 
     def get_by_user(
         self,
@@ -451,7 +476,6 @@ class TaxonomyRepository(BaseRepository[TaxonomyCategory]):
     def get_skills_in_category(self, category_id: int) -> List[Skill]:
         """Get all skills in a category (including subcategories)."""
         # Get all descendant category IDs using closure table
-        from sqlalchemy import or_
 
         descendant_ids = (
             self.db.query(TaxonomyClosure.descendant_id)

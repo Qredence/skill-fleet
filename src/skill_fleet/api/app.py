@@ -35,6 +35,23 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
+def _configure_logging() -> None:
+    """Configure application logging based on settings."""
+    # Patch logging settings to handle MagicMock in tests
+    log_level_attr = getattr(settings, "log_level", "INFO")
+    if not isinstance(log_level_attr, str):
+        log_level_attr = "INFO"
+
+    log_level = getattr(logging, log_level_attr.upper(), logging.INFO)
+    logging.basicConfig(level=log_level)
+
+    # In production with JSON logging, use structured format
+    log_format = getattr(settings, "log_format", "text")
+    if isinstance(log_format, str) and log_format == "json":
+        # Could integrate structlog here in the future
+        pass
+
+
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application.
 
@@ -68,9 +85,7 @@ def create_app() -> FastAPI:
     # Security enforcement for CORS
     if not cors_origins:
         if settings.is_development:
-            logger.warning(
-                "CORS_ORIGINS not set; defaulting to wildcard '*' in development mode"
-            )
+            logger.warning("CORS_ORIGINS not set; defaulting to wildcard '*' in development mode")
             cors_origins = ["*"]
         else:
             raise ValueError(
@@ -135,17 +150,6 @@ def create_app() -> FastAPI:
     return app
 
 
-def _configure_logging() -> None:
-    """Configure application logging based on settings."""
-    log_level = getattr(logging, settings.log_level.upper())
-    logging.basicConfig(level=log_level)
-
-    # In production with JSON logging, use structured format
-    if settings.log_format == "json":
-        # Could integrate structlog here in the future
-        pass
-
-
 def _register_exception_handlers(app: FastAPI) -> None:
     """Register global exception handlers for consistent error responses.
 
@@ -179,9 +183,7 @@ def _register_exception_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(StarletteHTTPException)
-    async def http_exception_handler(
-        request: Request, exc: StarletteHTTPException
-    ) -> JSONResponse:
+    async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
         """Handle standard HTTP exceptions."""
         request_id = getattr(request.state, "request_id", "unknown")
         logger.warning(
@@ -246,4 +248,3 @@ app = get_app()
 # This will create the app when run as a module
 if __name__ == "__main__":
     app = get_app()
-

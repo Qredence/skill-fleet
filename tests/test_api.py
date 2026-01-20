@@ -55,6 +55,7 @@ def dependency_override_cleanup():
 # Test Health Endpoint
 # ============================================================================
 
+
 class TestHealthEndpoint:
     """Tests for health check endpoint."""
 
@@ -74,6 +75,7 @@ class TestHealthEndpoint:
 # ============================================================================
 # Test Skills Create Endpoint
 # ============================================================================
+
 
 class TestSkillsCreateEndpoint:
     """Tests for /api/v2/skills/create endpoint."""
@@ -110,22 +112,25 @@ class TestSkillsCreateEndpoint:
 
             assert response.status_code == 422  # Validation error
             data = response.json()
-            assert "detail" in data
-            assert "task_description is required" in data["detail"]
+            assert "details" in data
+            assert data["error"] == "Validation error"
+            assert "Field required" in str(data["details"])
 
     def test_create_skill_empty_description(self, client):
-        """Test skill creation fails with empty task_description string.
+        """Test skill creation fails with empty or too short task_description.
 
-        Verifies that empty strings are rejected as invalid input,
-        returning HTTP 400 with appropriate error message.
+        Verifies that inputs failing min_length validation are correctly handled
+        by Pydantic, returning HTTP 422.
         """
         with patch("skill_fleet.api.routes.skills.run_skill_creation"):
             response = client.post(
                 "/api/v2/skills/create",
-                json={"task_description": "   "},
+                # Now fails min_length=10
+                json={"task_description": "short"},
             )
 
-            assert response.status_code == 400
+            assert response.status_code == 422
             data = response.json()
-            assert "detail" in data
-            assert "task_description should not be empty" in data["detail"]
+            assert "details" in data
+            assert data["error"] == "Validation error"
+            assert "at least 10 characters" in str(data["details"])

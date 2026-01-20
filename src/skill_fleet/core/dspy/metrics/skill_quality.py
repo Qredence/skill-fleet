@@ -237,7 +237,8 @@ def evaluate_structure(body: str) -> tuple[dict[str, bool | str], list[str], lis
         r"(?:detailed|more|additional)\s+(?:information|docs?|documentation)\s+in\s+`?(?:references|guides)/",
     ]
     uses_progressive_disclosure = any(
-        re.search(pattern, body, re.IGNORECASE) for pattern in progressive_disclosure_patterns
+        re.search(pattern, body, re.IGNORECASE | re.MULTILINE)
+        for pattern in progressive_disclosure_patterns
     )
     flags["uses_progressive_disclosure"] = uses_progressive_disclosure
 
@@ -258,18 +259,55 @@ def evaluate_structure(body: str) -> tuple[dict[str, bool | str], list[str], lis
 
     # Evaluate and report
     # v2: "When to Use" section is required
-    required_sections = ["has_overview", "has_when_to_use", "has_core_patterns"]
-    recommended_sections = ["has_quick_reference", "has_common_mistakes", "has_red_flags"]
+    required_sections = [
+        "has_overview",
+        "has_when_to_use",
+        "has_when_to_use_section",
+        "has_core_patterns",
+    ]
+    recommended_sections = [
+        "has_quick_reference",
+        "has_common_mistakes",
+        "has_red_flags",
+        "has_quick_start",
+    ]
+
+    # Keep track of which logical sections we've already reported to avoid duplicates
+    # (e.g. When to Use vs When to Use This Skill)
+    reported_logical_sections = set()
 
     for section in required_sections:
+        raw_name = section.replace("has_", "").replace("_", " ")
+        # Map to logical section name
+        logical_name = "When to Use" if "when to use" in raw_name.lower() else raw_name.title()
+
         if flags.get(section):
-            strengths.append(f"Has {section.replace('has_', '').replace('_', ' ')} section")
+            if logical_name not in reported_logical_sections:
+                strengths.append(f"Has {logical_name} section")
+                reported_logical_sections.add(logical_name)
         else:
-            issues.append(f"Missing {section.replace('has_', '').replace('_', ' ')} section")
+            # Only report as missing if NO variant of this logical section was found
+            # We'll check all flags for this logical name later
+            pass
+
+    # Re-check for missing required sections
+    for section in required_sections:
+        raw_name = section.replace("has_", "").replace("_", " ")
+        logical_name = "When to Use" if "when to use" in raw_name.lower() else raw_name.title()
+        if logical_name not in reported_logical_sections:
+            issues.append(f"Missing {logical_name} section")
+            reported_logical_sections.add(logical_name)  # Only report once
 
     for section in recommended_sections:
+        raw_name = section.replace("has_", "").replace("_", " ")
+        logical_name = "When to Use" if "when to use" in raw_name.lower() else raw_name.title()
+        if "quick start" in raw_name.lower():
+            logical_name = "Quick Start"
+
         if flags.get(section):
-            strengths.append(f"Has {section.replace('has_', '').replace('_', ' ')} section")
+            if logical_name not in reported_logical_sections:
+                strengths.append(f"Has {logical_name} section")
+                reported_logical_sections.add(logical_name)
 
     if flags.get("has_real_world_impact"):
         strengths.append("Includes real-world impact/benefits")

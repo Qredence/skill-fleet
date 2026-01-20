@@ -299,7 +299,7 @@ class TestEvaluateStructure:
 
         assert flags["has_overview"] is True
         assert flags["has_when_to_use"] is False
-        assert "Missing when to use section" in issues
+        assert "Missing When to Use section" in issues
 
 
 class TestEvaluatePatterns:

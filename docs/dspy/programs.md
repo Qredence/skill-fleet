@@ -15,14 +15,21 @@ Programs are the "glue code" of the workflow. They handle orchestration logic li
 
 | Program | Purpose | File |
 |---------|---------|------|
-| `SkillCreationProgram` | Main 4-phase skill creation workflow | `programs.py` |
+| `SkillCreationProgram` | New 3-phase orchestrator (current default) | `skill_creator.py` |
+| `LegacySkillCreationProgram` | Legacy 4-phase skill creation workflow | `programs.py` |
 | `GuidedCreatorProgram` | Chat-based guided skill creation | `conversational.py` |
 
 ## SkillCreationProgram
 
+**File**: `src/skill_fleet/core/dspy/skill_creator.py`
+
+The modern, unified orchestrator for the 3-phase skill creation workflow.
+
+## LegacySkillCreationProgram
+
 **File**: `src/skill_fleet/core/dspy/programs.py`
 
-The main orchestrator for the complete 4-phase skill creation workflow with integrated HITL.
+The original orchestrator for the complete 4-phase skill creation workflow with integrated HITL. Renamed from `SkillCreationProgram` to avoid naming conflicts with the new unified architecture.
 
 ### Class Definition
 

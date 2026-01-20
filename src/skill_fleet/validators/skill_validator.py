@@ -606,7 +606,7 @@ class SkillValidator:
             else:
                 # Unknown subdirectory - might be intentional, just warn
                 warnings.append(
-                    f"Unknown subdirectory '{subdir}/'. "
+                    f"unknown subdirectory '{subdir}/'. "
                     f"Standard subdirs: references/, guides/, templates/, scripts/, examples/"
                 )
 

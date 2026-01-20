@@ -30,7 +30,9 @@ router = APIRouter()
 class CreateSkillRequest(BaseModel):
     """Request body for creating a new skill."""
 
-    task_description: str = Field(..., description="Description of the skill to create")
+    task_description: str = Field(
+        ..., description="Description of the skill to create", min_length=10
+    )
     user_id: str = Field(default="default", description="User ID for context")
 
 

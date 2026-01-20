@@ -42,12 +42,12 @@ The **Agentic Skills System** is a hierarchical, dynamic capability framework th
    - Each skill is a directory containing a `SKILL.md` file with YAML frontmatter
 
 2. **Unified Core Architecture** (`src/skill_fleet/core/`)
-   - **DSPy Integration** (`dspy/`): Complete DSPy framework integration
-     - `modules/`: Phase 1 (Understanding), Phase 2 (Generation), Phase 3 (Validation)
-     - `signatures/`: DSPy signatures for each phase
-     - `programs/`: SkillCreationProgram, SkillRevisionProgram, QuickSkillProgram
-     - `evaluation.py`: Integration with DSPy Evaluate and quality metrics
-     - `skill_creator.py`: Main 3-phase orchestrator
+    - **DSPy Integration** (`dspy/`): Complete DSPy framework integration
+      - `modules/`: Phase 1 (Understanding), Phase 2 (Generation), Phase 3 (Validation)
+      - `signatures/`: DSPy signatures for each phase
+      - `programs/`: LegacySkillCreationProgram, SkillRevisionProgram, QuickSkillProgram
+      - `evaluation.py`: Integration with DSPy Evaluate and quality metrics
+      - `skill_creator.py`: Main 3-phase orchestrator (SkillCreationProgram)
    - **Evaluation & Metrics** (`dspy/metrics/`): Multi-dimensional quality assessment
      - `skill_quality.py`: Calibrated metrics (Obra/superpowers standards)
      - Penalty multipliers for missing critical elements (core principles, Iron Laws)

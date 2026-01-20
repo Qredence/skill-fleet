@@ -9,9 +9,9 @@ The system uses a **7-step pipeline** orchestrated by DSPy to transform a high-l
 ### Implementation Locations
 
 - **Orchestrator**: `src/skill_fleet/workflow/creator.py`
-- **Programs**: `src/skill_fleet/core/dspy/programs.py`
-- **Modules**: `src/skill_fleet/core/dspy/modules/` (phase0_research.py, phase1_planning.py, phase2_generation.py, phase3_validation.py)
-- **Signatures**: `src/skill_fleet/core/dspy/signatures/` (base.py, phase2_generation.py)
+- **Programs**: `src/skill_fleet/core/dspy/skill_creator.py` (New), `src/skill_fleet/core/dspy/programs.py` (Legacy)
+- **Modules**: `src/skill_fleet/core/dspy/modules/` (phase1_understanding.py, phase2_generation.py, phase3_validation.py)
+- **Signatures**: `src/skill_fleet/core/dspy/signatures/` (base.py, phase1_understanding.py, phase2_generation.py, phase3_validation.py)
 - **Models**: `src/skill_fleet/core/models.py`
 - **Taxonomy Manager**: `src/skill_fleet/taxonomy/manager.py`
 
@@ -19,8 +19,9 @@ The system uses a **7-step pipeline** orchestrated by DSPy to transform a high-l
 
 The system provides different DSPy Programs for various use cases:
 
-1.  **`SkillCreationProgram` (Standard)**: The default end-to-end pipeline (Steps 0-6).
-2.  **`SkillCreationProgramQA` (Quality Assured)**: A high-fidelity version that uses `dspy.Refine` and `dspy.BestOfN` for critical steps (Understanding, Planning, Editing) to maximize quality at the cost of latency.
+1.  **`SkillCreationProgram` (Modern)**: The new unified 3-phase pipeline (default).
+2.  **`LegacySkillCreationProgram` (Standard)**: The original end-to-end pipeline (Steps 0-6).
+3.  **`LegacySkillCreationProgramQA` (Quality Assured)**: A high-fidelity version of the legacy program.
 3.  **`QuickSkillProgram`**: A "fast path" for rapid prototyping that skips Initialization and Packaging (Steps 0, 1, 2, 4 only).
 4.  **`SkillRevisionProgram`**: Used during the Iterate phase to regenerate content based on feedback (Steps 4-5).
 

@@ -76,3 +76,4 @@ cli/tui/dist/tabs/chat-tab.js.map
 cli/tui/dist/tabs/jobs-tab.d.ts
 cli/tui/dist/tabs/jobs-tab.js
 cli/tui/dist/tabs/jobs-tab.js.map
+.skill_fleet_logs/api-dev.log

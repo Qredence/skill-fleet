@@ -30,6 +30,7 @@ dependencies = [
   "uvicorn[standard]>=0.31.1",
   "prompt-toolkit>=3.0.52",
   "ty>=0.0.12",
+  "psycopg2-binary>=2.9.11",
 ]
 classifiers = [
   "Development Status :: 3 - Alpha",

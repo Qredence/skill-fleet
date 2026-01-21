@@ -17,6 +17,11 @@ from ...common.path_validation import (
     sanitize_taxonomy_path,
 )
 from ...core.dspy.metrics import SkillQualityScores, assess_skill_quality
+from ...core.dspy.metrics.adaptive_weighting import (
+    AdaptiveMetricWeighting,
+    SkillStyle,
+    compute_adaptive_score,
+)
 from ..dependencies import SkillsRoot
 
 router = APIRouter()
@@ -340,3 +345,92 @@ async def get_metrics_info() -> dict[str, Any]:
             "has_good_bad_contrast",
         ],
     }
+
+
+# Adaptive Metric Weighting Endpoint
+
+
+class DetectStyleRequest(BaseModel):
+    """Request to detect skill style and get adaptive weights."""
+
+    skill_title: str = Field(..., description="Skill title")
+    skill_content: str = Field(..., description="Full skill markdown content")
+    skill_description: str = Field(..., description="Brief skill description")
+    current_scores: dict[str, float] = Field(
+        default_factory=dict,
+        description="Current metric scores (optional)",
+    )
+
+
+class StyleDetectionResponse(BaseModel):
+    """Response with detected style and adaptive weights."""
+
+    style: str = Field(description="Detected style (navigation_hub, comprehensive, minimal)")
+    confidence: float = Field(description="Confidence in detection (0.0-1.0)")
+    reasoning: str = Field(description="Explanation of style detection")
+    weights: dict[str, float] = Field(description="Adaptive metric weights for this style")
+    composite_score: float | None = Field(
+        default=None,
+        description="Composite score if current_scores provided",
+    )
+    expected_improvement: str | None = Field(
+        default=None,
+        description="Expected improvement from adaptive weights",
+    )
+
+
+@router.post("/adaptive-weights", response_model=StyleDetectionResponse)
+async def get_adaptive_weights(request: DetectStyleRequest) -> StyleDetectionResponse:
+    """Detect skill style and get adaptive metric weights.
+
+    This endpoint analyzes a skill's content to determine its style
+    (navigation_hub, comprehensive, or minimal) and returns appropriate
+    metric weights for evaluation.
+
+    Args:
+        request: Skill content and optional current scores
+
+    Returns:
+        StyleDetectionResponse with detected style, weights, and optional composite score
+    """
+    try:
+        weighting = AdaptiveMetricWeighting()
+
+        # Detect style
+        style, confidence, reasoning = weighting.detect_style(
+            skill_title=request.skill_title,
+            skill_content=request.skill_content,
+            skill_description=request.skill_description,
+        )
+
+        # Get weights for style
+        weights = weighting.get_weights(style)
+
+        # Compute composite score if scores provided
+        composite_score = None
+        expected_improvement = None
+
+        if request.current_scores:
+            result = compute_adaptive_score(request.current_scores, style)
+            composite_score = result["composite"]
+
+            # Estimate improvement
+            if len(request.current_scores) > 0:
+                avg_score = sum(request.current_scores.values()) / len(request.current_scores)
+                improvement = ((composite_score - avg_score) / avg_score * 100) if avg_score > 0 else 0
+                expected_improvement = f"{improvement:+.1f}% on composite score"
+
+        return StyleDetectionResponse(
+            style=style.value if isinstance(style, SkillStyle) else style,
+            confidence=confidence,
+            reasoning=reasoning,
+            weights=weights.to_dict(),
+            composite_score=composite_score,
+            expected_improvement=expected_improvement,
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error detecting style: {str(e)}",
+        )

@@ -10,9 +10,9 @@ The **Agentic Skills System** is a hierarchical, dynamic capability framework th
 
 ---
 
-## ✅ Current State (2026-01-16)
+## ✅ Current State (2026-01-21)
 
-**Latest**: Taxonomy v0.2 migration completed - simplified 2-level taxonomy with canonical path resolution and alias support.
+**Latest**: Phase 1.1 (Adaptive Metric Weighting) completed - enables DSPy evaluation metrics to adapt based on skill style (navigation_hub, comprehensive, minimal).
 
 - **API-first execution**: FastAPI is the canonical surface for running DSPy workflows; the CLI (`skill-fleet create/chat/...`) is a thin API client.
 - **Draft-first persistence**: jobs write drafts under `skills/_drafts/<job_id>/...`; promotion into the taxonomy is explicit via:
@@ -50,6 +50,7 @@ The **Agentic Skills System** is a hierarchical, dynamic capability framework th
       - `skill_creator.py`: Main 3-phase orchestrator (SkillCreationProgram)
    - **Evaluation & Metrics** (`dspy/metrics/`): Multi-dimensional quality assessment
      - `skill_quality.py`: Calibrated metrics (Obra/superpowers standards)
+     - `adaptive_weighting.py`: Style-adaptive metric weights (navigation_hub, comprehensive, minimal)
      - Penalty multipliers for missing critical elements (core principles, Iron Laws)
    - **Optimization** (`optimization/`): DSPy workflow optimization
      - MIPROv2 optimizer for prompt tuning

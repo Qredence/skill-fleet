@@ -31,7 +31,10 @@ class ValidationResult:
 
 
 # v2 Golden Standard: Valid subdirectory names
-VALID_SUBDIRECTORIES = frozenset({"references", "guides", "templates", "scripts", "examples"})
+VALID_SUBDIRECTORIES = frozenset({
+    "references", "guides", "templates", "scripts", "examples",
+    "assets", "images", "static"  # Documentation assets
+})
 # Legacy subdirectories (grandfathered but not recommended for new skills)
 LEGACY_SUBDIRECTORIES = frozenset({"capabilities", "resources", "tests"})
 
@@ -550,6 +553,7 @@ class SkillValidator:
         - templates/: Boilerplate code files
         - scripts/: Runnable utility scripts
         - examples/: Runnable demo projects
+        - assets/, images/, static/: Documentation assets (diagrams, screenshots, etc.)
 
         Legacy subdirectories (grandfathered but deprecated):
         - capabilities/
@@ -607,7 +611,7 @@ class SkillValidator:
                 # Unknown subdirectory - might be intentional, just warn
                 warnings.append(
                     f"unknown subdirectory '{subdir}/'. "
-                    f"Standard subdirs: references/, guides/, templates/, scripts/, examples/"
+                    f"Standard subdirs: references/, guides/, templates/, scripts/, examples/, assets/, images/, static/"
                 )
 
         return ValidationResult(len(errors) == 0, errors, warnings)

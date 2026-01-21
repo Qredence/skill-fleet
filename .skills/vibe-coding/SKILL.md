@@ -203,7 +203,7 @@ Before implementing any feature, search these docs to ensure you're using curren
 ```
 User: "Let's vibe a landing page for a SaaS product - hero section, features, pricing, contact form"
 
-Droid will:
+The agent will:
 1. Search for current Next.js initialization best practices
 2. Initialize Next.js project with TypeScript and Tailwind
 3. Create component structure (Hero, Features, Pricing, Contact)
@@ -217,7 +217,7 @@ Droid will:
 ```
 User: "I want to quickly prototype an admin dashboard - auth, data tables, charts"
 
-Droid will:
+The agent will:
 1. Research current patterns for Next.js App Router with authentication
 2. Initialize project with appropriate dependencies
 3. Set up authentication flow (NextAuth.js or similar)

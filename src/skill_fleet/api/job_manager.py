@@ -29,6 +29,12 @@ if TYPE_CHECKING:
 from .schemas import DeepUnderstandingState, JobState, TDDWorkflowState
 
 
+def _sanitize_for_log(value: Any) -> str:
+    """Remove newline characters from values before logging to prevent log injection."""
+    text = str(value)
+    return text.replace("\r", "").replace("\n", "")
+
+
 def _sanitize_for_log(value: str) -> str:
     """
     Make a string safe for single-line log messages by removing line breaks.
@@ -259,18 +265,19 @@ class JobManager:
         """
         # Store in memory immediately (fast)
         self.memory.set(job_state.job_id, job_state)
-        logger.debug(f"Job {job_state.job_id} stored in memory")
+        safe_job_id = _sanitize_for_log(job_state.job_id)
+        logger.debug(f"Job {safe_job_id} stored in memory")
 
         # Persist to DB
         if self.db_repo:
             try:
                 self._save_job_to_db(job_state)
-                logger.info(f"Job {job_state.job_id} created (memory + database)")
+                logger.info(f"Job {safe_job_id} created (memory + database)")
             except Exception as e:
-                logger.error(f"Failed to create job {job_state.job_id} in database: {e}")
+                logger.error(f"Failed to create job {safe_job_id} in database: {e}")
                 # Continue - memory store is still usable
         else:
-            logger.warning(f"Job {job_state.job_id} created (memory only, no database backing)")
+            logger.warning(f"Job {safe_job_id} created (memory only, no database backing)")
 
     def update_job(self, job_id: str, updates: dict[str, Any]) -> JobState | None:
         """
@@ -279,6 +286,8 @@ class JobManager:
         Updates both memory cache and database:
         - Memory: for immediate visibility
         - Database: for persistence
+
+        safe_job_id = _sanitize_for_log(job_id)
 
         Args:
             job_id: Job identifier
@@ -296,7 +305,7 @@ class JobManager:
             job = self.get_job(job_id)
 
         if not job:
-            logger.error(f"Cannot update: job {job_id} not found")
+            logger.error(f"Cannot update: job {safe_job_id} not found")
             return None
 
         # Apply updates
@@ -306,18 +315,19 @@ class JobManager:
 
         # Update memory first (always succeeds)
         self.memory.set(job_id, job)
-        logger.debug(f"Job {job_id} updated in memory")
+        logger.debug(f"Job {safe_job_id} updated in memory")
 
         # Attempt DB update with explicit failure handling
         if self.db_repo:
             try:
                 self._save_job_to_db(job)
-                logger.debug(f"Job {job_id} updated in database")
+                logger.debug(f"Job {safe_job_id} updated in database")
             except ValueError as e:
-                logger.error(f"Validation failed updating job {job_id}: {e}")
+                logger.error(f"Validation failed updating job {safe_job_id}: {e}")
                 # Consider rolling back memory update or marking as dirty
             except Exception as e:
-                logger.error(f"Database error updating job {job_id}: {e}")
+                logger.error(f"Database error updating job {safe_job_id}: {e}")
+        safe_job_id = _sanitize_for_log(job.job_id)
                 # Memory update succeeded but DB failed - log discrepancy
 
         return job
@@ -338,10 +348,10 @@ class JobManager:
         if self.db_repo:
             try:
                 self._save_job_to_db(job)
-                logger.info(f"Job {job.job_id} explicitly saved to database")
+                logger.info(f"Job {safe_job_id} explicitly saved to database")
                 return True
             except Exception as e:
-                logger.error(f"Failed to save job {job.job_id}: {e}")
+                logger.error(f"Failed to save job {safe_job_id}: {e}")
                 return False
 
         return True

@@ -327,7 +327,6 @@ class JobManager:
                 # Consider rolling back memory update or marking as dirty
             except Exception as e:
                 logger.error(f"Database error updating job {safe_job_id}: {e}")
-        safe_job_id = _sanitize_for_log(job.job_id)
                 # Memory update succeeded but DB failed - log discrepancy
 
         return job
@@ -343,6 +342,7 @@ class JobManager:
             True if save succeeded, False otherwise
 
         """
+        safe_job_id = _sanitize_for_log(job.job_id)
         self.memory.set(job.job_id, job)
 
         if self.db_repo:

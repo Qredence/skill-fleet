@@ -9,9 +9,9 @@ Orchestrates DSPy optimization workflows, including:
 """
 
 import argparse
+import subprocess
 import sys
 from pathlib import Path
-import subprocess
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))

@@ -305,7 +305,7 @@ class JobManager:
             job = self.get_job(job_id)
 
         if not job:
-            logger.error(f"Cannot update: job {safe_job_id} not found")
+            logger.error(f"Cannot update: job {job_id} not found")
             return None
 
         # Apply updates
@@ -315,18 +315,18 @@ class JobManager:
 
         # Update memory first (always succeeds)
         self.memory.set(job_id, job)
-        logger.debug(f"Job {safe_job_id} updated in memory")
+        logger.debug(f"Job {job_id} updated in memory")
 
         # Attempt DB update with explicit failure handling
         if self.db_repo:
             try:
                 self._save_job_to_db(job)
-                logger.debug(f"Job {safe_job_id} updated in database")
+                logger.debug(f"Job {job_id} updated in database")
             except ValueError as e:
-                logger.error(f"Validation failed updating job {safe_job_id}: {e}")
+                logger.error(f"Validation failed updating job {job_id}: {e}")
                 # Consider rolling back memory update or marking as dirty
             except Exception as e:
-                logger.error(f"Database error updating job {safe_job_id}: {e}")
+                logger.error(f"Database error updating job {job_id}: {e}")
                 # Memory update succeeded but DB failed - log discrepancy
 
         return job

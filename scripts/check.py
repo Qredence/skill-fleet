@@ -9,8 +9,8 @@ Wraps various dev scripts:
 """
 
 import argparse
-import sys
 import subprocess
+import sys
 from pathlib import Path
 
 

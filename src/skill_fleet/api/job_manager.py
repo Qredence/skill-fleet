@@ -366,8 +366,7 @@ class JobManager:
         if obj is None:
             return None
         try:
-            if isinstance(obj, dict):
-                return obj
+            # Always sanitize to ensure clean JSON primitives
             return json.loads(json.dumps(obj, default=str))
         except Exception as e:
             logger.warning(f"Failed to serialize object: {e}")

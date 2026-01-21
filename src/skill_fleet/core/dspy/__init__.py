@@ -14,7 +14,8 @@ Submodules:
 # Re-export subpackages for auto-discovery
 from skill_fleet.core.dspy import modules, programs
 from skill_fleet.core.dspy.programs import (
-    SkillCreationProgram as LegacySkillCreationProgram,
+    LegacySkillCreationProgram,
+    LegacySkillCreationProgramQA,
 )
 
 # Re-export main components
@@ -23,6 +24,7 @@ from skill_fleet.core.dspy.skill_creator import SkillCreationProgram
 __all__ = [
     "SkillCreationProgram",
     "LegacySkillCreationProgram",
+    "LegacySkillCreationProgramQA",
     "modules",
     "programs",
 ]

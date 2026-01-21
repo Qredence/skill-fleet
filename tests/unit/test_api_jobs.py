@@ -229,6 +229,7 @@ class TestSessionPersistence:
         """Test that saved session includes TDD and deep understanding data."""
         job_id = create_job()
         job = get_job(job_id)
+        assert job is not None
         job.tdd_workflow.phase = "red"
         job.deep_understanding.readiness_score = 0.75
         save_job_session(job_id)
@@ -243,13 +244,13 @@ class TestSessionPersistence:
         """Test that load_job_session restores a job from disk."""
         job_id = create_job()
         job = get_job(job_id)
+        assert job is not None
         job.status = "running"
         job.tdd_workflow.phase = "green"
         job.user_id = "test-user"
         save_job_session(job_id)
 
         from skill_fleet.api.jobs import JOBS
-
         JOBS.clear()
 
         restored = load_job_session(job_id)
@@ -273,6 +274,7 @@ class TestSessionPersistence:
         """Test that load_job_session properly restores TDD and deep understanding models."""
         job_id = create_job()
         job = get_job(job_id)
+        assert job is not None
         job.tdd_workflow = TDDWorkflowState(phase="refactor", baseline_tests_run=True)
         job.deep_understanding = DeepUnderstandingState(
             understanding_summary="Test summary",
@@ -281,7 +283,6 @@ class TestSessionPersistence:
         save_job_session(job_id)
 
         from skill_fleet.api.jobs import JOBS
-
         JOBS.clear()
 
         restored = load_job_session(job_id)
@@ -326,6 +327,9 @@ class TestSessionPersistence:
 
     def test_cleanup_old_sessions(self):
         """Test that cleanup_old_sessions removes old session files."""
+        import os
+        import time
+
         job_id_1 = create_job()
         save_job_session(job_id_1)
         session_file_1 = SESSION_DIR / f"{job_id_1}.json"

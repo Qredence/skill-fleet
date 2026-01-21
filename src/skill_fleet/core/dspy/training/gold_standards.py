@@ -8,6 +8,12 @@ Gold-standard skills are identified by:
 1. Manual curation (config/training/gold_skills.json)
 2. Quality score threshold (>= 0.8)
 3. External excellent examples (Anthropics, Obra/Superpowers)
+4. Golden examples from .skills/ directory (v2 format)
+
+v2 Golden Standard additions:
+- skill_style: navigation_hub, comprehensive, or minimal
+- subdirectory_files: Dict of subdirectory contents (references/, guides/, etc.)
+- allowed_tools: List of allowed MCP tools
 
 Usage:
     from skill_fleet.core.dspy.training import GoldStandardLoader
@@ -22,15 +28,19 @@ Usage:
 
     # Add new gold-standard skill
     loader.add_gold_skill(skill_path, task_description)
+
+    # Load from .skills golden examples
+    golden = loader.load_from_skills_directory()
 """
 
 from __future__ import annotations
 
 import json
 import logging
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import dspy
 import yaml
@@ -43,15 +53,25 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class GoldSkillEntry:
-    """Entry for a gold-standard skill."""
+    """Entry for a gold-standard skill.
+
+    v2 Golden Standard additions:
+    - skill_style: navigation_hub, comprehensive, or minimal
+    - subdirectory_files: Dict mapping subdir name to list of files
+    - allowed_tools: List of allowed MCP tools from frontmatter
+    """
 
     skill_id: str
     task_description: str
     skill_path: str | None = None
     skill_content: str | None = None
     quality_score: float = 0.0
-    source: str = "local"  # local, anthropics, obra, manual
+    source: str = "local"  # local, anthropics, obra, manual, golden_example
     metadata: dict[str, Any] = field(default_factory=dict)
+    # v2 fields
+    skill_style: Literal["navigation_hub", "comprehensive", "minimal"] | None = None
+    subdirectory_files: dict[str, list[str]] = field(default_factory=dict)
+    allowed_tools: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
@@ -62,6 +82,10 @@ class GoldSkillEntry:
             "quality_score": self.quality_score,
             "source": self.source,
             "metadata": self.metadata,
+            # v2 fields
+            "skill_style": self.skill_style,
+            "subdirectory_files": self.subdirectory_files,
+            "allowed_tools": self.allowed_tools,
         }
 
     def to_dspy_example(self) -> dspy.Example:
@@ -71,6 +95,10 @@ class GoldSkillEntry:
             skill_content=self.skill_content or "",
             quality_score=self.quality_score,
             skill_id=self.skill_id,
+            # v2 fields
+            skill_style=self.skill_style or "",
+            subdirectory_files=json.dumps(self.subdirectory_files),
+            allowed_tools=json.dumps(self.allowed_tools),
         ).with_inputs("task_description")
 
 
@@ -180,7 +208,10 @@ class GoldStandardLoader:
         return entries
 
     def _create_entry_from_data(self, data: dict[str, Any]) -> GoldSkillEntry | None:
-        """Create GoldSkillEntry from JSON data."""
+        """Create GoldSkillEntry from JSON data.
+
+        Supports both v1 and v2 format data.
+        """
         skill_id = data.get("skill_id", "")
         task_description = data.get("task_description", "")
 
@@ -202,6 +233,11 @@ class GoldStandardLoader:
             scores = assess_skill_quality(skill_content)
             quality_score = scores.overall_score
 
+        # Extract v2 fields
+        skill_style = data.get("skill_style")
+        subdirectory_files = data.get("subdirectory_files", {})
+        allowed_tools = data.get("allowed_tools", [])
+
         return GoldSkillEntry(
             skill_id=skill_id,
             task_description=task_description,
@@ -210,6 +246,10 @@ class GoldStandardLoader:
             quality_score=quality_score,
             source=data.get("source", "manual"),
             metadata=data.get("metadata", {}),
+            # v2 fields
+            skill_style=skill_style,
+            subdirectory_files=subdirectory_files,
+            allowed_tools=allowed_tools,
         )
 
     def _discover_high_quality_skills(
@@ -243,6 +283,10 @@ class GoldStandardLoader:
                         f"Create a skill for {skill_name.replace('-', ' ').replace('_', ' ')}"
                     )
 
+                    # Detect v2 fields
+                    skill_style = self._detect_skill_style(content, skill_file.parent)
+                    subdirectory_files = self._collect_subdirectory_files(skill_file.parent)
+
                     entry = GoldSkillEntry(
                         skill_id=str(skill_file.parent.relative_to(skills_dir)),
                         task_description=task_desc,
@@ -253,15 +297,176 @@ class GoldStandardLoader:
                         quality_score=scores.overall_score,
                         source="local",
                         metadata={"auto_discovered": True},
+                        skill_style=skill_style,
+                        subdirectory_files=subdirectory_files,
                     )
                     entries.append(entry)
                     logger.debug(
                         f"Discovered high-quality skill: {skill_name} ({scores.overall_score:.2f})"
                     )
 
-            except Exception as e:
+            except (OSError, UnicodeDecodeError) as e:
                 logger.warning(f"Error processing {skill_file}: {e}")
 
+        return entries
+
+    def _detect_skill_style(
+        self, content: str, skill_dir: Path
+    ) -> Literal["navigation_hub", "comprehensive", "minimal"]:
+        """Detect skill style based on content and structure.
+
+        Args:
+            content: SKILL.md content
+            skill_dir: Path to skill directory
+
+        Returns:
+            Detected skill style
+        """
+        body_length = len(content)
+        has_many_subdirectory_refs = (
+            len(
+                re.findall(
+                    r"(?:references|guides|templates|scripts|examples)/", content, re.IGNORECASE
+                )
+            )
+            >= 3
+        )
+        has_detailed_sections = len(re.findall(r"^##\s+", content, re.MULTILINE)) >= 5
+
+        # Check for actual subdirectories
+        subdirs = self._collect_subdirectory_files(skill_dir)
+        total_subdir_files = sum(len(files) for files in subdirs.values())
+
+        if body_length < 4000 and (has_many_subdirectory_refs or total_subdir_files >= 2):
+            return "navigation_hub"
+        elif body_length > 8000 or has_detailed_sections:
+            return "comprehensive"
+        else:
+            return "minimal"
+
+    def _collect_subdirectory_files(self, skill_dir: Path) -> dict[str, list[str]]:
+        """Collect files from skill subdirectories.
+
+        Args:
+            skill_dir: Path to skill directory
+
+        Returns:
+            Dict mapping subdirectory name to list of file names
+        """
+        subdirs: dict[str, list[str]] = {}
+        for subdir_name in ["references", "guides", "templates", "scripts", "examples"]:
+            subdir_path = skill_dir / subdir_name
+            if subdir_path.exists() and subdir_path.is_dir():
+                files = [f.name for f in subdir_path.glob("*.md")]
+                if files:
+                    subdirs[subdir_name] = sorted(files)
+        return subdirs
+
+    def load_from_skills_directory(
+        self,
+        skills_dir: Path | str | None = None,
+    ) -> list[GoldSkillEntry]:
+        """Load golden examples from .skills/ directory.
+
+        This method specifically loads skills from the .skills/ directory
+        which contains curated golden examples in v2 format.
+
+        Args:
+            skills_dir: Path to .skills directory (default: repo_root/.skills)
+
+        Returns:
+            List of GoldSkillEntry objects from golden examples
+        """
+        if skills_dir is None:
+            if self.repo_root:
+                skills_dir = self.repo_root / ".skills"
+            else:
+                skills_dir = Path(".skills")
+        else:
+            skills_dir = Path(skills_dir)
+
+        if not skills_dir.exists():
+            logger.warning(f".skills directory not found: {skills_dir}")
+            return []
+
+        entries: list[GoldSkillEntry] = []
+
+        def process_skill_dir(skill_path: Path, prefix: str = "") -> GoldSkillEntry | None:
+            """Process a single skill directory."""
+            skill_md = skill_path / "SKILL.md"
+            if not skill_md.exists():
+                return None
+
+            try:
+                content = skill_md.read_text(encoding="utf-8")
+
+                # Extract frontmatter
+                frontmatter = {}
+                if content.startswith("---"):
+                    parts = content.split("---", 2)
+                    if len(parts) >= 3:
+                        try:
+                            frontmatter = yaml.safe_load(parts[1]) or {}
+                        except yaml.YAMLError:
+                            pass
+
+                name = frontmatter.get("name", skill_path.name)
+                description = frontmatter.get("description", "")
+                allowed_tools = frontmatter.get("allowed-tools", [])
+
+                # Generate task description
+                task_desc = f"Create a {name.replace('-', ' ')} skill: {description[:100]}"
+
+                # Detect style and collect subdirectories
+                skill_style = self._detect_skill_style(content, skill_path)
+                subdirectory_files = self._collect_subdirectory_files(skill_path)
+
+                # Calculate quality score
+                scores = assess_skill_quality(content)
+
+                skill_id = (
+                    f".skills/{prefix}{skill_path.name}" if prefix else f".skills/{skill_path.name}"
+                )
+
+                return GoldSkillEntry(
+                    skill_id=skill_id,
+                    task_description=task_desc,
+                    skill_path=str(skill_md.relative_to(self.repo_root))
+                    if self.repo_root
+                    else str(skill_md),
+                    skill_content=content,
+                    quality_score=scores.overall_score,
+                    source="golden_example",
+                    metadata={"from_skills_dir": True, "description": description},
+                    skill_style=skill_style,
+                    subdirectory_files=subdirectory_files,
+                    allowed_tools=allowed_tools,
+                )
+            except (OSError, UnicodeDecodeError, yaml.YAMLError) as e:
+                logger.warning(f"Error processing {skill_path}: {e}")
+                return None
+
+        # Process top-level and nested skills
+        for item in sorted(skills_dir.iterdir()):
+            if not item.is_dir():
+                continue
+
+            # Check for nested skills (like neon-db/)
+            nested_skills = [d for d in item.iterdir() if d.is_dir() and (d / "SKILL.md").exists()]
+
+            if nested_skills:
+                # Process nested skills
+                for nested in nested_skills:
+                    entry = process_skill_dir(nested, prefix=f"{item.name}/")
+                    if entry:
+                        entries.append(entry)
+            elif (item / "SKILL.md").exists():
+                # Process top-level skill
+                entry = process_skill_dir(item)
+                if entry:
+                    entries.append(entry)
+
+        logger.info(f"Loaded {len(entries)} golden examples from {skills_dir}")
         return entries
 
     def load_trainset(
@@ -369,7 +574,7 @@ class GoldStandardLoader:
             logger.info(f"Added gold skill: {skill_id} (score: {scores.overall_score:.2f})")
             return entry
 
-        except Exception as e:
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError, yaml.YAMLError) as e:
             logger.error(f"Error adding gold skill {skill_path}: {e}")
             return None
 

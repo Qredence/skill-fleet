@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 
-class SkillCreationProgram(dspy.Module):
+class LegacySkillCreationProgram(dspy.Module):
     """Complete skill creation program (Steps 1-5).
 
     This program executes the core creation workflow without
@@ -264,7 +264,7 @@ class SkillCreationProgram(dspy.Module):
 # =============================================================================
 
 
-class SkillCreationProgramQA(SkillCreationProgram):
+class LegacySkillCreationProgramQA(LegacySkillCreationProgram):
     """Quality-assured skill creation program.
 
     Convenience class that initializes SkillCreationProgram
@@ -429,7 +429,15 @@ class QuickSkillProgram(dspy.Module):
             "skill_skeleton": {
                 "root_path": f"skills/{understanding['taxonomy_path']}/",
                 "files": [],
-                "directories": ["capabilities/", "examples/", "tests/", "resources/"],
+                "directories": [
+                    "references/",  # v2 standard
+                    "guides/",  # v2 standard
+                    "templates/",  # v2 standard
+                    "scripts/",
+                    "examples/",
+                    "tests/",
+                    "assets/",
+                ],
             }
         }
 
@@ -482,7 +490,15 @@ class QuickSkillProgram(dspy.Module):
             "skill_skeleton": {
                 "root_path": f"skills/{understanding['taxonomy_path']}/",
                 "files": [],
-                "directories": ["capabilities/", "examples/", "tests/", "resources/"],
+                "directories": [
+                    "references/",  # v2 standard
+                    "guides/",  # v2 standard
+                    "templates/",  # v2 standard
+                    "scripts/",
+                    "examples/",
+                    "tests/",
+                    "assets/",
+                ],
             }
         }
 
@@ -521,4 +537,4 @@ def create_skill_creation_program(
     """
     if quick:
         return QuickSkillProgram(quality_assured=quality_assured)
-    return SkillCreationProgram(quality_assured=quality_assured)
+    return LegacySkillCreationProgram(quality_assured=quality_assured)

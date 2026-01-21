@@ -14,6 +14,15 @@ from .base import (
     UnderstandModule,
     UnderstandModuleQA,
 )
+from .ensemble import (
+    BestOfN,
+    EnsembleModule,
+    MajorityVote,
+)
+from .error_handling import (
+    RobustModule,
+    ValidatedModule,
+)
 from .hitl import (
     ClarifyingQuestionsModule,
     ConfirmUnderstandingModule,
@@ -24,6 +33,7 @@ from .hitl import (
     RefinementPlannerModule,
     ValidationFormatterModule,
 )
+from .phase0_research import GatherExamplesModule as GatherExamplesModuleReAct
 from .phase1_understanding import (
     DependencyAnalyzerModule,
     IntentAnalyzerModule,
@@ -58,6 +68,13 @@ __all__ = [
     "EditModuleQA",
     "PackageModuleQA",
     "DynamicQuestionGeneratorModule",
+    # Ensemble methods
+    "EnsembleModule",
+    "BestOfN",
+    "MajorityVote",
+    # Error handling & robustness
+    "RobustModule",
+    "ValidatedModule",
     # HITL modules
     "ClarifyingQuestionsModule",
     "ConfirmUnderstandingModule",
@@ -67,6 +84,8 @@ __all__ = [
     "RefinementPlannerModule",
     "ReadinessAssessorModule",
     "HITLStrategyModule",
+    # Phase 0 (Research)
+    "GatherExamplesModuleReAct",
     # Phase 1 modules
     "RequirementsGathererModule",
     "IntentAnalyzerModule",

@@ -16,10 +16,13 @@ import asyncio
 import logging
 import os
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import Any, Protocol, TypeVar
 
 from rich.prompt import Prompt as RichPrompt
+
+_T = TypeVar("_T")
 
 logger = logging.getLogger(__name__)
 
@@ -61,13 +64,23 @@ class PromptToolkitUI:
             from prompt_toolkit.shortcuts import prompt
         except ImportError:
             logger.debug("prompt_toolkit not available, using Rich fallback")
-            return await asyncio.to_thread(RichPrompt.ask, prompt, default=default)  # type: ignore[arg-type, return-value]
+            # RichPrompt.ask accepts keyword arguments
+            def _rich_ask_wrapper(p: str, d: str) -> Any:
+                return RichPrompt.ask(p, default=d)
+            result = await asyncio.to_thread(_rich_ask_wrapper, str(prompt), default)
+            return str(result) if result is not None else default
         except Exception as e:
             logger.warning(f"prompt_toolkit import failed unexpectedly: {e}")
-            return await asyncio.to_thread(RichPrompt.ask, prompt, default=default)  # type: ignore[arg-type, return-value]
+            def _rich_ask_wrapper(p: str, d: str) -> Any:
+                return RichPrompt.ask(p, default=d)
+            result = await asyncio.to_thread(_rich_ask_wrapper, str(prompt), default)
+            return str(result) if result is not None else default
 
         # prompt_toolkit's prompt function is not async, so we run it in a thread
-        return await asyncio.to_thread(prompt, f"{prompt}: ", default=default)  # type: ignore[arg-type]
+        def _prompt_wrapper(p: str, d: str) -> Any:
+            return prompt(p, default=d)
+        result = await asyncio.to_thread(_prompt_wrapper, f"{prompt}: ", default)
+        return str(result) if result is not None else default
 
     async def choose_one(
         self,
@@ -93,9 +106,10 @@ class PromptToolkitUI:
         # single-choice UX. Any import/runtime error falls back to Rich.
         default = default_id or (choices[0][0] if choices else "")
 
-        pt_choice: Any = None
+        pt_choice: Callable[..., _T] | None = None
         try:
-            from prompt_toolkit.shortcuts import choice as pt_choice
+            from prompt_toolkit.shortcuts import choice as _pt_choice_impl
+            pt_choice = _pt_choice_impl
         except ImportError:
             logger.debug("choice() helper not available, trying radiolist_dialog")
             pt_choice = None
@@ -105,11 +119,15 @@ class PromptToolkitUI:
 
         if pt_choice is not None:
             try:
+                # Create a wrapper function that matches asyncio.to_thread's signature
+                def _choice_wrapper(msg: str, opts: list[tuple[str, str]], def_val: str) -> Any:
+                    return pt_choice(message=msg, options=opts, default=def_val)
+
                 selected = await asyncio.to_thread(
-                    pt_choice,
-                    message=prompt,
-                    options=choices,
-                    default=default,
+                    _choice_wrapper,
+                    prompt,
+                    choices,
+                    default,
                 )
             except (ImportError, AttributeError, RuntimeError) as e:
                 logger.debug(f"choice() failed ({type(e).__name__}), using Rich fallback: {e}")
@@ -195,7 +213,10 @@ class RichFallbackUI:
 
     async def ask_text(self, prompt: str, *, default: str = "") -> str:
         """Ask for free-form text using Rich prompt."""
-        return await asyncio.to_thread(RichPrompt.ask, prompt, default=default)
+        def _rich_ask_wrapper(p: str, d: str) -> Any:
+            return RichPrompt.ask(p, default=d)
+        result = await asyncio.to_thread(_rich_ask_wrapper, prompt, default)
+        return str(result) if result is not None else default
 
     async def choose_one(
         self,
@@ -209,13 +230,17 @@ class RichFallbackUI:
             return ""
         ids = [c[0] for c in choices]
         default = default_id or ids[0]
-        return await asyncio.to_thread(
-            RichPrompt.ask,
+        # RichPrompt.ask accepts keyword arguments
+        def _rich_choose_wrapper(p: str, c: list[str], d: str, sc: bool) -> Any:
+            return RichPrompt.ask(p, choices=c, default=d, show_choices=sc)
+        result = await asyncio.to_thread(
+            _rich_choose_wrapper,
             prompt,
-            choices=ids,
-            default=default,
-            show_choices=True,
+            ids,
+            default,
+            True,
         )
+        return str(result) if result is not None else default
 
     async def choose_many(
         self,
@@ -230,10 +255,13 @@ class RichFallbackUI:
 
         ids = [c[0] for c in choices]
         default_str = ",".join(default_ids) if default_ids else ""
+        # RichPrompt.ask accepts keyword arguments
+        def _rich_ask_wrapper(p: str, d: str) -> Any:
+            return RichPrompt.ask(p, default=d)
         raw = await asyncio.to_thread(
-            RichPrompt.ask,
+            _rich_ask_wrapper,
             f"{prompt} (comma-separated, options: {', '.join(ids)})",
-            default=default_str,
+            default_str,
         )
         selected = [part.strip() for part in raw.split(",") if part.strip()]
         # Keep only known ids to avoid surprising downstream behavior.

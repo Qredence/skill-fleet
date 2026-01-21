@@ -49,7 +49,10 @@ def safe_json_loads(
         # Handle list of Pydantic models
         return [item.model_dump() if hasattr(item, "model_dump") else item for item in value]
     if hasattr(value, "model_dump"):  # Pydantic model
-        return value.model_dump()
+        method = getattr(value, "model_dump", None)
+        if callable(method):
+            return method()
+        return value.model_dump()  # type: ignore[call-non-callable]
 
     # Empty or None
     if not value:

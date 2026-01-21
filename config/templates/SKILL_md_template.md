@@ -9,32 +9,35 @@ TOKEN BUDGET (Critical for agent context efficiency)
 ═══════════════════════════════════════════════════════════════════
 
 Frontmatter: ~100 tokens (name + description injected into XML prompt)
-Body by skill type: - Getting-started/frequent: <150 words - Standard skills: <500 words  
- - Complex technical: <5000 tokens (~500 lines max)
+Body by skill type: - Getting-started/frequent: <150 words - Standard skills: <500 words
 
-Use capabilities/ for deep dives that load on demand.
+- Complex technical: <5000 tokens (~500 lines max)
+
+Use subdirectories for deep dives that load on demand.
 
 ═══════════════════════════════════════════════════════════════════
-DIRECTORY STRUCTURE (skill-fleet convention)
+DIRECTORY STRUCTURE (v2 convention)
 ═══════════════════════════════════════════════════════════════════
 
+MINIMAL (most common - start here):
+skill-name/
+└── SKILL.md # Required - main skill document
+
+WITH SUBDIRECTORIES (add only when needed):
 skill-name/
 ├── SKILL.md # Required - main skill document
-├── metadata.json # Optional - tooling metadata (see metadata*template.json)
-├── best_practices.md # Optional - supporting guidelines
-├── integration.md # Optional - integration patterns
-├── capabilities/ # Optional - deep-dive pattern docs (progressive disclosure)
-│ ├── pattern-one.md
-│ └── pattern-two.md
-├── examples/ # Optional - runnable demos
-│ └── example-name/
-│ ├── README.md
-│ └── implementation files
-├── resources/ # Optional - reference materials
-│ ├── quick-reference.md
-│ └── troubleshooting.md
-└── tests/ # Optional - test scenarios for skill validation
-└── test*\*.json
+├── references/ # Optional - deep-dive documentation, API refs
+│ └── advanced.md
+├── guides/ # Optional - step-by-step procedures, tutorials
+│ └── setup.md
+├── templates/ # Optional - reusable code templates, boilerplate
+│ └── starter.py
+├── scripts/ # Optional - automation scripts, tooling
+│ └── setup.sh
+└── examples/ # Optional - runnable demos, sample code
+└── basic.py
+
+Note: metadata.json is optional (for backward compatibility with v1 skills).
 
 ═══════════════════════════════════════════════════════════════════
 FRONTMATTER (agentskills.io compliant)
@@ -44,11 +47,13 @@ REQUIRED:
 name: Max 64 chars. Lowercase + hyphens only. Must match directory.
 description: Max 1024 chars. See CSO section below.
 
-OPTIONAL (use sparingly):
-license: License name or LICENSE file reference
-compatibility: Max 500 chars. Environment requirements
-metadata: Key-value pairs for frontmatter-level tooling data - skill_id, version, type, weight, load_priority - Note: prefer metadata.json for complex tooling data
-allowed-tools: Space-delimited tool list (experimental)
+OPTIONAL (moved to metadata.json):
+license: LICENSE file reference (use metadata.json instead)
+compatibility: Max 500 chars. Environment requirements (use metadata.json instead)
+allowed-tools: Space-delimited tool list (use metadata.json instead)
+
+NOTE: Complex tooling data (skill_id, version, type, weight, load_priority) belongs in metadata.json ONLY.
+This keeps frontmatter minimal and separates concerns: discovery (SKILL.md) vs. taxonomy (metadata.json)
 
 ═══════════════════════════════════════════════════════════════════
 CLAUDE SEARCH OPTIMIZATION (CSO) - Critical for Discovery
@@ -95,20 +100,9 @@ ANTI-PATTERNS (from writing-skills)
 ## --}}
 
 ---
+
 name: {{skill_name_kebab}}
 description: Use when {{triggering_conditions}}
-{{#if license}}
-license: {{license}}
-{{/if}}
-{{#if compatibility}}
-compatibility: {{compatibility}}
-{{/if}}
-{{#if metadata}}
-metadata:
-{{#each metadata}}
-{{@key}}: {{this}}
-{{/each}}
-{{/if}}
 
 ---
 
@@ -195,13 +189,13 @@ digraph when_to_use {
 
 **Key insight:** {{key_insight}}
 
-{{!-- For complex skills with multiple patterns, link to capabilities/ --}}
-{{#if capabilities}}
+{{!-- For complex skills with multiple reference documents, link to references/ --}}
+{{#if references}}
 
-> **Deep dives:** See `capabilities/` for detailed pattern documentation:
-> {{#each capabilities}}
+> **Deep dives:** See `references/` for detailed documentation:
+> {{#each references}}
 >
-> - [{{this}}](capabilities/{{this}}.md)
+> - [{{this}}](references/{{this}}.md)
 >   {{/each}}
 >   {{/if}}
 
@@ -242,13 +236,14 @@ digraph when_to_use {
 
 {{#if strong_guidance}}
 {{#each strong_guidance}}
+
 - **{{this}}**
-{{/each}}
-{{else}}
+  {{/each}}
+  {{else}}
 - **NO [action] WITHOUT [prerequisite]** — [explanation]
 - **ALWAYS [action]** — [explanation]
 - **NEVER [action]** — [explanation]
-{{/if}}
+  {{/if}}
 
 ## Red Flags
 
@@ -261,14 +256,38 @@ digraph when_to_use {
 
 ---
 
+## Real-World Impact
+
+{{#if real_world_impact}}
+{{#each real_world_impact}}
+
+- {{this}}
+{{/each}}
+{{else}}
+- Describe measurable impact: What improves when agents use this skill?
+{{/if}}
+
+---
+
 ## Validation
 
 ```bash
 # Validate the skill directory
-uv run skill-fleet validate path/to/{{skill_name_kebab}}
+uv run skill-fleet validate skills/{{category}}/{{skill_name_kebab}}
 
-# Ensure skills are discoverable (optional)
+# Ensure metadata.json is valid
+uv run python -c "import json; json.load(open('skills/{{category}}/{{skill_name_kebab}}/metadata.json'))"
+
+# Generate skills XML (discover all skills)
 uv run skill-fleet generate-xml
+
+# Promote draft to taxonomy (when ready)
+uv run skill-fleet promote {{job_id}}
 ```
 
 **Authoring process:** See `writing-skills` for TDD-based skill creation checklist.
+
+**v0.2 Changes** (Jan 2026):
+- Frontmatter: `name` and `description` ONLY (minimal, CSO-optimized)
+- Tooling metadata: Moved to `metadata.json` (separate concerns)
+- New section: Real-World Impact (measurable outcomes)

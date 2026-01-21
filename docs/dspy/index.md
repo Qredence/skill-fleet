@@ -4,7 +4,7 @@
 
 ## Overview
 
-Skills Fleet uses [DSPy](https://github.com/stanfordnlp/dspy) as its core framework for declarative self-improving language model programs. DSPy provides the foundation for the 3-phase skill creation workflow, enabling structured, testable, and optimized AI interactions.
+Skills Fleet uses [DSPy](https://github.com/stanfordnlp/dspy) as its core framework for declarative self-improving language model programs. DSPy provides the foundation for the 4-phase skill creation workflow, enabling structured, testable, and optimized AI interactions.
 
 `★ Insight ─────────────────────────────────────`
 DSPy separates the **what** (signatures defining input/output contracts) from the **how** (modules implementing the logic). This decoupling allows skills-fleet to swap implementations, optimize prompts, and maintain type safety throughout the workflow.
@@ -20,12 +20,19 @@ DSPy separates the **what** (signatures defining input/output contracts) from th
 | **Testing** | Ad-hoc | Predictable outputs |
 | **Maintainability** | Prompt spaghetti | Modular, composable |
 
-## 3-Phase Architecture
+## 4-Phase Architecture
 
-Skills Fleet implements a 3-phase workflow orchestrated by DSPy:
+Skills Fleet implements a 4-phase workflow orchestrated by DSPy:
 
 ```mermaid
 flowchart LR
+    subgraph Phase0["Phase 0: Example Gathering"]
+        P0A[Ask Clarifying Questions]
+        P0B[Collect User Examples]
+        P0C[Build Domain Terminology]
+        P0D[Score Readiness]
+    end
+
     subgraph Phase1["Phase 1: Understanding & Planning"]
         P1A[Gather Requirements]
         P1B[Parallel Analysis]
@@ -46,15 +53,30 @@ flowchart LR
 
     HITL[Human-in-the-Loop]
 
-    Phase1 --> Phase2 --> Phase3
+    Phase0 --> Phase1 --> Phase2 --> Phase3
+    HITL -.->|Checkpoints| Phase0
     HITL -.->|Checkpoints| Phase1
     HITL -.->|Checkpoints| Phase2
     HITL -.->|Checkpoints| Phase3
 ```
 
+### Phase 0: Example Gathering
+
+**Location**: `src/skill_fleet/core/dspy/modules/phase0_research.py`
+
+Collects concrete usage examples and domain knowledge before skill creation:
+- **Clarifying Questions**: Focused questions about use cases, triggering conditions, and edge cases
+- **User Examples**: Extracts structured examples (`{input_description, expected_output, context}`)
+- **Domain Terminology**: Builds vocabulary dictionary for consistent language
+- **Readiness Scoring**: Evaluates completeness (0.0-1.0) based on diversity, clarity, coverage
+
+**Output**: `ExampleGatheringResult` with session state, refined task, and terminology
+
+**Process**: Uses ReAct pattern (Reason → Act → Observe) in iterative rounds until readiness threshold (default 0.8) is met or max questions (default 10) reached.
+
 ### Phase 1: Understanding & Planning
 
-**Location**: `src/skill_fleet/core/signatures/phase1_understanding.py`
+**Location**: `src/skill_fleet/core/dspy/signatures/base.py`
 
 Parallel analysis of:
 - **Intent**: Why is this skill needed? Who is it for?
@@ -65,7 +87,7 @@ Parallel analysis of:
 
 ### Phase 2: Content Generation
 
-**Location**: `src/skill_fleet/core/signatures/phase2_generation.py`
+**Location**: `src/skill_fleet/core/dspy/signatures/phase2_generation.py`
 
 Generates the actual skill content:
 - **SKILL.md**: Full markdown with YAML frontmatter
@@ -75,7 +97,7 @@ Generates the actual skill content:
 
 ### Phase 3: Validation & Refinement
 
-**Location**: `src/skill_fleet/core/signatures/phase3_validation.py`
+**Location**: `src/skill_fleet/core/dspy/signatures/base.py`
 
 Validates and iteratively refines:
 - **agentskills.io Compliance**: YAML frontmatter, naming
@@ -87,26 +109,24 @@ Validates and iteratively refines:
 ```
 src/skill_fleet/core/dspy/
 ├── signatures/           # DSPy signatures (input/output contracts)
-│   ├── phase1_understanding.py
-│   ├── phase2_generation.py
-│   ├── phase3_validation.py
+│   ├── base.py           # Core workflow signatures (Steps 0-6)
+│   ├── phase2_generation.py  # Content generation signatures
 │   ├── chat.py           # Chat mode signatures
 │   └── hitl.py           # Human-in-the-loop signatures
 ├── modules/              # DSPy modules (implementations)
-│   ├── phase1_understanding.py
-│   ├── phase2_generation.py
-│   ├── phase3_validation.py
-│   └── hitl.py
+│   ├── phase0_research.py    # Example gathering (Step 0)
+│   ├── phase1_planning.py    # Understanding & planning (Steps 1-2)
+│   ├── phase2_generation.py  # Content generation (Step 4)
+│   ├── phase3_validation.py  # Validation & packaging (Step 5)
+│   └── hitl.py           # Human-in-the-loop (Step 6)
 ├── metrics/              # Quality metrics for evaluation
 │   ├── __init__.py
 │   └── skill_quality.py  # Multi-dimensional skill quality assessment
 ├── training/             # Training data management
 │   ├── __init__.py
 │   └── gold_standards.py # Gold-standard skill loader
-├── evaluation.py         # DSPy Evaluate integration
-├── optimization.py       # MIPROv2/BootstrapFewShot optimizers
-├── skill_creator.py      # Main skill creation program
-└── conversational.py     # Conversational agent program
+├── programs.py           # Orchestrator programs
+└── evaluation.py         # DSPy Evaluate integration
 
 config/
 ├── config.yaml           # Main LLM configuration
@@ -180,10 +200,11 @@ Programs **orchestrate** multiple modules:
 
 ```python
 class SkillCreationProgram(dspy.Module):
-    """Complete 3-phase skill creation orchestrator with integrated HITL."""
+    """Complete 4-phase skill creation orchestrator with integrated HITL."""
 
     def __init__(self, quality_assured: bool = True, hitl_enabled: bool = True):
         super().__init__()
+        self.phase0 = GatherExamplesModule()  # Example gathering
         self.phase1 = Phase1UnderstandingModule()
         self.phase2 = Phase2GenerationModule(quality_assured=quality_assured)
         self.phase3 = Phase3ValidationModule()

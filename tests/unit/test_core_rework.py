@@ -64,6 +64,7 @@ class TestCoreLayer(unittest.TestCase):
             status="completed", skill_content="# Test Content", metadata=metadata
         )
         self.assertEqual(result.status, "completed")
+        assert result.metadata is not None
         self.assertEqual(result.metadata.name, "test-skill")
 
 

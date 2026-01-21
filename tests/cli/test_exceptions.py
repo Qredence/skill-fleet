@@ -39,7 +39,7 @@ def test_api_error_with_status_code():
 def test_validation_error_with_suggestion():
     """Test ValidationError includes suggestion."""
     error = ValidationError("Invalid input", suggestion="Use a valid email")
-    assert "Use a valid email" in error.suggestion
+    assert "Use a valid email" in (error.suggestion or "")
 
 
 def test_cli_exit_sets_exit_code():
@@ -91,19 +91,19 @@ def test_api_error_without_status_code():
 def test_config_error_default_suggestion():
     """Test ConfigError has default suggestion."""
     error = ConfigError("Bad config")
-    assert "Check your configuration file" in error.suggestion
+    assert "Check your configuration file" in (error.suggestion or "")
 
 
 def test_api_error_default_suggestion():
     """Test APIError has default suggestion."""
     error = APIError("Failed")
-    assert "Check your network connection and API URL" in error.suggestion
+    assert "Check your network connection and API URL" in (error.suggestion or "")
 
 
 def test_validation_error_default_suggestion():
     """Test ValidationError has default suggestion."""
     error = ValidationError("Invalid")
-    assert "Run with --help for usage information" in error.suggestion
+    assert "Run with --help for usage information" in (error.suggestion or "")
 
 
 # CLIExit tests

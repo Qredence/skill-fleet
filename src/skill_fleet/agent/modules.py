@@ -12,6 +12,7 @@ import logging
 import dspy
 
 from ..common.utils import safe_float, safe_json_loads
+from ..core.dspy.utils.question_options import generate_smart_options
 from ..core.models import ClarifyingQuestion
 from .signatures import (
     AssessReadiness,
@@ -258,6 +259,11 @@ class GenerateQuestionModule(dspy.Module):
         if not isinstance(options, list):
             options = [str(options)] if options else []
 
+        # If LLM didn't return options, generate smart fallback
+        if not options:
+            question_text = getattr(result, "question", "").strip()
+            options, _ = generate_smart_options(question_text, task_description)
+
         return {
             "question": getattr(result, "question", "").strip(),
             "question_options": options,
@@ -290,6 +296,11 @@ class GenerateQuestionModule(dspy.Module):
             options = []
         if not isinstance(options, list):
             options = [str(options)] if options else []
+
+        # If LLM didn't return options, generate smart fallback
+        if not options:
+            question_text = getattr(result, "question", "").strip()
+            options, _ = generate_smart_options(question_text, task_description)
 
         return {
             "question": getattr(result, "question", "").strip(),
@@ -423,6 +434,19 @@ class DeepUnderstandingModule(dspy.Module):
             # Already a Pydantic model
             next_question = question_data
 
+        # If question parsed but has no options, generate smart options
+        if next_question and not next_question.options:
+            smart_options, refined_q = generate_smart_options(
+                next_question.question,
+                initial_task
+            )
+            if smart_options:
+                from ..core.models import QuestionOption
+                next_question.options = [
+                    QuestionOption(id=str(i), label=opt, description="")
+                    for i, opt in enumerate(smart_options)
+                ]
+
         # Parse research_needed (dict or None)
         research_needed = None
         research_data = getattr(result, "research_needed", None)
@@ -505,6 +529,19 @@ class DeepUnderstandingModule(dspy.Module):
                 logger.warning(f"Failed to parse next_question dict: {e}")
         elif isinstance(question_data, ClarifyingQuestion):
             next_question = question_data
+
+        # If question parsed but has no options, generate smart options
+        if next_question and not next_question.options:
+            smart_options, refined_q = generate_smart_options(
+                next_question.question,
+                initial_task
+            )
+            if smart_options:
+                from ..core.models import QuestionOption
+                next_question.options = [
+                    QuestionOption(id=str(i), label=opt, description="")
+                    for i, opt in enumerate(smart_options)
+                ]
 
         research_needed = None
         research_data = getattr(result, "research_needed", None)

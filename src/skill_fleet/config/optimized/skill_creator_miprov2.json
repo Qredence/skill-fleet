@@ -471,7 +471,7 @@
               "description": "Main entry point for the GitHub Actions skill, outlining scope and core concepts."
             },
             {
-              "path": "capabilities/README.md",
+              "path": "references/README.md",
               "content_type": "markdown",
               "description": "Overview of technical capabilities: orchestration, matrices, secrets, and artifacts."
             },
@@ -507,13 +507,15 @@
             }
           ],
           "directories": [
-            "capabilities",
+            "references",  # v2 standard (replaces capabilities/)
+            "guides",  # v2 standard (replaces resources/)
+            "templates",  # v2 standard
+            "scripts",
             "examples",
             "tests",
-            "resources",
-            "references",
-            "scripts",
-            "assets"
+            "assets",
+            "capabilities",  # legacy
+            "resources"  # legacy
           ]
         },
         "validation_checklist": [
@@ -600,22 +602,22 @@
               "description": "Main documentation for AWS Lambda development skill."
             },
             {
-              "path": "capabilities/event_trigger_integration.py",
+              "path": "references/event_trigger_integration.py",
               "content_type": "python",
               "description": "Implementation for configuring S3, SQS, and DynamoDB triggers."
             },
             {
-              "path": "capabilities/lambda_layer_composition.py",
+              "path": "references/lambda_layer_composition.py",
               "content_type": "python",
               "description": "Logic for creating and managing Lambda Layers."
             },
             {
-              "path": "capabilities/cold_start_optimization.py",
+              "path": "references/cold_start_optimization.py",
               "content_type": "python",
               "description": "Strategies for Provisioned Concurrency and init code optimization."
             },
             {
-              "path": "capabilities/environment_variable_management.py",
+              "path": "references/environment_variable_management.py",
               "content_type": "python",
               "description": "Handling environment variables and Secrets Manager integration."
             },
@@ -646,13 +648,15 @@
             }
           ],
           "directories": [
-            "capabilities",
+            "references",  # v2 standard (replaces capabilities/)
+            "guides",  # v2 standard (replaces resources/)
+            "templates",  # v2 standard
+            "scripts",
             "examples",
             "tests",
-            "resources",
-            "references",
-            "scripts",
-            "assets"
+            "assets",
+            "capabilities",  # legacy
+            "resources"  # legacy
           ]
         },
         "validation_checklist": [
@@ -668,7 +672,7 @@
             "id": "cap-001",
             "check": "Ensure all capabilities from metadata are represented in files",
             "passed": true,
-            "message": "Each of the 4 defined capabilities has a corresponding Python file in the capabilities/ directory.",
+            "message": "Each of the 4 defined capabilities has a corresponding Python file in the references/ directory.",
             "severity": "critical",
             "required": true
           },
@@ -736,27 +740,27 @@
               "description": "Main skill documentation and overview."
             },
             {
-              "path": "capabilities/apply_manifests.py",
+              "path": "references/apply_manifests.py",
               "content_type": "python",
               "description": "Logic for applying and deleting declarative YAML manifests."
             },
             {
-              "path": "capabilities/manage_workloads.py",
+              "path": "references/manage_workloads.py",
               "content_type": "python",
               "description": "Logic for scaling, updating, and monitoring Pods/Deployments."
             },
             {
-              "path": "capabilities/configure_networking.py",
+              "path": "references/configure_networking.py",
               "content_type": "python",
               "description": "Logic for Service and Ingress configuration."
             },
             {
-              "path": "capabilities/secret_management.py",
+              "path": "references/secret_management.py",
               "content_type": "python",
               "description": "Logic for ConfigMap and Secret injection."
             },
             {
-              "path": "capabilities/cluster_observability.py",
+              "path": "references/cluster_observability.py",
               "content_type": "python",
               "description": "Logic for logs, describes, and event inspection."
             },
@@ -786,19 +790,21 @@
               "description": "Integration tests for scaling and rollouts."
             },
             {
-              "path": "resources/standard-labels.json",
+              "path": "guides/standard-labels.json",
               "content_type": "json",
               "description": "Recommended labeling schema for Kubernetes resources."
             }
           ],
           "directories": [
-            "capabilities",
+            "references",  # v2 standard (replaces capabilities/)
+            "guides",  # v2 standard (replaces resources/)
+            "templates",  # v2 standard
+            "scripts",
             "examples",
             "tests",
-            "resources",
-            "references",
-            "scripts",
-            "assets"
+            "assets",
+            "capabilities",  # legacy
+            "resources"  # legacy
           ]
         },
         "validation_checklist": [
@@ -814,7 +820,7 @@
             "id": "val_002",
             "check": "Verify all capabilities are represented",
             "passed": true,
-            "message": "All 5 capabilities from metadata have corresponding files in the capabilities/ directory.",
+            "message": "All 5 capabilities from metadata have corresponding files in the references/ directory.",
             "severity": "critical",
             "required": true
           },

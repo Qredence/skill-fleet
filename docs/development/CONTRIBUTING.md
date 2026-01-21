@@ -65,24 +65,7 @@ uv run ty check src/skill_fleet/llm/fleet_config.py
 
 ### Type Suppression
 
-When needed, use ty-specific suppression comments to suppress specific type errors. Use suppression sparingly and only when necessary:
-
-```python
-# Suppress a specific error on one line
-result = some_function()  # type: ignore[return-value]
-
-# Suppress multiple specific errors
-value = complex_operation()  # type: ignore[arg-type,return-value]
-
-# Suppress all errors on a line (avoid when possible)
-legacy_code()  # type: ignore
-```
-
-**Best practices:**
-- Always specify the error code (e.g., `[arg-type]`) rather than using bare `# type: ignore`
-- Add a comment explaining why suppression is necessary
-- Minimize suppression usage by fixing the underlying type issue when possible
-- Common error codes: `arg-type`, `return-value`, `assignment`, `attr-defined`, `no-untyped-def`
+When needed, use ty-specific suppression comments:
 
 ### Type Hints
 

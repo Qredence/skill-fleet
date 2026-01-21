@@ -1,0 +1,190 @@
+"""CLI command for starting the API server and TUI together."""
+
+from __future__ import annotations
+
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+import httpx
+import typer
+from rich.console import Console
+
+console = Console()
+
+
+def _wait_for_api_ready(url: str, timeout: float = 30.0) -> bool:
+    """Wait for the API server to be ready (accepting requests).
+
+    Args:
+        url: The base API URL (e.g., http://127.0.0.1:8000)
+        timeout: Maximum time to wait in seconds
+
+    Returns:
+        True if API is ready, False if timeout reached
+    """
+    start = time.time()
+    health_url = f"{url}/docs"  # FastAPI docs endpoint (lightweight check)
+
+    while time.time() - start < timeout:
+        try:
+            with httpx.Client(timeout=2.0) as client:
+                response = client.get(health_url)
+                if response.status_code == 200:
+                    return True
+        except (httpx.ConnectError, httpx.TimeoutException, OSError):
+            time.sleep(0.5)
+
+    return False
+
+
+def _resolve_repo_root() -> Path:
+    """Resolve the repository root directory."""
+    return Path(__file__).resolve().parents[4]
+
+
+def _derive_api_url(host: str, port: int, configured_api_url: str | None) -> str:
+    """Derive the API URL, honoring configured value when provided."""
+    if configured_api_url and configured_api_url != "http://localhost:8000":
+        return configured_api_url
+
+    resolved_host = host
+    if host in {"0.0.0.0", "::"}:
+        resolved_host = "127.0.0.1"
+    return f"http://{resolved_host}:{port}"
+
+
+def dev_command(
+    ctx: typer.Context,
+    port: int = typer.Option(8000, "--port", "-p", help="Port to run the API server on"),
+    host: str = typer.Option("127.0.0.1", "--host", help="Host to bind the API server to"),
+    reload: bool = typer.Option(
+        False,
+        "--reload/--no-reload",
+        help="Enable auto-reload on file changes (default: disabled to prevent port conflicts)",
+    ),
+    tui: bool = typer.Option(
+        True,
+        "--tui/--no-tui",
+        help="Start the TUI alongside the API server",
+    ),
+    tui_script: str = typer.Option("dev", "--tui-script", help="npm script to run for the TUI"),
+):
+    """Start the Skill Fleet API server and TUI together (best for development).
+    
+    By default, auto-reload is disabled to prevent port binding issues when files change.
+    Use --reload to enable auto-reload (requires uvicorn to cleanly rebind ports).
+    """
+    config = ctx.obj if ctx is not None else None
+    configured_api_url = getattr(config, "api_url", None)
+    user_id = getattr(config, "user_id", os.getenv("SKILL_FLEET_USER_ID", "default"))
+
+    api_url = _derive_api_url(host, port, configured_api_url)
+
+    repo_root = _resolve_repo_root()
+    tui_dir = repo_root / "cli" / "tui"
+
+    console.print("[bold green]🚀 Starting Skill Fleet (API + TUI)...[/bold green]")
+    console.print(f"[dim]API URL: {api_url}[/dim]")
+    console.print(f"[dim]User ID: {user_id}[/dim]")
+    console.print(f"[dim]Reload: {'enabled' if reload else 'disabled'}[/dim]")
+
+    api_env = os.environ.copy()
+
+    api_cmd = [
+        sys.executable,
+        "-m",
+        "uvicorn",
+        "skill_fleet.api.app:app",
+        "--host",
+        host,
+        "--port",
+        str(port),
+    ]
+    if reload:
+        api_cmd.append("--reload")
+        console.print(
+            "[bold yellow]⚠️  Auto-reload enabled (in-memory jobs reset on reload)[/bold yellow]"
+        )
+    else:
+        console.print(
+            "[dim]💡 Tip: To enable auto-reload, use: skill-fleet dev --reload[/dim]"
+        )
+
+    log_dir = repo_root / ".skill_fleet_logs"
+    log_dir.mkdir(exist_ok=True)
+    api_log_path = log_dir / "api-dev.log"
+    api_log_handle = api_log_path.open("a", encoding="utf-8")
+    console.print(f"[dim]API logs → {api_log_path}[/dim]")
+
+    try:
+        api_proc = subprocess.Popen(
+            api_cmd,
+            cwd=repo_root,
+            env=api_env,
+            stdout=api_log_handle,
+            stderr=api_log_handle,
+        )
+    except FileNotFoundError as exc:
+        console.print(f"[bold red]Failed to start API server: {exc}[/bold red]")
+        raise typer.Exit(code=1) from exc
+
+    tui_proc: subprocess.Popen[str] | None = None
+    if tui:
+        # Wait for API to be ready before starting TUI
+        console.print("[dim]Waiting for API server to be ready...[/dim]")
+        if not _wait_for_api_ready(api_url):
+            console.print(
+                "[bold yellow]⚠️  API server didn't respond in time (may still be loading)[/bold yellow]"
+            )
+
+        tui_env = os.environ.copy()
+        tui_env["SKILL_FLEET_API_URL"] = api_url
+        tui_env["SKILL_FLEET_USER_ID"] = user_id
+
+        tui_cmd = ["npm", "run", tui_script]
+
+        try:
+            tui_proc = subprocess.Popen(tui_cmd, cwd=tui_dir, env=tui_env)
+        except FileNotFoundError as exc:
+            console.print(
+                "[bold red]npm is required to run the TUI. Install Node.js/npm and try again.[/bold red]"
+            )
+            api_proc.terminate()
+            raise typer.Exit(code=1) from exc
+
+    try:
+        if not tui_proc:
+            api_proc.wait()
+            raise typer.Exit(code=api_proc.returncode or 0)
+
+        while True:
+            api_exit = api_proc.poll()
+            tui_exit = tui_proc.poll() if tui_proc else None
+
+            if api_exit is not None:
+                console.print("[bold red]API server stopped[/bold red]")
+                if tui_proc and tui_proc.poll() is None:
+                    tui_proc.terminate()
+                raise typer.Exit(code=api_exit)
+
+            if tui_exit is not None:
+                console.print("[bold red]TUI stopped[/bold red]")
+                if api_proc.poll() is None:
+                    api_proc.terminate()
+                raise typer.Exit(code=tui_exit)
+
+            time.sleep(0.4)
+    except KeyboardInterrupt:
+        console.print("\n[dim]Shutting down...[/dim]")
+    finally:
+        for proc in (tui_proc, api_proc):
+            if proc and proc.poll() is None:
+                proc.terminate()
+                try:
+                    proc.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+        api_log_handle.close()

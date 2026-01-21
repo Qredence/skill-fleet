@@ -24,20 +24,45 @@ class FakeClient:
 
 
 class FakeUI(PromptUI):
-    def __init__(self, *, text_answers: list[str] | None = None, choice_answer: str = "proceed"):
+    def __init__(
+        self,
+        *,
+        text_answers: list[str] | None = None,
+        choice_answer: str = "proceed",
+        many_choice_answer: list[str] | None = None,
+    ):
         self._text_answers = list(text_answers or [])
         self._choice_answer = choice_answer
+        self._many_choice_answer = many_choice_answer or []
 
-    async def ask_text(self, _prompt: str, *, default: str = "") -> str:
+    async def ask_text(self, prompt: str, *, default: str = "") -> str:
         if self._text_answers:
             return self._text_answers.pop(0)
         return default
 
-    async def choose_one(self, _prompt: str, _choices, *, default_id: str | None = None) -> str:
+    async def choose_one(
+        self, prompt: str, choices: list[tuple[str, str]], *, default_id: str | None = None
+    ) -> str:
         return self._choice_answer or (default_id or "")
 
-    async def choose_many(self, _prompt: str, _choices, *, default_ids=None):
+    async def choose_many(
+        self, prompt: str, choices: list[tuple[str, str]], *, default_ids: list[str] | None = None
+    ) -> list[str]:
         return list(default_ids or [])
+
+    async def choose_many_with_other(
+        self, prompt: str, choices: list[tuple[str, str]], *, default_ids: list[str] | None = None
+    ) -> tuple[list[str], str]:
+        """Fake multi-select with 'Other' option support."""
+        if self._many_choice_answer:
+            return self._many_choice_answer, ""
+        return list(default_ids or []), ""
+
+    async def choose_one_with_other(
+        self, prompt: str, choices: list[tuple[str, str]], *, default_id: str | None = None
+    ) -> tuple[list[str], str]:
+        """Fake single-select with 'Other' option support."""
+        return [self._choice_answer or (default_id or "")], ""
 
 
 @pytest.mark.asyncio
@@ -138,3 +163,93 @@ async def test_run_hitl_job_clarify_handles_structured_questions():
     assert "A1" in combined
     assert "A2" in combined
     assert "A3" in combined
+
+
+@pytest.mark.asyncio
+async def test_run_hitl_job_clarify_with_multi_select_options():
+    """Test multi-select question with options.
+
+    This tests that the CLI correctly handles questions with allows_multiple=True
+    and displays options for multi-selection.
+    """
+    # Arrange - Server returns structured questions with multi-select options
+    prompts = [
+        {
+            "status": "pending_hitl",
+            "type": "clarify",
+            "questions": [
+                {
+                    "text": "What challenges are you facing with type checking?",
+                    "options": [
+                        {"id": "1", "label": "Slow CI/CD pipelines"},
+                        {"id": "2", "label": "Legacy codebase migration"},
+                        {"id": "3", "label": "No type coverage"},
+                        {"id": "4", "label": "Other"},
+                    ],
+                    "allows_multiple": True,
+                }
+            ],
+            "rationale": "Understanding your challenges helps tailor the solution.",
+        },
+        {"status": "completed"},
+    ]
+    client = FakeClient(prompts)
+    # Simulate user selecting multiple options: "1" and "2"
+    ui = FakeUI(many_choice_answer=["1", "2"])
+    console = Console(file=io.StringIO(), force_terminal=False)
+
+    # Act
+    final = await run_hitl_job(
+        console=console, client=client, job_id="multi-test", ui=ui, poll_interval=0
+    )
+
+    # Assert
+    assert final["status"] == "completed"
+    assert len(client.posted) == 1
+    payload = client.posted[0]["answers"]["response"]
+    # The response should contain the selected options
+    assert "Slow CI/CD" in payload or "challenges" in payload
+
+
+@pytest.mark.asyncio
+async def test_run_hitl_job_clarify_single_select_with_options():
+    """Test single-select question with options (allows_multiple=False).
+
+    This tests that the CLI correctly handles explicit single-select questions
+    even though the default is multi-select.
+    """
+    # Arrange - Server returns structured question with allows_multiple=False
+    prompts = [
+        {
+            "status": "pending_hitl",
+            "type": "clarify",
+            "questions": [
+                {
+                    "text": "What is your primary programming language?",
+                    "options": [
+                        {"id": "python", "label": "Python"},
+                        {"id": "typescript", "label": "TypeScript"},
+                        {"id": "javascript", "label": "JavaScript"},
+                        {"id": "other", "label": "Other"},
+                    ],
+                    "allows_multiple": False,  # Explicit single-select
+                }
+            ],
+        },
+        {"status": "completed"},
+    ]
+    client = FakeClient(prompts)
+    ui = FakeUI(choice_answer="python")
+    console = Console(file=io.StringIO(), force_terminal=False)
+
+    # Act
+    final = await run_hitl_job(
+        console=console, client=client, job_id="single-test", ui=ui, poll_interval=0
+    )
+
+    # Assert
+    assert final["status"] == "completed"
+    assert len(client.posted) == 1
+    payload = client.posted[0]["answers"]["response"]
+    assert "Python" in payload
+

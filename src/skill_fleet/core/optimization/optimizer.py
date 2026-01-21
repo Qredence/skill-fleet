@@ -21,8 +21,10 @@ from typing import TYPE_CHECKING, Any, Literal
 
 import dspy
 
+from ..dspy.programs import LegacySkillCreationProgram
+
 if TYPE_CHECKING:
-    from ..dspy.programs import SkillCreationProgram
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +84,7 @@ class OptimizationWrapper(dspy.Module):
     but the program expects comprehensive context arguments.
     """
 
-    def __init__(self, program: SkillCreationProgram):
+    def __init__(self, program: LegacySkillCreationProgram):
         super().__init__()
         self.program = program
 
@@ -131,8 +133,11 @@ class OptimizationWrapper(dspy.Module):
 # =============================================================================
 
 
+from ...config.training.manager import TrainingDataManager
+
+
 def optimize_with_miprov2(
-    program: SkillCreationProgram,
+    program: LegacySkillCreationProgram,
     trainset_path: str | Path = "config/training/trainset.json",
     output_path: str | Path = "config/optimized/miprov2/",
     model: str = DEFAULT_MODEL,
@@ -140,7 +145,7 @@ def optimize_with_miprov2(
     max_bootstrapped_demos: int = 4,
     max_labeled_demos: int = 4,
     num_threads: int = 8,
-) -> SkillCreationProgram:
+) -> LegacySkillCreationProgram:
     """Optimize skill creation workflow with MIPROv2.
 
     MIPROv2 (Multi-stage Instruction Proposal Optimizer v2) tunes:
@@ -149,7 +154,7 @@ def optimize_with_miprov2(
     - Prompt structure
 
     Args:
-        program: SkillCreationProgram to optimize
+        program: LegacySkillCreationProgram to optimize
         trainset_path: Path to training data JSON
         output_path: Directory to save optimized program
         model: Approved model name for optimization
@@ -163,7 +168,7 @@ def optimize_with_miprov2(
             (for example, search budget and sampling options).
 
     Returns:
-        Optimized SkillCreationProgram
+        Optimized LegacySkillCreationProgram
     """
     from dspy.teleprompt import MIPROv2
 
@@ -174,8 +179,20 @@ def optimize_with_miprov2(
     dspy.configure(lm=lm)
     logger.info(f"Configured DSPy with model: {model}")
 
-    # Load and split training data
-    examples = load_trainset(trainset_path)
+    # Use TrainingDataManager if available
+    trainset_manager = TrainingDataManager(Path(trainset_path).parent)
+    filtered_examples = trainset_manager.get_trainset()
+
+    if filtered_examples:
+        logger.info(f"Using {len(filtered_examples)} filtered examples from TrainingDataManager")
+        # Convert to DSPy Example objects if needed, but load_trainset handles raw dicts usually
+        # Assuming filtered_examples are compatible with what split_dataset expects
+        examples = [dspy.Example(**ex).with_inputs("task_description") for ex in filtered_examples]
+    else:
+        # Fallback to direct file loading
+        logger.info(f"Loading full trainset from {trainset_path}")
+        examples = load_trainset(trainset_path)
+
     train, val = split_dataset(examples, train_ratio=0.8)
     logger.info(f"Loaded {len(examples)} examples: {len(train)} train, {len(val)} val")
 
@@ -209,6 +226,10 @@ def optimize_with_miprov2(
     state_path = output_path / STATE_FILENAME
     optimized.save(str(state_path), save_program=False)
 
+    # Update training data manager with results (placeholder for now as we don't have per-example scores easily from MIPROv2 yet)
+    # Ideally we'd run an evaluation pass here to get scores
+    # trainset_manager.update_scores(...)
+
     logger.info(f"Optimized program state saved to {state_path}")
     return optimized
 
@@ -219,14 +240,14 @@ def optimize_with_miprov2(
 
 
 def optimize_with_gepa(
-    program: SkillCreationProgram,
+    program: LegacySkillCreationProgram,
     trainset_path: str | Path = "config/training/trainset.json",
     output_path: str | Path = "config/optimized/gepa/",
     model: str = DEFAULT_MODEL,
     reflection_model: str = REFLECTION_MODEL,
     auto: Literal["light", "medium", "heavy"] = "medium",
     track_stats: bool = True,
-) -> SkillCreationProgram:
+) -> LegacySkillCreationProgram:
     """Optimize skill creation workflow with GEPA.
 
     GEPA (Genetic-Pareto Reflective Prompt Optimizer) uses:
@@ -235,7 +256,7 @@ def optimize_with_gepa(
     - Textual feedback for improvement
 
     Args:
-        program: SkillCreationProgram to optimize
+        program: LegacySkillCreationProgram to optimize
         trainset_path: Path to training data JSON
         output_path: Directory to save optimized program
         model: Approved model name for program execution
@@ -244,7 +265,7 @@ def optimize_with_gepa(
         track_stats: Whether to track detailed statistics
 
     Returns:
-        Optimized SkillCreationProgram
+        Optimized LegacySkillCreationProgram
     """
     from .evaluation import load_trainset, skill_creation_metric, split_dataset
 
@@ -257,8 +278,17 @@ def optimize_with_gepa(
     reflection_lm = get_lm(reflection_model, temperature=1.0)
     logger.info(f"Using reflection model: {reflection_model}")
 
-    # Load and split training data
-    examples = load_trainset(trainset_path)
+    # Use TrainingDataManager if available
+    trainset_manager = TrainingDataManager(Path(trainset_path).parent)
+    filtered_examples = trainset_manager.get_trainset()
+
+    if filtered_examples:
+        logger.info(f"Using {len(filtered_examples)} filtered examples from TrainingDataManager")
+        examples = [dspy.Example(**ex).with_inputs("task_description") for ex in filtered_examples]
+    else:
+        logger.info(f"Loading full trainset from {trainset_path}")
+        examples = load_trainset(trainset_path)
+
     train, val = split_dataset(examples, train_ratio=0.8)
     logger.info(f"Loaded {len(examples)} examples: {len(train)} train, {len(val)} val")
 
@@ -340,7 +370,7 @@ def load_optimized_program(
 
 
 def save_program_state(
-    program: SkillCreationProgram,
+    program: LegacySkillCreationProgram,
     path: str | Path,
     save_program: bool = False,
 ) -> None:
@@ -369,14 +399,14 @@ def save_program_state(
 
 
 def optimize_with_tracking(
-    program: SkillCreationProgram,
+    program: LegacySkillCreationProgram,
     trainset_path: str | Path = "config/training/trainset.json",
     output_path: str | Path = "config/optimized/tracked/",
     optimizer_type: Literal["miprov2", "gepa"] = "miprov2",
     model: str = DEFAULT_MODEL,
     experiment_name: str = "skills-fleet-optimization",
     **optimizer_kwargs,
-) -> SkillCreationProgram:
+) -> LegacySkillCreationProgram:
     """Optimize with MLflow tracking enabled.
 
     Requires: uv add "mlflow>=2.21.1"
@@ -434,9 +464,9 @@ def optimize_with_tracking(
     mlflow.set_experiment(experiment_name)
     logger.info(f"MLflow experiment: {experiment_name}")
 
-    with mlflow.start_run():
+    with mlflow.start_run():  # type: ignore[attr-defined]
         # Log configuration
-        mlflow.log_params(
+        mlflow.log_params(  # type: ignore[attr-defined]
             {
                 "optimizer": optimizer_type,
                 "model": model,
@@ -455,7 +485,7 @@ def optimize_with_tracking(
             )
 
         # Log the optimized model
-        mlflow.dspy.log_model(optimized, "optimized_skill_creator")
+        mlflow.dspy.log_model(optimized, "optimized_skill_creator")  # type: ignore[attr-defined]
 
     return optimized
 
@@ -466,7 +496,7 @@ def optimize_with_tracking(
 
 
 def quick_evaluate(
-    program: SkillCreationProgram,
+    program: LegacySkillCreationProgram,
     trainset_path: str | Path = "config/training/trainset.json",
     model: str = DEFAULT_MODEL,
     n_examples: int | None = None,
@@ -576,9 +606,9 @@ def main():
     args = parser.parse_args()
 
     # Import program
-    from ..dspy.programs import SkillCreationProgram
+    from ..dspy.programs import LegacySkillCreationProgram
 
-    program = SkillCreationProgram()
+    program = LegacySkillCreationProgram()
 
     if args.evaluate_only:
         quick_evaluate(program, args.trainset, args.model)

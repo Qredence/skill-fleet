@@ -11,7 +11,7 @@ consistently prefer the proxy when configured.
 from __future__ import annotations
 
 import os
-from typing import TypedDict
+from typing import TypedDict, cast
 
 
 class APICredentials(TypedDict, total=False):
@@ -70,12 +70,14 @@ def resolve_api_credentials(
             creds["source"] = "LITELLM_API_KEY"
             return creds
         if _google_present():
-            creds["api_key"] = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
+            google_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
+            creds["api_key"] = cast(str, google_key)
             creds["source"] = "GOOGLE/GEMINI"
             return creds
     else:
         if _google_present():
-            creds["api_key"] = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
+            google_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
+            creds["api_key"] = cast(str, google_key)
             creds["source"] = "GOOGLE/GEMINI"
             return creds
         if _litellm_present():

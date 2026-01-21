@@ -8,6 +8,7 @@ features migrated from ConversationalSkillAgent.
 """
 
 from datetime import UTC, datetime
+from typing import cast
 
 import pytest
 from fastapi import HTTPException
@@ -18,6 +19,7 @@ from skill_fleet.api.jobs import (
 )
 from skill_fleet.api.schemas import (
     DeepUnderstandingState,
+    JobState,
     TDDWorkflowState,
 )
 
@@ -29,8 +31,7 @@ class TestDeepUnderstandingInteractionType:
         """Test that deep_understanding prompt includes required fields."""
         # Arrange
         job_id = create_job()
-        job = get_job(job_id)
-        assert job is not None
+        job = cast(JobState, get_job(job_id))
         job.hitl_type = "deep_understanding"
         job.hitl_data = {
             "question": "What problem are you trying to solve?",
@@ -58,8 +59,7 @@ class TestDeepUnderstandingInteractionType:
         """Test that deep_understanding response updates JobState deep_understanding."""
         # Arrange
         job_id = create_job()
-        job = get_job(job_id)
-        assert job is not None
+        job = cast(JobState, get_job(job_id))
         job.hitl_type = "deep_understanding"
         job.deep_understanding = DeepUnderstandingState(
             questions_asked=[{"id": "q1", "question": "What problem?"}],
@@ -77,8 +77,8 @@ class TestDeepUnderstandingInteractionType:
         job.deep_understanding.answers.append(
             {"question_id": "q1", "answer": user_response["answer"]}
         )
-        job.deep_understanding.user_problem = str(user_response["problem"])
-        job.deep_understanding.user_goals = list(user_response["goals"])
+        job.deep_understanding.user_problem = cast(str, user_response["problem"])
+        job.deep_understanding.user_goals = cast(list[str], user_response["goals"])
         job.deep_understanding.readiness_score = 0.8
         job.updated_at = datetime.now(UTC)
 
@@ -92,8 +92,7 @@ class TestDeepUnderstandingInteractionType:
         """Test that deep_understanding marks complete when readiness >= 0.8."""
         # Arrange
         job_id = create_job()
-        job = get_job(job_id)
-        assert job is not None
+        job = cast(JobState, get_job(job_id))
         job.deep_understanding = DeepUnderstandingState(
             readiness_score=0.6,
             user_problem="Need flaky test detection",
@@ -120,8 +119,7 @@ class TestTDDRedPhaseInteractionType:
         """Test that tdd_red prompt includes test requirements."""
         # Arrange
         job_id = create_job()
-        job = get_job(job_id)
-        assert job is not None
+        job = cast(JobState, get_job(job_id))
         job.hitl_type = "tdd_red"
         job.hitl_data = {
             "test_requirements": "Test that TDDWorkflowState serializes correctly",
@@ -144,8 +142,7 @@ class TestTDDRedPhaseInteractionType:
         """Test that tdd_red response sets TDD phase to red."""
         # Arrange
         job_id = create_job()
-        job = get_job(job_id)
-        assert job is not None
+        job = cast(JobState, get_job(job_id))
         job.tdd_workflow = TDDWorkflowState()
 
         # Act - Simulate entering red phase
@@ -161,8 +158,7 @@ class TestTDDRedPhaseInteractionType:
         """Test that tdd_red can track common rationalizations."""
         # Arrange
         job_id = create_job()
-        job = get_job(job_id)
-        assert job is not None
+        job = cast(JobState, get_job(job_id))
         job.tdd_workflow = TDDWorkflowState(phase="red")
 
         # Act - Simulate detecting rationalizations
@@ -183,8 +179,7 @@ class TestTDDGreenPhaseInteractionType:
         """Test that tdd_green prompt includes implementation guidance."""
         # Arrange
         job_id = create_job()
-        job = get_job(job_id)
-        assert job is not None
+        job = cast(JobState, get_job(job_id))
         job.hitl_type = "tdd_green"
         job.hitl_data = {
             "failing_test": "test_tdd_workflow_state_serialization",
@@ -203,8 +198,7 @@ class TestTDDGreenPhaseInteractionType:
         """Test that tdd_green phase follows red phase."""
         # Arrange
         job_id = create_job()
-        job = get_job(job_id)
-        assert job is not None
+        job = cast(JobState, get_job(job_id))
         job.tdd_workflow = TDDWorkflowState(phase="red", baseline_tests_run=True)
 
         # Act - Simulate transitioning to green
@@ -218,8 +212,7 @@ class TestTDDGreenPhaseInteractionType:
         """Test that tdd_green marks compliance tests as run."""
         # Arrange
         job_id = create_job()
-        job = get_job(job_id)
-        assert job is not None
+        job = cast(JobState, get_job(job_id))
         job.tdd_workflow = TDDWorkflowState(phase="green")
 
         # Act - Simulate running compliance tests
@@ -236,8 +229,7 @@ class TestTDDRefactorPhaseInteractionType:
         """Test that tdd_refactor prompt includes refactor suggestions."""
         # Arrange
         job_id = create_job()
-        job = get_job(job_id)
-        assert job is not None
+        job = cast(JobState, get_job(job_id))
         job.hitl_type = "tdd_refactor"
         job.hitl_data = {
             "refactor_opportunities": [
@@ -259,8 +251,7 @@ class TestTDDRefactorPhaseInteractionType:
         """Test that tdd_refactor phase follows green phase."""
         # Arrange
         job_id = create_job()
-        job = get_job(job_id)
-        assert job is not None
+        job = cast(JobState, get_job(job_id))
         job.tdd_workflow = TDDWorkflowState(
             phase="green",
             baseline_tests_run=True,
@@ -279,8 +270,7 @@ class TestTDDRefactorPhaseInteractionType:
         """Test that tdd_refactor maintains all tests passing."""
         # Arrange
         job_id = create_job()
-        job = get_job(job_id)
-        assert job is not None
+        job = cast(JobState, get_job(job_id))
         job.tdd_workflow = TDDWorkflowState(
             phase="refactor",
             baseline_tests_run=True,
@@ -300,8 +290,7 @@ class TestTDDWorkflowProgression:
         """Test complete TDD workflow: red -> green -> refactor -> complete."""
         # Arrange
         job_id = create_job()
-        job = get_job(job_id)
-        assert job is not None
+        job = cast(JobState, get_job(job_id))
         job.tdd_workflow = TDDWorkflowState()
 
         # Red phase
@@ -331,8 +320,7 @@ class TestTDDWorkflowProgression:
         # skill creation program, but we document the expected behavior
         # Arrange
         job_id = create_job()
-        job = get_job(job_id)
-        assert job is not None
+        job = cast(JobState, get_job(job_id))
         job.tdd_workflow = TDDWorkflowState(phase="red")
 
         # Expected progression: red -> green -> refactor -> complete
@@ -357,8 +345,7 @@ class TestHitlRouteIntegration:
         """Test that GET /hitl/{job_id}/prompt includes tdd_workflow data."""
         # Arrange
         job_id = create_job()
-        job = get_job(job_id)
-        assert job is not None
+        job = cast(JobState, get_job(job_id))
         job.status = "pending_hitl"
         job.hitl_type = "tdd_red"
         job.hitl_data = {
@@ -382,8 +369,7 @@ class TestHitlRouteIntegration:
         """Test that GET /hitl/{job_id}/prompt includes deep_understanding data."""
         # Arrange
         job_id = create_job()
-        job = get_job(job_id)
-        assert job is not None
+        job = cast(JobState, get_job(job_id))
         job.status = "pending_hitl"
         job.hitl_type = "deep_understanding"
         job.hitl_data = {
@@ -409,8 +395,7 @@ class TestHitlRouteIntegration:
         """Test that POST /hitl/{job_id}/response updates TDD state."""
         # Arrange
         job_id = create_job()
-        job = get_job(job_id)
-        assert job is not None
+        job = cast(JobState, get_job(job_id))
         job.tdd_workflow = TDDWorkflowState(phase="red")
         job.hitl_response = None
 
@@ -422,7 +407,9 @@ class TestHitlRouteIntegration:
 
         # Act - Simulate response processing
         job.hitl_response = response
-        job.tdd_workflow.rationalizations_identified = list(response.get("rationalizations", []))
+        job.tdd_workflow.rationalizations_identified = cast(
+            list[str], response.get("rationalizations", [])
+        )
         job.updated_at = datetime.now(UTC)
 
         # Assert
@@ -433,8 +420,7 @@ class TestHitlRouteIntegration:
         """Test that POST /hitl/{job_id}/response updates deep_understanding."""
         # Arrange
         job_id = create_job()
-        job = get_job(job_id)
-        assert job is not None
+        job = cast(JobState, get_job(job_id))
         job.deep_understanding = DeepUnderstandingState()
         job.hitl_response = None
 
@@ -448,8 +434,8 @@ class TestHitlRouteIntegration:
 
         # Act - Simulate response processing
         job.hitl_response = response
-        job.deep_understanding.user_problem = str(response.get("problem", ""))
-        job.deep_understanding.user_goals = list(response.get("goals", []))
+        job.deep_understanding.user_problem = cast(str, response.get("problem", ""))
+        job.deep_understanding.user_goals = cast(list[str], response.get("goals", []))
         job.deep_understanding.readiness_score = 0.8
         job.updated_at = datetime.now(UTC)
 

@@ -71,7 +71,7 @@ def setup_mlflow_experiment(
     try:
         import dspy
 
-        mlflow.log_params(
+        mlflow.log_params(  # type: ignore[attr-defined]
             {
                 "dspy_version": dspy.__version__,
                 "workflow_version": "2.0",
@@ -102,7 +102,7 @@ def log_phase_metrics(
         import mlflow
 
         prefixed = {f"{phase}_{step}_{k}": v for k, v in metrics.items()}
-        mlflow.log_metrics(prefixed)
+        mlflow.log_metrics(prefixed)  # type: ignore[attr-defined]
         logger.debug(f"Logged metrics for {phase}.{step}: {prefixed}")
     except Exception as e:
         logger.warning(f"Failed to log metrics: {e}")
@@ -130,11 +130,11 @@ def log_decision_tree(
     try:
         import mlflow
 
-        mlflow.log_text(
+        mlflow.log_text(  # type: ignore[attr-defined]
             "\n".join(decision_path),
             artifact_file=f"{phase}_decision_tree.txt",
         )
-        mlflow.log_param(f"{phase}_final_decision", final_decision)
+        mlflow.log_param(f"{phase}_final_decision", final_decision)  # type: ignore[attr-defined]
         logger.debug(f"Logged decision tree for {phase}: {final_decision}")
     except Exception as e:
         logger.warning(f"Failed to log decision tree: {e}")
@@ -161,7 +161,7 @@ def log_checkpoint_result(
     try:
         import mlflow
 
-        mlflow.log_metrics(
+        mlflow.log_metrics(  # type: ignore[attr-defined]
             {
                 f"{phase}_checkpoint_passed": float(checkpoint_passed),
                 f"{phase}_checkpoint_score": score,
@@ -170,7 +170,7 @@ def log_checkpoint_result(
         )
 
         if errors:
-            mlflow.log_text(
+            mlflow.log_text(  # type: ignore[attr-defined]
                 "\n".join(errors),
                 artifact_file=f"{phase}_checkpoint_errors.txt",
             )
@@ -199,7 +199,7 @@ def log_phase_artifact(
         import mlflow
 
         artifact_file = f"{phase}_{artifact_name}"
-        mlflow.log_text(content, artifact_file=artifact_file)
+        mlflow.log_text(content, artifact_file=artifact_file)  # type: ignore[attr-defined]
         logger.debug(f"Logged artifact for {phase}: {artifact_file}")
     except Exception as e:
         logger.warning(f"Failed to log artifact: {e}")
@@ -225,7 +225,7 @@ def log_parameter(
         import mlflow
 
         param_key = f"{phase}_{name}"
-        mlflow.log_param(param_key, str(value))
+        mlflow.log_param(param_key, str(value))  # type: ignore[attr-defined]
         logger.debug(f"Logged parameter: {param_key}={value}")
     except Exception as e:
         logger.warning(f"Failed to log parameter: {e}")
@@ -260,7 +260,7 @@ def end_mlflow_run() -> None:
     try:
         import mlflow
 
-        mlflow.end_run()
+        mlflow.end_run()  # type: ignore[attr-defined]
         logger.info("Ended MLflow run")
     except Exception as e:
         logger.warning(f"Failed to end MLflow run: {e}")

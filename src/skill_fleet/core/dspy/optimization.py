@@ -201,7 +201,7 @@ class SkillOptimizer:
         config = self._get_optimizer_config("miprov2")
 
         # Merge config with kwargs
-        optimizer_kwargs = {
+        optimizer_kwargs: dict[str, Any] = {
             "metric": skill_quality_metric,
             "auto": config.get("auto", "medium"),
             "num_threads": config.get("num_threads", 4),
@@ -213,7 +213,7 @@ class SkillOptimizer:
         optimizer = MIPROv2(**optimizer_kwargs)
 
         # Compile (optimize) the program
-        compile_kwargs = {
+        compile_kwargs: dict[str, Any] = {
             "trainset": trainset,
             "max_bootstrapped_demos": config.get("max_bootstrapped_demos", 4),
             "max_labeled_demos": config.get("max_labeled_demos", 4),

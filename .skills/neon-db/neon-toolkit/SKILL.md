@@ -28,7 +28,7 @@ When generating TypeScript/JavaScript code:
 
 ## Reference Documentation
 
-**Primary Resource:** See `[neon-toolkit.mdc](https://raw.githubusercontent.com/neondatabase-labs/ai-rules/main/neon-toolkit.mdc)` in project root for comprehensive guidelines including:
+**Primary Resource:** See [neon-toolkit.mdc](https://raw.githubusercontent.com/neondatabase-labs/ai-rules/main/neon-toolkit.mdc) in project root for comprehensive guidelines including:
 - Core concepts (Organization, Project, Branch, Endpoint)
 - Installation and authentication setup
 - Database lifecycle management patterns

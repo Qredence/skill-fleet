@@ -71,3 +71,4 @@ server.log
 *.egg-info/
 dist/
 build/
+.skill_fleet_logs/api-dev.log

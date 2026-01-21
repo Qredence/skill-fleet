@@ -1,4 +1,5 @@
-"""MLflow integration for DSPy experiment tracking.
+"""
+MLflow integration for DSPy experiment tracking.
 
 Optional integration with MLflow for comprehensive experiment tracking and model versioning.
 """
@@ -13,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 # MLflow is optional dependency
 try:
-    import mlflow  # type: ignore[import-untyped]
+    import mlflow
 
     MLFLOW_AVAILABLE = True
 except ImportError:
@@ -26,7 +27,8 @@ def configure_mlflow(
     experiment_name: str = "skill-fleet-dspy",
     artifact_location: str | None = None,
 ) -> bool:
-    """Configure MLflow tracking.
+    """
+    Configure MLflow tracking.
 
     Args:
         tracking_uri: MLflow tracking server URI (None uses local ./mlruns)
@@ -35,6 +37,7 @@ def configure_mlflow(
 
     Returns:
         True if MLflow configured successfully, False otherwise
+
     """
     if not MLFLOW_AVAILABLE:
         logger.warning("MLflow not installed - install with: pip install mlflow")
@@ -71,7 +74,8 @@ def configure_mlflow(
 
 
 class MLflowLogger:
-    """Logger for DSPy experiments to MLflow.
+    """
+    Logger for DSPy experiments to MLflow.
 
     Tracks DSPy optimization runs, model performance, and artifacts.
 
@@ -91,6 +95,7 @@ class MLflowLogger:
 
             # Save artifacts
             logger.log_artifact("optimized_program.pkl")
+
     """
 
     def __init__(
@@ -98,11 +103,13 @@ class MLflowLogger:
         run_name: str | None = None,
         nested: bool = False,
     ) -> None:
-        """Initialize MLflow logger.
+        """
+        Initialize MLflow logger.
 
         Args:
             run_name: Name for this MLflow run
             nested: Whether this is a nested run (for sub-experiments)
+
         """
         if not MLFLOW_AVAILABLE:
             logger.warning("MLflow not available - logging will be no-op")
@@ -126,10 +133,12 @@ class MLflowLogger:
             logger.info(f"Ended MLflow run: {self.run_name or 'unnamed'}")
 
     def log_params(self, params: dict[str, Any]) -> None:
-        """Log parameters to MLflow.
+        """
+        Log parameters to MLflow.
 
         Args:
             params: Dictionary of parameters to log
+
         """
         if not self.enabled:
             return
@@ -146,11 +155,13 @@ class MLflowLogger:
             logger.warning(f"Failed to log params to MLflow: {e}")
 
     def log_metrics(self, metrics: dict[str, float], step: int | None = None) -> None:
-        """Log metrics to MLflow.
+        """
+        Log metrics to MLflow.
 
         Args:
             metrics: Dictionary of metric name -> value
             step: Optional step number for time series metrics
+
         """
         if not self.enabled:
             return
@@ -162,11 +173,13 @@ class MLflowLogger:
             logger.warning(f"Failed to log metrics to MLflow: {e}")
 
     def log_artifact(self, local_path: str | Path, artifact_path: str | None = None) -> None:
-        """Log artifact file to MLflow.
+        """
+        Log artifact file to MLflow.
 
         Args:
             local_path: Path to local file to upload
             artifact_path: Optional subdirectory in artifact store
+
         """
         if not self.enabled:
             return
@@ -178,11 +191,13 @@ class MLflowLogger:
             logger.warning(f"Failed to log artifact to MLflow: {e}")
 
     def log_dict(self, dictionary: dict[str, Any], filename: str) -> None:
-        """Log dictionary as JSON artifact.
+        """
+        Log dictionary as JSON artifact.
 
         Args:
             dictionary: Dictionary to save
             filename: Filename for artifact (should end in .json)
+
         """
         if not self.enabled:
             return
@@ -206,11 +221,13 @@ class MLflowLogger:
             logger.warning(f"Failed to log dict to MLflow: {e}")
 
     def log_text(self, text: str, filename: str) -> None:
-        """Log text content as artifact.
+        """
+        Log text content as artifact.
 
         Args:
             text: Text content to save
             filename: Filename for artifact
+
         """
         if not self.enabled:
             return
@@ -233,10 +250,12 @@ class MLflowLogger:
             logger.warning(f"Failed to log text to MLflow: {e}")
 
     def set_tags(self, tags: dict[str, Any]) -> None:
-        """Set tags on current run.
+        """
+        Set tags on current run.
 
         Args:
             tags: Dictionary of tag name -> value
+
         """
         if not self.enabled:
             return

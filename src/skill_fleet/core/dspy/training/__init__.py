@@ -1,4 +1,5 @@
-"""Training data management for DSPy optimization.
+"""
+Training data management for DSPy optimization.
 
 This module provides utilities for loading and managing gold-standard
 training examples used by DSPy optimizers.

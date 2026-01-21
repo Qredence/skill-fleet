@@ -1,4 +1,5 @@
-"""DSPy components for skill-fleet.
+"""
+DSPy components for skill-fleet.
 
 This module contains all DSPy signatures, modules, and programs
 for the skill creation workflow.

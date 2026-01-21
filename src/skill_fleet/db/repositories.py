@@ -4,7 +4,7 @@ Skills-Fleet Database Repositories
 Repository layer for common CRUD operations on skills fleet entities.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any, Generic, TypeVar
 
 from sqlalchemy import asc, desc
@@ -61,6 +61,7 @@ class BaseRepository(Generic[ModelType]):  # noqa: UP046
             order_by: Field to order by
             order_desc: Whether to order in descending order
             **filters: Filter parameters (field=value)
+
         """
         query = self.db.query(self.model)
 
@@ -307,7 +308,7 @@ class SkillRepository(BaseRepository[Skill]):
         skill = self.get(skill_id)
         if skill:
             skill.status = SkillStatusEnum.ACTIVE
-            skill.published_at = datetime.utcnow()
+            skill.published_at = datetime.now(UTC)
             self.db.commit()
             self.db.refresh(skill)
         return skill
@@ -329,13 +330,15 @@ class JobRepository(BaseRepository[Job]):
         super().__init__(Job, db)
 
     def get_by_id(self, job_id: Any) -> Job | None:
-        """Get a job by its ID (UUID).
+        """
+        Get a job by its ID (UUID).
 
         Args:
             job_id: UUID of the job
 
         Returns:
             Job instance or None if not found
+
         """
         from uuid import UUID
 
@@ -344,7 +347,8 @@ class JobRepository(BaseRepository[Job]):
         return self.db.query(Job).filter(Job.job_id == job_id).first()
 
     def get_by_status(self, status: str, *, limit: int = 100) -> list[Job]:
-        """Get all jobs with a specific status.
+        """
+        Get all jobs with a specific status.
 
         Args:
             status: Job status (pending, running, pending_hitl, completed, failed, cancelled)
@@ -352,6 +356,7 @@ class JobRepository(BaseRepository[Job]):
 
         Returns:
             List of Job instances
+
         """
         return (
             self.db.query(Job)
@@ -422,7 +427,7 @@ class JobRepository(BaseRepository[Job]):
         if job:
             job.status = "completed"
             job.result = result
-            job.completed_at = datetime.utcnow()
+            job.completed_at = datetime.now(UTC)
             job.progress_percent = 100
             self.db.commit()
             self.db.refresh(job)
@@ -445,6 +450,7 @@ class TaxonomyRepository(BaseRepository[TaxonomyCategory]):
 
         Args:
             root_path: Optional path to start from (defaults to root level)
+
         """
         if root_path:
             root = self.get_by_path(root_path)
@@ -588,7 +594,7 @@ class UsageRepository:
 
         from sqlalchemy import func
 
-        since = datetime.utcnow() - timedelta(days=days)
+        since = datetime.now(UTC) - timedelta(days=days)
 
         stats = (
             self.db.query(
@@ -617,7 +623,7 @@ class UsageRepository:
 
         from sqlalchemy import desc, func
 
-        since = datetime.utcnow() - timedelta(days=days)
+        since = datetime.now(UTC) - timedelta(days=days)
 
         results = (
             self.db.query(

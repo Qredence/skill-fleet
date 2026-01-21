@@ -1,4 +1,5 @@
-"""Workflow caching and optimization helpers.
+"""
+Workflow caching and optimization helpers.
 
 Note: This module uses pickle for caching workflow results. The cached data
 is generated and consumed by the same application, not from untrusted sources.
@@ -23,7 +24,8 @@ class WorkflowOptimizer:
         self.hit_rate = {"hits": 0, "misses": 0}
 
     def cache_key(self, step: str, inputs: dict[str, Any]) -> str:
-        """Generate a cache key from step name and inputs.
+        """
+        Generate a cache key from step name and inputs.
 
         Note: MD5 is used for cache key generation only (non-cryptographic).
         """
@@ -33,7 +35,8 @@ class WorkflowOptimizer:
         return digest
 
     def get_cached(self, step: str, inputs: dict[str, Any]) -> Any | None:
-        """Retrieve cached result if available, otherwise return None.
+        """
+        Retrieve cached result if available, otherwise return None.
 
         Note: Only loads pickle files created by this application.
         """

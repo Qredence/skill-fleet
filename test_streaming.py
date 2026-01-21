@@ -12,7 +12,6 @@ from src.skill_fleet.llm.dspy_config import configure_dspy
 
 async def test_streaming():
     """Test StreamingAssistant directly."""
-
     # Check API key
     api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:

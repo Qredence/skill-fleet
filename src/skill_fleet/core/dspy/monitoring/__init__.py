@@ -1,4 +1,5 @@
-"""DSPy module monitoring and tracing infrastructure.
+"""
+DSPy module monitoring and tracing infrastructure.
 
 This package provides observability for DSPy modules in production:
 - ModuleMonitor: Wrapper for tracking module execution metrics

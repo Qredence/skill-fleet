@@ -1,4 +1,5 @@
-"""Compatibility CLI entrypoints used by tests and scripts.
+"""
+Compatibility CLI entrypoints used by tests and scripts.
 
 Provides simple, programmatic `create_skill(args)` and `validate_skill(args)`
 functions that wrap existing library components. The implementations are
@@ -17,7 +18,8 @@ from ..validators.skill_validator import SkillValidator
 
 
 def create_skill(args: Any) -> int:
-    """Programmatic entrypoint for creating a skill.
+    """
+    Programmatic entrypoint for creating a skill.
 
     Args is an object with attributes used by the tests:
     - task: str
@@ -50,7 +52,8 @@ def create_skill(args: Any) -> int:
 
 
 def validate_skill(args: Any) -> int:
-    """Programmatic entrypoint for validating a skill directory.
+    """
+    Programmatic entrypoint for validating a skill directory.
 
     Args must provide:
     - skill_path: str

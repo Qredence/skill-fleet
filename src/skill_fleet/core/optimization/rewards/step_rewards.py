@@ -1,4 +1,5 @@
-"""Reward functions for DSPy Refine and BestOfN modules.
+"""
+Reward functions for DSPy Refine and BestOfN modules.
 
 These functions score LLM outputs for quality assurance, enabling:
 - dspy.Refine: Automatic feedback loop to improve outputs
@@ -28,7 +29,8 @@ logger = logging.getLogger(__name__)
 
 
 def taxonomy_path_reward(args, pred: dspy.Prediction) -> float:
-    """Score taxonomy path validity and confidence.
+    """
+    Score taxonomy path validity and confidence.
 
     Checks:
     - Valid path format (lowercase, underscores, slashes)
@@ -37,6 +39,7 @@ def taxonomy_path_reward(args, pred: dspy.Prediction) -> float:
 
     Returns:
         float: Score between 0.0 and 1.0
+
     """
     score = 0.0
 
@@ -97,7 +100,8 @@ def taxonomy_path_reward(args, pred: dspy.Prediction) -> float:
 
 
 def metadata_completeness_reward(args, pred: dspy.Prediction) -> float:
-    """Score metadata completeness and agentskills.io compliance.
+    """
+    Score metadata completeness and agentskills.io compliance.
 
     Checks:
     - skill_id with valid path format
@@ -108,6 +112,7 @@ def metadata_completeness_reward(args, pred: dspy.Prediction) -> float:
 
     Returns:
         float: Score between 0.0 and 1.0
+
     """
     score = 0.0
 
@@ -125,7 +130,8 @@ def metadata_completeness_reward(args, pred: dspy.Prediction) -> float:
 
         # For Pydantic models, convert to dict-like access
         def get_field(obj, field, default=None):
-            """Get field value from object or dict with fallback.
+            """
+            Get field value from object or dict with fallback.
 
             Args:
                 obj: Object or dict to get field from
@@ -134,6 +140,7 @@ def metadata_completeness_reward(args, pred: dspy.Prediction) -> float:
 
             Returns:
                 Field value or default if not found
+
             """
             if hasattr(obj, field):
                 return getattr(obj, field)
@@ -183,7 +190,8 @@ def metadata_completeness_reward(args, pred: dspy.Prediction) -> float:
 
 
 def capabilities_reward(args, pred: dspy.Prediction) -> float:
-    """Score capabilities list quality.
+    """
+    Score capabilities list quality.
 
     Checks:
     - Reasonable number of capabilities (2-10)
@@ -192,6 +200,7 @@ def capabilities_reward(args, pred: dspy.Prediction) -> float:
 
     Returns:
         float: Score between 0.0 and 1.0
+
     """
     score = 0.0
 
@@ -250,7 +259,8 @@ def capabilities_reward(args, pred: dspy.Prediction) -> float:
 
 
 def skill_content_reward(args, pred: dspy.Prediction) -> float:
-    """Score skill content quality (SKILL.md generation).
+    """
+    Score skill content quality (SKILL.md generation).
 
     Checks:
     - Required sections present (Overview, Capabilities, etc.)
@@ -260,6 +270,7 @@ def skill_content_reward(args, pred: dspy.Prediction) -> float:
 
     Returns:
         float: Score between 0.0 and 1.0
+
     """
     score = 0.0
 
@@ -294,7 +305,7 @@ def skill_content_reward(args, pred: dspy.Prediction) -> float:
             score += 0.2
         elif 500 <= word_count <= 5000:
             score += 0.15
-        elif 300 <= word_count:
+        elif word_count >= 300:
             score += 0.1
 
         # Has proper markdown formatting
@@ -315,7 +326,8 @@ def skill_content_reward(args, pred: dspy.Prediction) -> float:
 
 
 def usage_examples_reward(args, pred: dspy.Prediction) -> float:
-    """Score usage examples quality.
+    """
+    Score usage examples quality.
 
     Checks:
     - Has multiple examples (2-5)
@@ -324,6 +336,7 @@ def usage_examples_reward(args, pred: dspy.Prediction) -> float:
 
     Returns:
         float: Score between 0.0 and 1.0
+
     """
     score = 0.0
 
@@ -378,7 +391,8 @@ def usage_examples_reward(args, pred: dspy.Prediction) -> float:
 
 
 def validation_report_reward(args, pred: dspy.Prediction) -> float:
-    """Score validation report quality.
+    """
+    Score validation report quality.
 
     Checks:
     - Has clear pass/fail status
@@ -387,6 +401,7 @@ def validation_report_reward(args, pred: dspy.Prediction) -> float:
 
     Returns:
         float: Score between 0.0 and 1.0
+
     """
     score = 0.0
 
@@ -403,7 +418,8 @@ def validation_report_reward(args, pred: dspy.Prediction) -> float:
 
         # Get fields
         def get_field(obj, field, default=None):
-            """Get field value from object or dict with fallback.
+            """
+            Get field value from object or dict with fallback.
 
             Args:
                 obj: Object or dict to get field from
@@ -412,6 +428,7 @@ def validation_report_reward(args, pred: dspy.Prediction) -> float:
 
             Returns:
                 Field value or default if not found
+
             """
             if hasattr(obj, field):
                 return getattr(obj, field)
@@ -447,10 +464,12 @@ def validation_report_reward(args, pred: dspy.Prediction) -> float:
 
 
 def quality_score_reward(args, pred: dspy.Prediction) -> float:
-    """Score the quality_score field validity.
+    """
+    Score the quality_score field validity.
 
     Returns:
         float: Score between 0.0 and 1.0
+
     """
     try:
         quality = getattr(pred, "quality_score", None)
@@ -480,10 +499,12 @@ def quality_score_reward(args, pred: dspy.Prediction) -> float:
 
 
 def combined_plan_reward(args, pred: dspy.Prediction) -> float:
-    """Combined reward for Plan step (metadata + capabilities).
+    """
+    Combined reward for Plan step (metadata + capabilities).
 
     Returns:
         float: Weighted average score between 0.0 and 1.0
+
     """
     metadata_score = metadata_completeness_reward(args, pred)
     capabilities_score = capabilities_reward(args, pred)
@@ -493,10 +514,12 @@ def combined_plan_reward(args, pred: dspy.Prediction) -> float:
 
 
 def combined_edit_reward(args, pred: dspy.Prediction) -> float:
-    """Combined reward for Edit step (content + examples).
+    """
+    Combined reward for Edit step (content + examples).
 
     Returns:
         float: Weighted average score between 0.0 and 1.0
+
     """
     content_score = skill_content_reward(args, pred)
     examples_score = usage_examples_reward(args, pred)
@@ -506,10 +529,12 @@ def combined_edit_reward(args, pred: dspy.Prediction) -> float:
 
 
 def combined_package_reward(args, pred: dspy.Prediction) -> float:
-    """Combined reward for Package step (validation + quality).
+    """
+    Combined reward for Package step (validation + quality).
 
     Returns:
         float: Weighted average score between 0.0 and 1.0
+
     """
     report_score = validation_report_reward(args, pred)
     quality_valid = quality_score_reward(args, pred)

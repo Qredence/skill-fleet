@@ -17,7 +17,8 @@ router = APIRouter()
 
 
 class HITLConfigResponse(BaseModel):
-    """Response model for HITL configuration endpoint.
+    """
+    Response model for HITL configuration endpoint.
 
     Contains the accepted keywords and patterns for intent detection.
     Enables UI clients to stay in sync with backend HITL configuration.
@@ -45,7 +46,8 @@ class HITLConfigResponse(BaseModel):
 
 
 class HITLPromptResponse(BaseModel):
-    """Response model for HITL prompt endpoint.
+    """
+    Response model for HITL prompt endpoint.
 
     This model contains all possible fields across different interaction types.
     Fields are optional since different interaction types use different subsets.
@@ -148,7 +150,8 @@ class HITLResponseResult(BaseModel):
 
 @router.get("/config", response_model=HITLConfigResponse)
 async def get_hitl_config() -> HITLConfigResponse:
-    """Retrieve the HITL configuration for intent detection.
+    """
+    Retrieve the HITL configuration for intent detection.
 
     This endpoint provides the keywords and patterns used to detect user intent
     in HITL prompts (proceed, revise, cancel). UI clients should fetch this
@@ -156,6 +159,7 @@ async def get_hitl_config() -> HITLConfigResponse:
 
     Returns:
         HITLConfigResponse with action keywords for intent detection
+
     """
     return HITLConfigResponse(
         action_keywords={
@@ -277,7 +281,8 @@ async def get_prompt(job_id: str) -> HITLPromptResponse:
 
 @router.post("/{job_id}/response", response_model=HITLResponseResult)
 async def post_response(job_id: str, response: dict) -> HITLResponseResult:
-    """Submit a response to an HITL prompt.
+    """
+    Submit a response to an HITL prompt.
 
     The response format depends on the interaction type:
     - clarify: {"answers": {"response": "..."}}
@@ -291,6 +296,7 @@ async def post_response(job_id: str, response: dict) -> HITLResponseResult:
 
     Returns:
         HITLResponseResult indicating if response was accepted or ignored
+
     """
     manager = get_job_manager()
     job = manager.get_job(job_id)

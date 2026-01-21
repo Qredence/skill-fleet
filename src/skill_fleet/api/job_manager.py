@@ -1,4 +1,5 @@
-"""Job lifecycle management with dual-layer persistence (memory + database).
+"""
+Job lifecycle management with dual-layer persistence (memory + database).
 
 This module provides the JobManager facade that coordinates job state
 across both in-memory cache (hot, fast) and database (durable, multi-instance).
@@ -34,38 +35,45 @@ VALID_STATUSES = {"pending", "running", "completed", "failed", "cancelled"}
 
 
 class JobMemoryStore:
-    """Hot cache for in-flight jobs.
+    """
+    Hot cache for in-flight jobs.
 
     Stores recently created/active jobs in memory for fast access.
     Automatically expires entries older than TTL.
     """
 
     def __init__(self, ttl_minutes: int = 60):
-        """Initialize memory store.
+        """
+        Initialize memory store.
 
         Args:
             ttl_minutes: Time-to-live for cached jobs (default: 60 minutes)
+
         """
         self.ttl_minutes = ttl_minutes
         self.store: dict[str, tuple[JobState, datetime]] = {}
 
     def set(self, job_id: str, job: JobState) -> None:
-        """Store job in memory with timestamp.
+        """
+        Store job in memory with timestamp.
 
         Args:
             job_id: Job identifier
             job: JobState instance
+
         """
         self.store[job_id] = (job, datetime.now(UTC))
 
     def get(self, job_id: str) -> JobState | None:
-        """Get job from memory if not expired.
+        """
+        Get job from memory if not expired.
 
         Args:
             job_id: Job identifier
 
         Returns:
             JobState if found and not expired, None otherwise
+
         """
         if job_id not in self.store:
             return None
@@ -82,13 +90,15 @@ class JobMemoryStore:
         return job
 
     def delete(self, job_id: str) -> bool:
-        """Remove job from memory.
+        """
+        Remove job from memory.
 
         Args:
             job_id: Job identifier
 
         Returns:
             True if job was deleted, False if not found
+
         """
         if job_id in self.store:
             del self.store[job_id]
@@ -96,12 +106,14 @@ class JobMemoryStore:
         return False
 
     def cleanup_expired(self) -> int:
-        """Remove all expired entries.
+        """
+        Remove all expired entries.
 
         Should be called periodically by background task.
 
         Returns:
             Number of jobs removed
+
         """
         expired_ids = [
             job_id
@@ -115,10 +127,12 @@ class JobMemoryStore:
         return len(expired_ids)
 
     def clear(self) -> int:
-        """Clear all entries from memory.
+        """
+        Clear all entries from memory.
 
         Returns:
             Number of jobs cleared
+
         """
         count = len(self.store)
         self.store.clear()
@@ -126,7 +140,8 @@ class JobMemoryStore:
 
 
 class JobManager:
-    """Manage job lifecycle across memory and database layers.
+    """
+    Manage job lifecycle across memory and database layers.
 
     Provides unified interface for:
     - Creating new jobs
@@ -136,21 +151,25 @@ class JobManager:
     """
 
     def __init__(self, memory_store: JobMemoryStore | None = None, db_session_factory=None):
-        """Initialize job manager.
+        """
+        Initialize job manager.
 
         Args:
             memory_store: Optional JobMemoryStore instance
             db_session_factory: Optional SQLAlchemy session factory for async DB operations
+
         """
         self.memory = memory_store or JobMemoryStore(ttl_minutes=60)
         self.db_repo: JobRepository | None = None
         self.db_session_factory = db_session_factory
 
     def set_db_repo(self, db_repo: JobRepository) -> None:
-        """Set database repository (call at API startup).
+        """
+        Set database repository (call at API startup).
 
         Args:
             db_repo: JobRepository instance
+
         """
         self.db_repo = db_repo
         logger.info("JobManager database repository configured")
@@ -158,16 +177,19 @@ class JobManager:
     def set_db_session_factory(
         self, factory: async_sessionmaker[Any] | Callable[[], Session] | None
     ) -> None:
-        """Set database session factory for async operations.
+        """
+        Set database session factory for async operations.
 
         Args:
             factory: SQLAlchemy AsyncSessionLocal or SessionLocal factory
+
         """
         self.db_session_factory = factory
         logger.debug("JobManager database session factory configured")
 
     def get_job(self, job_id: str) -> JobState | None:
-        """Retrieve job from memory (fast), fall back to DB (durable).
+        """
+        Retrieve job from memory (fast), fall back to DB (durable).
 
         Implements two-tier lookup:
         1. Check memory cache first (fastest)
@@ -179,6 +201,7 @@ class JobManager:
 
         Returns:
             JobState if found, None otherwise
+
         """
         # Try memory first (hot cache, no I/O)
         job = self.memory.get(job_id)
@@ -207,7 +230,8 @@ class JobManager:
         return None
 
     def create_job(self, job_state: JobState) -> None:
-        """Create a new job (memory + DB).
+        """
+        Create a new job (memory + DB).
 
         Stores job in both layers:
         - Memory: immediate, for fast access
@@ -215,6 +239,7 @@ class JobManager:
 
         Args:
             job_state: JobState instance
+
         """
         # Store in memory immediately (fast)
         self.memory.set(job_state.job_id, job_state)
@@ -232,7 +257,8 @@ class JobManager:
             logger.warning(f"Job {job_state.job_id} created (memory only, no database backing)")
 
     def update_job(self, job_id: str, updates: dict[str, Any]) -> JobState | None:
-        """Update job in both layers.
+        """
+        Update job in both layers.
 
         Updates both memory cache and database:
         - Memory: for immediate visibility
@@ -244,6 +270,7 @@ class JobManager:
 
         Returns:
             Updated JobState if successful, None otherwise
+
         """
         # Try to get from memory first
         job = self.memory.get(job_id)
@@ -280,13 +307,15 @@ class JobManager:
         return job
 
     def save_job(self, job: JobState) -> bool:
-        """Explicit save to database (for completed/important jobs).
+        """
+        Explicit save to database (for completed/important jobs).
 
         Args:
             job: JobState to save
 
         Returns:
             True if save succeeded, False otherwise
+
         """
         self.memory.set(job.job_id, job)
 
@@ -302,30 +331,35 @@ class JobManager:
         return True
 
     def delete_job(self, job_id: str) -> bool:
-        """Delete job from memory (database deletion TBD).
+        """
+        Delete job from memory (database deletion TBD).
 
         Args:
             job_id: Job identifier
 
         Returns:
             True if deleted from memory, False otherwise
+
         """
         return self.memory.delete(job_id)
 
     def cleanup_expired(self) -> int:
-        """Clean up expired memory entries.
+        """
+        Clean up expired memory entries.
 
         Should be called periodically by background task.
 
         Returns:
             Number of jobs cleaned up
+
         """
         return self.memory.cleanup_expired()
 
     # Private methods
 
     def _save_job_to_db(self, job: JobState) -> None:
-        """Internal: Save JobState to database.
+        """
+        Internal: Save JobState to database.
 
         Serializes JobState fields and performs upsert to database.
 
@@ -335,6 +369,7 @@ class JobManager:
         Raises:
             ValueError: If job status is invalid
             Exception: If database operation fails
+
         """
         if not self.db_repo:
             return
@@ -378,13 +413,15 @@ class JobManager:
             raise
 
     def _serialize_json(self, obj: Any) -> dict | None:
-        """Serialize an object to JSON-compatible dict.
+        """
+        Serialize an object to JSON-compatible dict.
 
         Args:
             obj: Object to serialize
 
         Returns:
             JSON-compatible dict or None
+
         """
         if obj is None:
             return None
@@ -399,13 +436,15 @@ class JobManager:
             return {}
 
     def _db_to_memory(self, db_job: Any) -> JobState:
-        """Internal: Reconstruct JobState from database model.
+        """
+        Internal: Reconstruct JobState from database model.
 
         Args:
             db_job: Job database model instance
 
         Returns:
             JobState instance
+
         """
         job_id = str(db_job.job_id)
         job_state = JobState(job_id=job_id)
@@ -458,10 +497,12 @@ _job_manager: JobManager | None = None
 
 
 def get_job_manager() -> JobManager:
-    """Get the global job manager instance.
+    """
+    Get the global job manager instance.
 
     Returns:
         JobManager instance (creates default if not initialized)
+
     """
     global _job_manager
     if _job_manager is None:
@@ -471,13 +512,15 @@ def get_job_manager() -> JobManager:
 
 
 def initialize_job_manager(db_repo: JobRepository) -> JobManager:
-    """Initialize job manager with database repo (call at API startup).
+    """
+    Initialize job manager with database repo (call at API startup).
 
     Args:
         db_repo: JobRepository instance for database access
 
     Returns:
         Initialized JobManager instance
+
     """
     global _job_manager
     _job_manager = JobManager()

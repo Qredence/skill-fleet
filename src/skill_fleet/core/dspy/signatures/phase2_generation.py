@@ -1,4 +1,5 @@
-"""DSPy signatures for Phase 2: Content Generation.
+"""
+DSPy signatures for Phase 2: Content Generation.
 
 Phase 2 generates the actual skill content based on the plan from Phase 1.
 Uses BestOfN pattern for quality assurance.
@@ -42,7 +43,8 @@ SkillStyle = Literal["navigation_hub", "comprehensive", "minimal"]
 
 
 class GenerateSkillContent(dspy.Signature):
-    """Generate production-ready SKILL.md following agentskills.io v2 Golden Standard (Jan 2026).
+    """
+    Generate production-ready SKILL.md following agentskills.io v2 Golden Standard (Jan 2026).
 
     Create comprehensive, well-structured documentation with ❌/✅ contrast patterns,
     core principles, actionable guidance, and real-world impact.
@@ -141,7 +143,8 @@ class GenerateSkillContent(dspy.Signature):
 
 
 class GenerateSkillSection(dspy.Signature):
-    """Generate one section with consistent style and quality.
+    """
+    Generate one section with consistent style and quality.
 
     Use for very large skills that exceed token limits when generated all at once.
     Maintain coherence with previous sections and overall skill plan.
@@ -182,7 +185,8 @@ class GenerateSkillSection(dspy.Signature):
 
 
 class IncorporateFeedback(dspy.Signature):
-    """Refine skill content based on user feedback from HITL review.
+    """
+    Refine skill content based on user feedback from HITL review.
 
     Make targeted improvements while maintaining overall quality and structure.
     Address all feedback points systematically. If feedback conflicts with
@@ -253,7 +257,8 @@ TargetLevel = Literal["beginner", "intermediate", "advanced", "expert"]
 
 
 class GenerateCapabilityImplementation(dspy.Signature):
-    """Generate production-ready implementation guide for one capability.
+    """
+    Generate production-ready implementation guide for one capability.
 
     Create detailed, actionable guidance with executable code examples,
     configuration options, and error handling. Match complexity to target level.

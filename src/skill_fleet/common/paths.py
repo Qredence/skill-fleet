@@ -1,4 +1,5 @@
-"""Path resolution helpers for skill_fleet defaults.
+"""
+Path resolution helpers for skill_fleet defaults.
 
 These helpers avoid assuming a checked-out repo and prefer packaged defaults
 when running from an installed wheel.
@@ -64,7 +65,8 @@ def default_config_root() -> Path:
 
 
 def resolve_repo_relative_path(path: str | Path, *, config_path: Path | None = None) -> Path:
-    """Resolve a repo-style relative path with fallbacks for installed wheels.
+    """
+    Resolve a repo-style relative path with fallbacks for installed wheels.
 
     This is primarily for paths like `config/training/trainset.json` referenced in
     code/config. Resolution order:
@@ -126,7 +128,8 @@ def default_skills_root() -> Path:
 
 
 def ensure_skills_root_initialized(skills_root: Path) -> Path:
-    """Ensure a skills_root exists and has the minimal required files.
+    """
+    Ensure a skills_root exists and has the minimal required files.
 
     This is primarily for first-run UX when installed from PyPI: users shouldn't
     need to clone the repo just to get `taxonomy_meta.json`, `taxonomy_index.json`,

@@ -1,4 +1,5 @@
-"""Exception hierarchy for Skills Fleet.
+"""
+Exception hierarchy for Skills Fleet.
 
 This module defines specific exception types used throughout the Skills Fleet
 codebase. Using specific exceptions improves error handling, debugging, and
@@ -13,18 +14,21 @@ from __future__ import annotations
 
 
 class SkillsFleetError(Exception):
-    """Base exception for all Skills Fleet errors.
+    """
+    Base exception for all Skills Fleet errors.
 
     All custom exceptions should inherit from this base class, allowing
     consumers to catch all Skills Fleet errors with a single except clause.
     """
 
     def __init__(self, message: str, *, details: dict | None = None) -> None:
-        """Initialize the exception with a message and optional details.
+        """
+        Initialize the exception with a message and optional details.
 
         Args:
             message: Human-readable error message
             details: Additional context about the error (e.g., skill_id, file_path)
+
         """
         super().__init__(message)
         self.message = message
@@ -48,7 +52,8 @@ class SkillError(SkillsFleetError):
 
 
 class SkillCreationError(SkillError):
-    """Raised when skill creation fails.
+    """
+    Raised when skill creation fails.
 
     This can occur due to:
     - Invalid skill metadata
@@ -59,7 +64,8 @@ class SkillCreationError(SkillError):
 
 
 class SkillValidationError(SkillError):
-    """Raised when skill validation fails.
+    """
+    Raised when skill validation fails.
 
     This can occur when:
     - Skill doesn't comply with agentskills.io spec
@@ -70,10 +76,12 @@ class SkillValidationError(SkillError):
 
 
 class SkillNotFoundError(SkillError):
-    """Raised when a requested skill cannot be found.
+    """
+    Raised when a requested skill cannot be found.
 
     Attributes:
         skill_path: The path that was searched for
+
     """
 
     def __init__(self, message: str, *, skill_path: str) -> None:
@@ -82,7 +90,8 @@ class SkillNotFoundError(SkillError):
 
 
 class SkillRevisionError(SkillError):
-    """Raised when skill revision fails.
+    """
+    Raised when skill revision fails.
 
     This can occur when:
     - Feedback cannot be applied
@@ -101,7 +110,8 @@ class TaxonomyError(SkillsFleetError):
 
 
 class TaxonomyValidationError(TaxonomyError):
-    """Raised when taxonomy structure is invalid.
+    """
+    Raised when taxonomy structure is invalid.
 
     This can occur when:
     - Circular dependencies are detected
@@ -112,10 +122,12 @@ class TaxonomyValidationError(TaxonomyError):
 
 
 class TaxonomyNotFoundError(TaxonomyError):
-    """Raised when a taxonomy path cannot be resolved.
+    """
+    Raised when a taxonomy path cannot be resolved.
 
     Attributes:
         taxonomy_path: The path that was searched for
+
     """
 
     def __init__(self, message: str, *, taxonomy_path: str) -> None:
@@ -137,7 +149,8 @@ class DSPyConfigurationError(DSPyWorkflowError):
 
 
 class DSPyExecutionError(DSPyWorkflowError):
-    """Raised when DSPy program execution fails.
+    """
+    Raised when DSPy program execution fails.
 
     This can occur when:
     - LLM API calls fail
@@ -148,10 +161,12 @@ class DSPyExecutionError(DSPyWorkflowError):
 
 
 class DSPyOptimizationError(DSPyWorkflowError):
-    """Raised when DSPy optimization (MIPROv2, GEPA) fails.
+    """
+    Raised when DSPy optimization (MIPROv2, GEPA) fails.
 
     Attributes:
         optimizer: The optimizer that failed (e.g., "miprov2", "gepa")
+
     """
 
     def __init__(self, message: str, *, optimizer: str) -> None:
@@ -169,7 +184,8 @@ class AgentError(SkillsFleetError):
 
 
 class ConversationStateError(AgentError):
-    """Raised when conversation state is invalid or transition fails.
+    """
+    Raised when conversation state is invalid or transition fails.
 
     This can occur when:
     - Invalid state transition
@@ -179,7 +195,8 @@ class ConversationStateError(AgentError):
 
 
 class AgentExecutionError(AgentError):
-    """Raised when agent execution fails.
+    """
+    Raised when agent execution fails.
 
     This can occur when:
     - Message processing fails
@@ -189,7 +206,8 @@ class AgentExecutionError(AgentError):
 
 
 class TDDWorkflowError(AgentError):
-    """Raised when TDD (Test-Driven Development) workflow fails.
+    """
+    Raised when TDD (Test-Driven Development) workflow fails.
 
     This can occur when:
     - Red phase tests fail unexpectedly
@@ -209,7 +227,8 @@ class APIError(SkillsFleetError):
 
 
 class APIValidationError(APIError):
-    """Raised when API request validation fails.
+    """
+    Raised when API request validation fails.
 
     This can occur when:
     - Invalid request body
@@ -223,10 +242,12 @@ class APIAuthenticationError(APIError):
 
 
 class APIRateLimitError(APIError):
-    """Raised when API rate limit is exceeded.
+    """
+    Raised when API rate limit is exceeded.
 
     Attributes:
         retry_after: Seconds to wait before retrying (if available)
+
     """
 
     def __init__(self, message: str, *, retry_after: int | None = None) -> None:
@@ -240,7 +261,8 @@ class APIRateLimitError(APIError):
 
 
 class ConfigurationError(SkillsFleetError):
-    """Raised when configuration is invalid or missing.
+    """
+    Raised when configuration is invalid or missing.
 
     This can occur when:
     - config.yaml is malformed
@@ -265,7 +287,8 @@ class ResearchError(SkillsFleetError):
 
 
 class FileSystemResearchError(ResearchError):
-    """Raised when filesystem research fails.
+    """
+    Raised when filesystem research fails.
 
     This can occur when:
     - File not found
@@ -275,7 +298,8 @@ class FileSystemResearchError(ResearchError):
 
 
 class WebSearchError(ResearchError):
-    """Raised when web search research fails.
+    """
+    Raised when web search research fails.
 
     This can occur when:
     - Search API unavailable
@@ -294,18 +318,21 @@ class LLMProviderError(SkillsFleetError):
 
 
 class LLMAuthenticationError(LLMProviderError):
-    """Raised when LLM provider authentication fails.
+    """
+    Raised when LLM provider authentication fails.
 
     This typically indicates missing or invalid API keys.
     """
 
 
 class LLMRateLimitError(LLMProviderError):
-    """Raised when LLM provider rate limit is exceeded.
+    """
+    Raised when LLM provider rate limit is exceeded.
 
     Attributes:
         provider: The LLM provider (e.g., "openai", "gemini")
         retry_after: Seconds to wait before retrying (if available)
+
     """
 
     def __init__(self, message: str, *, provider: str, retry_after: int | None = None) -> None:
@@ -315,7 +342,8 @@ class LLMRateLimitError(LLMProviderError):
 
 
 class LLMResponseError(LLMProviderError):
-    """Raised when LLM response is invalid or unexpected.
+    """
+    Raised when LLM response is invalid or unexpected.
 
     This can occur when:
     - Malformed JSON response
@@ -334,10 +362,12 @@ class SessionError(SkillsFleetError):
 
 
 class SessionNotFoundError(SessionError):
-    """Raised when a session cannot be found.
+    """
+    Raised when a session cannot be found.
 
     Attributes:
         session_id: The session ID that was searched for
+
     """
 
     def __init__(self, message: str, *, session_id: str) -> None:

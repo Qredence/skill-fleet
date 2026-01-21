@@ -1,5 +1,5 @@
 """
-Database Export/Import Commands for Skill Fleet
+Database Export/Import Commands for Skill Fleet.
 
 Export skills from local directory to database, and import from database to local directory.
 """

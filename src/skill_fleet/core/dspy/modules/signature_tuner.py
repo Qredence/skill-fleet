@@ -1,4 +1,5 @@
-"""DSPy module for metric-driven signature tuning.
+"""
+DSPy module for metric-driven signature tuning.
 
 This module analyzes skill evaluation failures and proposes improved
 signatures to boost quality scores. Uses DSPy optimization patterns
@@ -65,10 +66,12 @@ class SignatureVersion:
             self.hash = hashlib.sha256(self.signature_text.encode()).hexdigest()[:12]
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert SignatureVersion to dictionary for serialization.
+        """
+        Convert SignatureVersion to dictionary for serialization.
 
         Returns:
             Dictionary representation of this version.
+
         """
         return {
             "version": self.version,
@@ -83,13 +86,15 @@ class SignatureVersion:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> SignatureVersion:
-        """Create SignatureVersion from dictionary.
+        """
+        Create SignatureVersion from dictionary.
 
         Args:
             data: Dictionary containing signature version data.
 
         Returns:
             SignatureVersion instance.
+
         """
         return cls(**data)
 
@@ -135,10 +140,12 @@ class SignatureVersionHistory:
         return max(self.versions, key=lambda v: v.metric_score)
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert SignatureVersionHistory to dictionary for serialization.
+        """
+        Convert SignatureVersionHistory to dictionary for serialization.
 
         Returns:
             Dictionary representation of the version history.
+
         """
         return {
             "signature_id": self.signature_id,
@@ -148,13 +155,15 @@ class SignatureVersionHistory:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> SignatureVersionHistory:
-        """Create SignatureVersionHistory from dictionary.
+        """
+        Create SignatureVersionHistory from dictionary.
 
         Args:
             data: Dictionary containing version history data.
 
         Returns:
             SignatureVersionHistory instance.
+
         """
         history = cls(
             signature_id=data["signature_id"],
@@ -196,7 +205,8 @@ class FailureAnalyzerModule(dspy.Module):
         target_score: float,
         quality_issues: list[str],
     ) -> dict[str, Any]:
-        """Analyze signature failures and identify root causes.
+        """
+        Analyze signature failures and identify root causes.
 
         Args:
             skill_content: The generated skill content that scored poorly
@@ -207,6 +217,7 @@ class FailureAnalyzerModule(dspy.Module):
 
         Returns:
             dict: Failure analysis with root causes and improvement directions
+
         """
         result = self.analyze(
             skill_content=skill_content,
@@ -239,7 +250,8 @@ class SignatureProposerModule(dspy.Module):
         target_score: float,
         skill_type: str,
     ) -> dict[str, Any]:
-        """Propose an improved signature to address failures.
+        """
+        Propose an improved signature to address failures.
 
         Args:
             current_signature: The current signature text
@@ -249,6 +261,7 @@ class SignatureProposerModule(dspy.Module):
 
         Returns:
             dict: Proposed improved signature with reasoning
+
         """
         result = self.propose(
             current_signature=current_signature,
@@ -279,7 +292,8 @@ class SignatureValidatorModule(dspy.Module):
         proposed_signature: str,
         improvement_reasoning: str,
     ) -> dict[str, Any]:
-        """Validate a proposed signature improvement.
+        """
+        Validate a proposed signature improvement.
 
         Args:
             original_signature: The original signature text
@@ -288,6 +302,7 @@ class SignatureValidatorModule(dspy.Module):
 
         Returns:
             dict: Validation result with approval status
+
         """
         result = self.validate(
             original_signature=original_signature,
@@ -304,7 +319,8 @@ class SignatureValidatorModule(dspy.Module):
 
 
 class SignatureTuner(dspy.Module):
-    """Metric-driven signature tuning orchestrator.
+    """
+    Metric-driven signature tuning orchestrator.
 
     Analyzes skill quality failures and proposes improved signatures
     to boost metric scores. Implements a feedback loop:
@@ -322,12 +338,14 @@ class SignatureTuner(dspy.Module):
         max_iterations: int = 3,
         quality_threshold: float = 0.75,
     ):
-        """Initialize the SignatureTuner.
+        """
+        Initialize the SignatureTuner.
 
         Args:
             improvement_threshold: Minimum improvement required to accept (default: 5%)
             max_iterations: Maximum tuning iterations per session
             quality_threshold: Score below which tuning is triggered
+
         """
         super().__init__()
         self.improvement_threshold = improvement_threshold
@@ -366,7 +384,8 @@ class SignatureTuner(dspy.Module):
         skill_type: Literal["navigation_hub", "comprehensive", "minimal"] = "comprehensive",
         signature_id: str | None = None,
     ) -> dict[str, Any]:
-        """Tune a signature to improve quality scores.
+        """
+        Tune a signature to improve quality scores.
 
         Args:
             skill_content: The generated skill content
@@ -378,6 +397,7 @@ class SignatureTuner(dspy.Module):
 
         Returns:
             dict: Tuning result with improved signature and metadata
+
         """
         signature_id = signature_id or hashlib.sha256(current_signature.encode()).hexdigest()[:16]
         history = self._get_or_create_history(signature_id)
@@ -491,7 +511,8 @@ class SignatureTuner(dspy.Module):
         skill_type: Literal["navigation_hub", "comprehensive", "minimal"] = "comprehensive",
         re_evaluate_fn: Any | None = None,
     ) -> dict[str, Any]:
-        """Iteratively tune signature until target score is reached or max iterations.
+        """
+        Iteratively tune signature until target score is reached or max iterations.
 
         Args:
             skill_content: The generated skill content
@@ -504,6 +525,7 @@ class SignatureTuner(dspy.Module):
 
         Returns:
             dict: Final tuning result with iteration history
+
         """
         iterations = []
         current_sig = current_signature

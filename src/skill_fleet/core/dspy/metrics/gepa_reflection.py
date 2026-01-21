@@ -1,4 +1,5 @@
-"""GEPA-optimized metrics with reflection feedback.
+"""
+GEPA-optimized metrics with reflection feedback.
 
 GEPA (Generalized Efficient Prompt Algorithm) is a reflection-based optimizer that:
 1. Runs your program
@@ -12,11 +13,12 @@ that the reflection_lm can use to improve instructions.
 GEPA Metric Signature:
     metric(gold, pred, trace=None, pred_name=None, pred_trace=None) -> dict
 
-    Returns:
+Returns:
         {
             "score": float (0.0-1.0),
             "feedback": str (explanation for reflection_lm)
         }
+
 """
 
 from __future__ import annotations
@@ -33,7 +35,8 @@ def gepa_skill_quality_metric(
     pred_name: str | None = None,
     pred_trace: Any | None = None,
 ) -> dict[str, Any]:
-    """GEPA-compatible skill quality metric with reflection feedback.
+    """
+    GEPA-compatible skill quality metric with reflection feedback.
 
     Evaluates skill quality across multiple dimensions and provides
     detailed feedback that GEPA's reflection_lm can use to improve prompts.
@@ -50,6 +53,7 @@ def gepa_skill_quality_metric(
             "score": 0.0-1.0,
             "feedback": Detailed feedback for reflection LM
         }
+
     """
     score = 0.0
     feedback_parts = []
@@ -166,7 +170,8 @@ def gepa_semantic_match_metric(
     pred_name: str | None = None,
     pred_trace: Any | None = None,
 ) -> dict[str, Any]:
-    """GEPA metric: Semantic match between expected and predicted.
+    """
+    GEPA metric: Semantic match between expected and predicted.
 
     Simpler, faster metric focused on whether the output is semantically
     aligned with expectations.
@@ -176,6 +181,7 @@ def gepa_semantic_match_metric(
             "score": 0.0-1.0,
             "feedback": str
         }
+
     """
     score = 0.0
     feedback_parts = []
@@ -220,7 +226,8 @@ def gepa_composite_metric(
     pred_name: str | None = None,
     pred_trace: Any | None = None,
 ) -> dict[str, Any]:
-    """GEPA metric: Weighted combination of quality checks.
+    """
+    GEPA metric: Weighted combination of quality checks.
 
     Uses multiple quality signals to provide comprehensive feedback
     that guides GEPA's instruction refinement.
@@ -230,6 +237,7 @@ def gepa_composite_metric(
             "score": 0.0-1.0,
             "feedback": str (for reflection_lm)
         }
+
     """
     # Get individual metric results
     quality_result = gepa_skill_quality_metric(gold, pred, trace, pred_name, pred_trace)

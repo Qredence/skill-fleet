@@ -20,7 +20,8 @@ async def _ask_server_config(
     auto_accept: bool,
     force_plain_text: bool,
 ) -> tuple[int, str, bool]:
-    """Ask clarifying questions about server configuration.
+    """
+    Ask clarifying questions about server configuration.
 
     Returns:
         (port, host, reload)
@@ -96,7 +97,8 @@ def serve_command(
         help="Skip database initialization (assumes DB already initialized)",
     ),
 ):
-    """Start the Skill Fleet API server.
+    """
+    Start the Skill Fleet API server.
 
     Interactively asks for configuration (port, host, reload mode) unless
     --auto-accept is specified.

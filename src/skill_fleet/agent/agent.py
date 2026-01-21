@@ -1,4 +1,5 @@
-"""Conversational agent for interactive skill creation.
+"""
+Conversational agent for interactive skill creation.
 
 This module provides a DSPy-powered conversational agent that orchestrates
 skill creation through natural language interaction. It combines:
@@ -169,7 +170,8 @@ class AgentResponse:
 
 
 class ConversationalSkillAgent(dspy.Module):
-    """DSPy-powered conversational agent for skill creation.
+    """
+    DSPy-powered conversational agent for skill creation.
 
     Orchestrates skill creation workflow through natural language interaction.
     Uses DSPy signatures internally but presents everything conversationally.
@@ -182,12 +184,14 @@ class ConversationalSkillAgent(dspy.Module):
         task_lms: dict[str, dspy.LM] | None = None,
         skills_root: Path | None = None,
     ):
-        """Initialize conversational agent.
+        """
+        Initialize conversational agent.
 
         Args:
             taxonomy_manager: Taxonomy management instance
             task_lms: Dictionary of task-specific LMs (optional, uses dspy.settings if None)
             skills_root: Skills root directory (optional, for session persistence)
+
         """
         super().__init__()
         self.taxonomy = taxonomy_manager
@@ -271,12 +275,12 @@ class ConversationalSkillAgent(dspy.Module):
         )
 
     def _get_core_understand_module(self):
-        """Get a cached core `UnderstandModule` instance (lazy import).
+        """
+        Get a cached core `UnderstandModule` instance (lazy import).
 
         We keep the import local to avoid circular import hazards while still
         avoiding per-call module instantiation.
         """
-
         if self._core_understand_module is None:
             from ..core.dspy.modules import UnderstandModule
 
@@ -285,7 +289,6 @@ class ConversationalSkillAgent(dspy.Module):
 
     def _get_core_plan_module(self):
         """Get a cached core `PlanModule` instance (lazy import)."""
-
         if self._core_plan_module is None:
             from ..core.dspy.modules import PlanModule
 
@@ -298,7 +301,8 @@ class ConversationalSkillAgent(dspy.Module):
         thinking_callback=None,
         **kwargs,
     ) -> tuple[dict[str, Any], str]:
-        """Execute a streaming module and return result + thinking content.
+        """
+        Execute a streaming module and return result + thinking content.
 
         Args:
             streaming_module: A streaming-wrapped DSPy module
@@ -309,6 +313,7 @@ class ConversationalSkillAgent(dspy.Module):
 
         Returns:
             Tuple of (prediction result, thinking content string)
+
         """
         thinking_parts: list[str] = []
         prediction: Any = None
@@ -331,9 +336,9 @@ class ConversationalSkillAgent(dspy.Module):
 
         thinking_content = "".join(thinking_parts)
         if isinstance(prediction, dspy.Prediction):
-            result = cast(dict[str, Any], prediction.labels())
+            result = cast("dict[str, Any]", prediction.labels())
         elif isinstance(prediction, dict):
-            result = cast(dict[str, Any], prediction)
+            result = cast("dict[str, Any]", prediction)
         elif prediction is None:
             result = {}
         else:
@@ -343,7 +348,8 @@ class ConversationalSkillAgent(dspy.Module):
     def respond(
         self, user_message: str, session: ConversationSession, capture_thinking: bool = True
     ) -> AgentResponse:
-        """Generate conversational response to user message.
+        """
+        Generate conversational response to user message.
 
         Args:
             user_message: User's message
@@ -352,8 +358,8 @@ class ConversationalSkillAgent(dspy.Module):
 
         Returns:
             AgentResponse with message, thinking content, and state updates
-        """
 
+        """
         try:
             # Handle empty/continue messages for automatic progression
             user_message_trimmed = user_message.strip().lower() if user_message else ""
@@ -1131,7 +1137,8 @@ class ConversationalSkillAgent(dspy.Module):
     def _generate_confirmation(
         self, session: ConversationSession, thinking_content: str = ""
     ) -> AgentResponse:
-        """Generate confirmation summary before creation (MANDATORY checkpoint).
+        """
+        Generate confirmation summary before creation (MANDATORY checkpoint).
 
         Uses the new UnderstandingSummaryModule to create a structured three-part
         summary that clearly communicates:
@@ -1453,7 +1460,8 @@ class ConversationalSkillAgent(dspy.Module):
             )
 
     def _extract_thinking_content(self, lm: dspy.LM) -> str:
-        """Extract thinking content from Gemini 3 LM response.
+        """
+        Extract thinking content from Gemini 3 LM response.
 
         Attempts to extract thinking tokens from the last LM call.
         Gemini 3 returns thinking content in the response structure.
@@ -1464,6 +1472,7 @@ class ConversationalSkillAgent(dspy.Module):
 
         Returns:
             Thinking content as string, empty if not available
+
         """
         try:
             # Method 1: Try accessing LM's internal history/requests
@@ -1486,7 +1495,7 @@ class ConversationalSkillAgent(dspy.Module):
                 if raw_response and hasattr(raw_response, "candidates"):
                     # Gemini response structure
                     candidates = getattr(raw_response, "candidates", None)
-                    for candidate in cast(Any, candidates or []):
+                    for candidate in cast("Any", candidates or []):
                         if hasattr(candidate, "content") and candidate.content:
                             content_str = str(candidate.content)
                             if hasattr(candidate.content, "thinking") or "thinking" in content_str:
@@ -1504,7 +1513,7 @@ class ConversationalSkillAgent(dspy.Module):
                     if thinking:
                         return str(thinking)
                 elif isinstance(prediction, dict):
-                    prediction_dict = cast(dict[str, Any], prediction)
+                    prediction_dict = cast("dict[str, Any]", prediction)
                     thinking = prediction_dict.get("thinking")
                     if thinking:
                         return str(thinking)
@@ -1753,13 +1762,15 @@ class ConversationalSkillAgent(dspy.Module):
         checklist.supporting_files_appropriate = True
 
     def _summarize_research(self, research_context: dict) -> str:
-        """Summarize research findings into concise text for skill creation.
+        """
+        Summarize research findings into concise text for skill creation.
 
         Args:
             research_context: Dict with 'web' and 'filesystem' keys containing research results
 
         Returns:
             Summary string to append to task description
+
         """
         summary_parts = []
 

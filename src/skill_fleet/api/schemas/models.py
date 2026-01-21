@@ -1,4 +1,5 @@
-"""Pydantic schemas for API models.
+"""
+Pydantic schemas for API models.
 
 Following FastAPI best practices and codebase patterns (see core/models.py),
 all Pydantic models for request/response validation are defined in this module.

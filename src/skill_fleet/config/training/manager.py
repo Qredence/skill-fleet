@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -25,7 +25,7 @@ class ExampleMetadata(BaseModel):
     example_id: str = Field(..., description="Unique ID for the example")
     task_description: str = Field(..., description="Original user task")
     category: str = Field(..., description="Skill category (e.g., technical, domain)")
-    created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     quality_score: float = Field(0.0, description="Automated quality score (0-1)")
     human_rating: float | None = Field(None, description="Human rating (0-1)")
     success_rate: float = Field(0.0, description="Pass rate in optimization runs")
@@ -91,6 +91,7 @@ class TrainingDataManager:
 
         Returns:
             List of example dictionaries (compatible with DSPy)
+
         """
         if config is None:
             config = TrainingDataConfig()
@@ -158,7 +159,7 @@ class TrainingDataManager:
 
     def _update_usage_stats(self, examples: list[dict]) -> None:
         """Update last_used timestamp and usage count."""
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(UTC).isoformat()
         changed = False
 
         for ex in examples:
@@ -188,6 +189,7 @@ class TrainingDataManager:
 
         Args:
             results: List of dicts with 'example_id', 'score' (0-1), 'passed' (bool)
+
         """
         changed = False
         for res in results:

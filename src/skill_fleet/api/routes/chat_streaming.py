@@ -1,4 +1,5 @@
-"""Chat streaming endpoints for real-time assistant responses.
+"""
+Chat streaming endpoints for real-time assistant responses.
 
 Provides Server-Sent Events (SSE) endpoints for streaming thinking
 content, reasoning, and responses in real-time.
@@ -40,7 +41,8 @@ class ChatStreamEvent(BaseModel):
 
 @router.post("/stream")
 async def chat_stream(request: ChatMessageRequest):
-    """Stream real-time chat response with thinking process.
+    """
+    Stream real-time chat response with thinking process.
 
     This endpoint streams Server-Sent Events (SSE) that include:
     - **thinking**: Intermediate reasoning steps
@@ -67,6 +69,7 @@ async def chat_stream(request: ChatMessageRequest):
 
     Returns:
         Server-Sent Events stream
+
     """
     logger.info(f"Chat stream request received: message='{request.message}'")
 
@@ -126,7 +129,8 @@ async def chat_stream(request: ChatMessageRequest):
 
 @router.post("/sync")
 async def chat_sync(request: ChatMessageRequest) -> dict[str, Any]:
-    """Non-streaming chat response (for compatibility).
+    """
+    Non-streaming chat response (for compatibility).
 
     Collects all streaming events and returns as complete response.
 
@@ -135,6 +139,7 @@ async def chat_sync(request: ChatMessageRequest) -> dict[str, Any]:
 
     Returns:
         Complete response with thinking summary and response
+
     """
     try:
         assistant = StreamingAssistant()

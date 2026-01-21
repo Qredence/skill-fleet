@@ -1,4 +1,5 @@
-"""Custom exceptions for Skill Fleet API.
+"""
+Custom exceptions for Skill Fleet API.
 
 This module defines custom exception classes that can be caught by
 global exception handlers to provide consistent error responses.
@@ -22,12 +23,14 @@ class SkillFleetAPIException(Exception):
         status_code: int = 500,
         headers: dict[str, str] | None = None,
     ) -> None:
-        """Initialize exception.
+        """
+        Initialize exception.
 
         Args:
             detail: Human-readable error message
             status_code: HTTP status code
             headers: Optional response headers
+
         """
         self.detail = detail
         self.status_code = status_code
@@ -41,11 +44,13 @@ class NotFoundException(SkillFleetAPIException):
     status_code: int = 404
 
     def __init__(self, resource: str, identifier: str | None = None) -> None:
-        """Initialize not found exception.
+        """
+        Initialize not found exception.
 
         Args:
             resource: Type of resource (e.g., "Skill", "Job")
             identifier: Optional identifier of the missing resource
+
         """
         message = f"{resource} not found"
         if identifier:
@@ -59,10 +64,12 @@ class BadRequestException(SkillFleetAPIException):
     status_code: int = 400
 
     def __init__(self, detail: str) -> None:
-        """Initialize bad request exception.
+        """
+        Initialize bad request exception.
 
         Args:
             detail: Error message explaining what's invalid
+
         """
         super().__init__(detail=detail, status_code=400)
 
@@ -73,10 +80,12 @@ class UnauthorizedException(SkillFleetAPIException):
     status_code: int = 401
 
     def __init__(self, detail: str = "Authentication required") -> None:
-        """Initialize unauthorized exception.
+        """
+        Initialize unauthorized exception.
 
         Args:
             detail: Error message
+
         """
         super().__init__(detail=detail, status_code=401)
 
@@ -87,10 +96,12 @@ class ForbiddenException(SkillFleetAPIException):
     status_code: int = 403
 
     def __init__(self, detail: str = "Insufficient permissions") -> None:
-        """Initialize forbidden exception.
+        """
+        Initialize forbidden exception.
 
         Args:
             detail: Error message
+
         """
         super().__init__(detail=detail, status_code=403)
 
@@ -101,10 +112,12 @@ class ConflictException(SkillFleetAPIException):
     status_code: int = 409
 
     def __init__(self, detail: str) -> None:
-        """Initialize conflict exception.
+        """
+        Initialize conflict exception.
 
         Args:
             detail: Error message explaining the conflict
+
         """
         super().__init__(detail=detail, status_code=409)
 
@@ -115,10 +128,12 @@ class UnprocessableEntityException(SkillFleetAPIException):
     status_code: int = 422
 
     def __init__(self, detail: str) -> None:
-        """Initialize unprocessable entity exception.
+        """
+        Initialize unprocessable entity exception.
 
         Args:
             detail: Error message explaining the validation error
+
         """
         super().__init__(detail=detail, status_code=422)
 
@@ -129,11 +144,13 @@ class TooManyRequestsException(SkillFleetAPIException):
     status_code: int = 429
 
     def __init__(self, detail: str = "Too many requests", retry_after: int | None = None) -> None:
-        """Initialize rate limit exception.
+        """
+        Initialize rate limit exception.
 
         Args:
             detail: Error message
             retry_after: Optional seconds until retry is allowed
+
         """
         headers = None
         if retry_after is not None:
@@ -147,10 +164,12 @@ class InternalServerErrorException(SkillFleetAPIException):
     status_code: int = 500
 
     def __init__(self, detail: str = "Internal server error") -> None:
-        """Initialize internal server error exception.
+        """
+        Initialize internal server error exception.
 
         Args:
             detail: Error message (will be generic in production)
+
         """
         super().__init__(detail=detail, status_code=500)
 
@@ -165,11 +184,13 @@ class ServiceUnavailableException(SkillFleetAPIException):
         detail: str = "Service temporarily unavailable",
         retry_after: int | None = None,
     ) -> None:
-        """Initialize service unavailable exception.
+        """
+        Initialize service unavailable exception.
 
         Args:
             detail: Error message
             retry_after: Optional seconds until retry is allowed
+
         """
         headers = None
         if retry_after is not None:
@@ -188,12 +209,14 @@ class JobException(SkillFleetAPIException):
         detail: str,
         status_code: int = 400,
     ) -> None:
-        """Initialize job exception.
+        """
+        Initialize job exception.
 
         Args:
             job_id: Job identifier
             detail: Error message
             status_code: HTTP status code
+
         """
         message = f"Job {job_id}: {detail}"
         super().__init__(detail=message, status_code=status_code)
@@ -209,11 +232,13 @@ class HITLException(SkillFleetAPIException):
         detail: str,
         interaction_type: str | None = None,
     ) -> None:
-        """Initialize HITL exception.
+        """
+        Initialize HITL exception.
 
         Args:
             detail: Error message
             interaction_type: Optional type of HITL interaction
+
         """
         message = detail
         if interaction_type:
@@ -231,11 +256,13 @@ class ValidationException(SkillFleetAPIException):
         detail: str,
         validation_score: float | None = None,
     ) -> None:
-        """Initialize validation exception.
+        """
+        Initialize validation exception.
 
         Args:
             detail: Error message explaining validation failure
             validation_score: Optional validation score
+
         """
         extra: dict[str, Any] = {}
         if validation_score is not None:

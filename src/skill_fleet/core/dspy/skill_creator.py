@@ -1,4 +1,5 @@
-"""Main SkillCreationProgram for the reworked architecture.
+"""
+Main SkillCreationProgram for the reworked architecture.
 
 This program orchestrates the 3-phase workflow with integrated HITL:
 1. Phase 1: Understanding & Planning (HITL clarifying questions + confirmation)
@@ -40,7 +41,8 @@ logger = logging.getLogger(__name__)
 
 
 def _extract_hitl_text_response(response: Any) -> str:
-    """Extract a human-readable text response from HITL callback payloads.
+    """
+    Extract a human-readable text response from HITL callback payloads.
 
     The API/CLI HITL layer typically sends dict payloads like:
       {"answers": {"response": "..."}}
@@ -122,7 +124,8 @@ class SkillCreationProgram(dspy.Module):
             self._try_load_optimized()
 
     def _try_load_optimized(self) -> bool:
-        """Try to load an optimized version of this program.
+        """
+        Try to load an optimized version of this program.
 
         Looks for optimized programs in config/optimized/ directory.
         Returns True if an optimized program was loaded.
@@ -167,7 +170,8 @@ class SkillCreationProgram(dspy.Module):
         progress_callback: Callable[[str, str], None] | None = None,
         **kwargs,
     ) -> SkillCreationResult:
-        """Execute the 3-phase skill creation workflow with HITL.
+        """
+        Execute the 3-phase skill creation workflow with HITL.
 
         Args:
             task_description: Initial user task
@@ -179,6 +183,7 @@ class SkillCreationProgram(dspy.Module):
 
         Returns:
             SkillCreationResult with content and metadata
+
         """
         try:
             # ============================================================

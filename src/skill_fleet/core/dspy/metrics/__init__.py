@@ -1,4 +1,5 @@
-"""Skill quality metrics for DSPy evaluation and optimization.
+"""
+Skill quality metrics for DSPy evaluation and optimization.
 
 This module provides quality assessment functions for evaluating generated skills.
 

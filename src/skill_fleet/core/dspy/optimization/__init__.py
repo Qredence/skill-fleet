@@ -1,4 +1,5 @@
-"""DSPy optimization modules.
+"""
+DSPy optimization modules.
 
 This package provides:
 - OptimizerSelector: Intelligent auto-selection of DSPy optimizers

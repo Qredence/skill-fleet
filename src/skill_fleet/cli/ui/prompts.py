@@ -1,4 +1,5 @@
-"""Prompt UI abstraction for Typer CLI commands.
+"""
+Prompt UI abstraction for Typer CLI commands.
 
 `skill-fleet chat` needs a better UX than typed `Prompt.ask(...)` choices.
 This module provides:
@@ -94,7 +95,8 @@ class PromptToolkitUI:
         *,
         default_id: str | None = None,
     ) -> str:
-        """Choose a single option using prompt-toolkit `choice()`.
+        """
+        Choose a single option using prompt-toolkit `choice()`.
 
         This follows the official prompt-toolkit documentation:
         https://python-prompt-toolkit.readthedocs.io/en/3.0.52/pages/asking_for_a_choice.html
@@ -287,7 +289,6 @@ class RichFallbackUI:
 
 def get_default_ui(*, force_plain_text: bool = False) -> PromptUI:
     """Return the best available UI implementation for this environment."""
-
     env_force_plain = os.environ.get("SKILL_FLEET_FORCE_PLAIN_TEXT", "").strip().lower() in {
         "1",
         "true",
@@ -322,12 +323,12 @@ async def choose_one_with_other(
     other_label: str = "Other (type my own)",
     other_prompt: str = "Type your answer",
 ) -> tuple[list[str], str]:
-    """Choose one option or provide free text.
+    """
+    Choose one option or provide free text.
 
     Returns:
         (selected_ids, free_text)
     """
-
     extended = list(choices) + [(OTHER_OPTION_ID, other_label)]
     selected = await ui.choose_one(prompt, extended, default_id=default_id)
     if selected == OTHER_OPTION_ID:
@@ -344,12 +345,12 @@ async def choose_many_with_other(
     other_label: str = "Other (type my own)",
     other_prompt: str = "Type your answer",
 ) -> tuple[list[str], str]:
-    """Choose many options and optionally provide free text.
+    """
+    Choose many options and optionally provide free text.
 
     Returns:
         (selected_ids, free_text)
     """
-
     extended = list(choices) + [(OTHER_OPTION_ID, other_label)]
     selected = await ui.choose_many(prompt, extended, default_ids=default_ids)
     free_text = ""

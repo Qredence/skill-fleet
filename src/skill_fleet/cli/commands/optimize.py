@@ -140,9 +140,9 @@ def optimize_command(
                 program,
                 trainset_path=trainset,
                 output_path=output,
-                optimizer_type=cast(Literal["miprov2", "gepa"], optimizer),
+                optimizer_type=cast("Literal['miprov2', 'gepa']", optimizer),
                 model=model,
-                auto=cast(Literal["light", "medium", "heavy"], auto),
+                auto=cast("Literal['light', 'medium', 'heavy']", auto),
             )
         elif optimizer == "miprov2":
             optimize_with_miprov2(
@@ -150,7 +150,7 @@ def optimize_command(
                 trainset_path=trainset,
                 output_path=output,
                 model=model,
-                auto=cast(Literal["light", "medium", "heavy"], auto),
+                auto=cast("Literal['light', 'medium', 'heavy']", auto),
             )
         else:
             optimize_with_gepa(
@@ -158,7 +158,7 @@ def optimize_command(
                 trainset_path=trainset,
                 output_path=output,
                 model=model,
-                auto=cast(Literal["light", "medium", "heavy"], auto),
+                auto=cast("Literal['light', 'medium', 'heavy']", auto),
             )
 
         print(f"\n[SUCCESS] Optimized program saved to: {output}")
@@ -178,7 +178,8 @@ def _handle_auto_selection(
     quality_target: float,
     time_limit: int | None,
 ) -> tuple[str, str]:
-    """Handle auto-selection of optimizer.
+    """
+    Handle auto-selection of optimizer.
 
     Returns:
         Tuple of (optimizer_name, auto_setting)

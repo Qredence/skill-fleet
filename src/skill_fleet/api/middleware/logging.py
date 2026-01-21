@@ -25,7 +25,8 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         request: Request,
         call_next: Callable,
     ) -> Response:
-        """Process request and add logging.
+        """
+        Process request and add logging.
 
         Args:
             request: Incoming HTTP request
@@ -33,6 +34,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
 
         Returns:
             HTTP response with X-Request-ID header
+
         """
         # Generate unique request ID
         request_id = str(uuid.uuid4())
@@ -94,7 +96,8 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
         request: Request,
         call_next: Callable,
     ) -> Response:
-        """Process request and handle unexpected errors.
+        """
+        Process request and handle unexpected errors.
 
         Args:
             request: Incoming HTTP request
@@ -102,6 +105,7 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
 
         Returns:
             HTTP response or JSON error response on exception
+
         """
         try:
             return await call_next(request)

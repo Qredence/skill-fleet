@@ -1,4 +1,5 @@
-"""Taxonomy management for hierarchical skills.
+"""
+Taxonomy management for hierarchical skills.
 
 The taxonomy is stored on disk under a configurable `skills_root` directory.
 This manager provides:
@@ -40,7 +41,8 @@ logger = logging.getLogger(__name__)
 
 
 def skill_id_to_name(skill_id: str) -> str:
-    """Convert path-style skill_id to kebab-case name per agentskills.io spec.
+    """
+    Convert path-style skill_id to kebab-case name per agentskills.io spec.
 
     Examples:
         'technical_skills/programming/languages/python/python-decorators' -> 'python-decorators'
@@ -49,6 +51,7 @@ def skill_id_to_name(skill_id: str) -> str:
 
     The name must match the skill directory name, so it is derived from the
     last path segment only.
+
     """
     # Remove leading underscores from path segments
     parts = [p.lstrip("_") for p in skill_id.split("/")]
@@ -70,7 +73,8 @@ def skill_id_to_name(skill_id: str) -> str:
 
 
 def name_to_skill_id(name: str, taxonomy_path: str) -> str:
-    """Convert kebab-case name back to skill_id given taxonomy context.
+    """
+    Convert kebab-case name back to skill_id given taxonomy context.
 
     The taxonomy_path is the canonical source of truth for the full ID.
     """
@@ -78,7 +82,8 @@ def name_to_skill_id(name: str, taxonomy_path: str) -> str:
 
 
 def validate_skill_name(name: str) -> tuple[bool, str | None]:
-    """Validate skill name per agentskills.io spec.
+    """
+    Validate skill name per agentskills.io spec.
 
     Requirements:
     - 1-64 characters
@@ -88,6 +93,7 @@ def validate_skill_name(name: str) -> tuple[bool, str | None]:
 
     Returns:
         (is_valid, error_message)
+
     """
     if not name:
         return False, "Name cannot be empty"
@@ -108,7 +114,8 @@ def validate_skill_name(name: str) -> tuple[bool, str | None]:
 
 @dataclass(frozen=True, slots=True)
 class SkillMetadata:
-    """Lightweight representation of a skill's metadata.
+    """
+    Lightweight representation of a skill's metadata.
 
     Combines agentskills.io required fields (name, description) with
     extended fields for the hierarchical taxonomy system.
@@ -194,7 +201,8 @@ class TaxonomyManager:
         return self.index
 
     def resolve_skill_location(self, skill_identifier: str) -> str:
-        """Resolve a skill identifier (ID, path, or alias) to its canonical storage path.
+        """
+        Resolve a skill identifier (ID, path, or alias) to its canonical storage path.
 
         This implements the polyfill strategy:
         1. Check Index (canonical ID or alias).
@@ -275,7 +283,8 @@ class TaxonomyManager:
         return metadata
 
     def _load_skill_dir_metadata(self, skill_dir: Path) -> SkillMetadata:
-        """Load a skill definition stored as a directory containing `metadata.json`.
+        """
+        Load a skill definition stored as a directory containing `metadata.json`.
 
         Also attempts to parse YAML frontmatter from SKILL.md for agentskills.io
         compliant skills.
@@ -311,11 +320,13 @@ class TaxonomyManager:
         return metadata
 
     def parse_skill_frontmatter(self, skill_md_path: Path) -> dict[str, Any]:
-        """Parse YAML frontmatter from a SKILL.md file.
+        """
+        Parse YAML frontmatter from a SKILL.md file.
 
         Returns:
             Dict with frontmatter fields (name, description, metadata, etc.)
             Empty dict if no valid frontmatter found.
+
         """
         try:
             content = skill_md_path.read_text(encoding="utf-8")
@@ -350,7 +361,8 @@ class TaxonomyManager:
         return self.metadata_cache.get(skill_id)
 
     def get_mounted_skills(self, user_id: str) -> list[str]:
-        """Get currently mounted skills for a user.
+        """
+        Get currently mounted skills for a user.
 
         Note: user-specific mounting is not implemented in Phase 1; returns only
         always-loaded skills.
@@ -359,7 +371,8 @@ class TaxonomyManager:
         return [skill_id for skill_id, meta in self.metadata_cache.items() if meta.always_loaded]
 
     def get_relevant_branches(self, task_description: str) -> dict[str, dict[str, str]]:
-        """Get relevant taxonomy branches for a task.
+        """
+        Get relevant taxonomy branches for a task.
 
         Returns a subset of taxonomy structure based on simple keyword matching.
         """
@@ -437,7 +450,8 @@ class TaxonomyManager:
         extra_files: dict[str, Any] | None = None,
         overwrite: bool = False,
     ) -> bool:
-        """Register a new skill in the taxonomy.
+        """
+        Register a new skill in the taxonomy.
 
         Creates an agentskills.io compliant skill with YAML frontmatter in SKILL.md
         and extended metadata in metadata.json.
@@ -536,7 +550,8 @@ class TaxonomyManager:
         metadata: dict[str, Any],
         content: str,
     ) -> str:
-        """Generate SKILL.md content with agentskills.io compliant YAML frontmatter.
+        """
+        Generate SKILL.md content with agentskills.io compliant YAML frontmatter.
 
         Args:
             name: Kebab-case skill name
@@ -546,6 +561,7 @@ class TaxonomyManager:
 
         Returns:
             Complete SKILL.md content with proper frontmatter
+
         """
         # Strip existing frontmatter from content if present
         body_content = content
@@ -586,7 +602,8 @@ class TaxonomyManager:
     # ========================================================================
 
     def generate_available_skills_xml(self, user_id: str | None = None) -> str:
-        """Generate <available_skills> XML for agent context injection.
+        """
+        Generate <available_skills> XML for agent context injection.
 
         This XML format follows the agentskills.io integration standard
         for injecting skill metadata into agent system prompts.
@@ -596,6 +613,7 @@ class TaxonomyManager:
 
         Returns:
             XML string following agentskills.io format
+
         """
         xml_parts = ["<available_skills>"]
 
@@ -646,7 +664,8 @@ class TaxonomyManager:
         )
 
     def get_skill_for_prompt(self, skill_id: str) -> str | None:
-        """Get the full SKILL.md content for loading into an agent's context.
+        """
+        Get the full SKILL.md content for loading into an agent's context.
 
         This is the 'activation' step in the agentskills.io integration flow.
 
@@ -655,6 +674,7 @@ class TaxonomyManager:
 
         Returns:
             Full SKILL.md content or None if not found
+
         """
         meta = self.get_skill_metadata(skill_id) or self._try_load_skill_by_id(skill_id)
         if meta is None:
@@ -673,7 +693,8 @@ class TaxonomyManager:
         return skill_md_path.read_text(encoding="utf-8")
 
     def _create_skill_subdirectories(self, skill_dir: Path, skill_name: str) -> None:
-        """Create standard skill subdirectories with README.md files.
+        """
+        Create standard skill subdirectories with README.md files.
 
         Creates the following structure (v2 Golden Standard format):
         - references/README.md, quick-start.md, common-patterns.md, api-reference.md, troubleshooting.md
@@ -850,7 +871,8 @@ If you encounter issues not covered here:
                 file_path.write_text(content, encoding="utf-8")
 
     def _write_extra_files(self, skill_dir: Path, extra_files: dict[str, Any]) -> None:
-        """Populate skill subdirectories with additional content.
+        """
+        Populate skill subdirectories with additional content.
 
         Only creates directories when there is actual content to write.
         """
@@ -1010,13 +1032,15 @@ If you encounter issues not covered here:
                             file_path.write_text(str(content), encoding="utf-8")
 
     def _lint_and_format_skill(self, skill_dir: Path) -> None:
-        """Lint and format Python files in generated skill directory.
+        """
+        Lint and format Python files in generated skill directory.
 
         Runs ruff linting and formatting on all Python files in the skill's
         examples/ and scripts/ subdirectories to ensure code quality.
 
         Args:
             skill_dir: Path to skill directory
+
         """
         python_files = []
         examples_dir = skill_dir / "examples"

@@ -1,19 +1,18 @@
-"""Smart option generation utility for clarifying questions.
+"""
+Smart option generation utility for clarifying questions.
 
 This module provides intelligent option generation based on question text
 and task context to ensure multi-select behavior with sensible defaults.
 """
 
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    pass
 
 
 def generate_smart_options(
     question_text: str, task_context: str = ""
 ) -> tuple[list[str], str | None]:
-    """Generate sensible multi-select options for a question.
+    """
+    Generate sensible multi-select options for a question.
 
     Args:
         question_text: The question to generate options for
@@ -30,6 +29,7 @@ def generate_smart_options(
     - Scope: ["Single file/function", "Module/package", "Full project", "Multiple projects", "Other"]
     - Experience: ["Beginner (learning)", "Intermediate (some experience)", "Advanced (expert)", "Other"]
     - CI/CD: ["GitHub Actions", "GitLab CI", "CircleCI", "Jenkins", "Other"]
+
     """
     question_lower = question_text.lower()
     options = []

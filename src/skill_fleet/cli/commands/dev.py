@@ -16,7 +16,8 @@ console = Console()
 
 
 def _wait_for_api_ready(url: str, timeout: float = 30.0) -> bool:
-    """Wait for the API server to be ready (accepting requests).
+    """
+    Wait for the API server to be ready (accepting requests).
 
     Args:
         url: The base API URL (e.g., http://127.0.0.1:8000)
@@ -72,7 +73,8 @@ def dev_command(
     ),
     tui_script: str = typer.Option("dev", "--tui-script", help="npm script to run for the TUI"),
 ):
-    """Start the Skill Fleet API server and TUI together (best for development).
+    """
+    Start the Skill Fleet API server and TUI together (best for development).
 
     By default, auto-reload is disabled to prevent port binding issues when files change.
     Use --reload to enable auto-reload (requires uvicorn to cleanly rebind ports).

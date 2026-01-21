@@ -20,14 +20,14 @@ logger = logging.getLogger(__name__)
 
 
 def _canonicalize_skill_md_frontmatter(skill_content: str, skill_metadata: Any) -> str:
-    """Rebuild YAML frontmatter from SkillMetadata, stripping any existing frontmatter.
+    """
+    Rebuild YAML frontmatter from SkillMetadata, stripping any existing frontmatter.
 
     Why: the LLM sometimes edits frontmatter fields (notably version), causing
     validation drift (content != metadata.json/SkillMetadata). We treat
     `skill_metadata` as source-of-truth so validation matches what we will
     later write to disk during registration.
     """
-
     if not skill_content or not skill_content.strip():
         return skill_content
 
@@ -107,7 +107,8 @@ class SkillValidatorModule(dspy.Module):
         content_plan: str,
         validation_rules: str,
     ) -> dict[str, Any]:
-        """Validate skill content against rules and requirements.
+        """
+        Validate skill content against rules and requirements.
 
         Args:
             skill_content: The SKILL.md content to validate
@@ -117,6 +118,7 @@ class SkillValidatorModule(dspy.Module):
 
         Returns:
             dict: Validation report with issues, warnings, suggestions, and score
+
         """
         result = self.validate(
             skill_content=skill_content,
@@ -170,7 +172,8 @@ class SkillRefinerModule(dspy.Module):
         fix_strategies: str,
         iteration_number: int = 1,
     ) -> dict[str, Any]:
-        """Refine skill content based on validation feedback.
+        """
+        Refine skill content based on validation feedback.
 
         Args:
             current_content: Current skill content to refine
@@ -181,6 +184,7 @@ class SkillRefinerModule(dspy.Module):
 
         Returns:
             dict: Refined content with improvements and change summary
+
         """
         result = self.refine(
             current_content=current_content,
@@ -225,7 +229,8 @@ class SkillRefinerModule(dspy.Module):
 
 
 class QualityAssessorModule(dspy.Module):
-    """Assess skill quality and audience alignment.
+    """
+    Assess skill quality and audience alignment.
 
     Combines LLM-based assessment with deterministic metrics from the
     skill_quality module for more consistent and calibrated scoring.
@@ -237,13 +242,15 @@ class QualityAssessorModule(dspy.Module):
         self.use_deterministic_metrics = use_deterministic_metrics
 
     def _get_deterministic_assessment(self, skill_content: str) -> dict[str, Any]:
-        """Get deterministic quality metrics for skill content.
+        """
+        Get deterministic quality metrics for skill content.
 
         Args:
             skill_content: The SKILL.md content to assess
 
         Returns:
             dict: Deterministic quality metrics
+
         """
         scores = assess_skill_quality(skill_content)
         return {
@@ -258,7 +265,8 @@ class QualityAssessorModule(dspy.Module):
         }
 
     def forward(self, skill_content: str, skill_metadata: Any, target_level: str) -> dict[str, Any]:
-        """Assess the overall quality of skill content.
+        """
+        Assess the overall quality of skill content.
 
         Args:
             skill_content: The SKILL.md content to assess
@@ -267,6 +275,7 @@ class QualityAssessorModule(dspy.Module):
 
         Returns:
             dict: Quality assessment with score, level, strengths, and areas for improvement
+
         """
         result = self.assess(
             skill_content=skill_content,
@@ -339,7 +348,8 @@ class Phase3ValidationModule(dspy.Module):
         user_feedback: str = "",
         target_level: str = "intermediate",
     ) -> dict[str, Any]:
-        """Async orchestration of Phase 3 validation, refinement, and quality assessment.
+        """
+        Async orchestration of Phase 3 validation, refinement, and quality assessment.
 
         Args:
             skill_content: The SKILL.md content to validate and refine
@@ -351,6 +361,7 @@ class Phase3ValidationModule(dspy.Module):
 
         Returns:
             dict: Comprehensive validation results with quality assessment
+
         """
         skill_content = _canonicalize_skill_md_frontmatter(skill_content, skill_metadata)
 
@@ -393,7 +404,8 @@ class Phase3ValidationModule(dspy.Module):
         }
 
     def forward(self, *args, **kwargs) -> dict[str, Any]:
-        """Sync version of Phase 3 validation orchestration.
+        """
+        Sync version of Phase 3 validation orchestration.
 
         Args:
             *args: Positional arguments passed to aforward method
@@ -401,5 +413,6 @@ class Phase3ValidationModule(dspy.Module):
 
         Returns:
             dict: Comprehensive validation results with quality assessment
+
         """
         return run_async(lambda: self.aforward(*args, **kwargs))

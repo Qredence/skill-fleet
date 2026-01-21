@@ -86,6 +86,7 @@ class TestJobPersistenceLifecycle:
 
         # Verify in memory
         in_memory = manager.memory.get(job_id)
+        assert in_memory is not None
         assert in_memory.status == "completed"
         assert in_memory.progress_message == "100%"
 
@@ -102,16 +103,19 @@ class TestJobPersistenceLifecycle:
         # Step 2: Start (running)
         manager.update_job(job_id, {"status": "running"})
         in_memory = manager.memory.get(job_id)
+        assert in_memory is not None
         assert in_memory.status == "running"
 
         # Step 3: Progress
         manager.update_job(job_id, {"progress_message": "50%"})
         in_memory = manager.memory.get(job_id)
+        assert in_memory is not None
         assert in_memory.progress_message == "50%"
 
         # Step 4: Complete
         manager.update_job(job_id, {"status": "completed", "result": {"score": 0.85}})
         final = manager.memory.get(job_id)
+        assert final is not None
         assert final.status == "completed"
 
 

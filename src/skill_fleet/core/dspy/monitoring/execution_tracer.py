@@ -1,4 +1,5 @@
-"""Execution tracing for DSPy modules.
+"""
+Execution tracing for DSPy modules.
 
 Tracks detailed execution metrics including timing, token usage, and success rates.
 """
@@ -58,7 +59,8 @@ class TraceEntry:
 
 
 class ExecutionTracer:
-    """Tracer for DSPy module executions.
+    """
+    Tracer for DSPy module executions.
 
     Collects execution traces for analysis and debugging.
     Thread-safe for concurrent executions.
@@ -70,20 +72,24 @@ class ExecutionTracer:
             result = module(input="test")
             trace.outputs = {"result": str(result)}
             trace.quality_score = 0.85
+
     """
 
     def __init__(self, max_traces: int = 1000) -> None:
-        """Initialize tracer.
+        """
+        Initialize tracer.
 
         Args:
             max_traces: Maximum traces to keep in memory (FIFO eviction)
+
         """
         self.max_traces = max_traces
         self._traces: list[TraceEntry] = []
         self._active_traces: dict[int, TraceEntry] = {}
 
     def start_trace(self, module_name: str, inputs: dict[str, Any] | None = None) -> TraceEntry:
-        """Start a new trace for a module execution.
+        """
+        Start a new trace for a module execution.
 
         Args:
             module_name: Name of the DSPy module being traced
@@ -91,6 +97,7 @@ class ExecutionTracer:
 
         Returns:
             TraceEntry that will be updated during execution
+
         """
         trace = TraceEntry(
             module_name=module_name,
@@ -106,12 +113,14 @@ class ExecutionTracer:
         success: bool = True,
         error: str | None = None,
     ) -> None:
-        """End a trace and store results.
+        """
+        End a trace and store results.
 
         Args:
             trace: The trace entry to finalize
             success: Whether execution succeeded
             error: Error message if failed
+
         """
         trace.finalize(success=success, error=error)
 
@@ -126,7 +135,8 @@ class ExecutionTracer:
             self._traces.pop(0)
 
     def trace(self, module_name: str, inputs: dict[str, Any] | None = None):
-        """Context manager for tracing module execution.
+        """
+        Context manager for tracing module execution.
 
         Usage:
             with tracer.trace("my_module", inputs={"query": "test"}) as trace:
@@ -153,7 +163,8 @@ class ExecutionTracer:
         success_only: bool = False,
         limit: int | None = None,
     ) -> list[TraceEntry]:
-        """Get stored traces with optional filtering.
+        """
+        Get stored traces with optional filtering.
 
         Args:
             module_name: Filter by module name
@@ -162,6 +173,7 @@ class ExecutionTracer:
 
         Returns:
             List of trace entries matching criteria
+
         """
         traces = self._traces
 
@@ -177,13 +189,15 @@ class ExecutionTracer:
         return traces
 
     def get_metrics(self, module_name: str | None = None) -> dict[str, Any]:
-        """Calculate aggregate metrics from traces.
+        """
+        Calculate aggregate metrics from traces.
 
         Args:
             module_name: Calculate metrics for specific module, or all if None
 
         Returns:
             Dictionary of aggregate metrics
+
         """
         traces = self.get_traces(module_name=module_name)
 
@@ -218,13 +232,15 @@ class ExecutionTracer:
         }
 
     def export_traces(self, output_path: str | None = None) -> list[dict[str, Any]]:
-        """Export all traces as JSON-serializable dictionaries.
+        """
+        Export all traces as JSON-serializable dictionaries.
 
         Args:
             output_path: Optional path to write JSON file
 
         Returns:
             List of trace dictionaries
+
         """
         trace_dicts = [t.to_dict() for t in self._traces]
 

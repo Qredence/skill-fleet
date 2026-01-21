@@ -54,10 +54,12 @@ def _configure_logging() -> None:
 
 
 def create_app() -> FastAPI:
-    """Create and configure the FastAPI application.
+    """
+    Create and configure the FastAPI application.
 
     Returns:
         FastAPI: The configured application instance.
+
     """
     # Configure logging
     _configure_logging()
@@ -142,10 +144,12 @@ def create_app() -> FastAPI:
 
     @app.get("/health")
     async def health():
-        """Health check endpoint to verify API availability.
+        """
+        Health check endpoint to verify API availability.
 
         Returns:
             dict: Status and version information
+
         """
         return {"status": "ok", "version": settings.api_version}
 
@@ -153,10 +157,12 @@ def create_app() -> FastAPI:
 
 
 def _register_exception_handlers(app: FastAPI) -> None:
-    """Register global exception handlers for consistent error responses.
+    """
+    Register global exception handlers for consistent error responses.
 
     Args:
         app: FastAPI application instance
+
     """
 
     @app.exception_handler(SkillFleetAPIException)
@@ -231,10 +237,12 @@ _app: FastAPI | None = None
 
 
 def get_app() -> FastAPI:
-    """Get or create the FastAPI application instance.
+    """
+    Get or create the FastAPI application instance.
 
     Returns:
         Cached FastAPI instance
+
     """
     global _app
     if _app is None:

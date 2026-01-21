@@ -1,4 +1,5 @@
-"""Evaluation metrics and data loading for DSPy optimization.
+"""
+Evaluation metrics and data loading for DSPy optimization.
 
 This module provides:
 - Metrics for evaluating skill creation quality
@@ -30,13 +31,15 @@ logger = logging.getLogger(__name__)
 def load_trainset(
     path: str | Path = "config/training/trainset.json",
 ) -> list[dspy.Example]:
-    """Load training examples from JSON file.
+    """
+    Load training examples from JSON file.
 
     Args:
         path: Path to the trainset JSON file
 
     Returns:
         List of dspy.Example objects with inputs marked
+
     """
     import dspy
 
@@ -62,7 +65,8 @@ def split_dataset(
     examples: list[dspy.Example],
     train_ratio: float = 0.8,
 ) -> tuple[list[dspy.Example], list[dspy.Example]]:
-    """Split examples into train and validation sets.
+    """
+    Split examples into train and validation sets.
 
     Args:
         examples: List of examples to split
@@ -70,6 +74,7 @@ def split_dataset(
 
     Returns:
         Tuple of (train_set, val_set)
+
     """
     split_idx = int(len(examples) * train_ratio)
     return examples[:split_idx], examples[split_idx:]
@@ -85,7 +90,8 @@ def taxonomy_path_metric(
     pred: dspy.Prediction,
     trace: Any = None,
 ) -> float:
-    """Evaluate taxonomy path accuracy.
+    """
+    Evaluate taxonomy path accuracy.
 
     Scoring:
     - Exact match: 1.0
@@ -100,6 +106,7 @@ def taxonomy_path_metric(
 
     Returns:
         Score between 0.0 and 1.0
+
     """
     expected_path = getattr(gold, "expected_taxonomy_path", "")
 
@@ -158,7 +165,8 @@ def metadata_metric(
     pred: dspy.Prediction,
     trace: Any = None,
 ) -> float:
-    """Evaluate metadata completeness and accuracy.
+    """
+    Evaluate metadata completeness and accuracy.
 
     Scoring:
     - Name matches: 0.3
@@ -173,6 +181,7 @@ def metadata_metric(
 
     Returns:
         Score between 0.0 and 1.0
+
     """
     if isinstance(pred, dict):
         plan = pred.get("plan")
@@ -200,13 +209,15 @@ def metadata_metric(
 
     # Helper to get field from metadata (dict or object)
     def get_meta_field(field: str) -> Any:
-        """Extract a field value from metadata that may be either a dict or object.
+        """
+        Extract a field value from metadata that may be either a dict or object.
 
         Args:
             field: The field name to extract
 
         Returns:
             The field value if found, None otherwise
+
         """
         if isinstance(metadata, dict):
             return metadata.get(field)
@@ -262,7 +273,8 @@ def content_quality_metric(
     pred: dspy.Prediction,
     trace: Any = None,
 ) -> float:
-    """Evaluate content generation quality.
+    """
+    Evaluate content generation quality.
 
     Scoring:
     - Has Overview section: 0.2
@@ -277,6 +289,7 @@ def content_quality_metric(
 
     Returns:
         Score between 0.0 and 1.0
+
     """
     if isinstance(pred, dict):
         content_data = pred.get("content")
@@ -330,7 +343,8 @@ def skill_creation_metric(
     pred: dspy.Prediction,
     trace: Any = None,
 ) -> float:
-    """Composite metric for full skill creation workflow.
+    """
+    Composite metric for full skill creation workflow.
 
     Combines:
     - Taxonomy path accuracy: 30%
@@ -344,6 +358,7 @@ def skill_creation_metric(
 
     Returns:
         Score between 0.0 and 1.0
+
     """
     path_score = taxonomy_path_metric(gold, pred, trace)
     metadata_score = metadata_metric(gold, pred, trace)
@@ -372,7 +387,8 @@ def evaluate_program(
     metric: Callable[..., Any] = skill_creation_metric,
     **program_kwargs: Any,
 ) -> dict[str, Any]:
-    """Run evaluation on a set of examples.
+    """
+    Run evaluation on a set of examples.
 
     Args:
         program: DSPy program to evaluate
@@ -382,6 +398,7 @@ def evaluate_program(
 
     Returns:
         Dict with scores, mean, std, and individual results
+
     """
     import numpy as np
 
@@ -427,10 +444,12 @@ def evaluate_program(
 
 
 def print_evaluation_report(eval_results: dict[str, Any]) -> None:
-    """Print a formatted evaluation report.
+    """
+    Print a formatted evaluation report.
 
     Args:
         eval_results: Results from evaluate_program
+
     """
     print("\n" + "=" * 60)
     print("EVALUATION REPORT")

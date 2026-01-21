@@ -1,4 +1,5 @@
-"""Caching strategies for DSPy modules.
+"""
+Caching strategies for DSPy modules.
 
 Implements multi-level caching for performance optimization.
 """
@@ -18,7 +19,8 @@ logger = logging.getLogger(__name__)
 
 
 class CachedModule(dspy.Module):
-    """Wrapper for caching DSPy module results.
+    """
+    Wrapper for caching DSPy module results.
 
     Caches based on input hash for deterministic modules.
     Useful for expensive operations (optimization, validation).
@@ -32,6 +34,7 @@ class CachedModule(dspy.Module):
 
         # Second call with same input: returns cached result
         result2 = cached(task="test")  # Instant!
+
     """
 
     def __init__(
@@ -41,13 +44,15 @@ class CachedModule(dspy.Module):
         ttl_seconds: int | None = None,
         use_memory: bool = True,
     ) -> None:
-        """Initialize cached module.
+        """
+        Initialize cached module.
 
         Args:
             module: DSPy module to cache
             cache_dir: Directory for disk cache
             ttl_seconds: Time-to-live for cache entries (None = forever)
             use_memory: Whether to use in-memory cache (faster)
+
         """
         super().__init__()
         self.module = module
@@ -64,13 +69,15 @@ class CachedModule(dspy.Module):
         self.misses = 0
 
     def _compute_cache_key(self, **kwargs) -> str:
-        """Compute cache key from inputs.
+        """
+        Compute cache key from inputs.
 
         Args:
             **kwargs: Module inputs
 
         Returns:
             Cache key hash
+
         """
         # Sort keys for deterministic hashing
         sorted_items = sorted(kwargs.items())
@@ -78,13 +85,15 @@ class CachedModule(dspy.Module):
         return hashlib.sha256(key_str.encode()).hexdigest()
 
     def _get_cache_path(self, cache_key: str) -> Path:
-        """Get file path for cache key.
+        """
+        Get file path for cache key.
 
         Args:
             cache_key: Cache key hash
 
         Returns:
             Path to cache file
+
         """
         # Use first 2 chars for sharding (prevents too many files in one dir)
         shard_dir = self.cache_dir / cache_key[:2]
@@ -92,13 +101,15 @@ class CachedModule(dspy.Module):
         return shard_dir / f"{cache_key}.pkl"
 
     def _is_cache_valid(self, cache_path: Path) -> bool:
-        """Check if cache entry is still valid.
+        """
+        Check if cache entry is still valid.
 
         Args:
             cache_path: Path to cache file
 
         Returns:
             True if valid, False if expired or missing
+
         """
         if not cache_path.exists():
             return False
@@ -112,13 +123,15 @@ class CachedModule(dspy.Module):
         return age_seconds < self.ttl_seconds
 
     def forward(self, **kwargs: Any) -> dspy.Prediction:
-        """Execute module with caching.
+        """
+        Execute module with caching.
 
         Args:
             **kwargs: Module inputs
 
         Returns:
             Cached or freshly computed result
+
         """
         cache_key = self._compute_cache_key(**kwargs)
 
@@ -167,10 +180,12 @@ class CachedModule(dspy.Module):
         return result
 
     def clear_cache(self) -> int:
-        """Clear all caches.
+        """
+        Clear all caches.
 
         Returns:
             Number of cache files deleted
+
         """
         count = 0
 
@@ -189,10 +204,12 @@ class CachedModule(dspy.Module):
         return count
 
     def get_stats(self) -> dict[str, Any]:
-        """Get cache statistics.
+        """
+        Get cache statistics.
 
         Returns:
             Dictionary of cache stats
+
         """
         total = self.hits + self.misses
         hit_rate = float(self.hits) / float(total) if total > 0 else 0.0

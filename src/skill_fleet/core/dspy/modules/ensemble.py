@@ -1,4 +1,5 @@
-"""Ensemble methods for DSPy modules.
+"""
+Ensemble methods for DSPy modules.
 
 Combines multiple module executions or optimized programs for improved quality.
 """
@@ -15,7 +16,8 @@ logger = logging.getLogger(__name__)
 
 
 class EnsembleModule(dspy.Module):
-    """Ensemble multiple DSPy modules with voting/selection strategy.
+    """
+    Ensemble multiple DSPy modules with voting/selection strategy.
 
     Executes multiple modules in parallel and selects best result using
     a voting or scoring function.
@@ -33,6 +35,7 @@ class EnsembleModule(dspy.Module):
         )
 
         result = ensemble(task="Generate skill")  # Returns best of 3
+
     """
 
     def __init__(
@@ -41,12 +44,14 @@ class EnsembleModule(dspy.Module):
         selector: Callable[[list[dspy.Prediction]], dspy.Prediction] | None = None,
         parallel: bool = True,
     ) -> None:
-        """Initialize ensemble.
+        """
+        Initialize ensemble.
 
         Args:
             modules: List of DSPy modules to ensemble (2-5 recommended)
             selector: Function to select best result from list (default: first)
             parallel: Whether to execute modules in parallel (faster)
+
         """
         super().__init__()
         self.modules = modules
@@ -57,13 +62,15 @@ class EnsembleModule(dspy.Module):
             logger.warning("Ensemble with <2 modules has no benefit")
 
     def forward(self, **kwargs: Any) -> dspy.Prediction:
-        """Execute all modules and select best result.
+        """
+        Execute all modules and select best result.
 
         Args:
             **kwargs: Input parameters passed to each module
 
         Returns:
             Selected best prediction from ensemble
+
         """
         if self.parallel:
             # Execute all modules
@@ -95,7 +102,8 @@ class EnsembleModule(dspy.Module):
 
 
 class BestOfN(dspy.Module):
-    """Generate N candidates and select best using quality metric.
+    """
+    Generate N candidates and select best using quality metric.
 
     Specialized ensemble for generating multiple outputs and selecting
     highest-quality result. Common pattern in DSPy for critical generations.
@@ -109,6 +117,7 @@ class BestOfN(dspy.Module):
         )
 
         result = best_of_3(task="Create async skill")  # Best of 3 attempts
+
     """
 
     def __init__(
@@ -117,12 +126,14 @@ class BestOfN(dspy.Module):
         n: int = 3,
         quality_fn: Callable[[dspy.Prediction], float] | None = None,
     ) -> None:
-        """Initialize BestOfN.
+        """
+        Initialize BestOfN.
 
         Args:
             module: DSPy module to execute N times
             n: Number of candidates to generate (2-5 recommended)
             quality_fn: Function to score prediction quality (higher is better)
+
         """
         super().__init__()
         self.module = module
@@ -133,13 +144,15 @@ class BestOfN(dspy.Module):
             raise ValueError("BestOfN requires n >= 2")
 
     def forward(self, **kwargs: Any) -> dspy.Prediction:
-        """Generate N candidates and return highest quality.
+        """
+        Generate N candidates and return highest quality.
 
         Args:
             **kwargs: Input parameters for module
 
         Returns:
             Highest quality prediction
+
         """
         candidates = []
         scores = []
@@ -174,7 +187,8 @@ class BestOfN(dspy.Module):
 
 
 class MajorityVote(dspy.Module):
-    """Ensemble with majority voting for classification tasks.
+    """
+    Ensemble with majority voting for classification tasks.
 
     Executes multiple modules and returns most common prediction.
     Useful for classification, sentiment analysis, or binary decisions.
@@ -187,6 +201,7 @@ class MajorityVote(dspy.Module):
         )
 
         result = voter(text="Sample text")  // Returns most common category
+
     """
 
     def __init__(
@@ -195,12 +210,14 @@ class MajorityVote(dspy.Module):
         vote_field: str,
         min_agreement: float = 0.5,
     ) -> None:
-        """Initialize majority vote ensemble.
+        """
+        Initialize majority vote ensemble.
 
         Args:
             modules: List of modules to ensemble
             vote_field: Name of field to vote on
             min_agreement: Minimum agreement fraction (0-1) to accept result
+
         """
         super().__init__()
         self.modules = modules
@@ -208,13 +225,15 @@ class MajorityVote(dspy.Module):
         self.min_agreement = min_agreement
 
     def forward(self, **kwargs: Any) -> dspy.Prediction:
-        """Execute all modules and return majority vote.
+        """
+        Execute all modules and return majority vote.
 
         Args:
             **kwargs: Input parameters
 
         Returns:
             Prediction with majority vote and confidence
+
         """
         from collections import Counter
 

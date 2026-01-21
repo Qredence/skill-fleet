@@ -1,4 +1,5 @@
-"""DSPy signatures for Phase 2: Scope & Boundaries.
+"""
+DSPy signatures for Phase 2: Scope & Boundaries.
 
 These signatures implement the decision-driven workflow from skill-creation-guidelines.md
 lines 240-353, using DSPy ChainOfThought for flexible reasoning within
@@ -56,7 +57,8 @@ VALID_SKILL_TYPES = [
 
 
 class ConfirmSkillType(dspy.Signature):
-    """Confirm skill type from Phase 1 classification.
+    """
+    Confirm skill type from Phase 1 classification.
 
     Step 2.1 of Phase 2 - Re-validates the Phase 1 classification with
     additional context from the scope planning phase.
@@ -82,7 +84,8 @@ class ConfirmSkillType(dspy.Signature):
 
 
 class DetermineWeight(dspy.Signature):
-    """Determine skill weight based on capability count and complexity.
+    """
+    Determine skill weight based on capability count and complexity.
 
     Step 2.2 of Phase 2 - Uses the weight matrix from guidelines lines 286-295:
 
@@ -107,7 +110,8 @@ class DetermineWeight(dspy.Signature):
 
 
 class DecideLoadPriority(dspy.Signature):
-    """Determine load priority using decision tree.
+    """
+    Determine load priority using decision tree.
 
     Step 2.3 of Phase 2 - Uses the decision tree from guidelines lines 297-316:
 
@@ -143,7 +147,8 @@ class DecideLoadPriority(dspy.Signature):
 
 
 class DesignCapabilities(dspy.Signature):
-    """Design 3-7 atomic capabilities.
+    """
+    Design 3-7 atomic capabilities.
 
     Step 2.4 of Phase 2 - Designs atomic, testable capabilities following
     guidelines lines 354-414.
@@ -171,7 +176,8 @@ class DesignCapabilities(dspy.Signature):
 
 
 class ValidateDependencies(dspy.Signature):
-    """Validate dependencies against 5 composition rules.
+    """
+    Validate dependencies against 5 composition rules.
 
     Step 2.5 of Phase 2 - Validates against composition rules from
     guidelines lines 318-344:
@@ -197,7 +203,8 @@ class ValidateDependencies(dspy.Signature):
 
 
 class GenerateSkillMetadata(dspy.Signature):
-    """Generate complete skill metadata following agentskills.io spec.
+    """
+    Generate complete skill metadata following agentskills.io spec.
 
     Step 2.6 of Phase 2 - Creates the complete skill metadata that includes
     all decisions from Phase 1 and Phase 2.
@@ -230,7 +237,8 @@ class GenerateSkillMetadata(dspy.Signature):
 
 
 class Phase2Checkpoint(dspy.Signature):
-    """Validate Phase 2 outputs before proceeding to Phase 3.
+    """
+    Validate Phase 2 outputs before proceeding to Phase 3.
 
     This checkpoint enforces the validation criteria from guidelines lines 1066-1073:
     1. metadata.json is complete and valid

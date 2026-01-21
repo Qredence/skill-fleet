@@ -1,4 +1,5 @@
-"""Constants for CLI configuration and theming.
+"""
+Constants for CLI configuration and theming.
 
 Centralizes all magic numbers and configuration values
 to improve maintainability and consistency.

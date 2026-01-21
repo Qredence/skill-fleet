@@ -76,7 +76,8 @@ class MetricWeights:
 
 
 class DetectSkillStyle(dspy.Signature):
-    """Detect the style of a skill from its content.
+    """
+    Detect the style of a skill from its content.
 
     Navigation hub: Clear, well-organized guide with multiple examples
     Comprehensive: Balanced coverage with patterns and examples
@@ -95,7 +96,8 @@ class DetectSkillStyle(dspy.Signature):
 
 
 class AdjustMetricWeights(dspy.Signature):
-    """Adjust metric weights based on skill style.
+    """
+    Adjust metric weights based on skill style.
 
     Navigation hub skills prioritize clarity and structure.
     Comprehensive skills use balanced metric weights.
@@ -144,7 +146,8 @@ class WeightAdjuster(dspy.Module):
 
 
 class AdaptiveMetricWeighting:
-    """Manages adaptive weighting of evaluation metrics based on skill style.
+    """
+    Manages adaptive weighting of evaluation metrics based on skill style.
 
     Usage:
         weighting = AdaptiveMetricWeighting()
@@ -161,7 +164,8 @@ class AdaptiveMetricWeighting:
     def detect_style(
         self, skill_title: str, skill_content: str, skill_description: str
     ) -> tuple[SkillStyle, float, str]:
-        """Detect skill style from content.
+        """
+        Detect skill style from content.
 
         Args:
             skill_title: Skill title
@@ -170,6 +174,7 @@ class AdaptiveMetricWeighting:
 
         Returns:
             (style, confidence, reasoning)
+
         """
         try:
             result = self.detector(
@@ -187,13 +192,15 @@ class AdaptiveMetricWeighting:
             return SkillStyle.COMPREHENSIVE, 0.5, str(e)
 
     def get_weights(self, style: SkillStyle | str) -> MetricWeights:
-        """Get metric weights for a skill style.
+        """
+        Get metric weights for a skill style.
 
         Args:
             style: SkillStyle enum or string
 
         Returns:
             MetricWeights object
+
         """
         return MetricWeights.for_style(style)
 
@@ -203,7 +210,8 @@ class AdaptiveMetricWeighting:
         weights: MetricWeights | dict[str, float] | None = None,
         style: SkillStyle | str | None = None,
     ) -> float:
-        """Apply weights to scores to get composite score.
+        """
+        Apply weights to scores to get composite score.
 
         Args:
             scores: Dict of metric_name -> score
@@ -212,6 +220,7 @@ class AdaptiveMetricWeighting:
 
         Returns:
             Weighted composite score (0.0-1.0)
+
         """
         if weights is None:
             if style is None:
@@ -240,7 +249,8 @@ class AdaptiveMetricWeighting:
     def recommend_weights(
         self, skill_style: str, current_scores: dict[str, float]
     ) -> tuple[dict[str, float], str, str]:
-        """Recommend weights using LLM reasoning.
+        """
+        Recommend weights using LLM reasoning.
 
         Args:
             skill_style: One of "navigation_hub", "comprehensive", "minimal"
@@ -248,6 +258,7 @@ class AdaptiveMetricWeighting:
 
         Returns:
             (weights_dict, reasoning, expected_improvement)
+
         """
         try:
             result = self.adjuster(skill_style=skill_style, current_scores=current_scores)
@@ -271,7 +282,8 @@ class AdaptiveMetricWeighting:
 def compute_adaptive_score(
     scores: dict[str, float], style: SkillStyle | str = SkillStyle.COMPREHENSIVE
 ) -> dict:
-    """Compute adaptive score based on skill style.
+    """
+    Compute adaptive score based on skill style.
 
     Args:
         scores: Dict of metric_name -> score
@@ -282,6 +294,7 @@ def compute_adaptive_score(
         - "composite": weighted composite score
         - "weights": weights used
         - "details": per-metric weighted scores
+
     """
     weighting = AdaptiveMetricWeighting()
 

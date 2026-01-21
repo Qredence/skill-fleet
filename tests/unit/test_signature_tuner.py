@@ -408,7 +408,7 @@ class TestSignatureProposerModule:
                     current_signature="question -> answer",
                     failure_analysis={},
                     target_score=0.80,
-                    skill_type=skill_type,  # type: ignore
+                    skill_type=skill_type,
                 )
                 assert result["improved_signature"] == "question -> answer"
 

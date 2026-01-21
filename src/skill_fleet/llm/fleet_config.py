@@ -1,4 +1,5 @@
-"""Fleet LLM configuration loader and DSPy LM factory.
+"""
+Fleet LLM configuration loader and DSPy LM factory.
 
 This module interprets `config/config.yaml` and builds `dspy.LM`
 instances using LiteLLM-compatible model strings.
@@ -60,13 +61,13 @@ def _get_env_value(primary: str | None, fallback: str | None = None) -> str | No
 
 
 def _model_provider(model_key: str) -> str:
-    """Extract provider name from a model registry key.
+    """
+    Extract provider name from a model registry key.
 
     Supports both:
     - Fleet-style keys: `provider:model`
     - LiteLLM-style keys: `provider/model`
     """
-
     if ":" in model_key:
         return model_key.split(":", 1)[0]
     if "/" in model_key:

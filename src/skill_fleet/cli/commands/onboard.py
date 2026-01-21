@@ -31,7 +31,8 @@ def onboard_command(
         str(default_profiles_path()), "--profiles-path", help="Path to bootstrap profiles JSON"
     ),
 ):
-    """Interactive onboarding workflow for new users.
+    """
+    Interactive onboarding workflow for new users.
 
     Guides users through setting up their personalized skill set by:
     - Collecting user preferences and context

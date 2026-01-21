@@ -1,4 +1,5 @@
-"""Module monitoring wrapper for DSPy modules.
+"""
+Module monitoring wrapper for DSPy modules.
 
 Wraps DSPy modules to provide automatic monitoring, logging, and metrics collection.
 """
@@ -17,7 +18,8 @@ logger = logging.getLogger(__name__)
 
 
 class ModuleMonitor(dspy.Module):
-    """Monitoring wrapper for DSPy modules.
+    """
+    Monitoring wrapper for DSPy modules.
 
     Wraps any DSPy module to automatically track:
     - Execution timing and success rate
@@ -37,6 +39,7 @@ class ModuleMonitor(dspy.Module):
         # Access metrics
         metrics = monitored.get_metrics()
         print(f"Success rate: {metrics['success_rate']:.2%}")
+
     """
 
     def __init__(
@@ -49,7 +52,8 @@ class ModuleMonitor(dspy.Module):
         log_outputs: bool = True,
         log_level: int = logging.INFO,
     ) -> None:
-        """Initialize module monitor.
+        """
+        Initialize module monitor.
 
         Args:
             module: DSPy module to wrap
@@ -59,6 +63,7 @@ class ModuleMonitor(dspy.Module):
             log_inputs: Whether to log input parameters
             log_outputs: Whether to log output results
             log_level: Logging level for execution logs
+
         """
         super().__init__()
         self.module = module
@@ -73,7 +78,8 @@ class ModuleMonitor(dspy.Module):
         self.logger = logging.getLogger(f"{__name__}.{name}")
 
     def forward(self, **kwargs: Any) -> dspy.Prediction:
-        """Execute module with monitoring.
+        """
+        Execute module with monitoring.
 
         Args:
             **kwargs: Input parameters for the wrapped module
@@ -83,6 +89,7 @@ class ModuleMonitor(dspy.Module):
 
         Raises:
             Any exception from the wrapped module
+
         """
         # Start trace
         trace = self.tracer.start_trace(
@@ -136,29 +143,35 @@ class ModuleMonitor(dspy.Module):
             raise
 
     def get_metrics(self) -> dict[str, Any]:
-        """Get aggregate metrics for this module.
+        """
+        Get aggregate metrics for this module.
 
         Returns:
             Dictionary of execution metrics
+
         """
         return self.tracer.get_metrics(module_name=self.name)
 
     def get_traces(self, limit: int | None = None) -> list[TraceEntry]:
-        """Get execution traces for this module.
+        """
+        Get execution traces for this module.
 
         Args:
             limit: Maximum number of recent traces to return
 
         Returns:
             List of trace entries
+
         """
         return self.tracer.get_traces(module_name=self.name, limit=limit)
 
     def export_traces(self, output_path: str) -> None:
-        """Export traces for this module to JSON file.
+        """
+        Export traces for this module to JSON file.
 
         Args:
             output_path: Path to write JSON file
+
         """
         traces = self.get_traces()
         trace_dicts = [t.to_dict() for t in traces]

@@ -7,7 +7,8 @@ from rich.prompt import Prompt
 
 
 def collect_onboarding_responses() -> dict:
-    """Collect user responses through interactive prompts.
+    """
+    Collect user responses through interactive prompts.
 
     Returns:
         Dictionary containing user's role, tech_stack, common_tasks, and experience_level

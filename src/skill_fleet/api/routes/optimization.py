@@ -1,4 +1,5 @@
-"""Optimization routes for DSPy program optimization.
+"""
+Optimization routes for DSPy program optimization.
 
 API-first approach for optimizing skill creation programs using
 MIPROv2 and BootstrapFewShot optimizers.
@@ -213,7 +214,8 @@ class RecommendResponse(BaseModel):
 
 @router.post("/recommend", response_model=RecommendResponse)
 async def recommend_optimizer(request: RecommendRequest) -> RecommendResponse:
-    """Recommend the best optimizer for given context.
+    """
+    Recommend the best optimizer for given context.
 
     Uses intelligent decision rules based on:
     - Training set size
@@ -267,7 +269,8 @@ async def fast_optimization(
     background_tasks: BackgroundTasks,
     skills_root: SkillsRoot,
 ) -> OptimizeResponse:
-    """Start a FAST optimization job using Reflection Metrics.
+    """
+    Start a FAST optimization job using Reflection Metrics.
 
     This is the recommended endpoint for quick iteration:
     - Uses BootstrapFewShot with Reflection Metrics
@@ -318,7 +321,8 @@ async def start_optimization(
     background_tasks: BackgroundTasks,
     skills_root: SkillsRoot,
 ) -> OptimizeResponse:
-    """Start an optimization job.
+    """
+    Start an optimization job.
 
     Optimization runs in the background. Use the returned job_id
     to check status via GET /optimization/status/{job_id}.
@@ -366,7 +370,8 @@ async def _run_fast_optimization(
     request: OptimizeRequest,
     skills_root: Path,
 ) -> None:
-    """Run fast optimization with Reflection Metrics in background.
+    """
+    Run fast optimization with Reflection Metrics in background.
 
     This is the recommended path for quick iteration:
     - Uses BootstrapFewShot with Reflection Metrics
@@ -479,7 +484,8 @@ async def _run_fast_optimization(
 def _reflection_metrics_optimize(
     training_examples: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    """Run reflection metrics optimization (sync, runs in thread).
+    """
+    Run reflection metrics optimization (sync, runs in thread).
 
     Uses BootstrapFewShot with Reflection Metrics for fast iteration.
     """
@@ -823,7 +829,8 @@ async def list_optimizers() -> list[OptimizerInfo]:
 
 @router.delete("/jobs/{job_id}")
 async def cancel_optimization(job_id: str) -> dict[str, str]:
-    """Cancel or remove an optimization job.
+    """
+    Cancel or remove an optimization job.
 
     Note: Running jobs cannot be cancelled, only removed from tracking.
     """

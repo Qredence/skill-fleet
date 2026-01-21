@@ -1,4 +1,5 @@
-"""Enhanced evaluation metrics for DSPy optimization.
+"""
+Enhanced evaluation metrics for DSPy optimization.
 
 Additional metrics beyond basic skill_quality_metric for comprehensive evaluation.
 """
@@ -14,7 +15,8 @@ import dspy
 def taxonomy_accuracy_metric(
     example: dspy.Example, prediction: dspy.Prediction, trace=None
 ) -> float:
-    """Evaluate taxonomy path accuracy.
+    """
+    Evaluate taxonomy path accuracy.
 
     Checks if predicted taxonomy path matches expected path or category.
 
@@ -25,6 +27,7 @@ def taxonomy_accuracy_metric(
 
     Returns:
         Score 0.0-1.0
+
     """
     if not hasattr(example, "expected_taxonomy_path"):
         return 0.5  # Neutral if no expected path
@@ -58,7 +61,8 @@ def taxonomy_accuracy_metric(
 def metadata_quality_metric(
     example: dspy.Example, prediction: dspy.Prediction, trace=None
 ) -> float:
-    """Evaluate metadata quality (name, description, tags).
+    """
+    Evaluate metadata quality (name, description, tags).
 
     Checks:
     - Name is kebab-case
@@ -73,6 +77,7 @@ def metadata_quality_metric(
 
     Returns:
         Score 0.0-1.0
+
     """
     score = 0.0
 
@@ -114,7 +119,8 @@ def metadata_quality_metric(
 def skill_style_alignment_metric(
     example: dspy.Example, prediction: dspy.Prediction, trace=None
 ) -> float:
-    """Evaluate if predicted skill style matches expected style.
+    """
+    Evaluate if predicted skill style matches expected style.
 
     Args:
         example: Example with expected_skill_style
@@ -123,6 +129,7 @@ def skill_style_alignment_metric(
 
     Returns:
         Score 0.0-1.0
+
     """
     if not hasattr(example, "expected_skill_style"):
         return 0.5  # Neutral if no expectation
@@ -157,7 +164,8 @@ def skill_style_alignment_metric(
 
 
 def comprehensive_metric(example: dspy.Example, prediction: dspy.Prediction, trace=None) -> float:
-    """Comprehensive metric combining multiple quality dimensions.
+    """
+    Comprehensive metric combining multiple quality dimensions.
 
     Weights:
     - 40%: Taxonomy accuracy
@@ -171,6 +179,7 @@ def comprehensive_metric(example: dspy.Example, prediction: dspy.Prediction, tra
 
     Returns:
         Weighted score 0.0-1.0
+
     """
     taxonomy_score = taxonomy_accuracy_metric(example, prediction, trace)
     metadata_score = metadata_quality_metric(example, prediction, trace)
@@ -182,13 +191,15 @@ def comprehensive_metric(example: dspy.Example, prediction: dspy.Prediction, tra
 
 
 def create_metric_for_phase(phase: str) -> Callable:
-    """Create appropriate metric for a specific workflow phase.
+    """
+    Create appropriate metric for a specific workflow phase.
 
     Args:
         phase: Workflow phase name ('understanding', 'generation', 'validation')
 
     Returns:
         Metric function suitable for that phase
+
     """
     if phase == "understanding":
         # Focus on taxonomy and intent accuracy

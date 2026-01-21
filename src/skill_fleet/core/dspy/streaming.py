@@ -1,4 +1,5 @@
-"""Streaming DSPy modules for real-time reasoning and response generation.
+"""
+Streaming DSPy modules for real-time reasoning and response generation.
 
 Enables streaming of thinking content, intermediate steps, and final responses
 via Server-Sent Events (SSE) and chunked responses.
@@ -40,7 +41,8 @@ class StreamEvent(TypedDict, total=False):
 
 
 class StreamingModule(dspy.Module):
-    """Base class for streaming DSPy modules.
+    """
+    Base class for streaming DSPy modules.
 
     Provides methods for yielding thinking content and responses incrementally.
     """
@@ -51,7 +53,8 @@ class StreamingModule(dspy.Module):
         self._step_counter = 0
 
     def yield_thinking(self, content: str, thinking_type: str = "thinking") -> ThinkingChunk:
-        """Yield a thinking/reasoning chunk.
+        """
+        Yield a thinking/reasoning chunk.
 
         Args:
             content: The thinking content to yield
@@ -59,6 +62,7 @@ class StreamingModule(dspy.Module):
 
         Returns:
             ThinkingChunk for streaming to client
+
         """
         self._thinking_buffer.append(content)
         self._step_counter += 1
@@ -79,12 +83,14 @@ class StreamingModule(dspy.Module):
 
 
 class StreamingIntentParser(StreamingModule):
-    """Parse user intent with streaming thinking process.
+    """
+    Parse user intent with streaming thinking process.
 
     Yields:
         - Thinking chunks as it analyzes the user message
         - Final intent classification
         - Suggested actions
+
     """
 
     def __init__(self):
@@ -94,7 +100,8 @@ class StreamingIntentParser(StreamingModule):
         )
 
     async def forward_streaming(self, user_message: str) -> AsyncGenerator[StreamEvent, None]:
-        """Parse intent with streaming thinking output.
+        """
+        Parse intent with streaming thinking output.
 
         Yields stream events as thinking progresses.
         """
@@ -168,7 +175,8 @@ class StreamingIntentParser(StreamingModule):
 
 
 class StreamingAssistant(StreamingModule):
-    """Assistant that streams thinking and responses.
+    """
+    Assistant that streams thinking and responses.
 
     Used for conversational skill creation and optimization.
     """
@@ -183,7 +191,8 @@ class StreamingAssistant(StreamingModule):
     async def forward_streaming(
         self, user_message: str, context: dict[str, Any] | None = None
     ) -> AsyncGenerator[StreamEvent, None]:
-        """Generate streaming response with full thinking process.
+        """
+        Generate streaming response with full thinking process.
 
         Yields stream events as thinking progresses and response is generated.
         """
@@ -270,13 +279,15 @@ class StreamingAssistant(StreamingModule):
 async def stream_events_to_sse(
     event_generator: AsyncGenerator[StreamEvent, None],
 ) -> AsyncGenerator[str, None]:
-    """Convert stream events to Server-Sent Events format.
+    """
+    Convert stream events to Server-Sent Events format.
 
     Args:
         event_generator: Async generator yielding StreamEvent objects
 
     Yields:
         Server-Sent Events formatted strings
+
     """
     async for event in event_generator:
         event_type = event.get("type", "unknown")

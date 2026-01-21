@@ -1,4 +1,5 @@
-"""DSPy signatures for the agentic skills creation workflow.
+"""
+DSPy signatures for the agentic skills creation workflow.
 
 These signatures define the input/output contracts for each workflow step.
 Where possible, we use Pydantic models for type-safe, validated outputs.
@@ -44,7 +45,8 @@ from ...models import (
 
 
 class GatherExamplesForSkill(dspy.Signature):
-    """Collect concrete usage examples from user before creating skill.
+    """
+    Collect concrete usage examples from user before creating skill.
 
     Ground skills in real use cases, not assumptions. Ask focused questions
     about functionality, triggering conditions, and edge cases.
@@ -102,7 +104,8 @@ class GatherExamplesForSkill(dspy.Signature):
 
 
 class UnderstandTaskForSkill(dspy.Signature):
-    """Analyze task requirements and determine taxonomy placement.
+    """
+    Analyze task requirements and determine taxonomy placement.
 
     Extract core intent, find optimal taxonomy path, identify related skills,
     and analyze dependencies. Be thorough but concise.
@@ -152,7 +155,8 @@ class UnderstandTaskForSkill(dspy.Signature):
 
 
 class PlanSkillStructure(dspy.Signature):
-    """Design complete skill structure ensuring agentskills.io compliance.
+    """
+    Design complete skill structure ensuring agentskills.io compliance.
 
     Create metadata, define capabilities, specify dependencies, and plan composition.
     All outputs must be production-ready and validation-compliant.
@@ -210,7 +214,8 @@ class PlanSkillStructure(dspy.Signature):
 
 
 class InitializeSkillSkeleton(dspy.Signature):
-    """Create a skill skeleton matching taxonomy standards.
+    """
+    Create a skill skeleton matching taxonomy standards.
 
     Generates the directory structure and file list for the skill,
     following the v2 Golden Standard layout:
@@ -247,7 +252,8 @@ class InitializeSkillSkeleton(dspy.Signature):
 
 
 class EditSkillContent(dspy.Signature):
-    """Generate production-ready SKILL.md with all required sections and quality indicators.
+    """
+    Generate production-ready SKILL.md with all required sections and quality indicators.
 
     MUST include: When to Use This Skill, Quick Start, ❌/✅ contrast patterns, core principle.
     Follow v2 Golden Standard. YAML frontmatter added automatically.
@@ -298,7 +304,8 @@ class EditSkillContent(dspy.Signature):
 
 
 class PackageSkillForApproval(dspy.Signature):
-    """Validate skill and prepare for approval with quality assessment.
+    """
+    Validate skill and prepare for approval with quality assessment.
 
     Run agentskills.io validation, quality scoring, and test generation.
     Ensure skill meets minimum quality threshold before packaging.
@@ -337,7 +344,8 @@ class PackageSkillForApproval(dspy.Signature):
 
 
 class IterateSkillWithFeedback(dspy.Signature):
-    """Process HITL feedback and determine next action.
+    """
+    Process HITL feedback and determine next action.
 
     Analyze feedback to decide: approved (ship it), needs_revision (specific changes),
     rejected (fundamental issues). Generate concrete revision plan if needed.
@@ -378,7 +386,8 @@ class IterateSkillWithFeedback(dspy.Signature):
 
 
 class GenerateDynamicFeedbackQuestions(dspy.Signature):
-    """Generate contextual, domain-aware questions for skill feedback.
+    """
+    Generate contextual, domain-aware questions for skill feedback.
 
     Instead of using static template questions, this signature uses the LLM
     to generate dynamic questions that are:

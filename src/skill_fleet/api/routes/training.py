@@ -13,7 +13,8 @@ router = APIRouter()
 
 @router.get("/analytics", response_model=dict[str, Any])
 async def get_training_analytics() -> dict[str, Any]:
-    """Get analytics for training data quality and usage.
+    """
+    Get analytics for training data quality and usage.
 
     Returns:
         Dictionary containing:
@@ -22,6 +23,7 @@ async def get_training_analytics() -> dict[str, Any]:
         - top_performers: Examples with high success rates
         - category_breakdown: Count by category
         - recommendations: Actionable improvements
+
     """
     manager = TrainingDataManager()
     # Force reload metadata

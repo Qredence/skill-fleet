@@ -1,4 +1,5 @@
-"""DSPy modules for Phase 2: Content Generation.
+"""
+DSPy modules for Phase 2: Content Generation.
 
 v2 Golden Standard (Jan 2026):
 - Supports 3 skill styles: navigation_hub, comprehensive, minimal
@@ -36,7 +37,8 @@ DEFAULT_SKILL_STYLE: SkillStyle = "comprehensive"
 
 
 def _load_gold_standard_examples(max_examples: int = 2) -> str:
-    """Load gold standard skill examples for few-shot learning.
+    """
+    Load gold standard skill examples for few-shot learning.
 
     v2 Golden Standard: Loads from .skills/ directory which contains
     proven high-quality skills (dspy-basics, vibe-coding, neon-drizzle).
@@ -46,6 +48,7 @@ def _load_gold_standard_examples(max_examples: int = 2) -> str:
 
     Returns:
         Formatted string with example excerpts
+
     """
     repo_root = find_repo_root(Path.cwd()) or find_repo_root(Path(__file__).resolve()) or Path.cwd()
 
@@ -86,7 +89,8 @@ def _load_gold_standard_examples(max_examples: int = 2) -> str:
 
 
 def _serialize_pydantic_list(items: Any) -> list[dict[str, Any]]:
-    """Serialize a list of Pydantic models to list of dicts.
+    """
+    Serialize a list of Pydantic models to list of dicts.
 
     DSPy signatures with typed list outputs (e.g., list[UsageExample]) return
     Pydantic model instances. These need to be serialized to dicts for
@@ -97,6 +101,7 @@ def _serialize_pydantic_list(items: Any) -> list[dict[str, Any]]:
 
     Returns:
         List of dicts suitable for file writing
+
     """
     if not items:
         return []
@@ -116,7 +121,8 @@ def _serialize_pydantic_list(items: Any) -> list[dict[str, Any]]:
 
 
 def _normalize_dict_output(value: Any, field_name: str = "") -> dict[str, str]:
-    """Normalize DSPy output to dict[str, str] format.
+    """
+    Normalize DSPy output to dict[str, str] format.
 
     DSPy may return strings, empty values, or dicts. This ensures we get a dict.
 
@@ -126,6 +132,7 @@ def _normalize_dict_output(value: Any, field_name: str = "") -> dict[str, str]:
 
     Returns:
         Normalized dict[str, str]
+
     """
     if not value:
         return {}
@@ -148,7 +155,8 @@ def _merge_subdirectory_files(
     template_files: dict[str, str],
     script_files: dict[str, str],
 ) -> dict[str, dict[str, str]]:
-    """Merge individual subdirectory file dicts into consolidated format.
+    """
+    Merge individual subdirectory file dicts into consolidated format.
 
     Args:
         reference_files: Files for references/ directory
@@ -158,6 +166,7 @@ def _merge_subdirectory_files(
 
     Returns:
         Consolidated dict: {'references': {...}, 'guides': {...}, ...}
+
     """
     return common_merge_subdirectory_files(
         {"references": reference_files} if reference_files else {},
@@ -168,7 +177,8 @@ def _merge_subdirectory_files(
 
 
 class ContentGeneratorModule(dspy.Module):
-    """Generate initial skill content from the Phase 1 plan.
+    """
+    Generate initial skill content from the Phase 1 plan.
 
     v2 Golden Standard: Now supports skill_style input and subdirectory file outputs.
     """
@@ -182,13 +192,15 @@ class ContentGeneratorModule(dspy.Module):
         self._gold_examples_cache: str | None = None
 
     def _get_enhanced_instructions(self, generation_instructions: str) -> str:
-        """Enhance generation instructions with gold standard examples.
+        """
+        Enhance generation instructions with gold standard examples.
 
         Args:
             generation_instructions: Original generation instructions
 
         Returns:
             Enhanced instructions with gold standard examples appended
+
         """
         if not self.use_gold_examples:
             return generation_instructions
@@ -210,7 +222,8 @@ class ContentGeneratorModule(dspy.Module):
         dependency_summaries: str,
         skill_style: SkillStyle | None = None,
     ) -> dict[str, Any]:
-        """Generate skill content based on metadata and planning.
+        """
+        Generate skill content based on metadata and planning.
 
         Args:
             skill_metadata: Skill metadata including name, description, etc.
@@ -223,6 +236,7 @@ class ContentGeneratorModule(dspy.Module):
         Returns:
             dict: Generated content including skill_content, usage_examples,
                   best_practices, test_cases, estimated_reading_time, subdirectory_files, and rationale
+
         """
         enhanced_instructions = self._get_enhanced_instructions(generation_instructions)
         effective_style = skill_style or DEFAULT_SKILL_STYLE
@@ -306,7 +320,8 @@ class ContentGeneratorModule(dspy.Module):
 
 
 class FeedbackIncorporatorModule(dspy.Module):
-    """Apply user feedback and change requests to draft content.
+    """
+    Apply user feedback and change requests to draft content.
 
     v2 Golden Standard: Now handles subdirectory files (references, guides, templates, scripts).
     """
@@ -324,7 +339,8 @@ class FeedbackIncorporatorModule(dspy.Module):
         skill_style: SkillStyle | None = None,
         current_subdirectory_files: dict[str, dict[str, str]] | None = None,
     ) -> dict[str, Any]:
-        """Incorporate user feedback into existing skill content.
+        """
+        Incorporate user feedback into existing skill content.
 
         Args:
             current_content: Current skill content to be refined
@@ -336,6 +352,7 @@ class FeedbackIncorporatorModule(dspy.Module):
 
         Returns:
             dict: Refined content including refined_content, subdirectory_files, changes_made
+
         """
         effective_style = skill_style or DEFAULT_SKILL_STYLE
         subdir_json = json.dumps(current_subdirectory_files or {})
@@ -429,7 +446,8 @@ class FeedbackIncorporatorModule(dspy.Module):
 
 
 class Phase2GenerationModule(dspy.Module):
-    """Phase 2 orchestrator: generate content and optionally incorporate feedback.
+    """
+    Phase 2 orchestrator: generate content and optionally incorporate feedback.
 
     v2 Golden Standard: Supports skill styles and subdirectory file generation.
     """
@@ -450,7 +468,8 @@ class Phase2GenerationModule(dspy.Module):
         user_feedback: str = "",
         change_requests: str = "",
     ) -> dict[str, Any]:
-        """Async orchestration of Phase 2 content generation and feedback incorporation.
+        """
+        Async orchestration of Phase 2 content generation and feedback incorporation.
 
         Args:
             skill_metadata: Skill metadata including name, description, etc.
@@ -464,6 +483,7 @@ class Phase2GenerationModule(dspy.Module):
 
         Returns:
             dict: Final generated content with all metadata and subdirectory_files
+
         """
         content_result = await self.generate_content.aforward(
             skill_metadata=skill_metadata,
@@ -491,7 +511,8 @@ class Phase2GenerationModule(dspy.Module):
         return content_result
 
     def forward(self, *args, **kwargs) -> dict[str, Any]:
-        """Sync version of Phase 2 content generation orchestration.
+        """
+        Sync version of Phase 2 content generation orchestration.
 
         Args:
             *args: Positional arguments passed to aforward method
@@ -499,5 +520,6 @@ class Phase2GenerationModule(dspy.Module):
 
         Returns:
             dict: Final generated content with all metadata
+
         """
         return run_async(lambda: self.aforward(*args, **kwargs))

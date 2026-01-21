@@ -1,4 +1,5 @@
-"""Optimization scripts for DSPy skill creation workflows.
+"""
+Optimization scripts for DSPy skill creation workflows.
 
 This module provides:
 - MIPROv2 optimization for prompt tuning
@@ -17,14 +18,11 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal
+from typing import Any, Literal
 
 import dspy
 
 from ..dspy.programs import LegacySkillCreationProgram
-
-if TYPE_CHECKING:
-    pass
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +48,8 @@ def get_lm(
     temperature: float = 0.7,
     **kwargs,
 ) -> dspy.LM:
-    """Get a DSPy LM instance for an approved model.
+    """
+    Get a DSPy LM instance for an approved model.
 
     Args:
         model_name: Name of approved model (without provider prefix)
@@ -62,6 +61,7 @@ def get_lm(
 
     Raises:
         ValueError: If model is not in approved list
+
     """
     if model_name not in APPROVED_MODELS:
         raise ValueError(
@@ -78,7 +78,8 @@ def get_lm(
 
 
 class OptimizationWrapper(dspy.Module):
-    """Wrapper for optimization that provides dummy context.
+    """
+    Wrapper for optimization that provides dummy context.
 
     This is necessary because the training set only provides task_description,
     but the program expects comprehensive context arguments.
@@ -89,7 +90,8 @@ class OptimizationWrapper(dspy.Module):
         self.program = program
 
     def forward(self, task_description: str):
-        """Execute the wrapped program with dummy context for optimization.
+        """
+        Execute the wrapped program with dummy context for optimization.
 
         Args:
             task_description: Description of the skill creation task
@@ -97,17 +99,20 @@ class OptimizationWrapper(dspy.Module):
         Returns:
             dspy.Prediction: Wrapped result containing understanding, plan,
                 skeleton, content, and package predictions
+
         """
 
         # Create minimal/dummy context for optimization
         def dummy_parent_getter(path: str) -> list[dict]:
-            """Dummy parent skill getter for optimization context.
+            """
+            Dummy parent skill getter for optimization context.
 
             Args:
                 path: Path to get parent skills for (ignored)
 
             Returns:
                 Empty list for optimization purposes
+
             """
             return []
 
@@ -146,7 +151,8 @@ def optimize_with_miprov2(
     max_labeled_demos: int = 4,
     num_threads: int = 8,
 ) -> LegacySkillCreationProgram:
-    """Optimize skill creation workflow with MIPROv2.
+    """
+    Optimize skill creation workflow with MIPROv2.
 
     MIPROv2 (Multi-stage Instruction Proposal Optimizer v2) tunes:
     - Instructions for each signature
@@ -169,6 +175,7 @@ def optimize_with_miprov2(
 
     Returns:
         Optimized LegacySkillCreationProgram
+
     """
     from dspy.teleprompt import MIPROv2
 
@@ -248,7 +255,8 @@ def optimize_with_gepa(
     auto: Literal["light", "medium", "heavy"] = "medium",
     track_stats: bool = True,
 ) -> LegacySkillCreationProgram:
-    """Optimize skill creation workflow with GEPA.
+    """
+    Optimize skill creation workflow with GEPA.
 
     GEPA (Genetic-Pareto Reflective Prompt Optimizer) uses:
     - Reflective mutation based on LLM traces
@@ -266,6 +274,7 @@ def optimize_with_gepa(
 
     Returns:
         Optimized LegacySkillCreationProgram
+
     """
     from .evaluation import load_trainset, skill_creation_metric, split_dataset
 
@@ -296,8 +305,10 @@ def optimize_with_gepa(
     # GEPA expects a GEPAFeedbackMetric-compatible callable. We provide a small
     # adapter instead of using a broad Any cast to keep type checking intact.
     def _gepa_metric_adapter(*args: Any, **kwargs: Any) -> Any:
-        """Adapter to use `skill_creation_metric` with GEPA without disabling
-        type checking via a broad Any cast."""
+        """
+        Adapter to use `skill_creation_metric` with GEPA without disabling
+        type checking via a broad Any cast.
+        """
         return skill_creation_metric(*args, **kwargs)
 
     optimizer = dspy.GEPA(
@@ -340,13 +351,15 @@ def optimize_with_gepa(
 def load_optimized_program(
     path: str | Path = "config/optimized/miprov2/",
 ) -> dspy.Module:
-    """Load a previously optimized program.
+    """
+    Load a previously optimized program.
 
     Args:
         path: Directory containing the saved program state file or a state file path
 
     Returns:
         Loaded dspy.Module (optimized program) with optimized state
+
     """
     path = Path(path)
     if not path.exists():
@@ -374,12 +387,14 @@ def save_program_state(
     path: str | Path,
     save_program: bool = False,
 ) -> None:
-    """Save program state to disk.
+    """
+    Save program state to disk.
 
     Args:
         program: Program to save
         path: Output path (file for state-only, dir for full program)
         save_program: If True, save full program (uses cloudpickle)
+
     """
     path = Path(path)
 
@@ -407,7 +422,8 @@ def optimize_with_tracking(
     experiment_name: str = "skills-fleet-optimization",
     **optimizer_kwargs,
 ) -> LegacySkillCreationProgram:
-    """Optimize with MLflow tracking enabled.
+    """
+    Optimize with MLflow tracking enabled.
 
     Requires: uv add "mlflow>=2.21.1"
 
@@ -440,6 +456,7 @@ def optimize_with_tracking(
 
     Returns:
         Optimized program.
+
     """
     try:
         import mlflow
@@ -501,7 +518,8 @@ def quick_evaluate(
     model: str = DEFAULT_MODEL,
     n_examples: int | None = None,
 ) -> dict:
-    """Run a quick evaluation on the program.
+    """
+    Run a quick evaluation on the program.
 
     Args:
         program: Program to evaluate
@@ -511,6 +529,7 @@ def quick_evaluate(
 
     Returns:
         Evaluation results dict
+
     """
     from .evaluation import (
         evaluate_program,
@@ -530,13 +549,15 @@ def quick_evaluate(
 
     # Create minimal parent_skills_getter for evaluation
     def dummy_parent_getter(path: str) -> list:
-        """Dummy parent skill getter for evaluation context.
+        """
+        Dummy parent skill getter for evaluation context.
 
         Args:
             path: Path to get parent skills for (ignored)
 
         Returns:
             Empty list for evaluation purposes
+
         """
         return []
 

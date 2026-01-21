@@ -1,4 +1,5 @@
-"""Versioning and A/B testing infrastructure for DSPy programs.
+"""
+Versioning and A/B testing infrastructure for DSPy programs.
 
 Enables version management, comparison, and gradual rollout of optimized programs.
 """
@@ -47,7 +48,8 @@ class ProgramVersion:
 
 
 class ProgramRegistry:
-    """Registry for managing multiple program versions.
+    """
+    Registry for managing multiple program versions.
 
     Tracks different optimized versions of DSPy programs for:
     - Version comparison
@@ -71,13 +73,16 @@ class ProgramRegistry:
 
         # List all versions
         versions = registry.list_versions()
+
     """
 
     def __init__(self, registry_dir: str | Path = "config/optimized") -> None:
-        """Initialize program registry.
+        """
+        Initialize program registry.
 
         Args:
             registry_dir: Directory to store programs and registry
+
         """
         self.registry_dir = Path(registry_dir)
         self.registry_dir.mkdir(parents=True, exist_ok=True)
@@ -107,7 +112,8 @@ class ProgramRegistry:
         training_examples: int = 0,
         config: dict[str, Any] | None = None,
     ) -> str:
-        """Register a new program version.
+        """
+        Register a new program version.
 
         Args:
             program: DSPy program to register
@@ -119,6 +125,7 @@ class ProgramRegistry:
 
         Returns:
             Version ID (hash of program)
+
         """
         # Generate version ID from program hash
         program_bytes = pickle.dumps(program)
@@ -149,7 +156,8 @@ class ProgramRegistry:
         return version_id
 
     def load(self, name: str) -> dspy.Module:
-        """Load a program version by name.
+        """
+        Load a program version by name.
 
         Args:
             name: Version name
@@ -159,6 +167,7 @@ class ProgramRegistry:
 
         Raises:
             KeyError: If version not found
+
         """
         if name not in self.versions:
             raise KeyError(f"Program version '{name}' not found in registry")
@@ -176,13 +185,15 @@ class ProgramRegistry:
         return program
 
     def list_versions(self, sort_by: str = "created_at") -> list[dict]:
-        """List all registered versions.
+        """
+        List all registered versions.
 
         Args:
             sort_by: Field to sort by ("created_at", "quality_score", "name")
 
         Returns:
             List of version dictionaries
+
         """
         versions = list(self.versions.values())
 
@@ -194,7 +205,8 @@ class ProgramRegistry:
         return versions
 
     def compare(self, name1: str, name2: str) -> dict[str, Any]:
-        """Compare two program versions.
+        """
+        Compare two program versions.
 
         Args:
             name1: First version name
@@ -202,6 +214,7 @@ class ProgramRegistry:
 
         Returns:
             Comparison dictionary
+
         """
         v1 = self.versions.get(name1)
         v2 = self.versions.get(name2)
@@ -219,7 +232,8 @@ class ProgramRegistry:
 
 
 class ABTestRouter(dspy.Module):
-    """Route requests to different program versions for A/B testing.
+    """
+    Route requests to different program versions for A/B testing.
 
     Supports multiple routing strategies:
     - Random (50/50 split)
@@ -235,6 +249,7 @@ class ABTestRouter(dspy.Module):
         )
 
         result = router(task="Test", user_id="user123")
+
     """
 
     def __init__(
@@ -243,12 +258,14 @@ class ABTestRouter(dspy.Module):
         weights: dict[str, float] | None = None,
         strategy: str = "random",
     ) -> None:
-        """Initialize A/B test router.
+        """
+        Initialize A/B test router.
 
         Args:
             variants: Dictionary of variant_name -> program
             weights: Dictionary of variant_name -> weight (for weighted strategy)
             strategy: Routing strategy ("random", "weighted", "user_hash")
+
         """
         super().__init__()
         self.variants = variants
@@ -260,17 +277,19 @@ class ABTestRouter(dspy.Module):
         self.weights = {k: v / total_weight for k, v in self.weights.items()}
 
         # Tracking
-        self.execution_counts: dict[str, int] = {k: 0 for k in variants}
-        self.success_counts: dict[str, int] = {k: 0 for k in variants}
+        self.execution_counts: dict[str, int] = dict.fromkeys(variants, 0)
+        self.success_counts: dict[str, int] = dict.fromkeys(variants, 0)
 
     def _select_variant(self, user_id: str | None = None) -> str:
-        """Select variant based on strategy.
+        """
+        Select variant based on strategy.
 
         Args:
             user_id: Optional user ID for deterministic routing
 
         Returns:
             Variant name to use
+
         """
         import random
 
@@ -298,7 +317,8 @@ class ABTestRouter(dspy.Module):
             return list(self.variants.keys())[0]
 
     def forward(self, user_id: str | None = None, **kwargs: Any) -> dspy.Prediction:
-        """Route request to selected variant.
+        """
+        Route request to selected variant.
 
         Args:
             user_id: Optional user ID for deterministic routing
@@ -306,6 +326,7 @@ class ABTestRouter(dspy.Module):
 
         Returns:
             Prediction from selected variant
+
         """
         variant_name = self._select_variant(user_id)
         variant = self.variants[variant_name]
@@ -325,10 +346,12 @@ class ABTestRouter(dspy.Module):
             raise
 
     def get_stats(self) -> dict[str, Any]:
-        """Get A/B testing statistics.
+        """
+        Get A/B testing statistics.
 
         Returns:
             Statistics for each variant
+
         """
         stats = {}
         for variant in self.variants:

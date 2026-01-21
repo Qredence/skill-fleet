@@ -1,4 +1,5 @@
-"""Reward/metric functions for Phase 2: Scope & Boundaries.
+"""
+Reward/metric functions for Phase 2: Scope & Boundaries.
 
 These metric functions are used for:
 - DSPy MultiChainComparison for critical decisions
@@ -22,10 +23,7 @@ how well the Phase 2 outputs meet these criteria.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    pass
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +49,8 @@ def phase2_validity_metric(
     pred: Any,
     trace: Any = None,
 ) -> float:
-    """Metric function for MultiChainComparison.
+    """
+    Metric function for MultiChainComparison.
 
     This function evaluates Phase 2 outputs against the validation criteria
     from guidelines lines 1066-1073 and returns a score from 0.0 to 1.0.
@@ -82,6 +81,7 @@ def phase2_validity_metric(
         ... }
         >>> score = phase2_validity_metric({}, result)
         >>> print(score)  # Should be 1.0
+
     """
     score = 0.0
 
@@ -168,7 +168,8 @@ def phase2_checkpoint_score(
     weight: str,
     load_priority: str,
 ) -> float:
-    """Calculate Phase 2 checkpoint score.
+    """
+    Calculate Phase 2 checkpoint score.
 
     This is a convenience function for calculating the checkpoint score
     directly from Phase 2 outputs, without requiring a Prediction object.
@@ -194,6 +195,7 @@ def phase2_checkpoint_score(
         ...     load_priority="task_specific"
         ... )
         >>> print(score)  # Should be 1.0
+
     """
     pred = {
         "confirmed_type": confirmed_type,

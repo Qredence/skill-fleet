@@ -30,7 +30,8 @@ def evaluate_command(
         help="Show detailed metrics breakdown",
     ),
 ):
-    """Evaluate skill quality using calibrated metrics.
+    """
+    Evaluate skill quality using calibrated metrics.
 
     Evaluates a skill's SKILL.md content against quality criteria calibrated
     from golden skills (Obra/superpowers, Anthropics).
@@ -147,7 +148,8 @@ def evaluate_batch_command(
         help="Output results as JSON",
     ),
 ):
-    """Evaluate multiple skills and show summary statistics.
+    """
+    Evaluate multiple skills and show summary statistics.
 
     Examples:
         skill-fleet evaluate-batch skills/technical_skills/programming/python/*

@@ -1,4 +1,5 @@
-"""DSPy conversational modules using MultiChainComparison and Predict.
+"""
+DSPy conversational modules using MultiChainComparison and Predict.
 
 These modules use dspy.MultiChainComparison for higher quality outputs and
 dspy.Predict for simpler predictions. This replaces ChainOfThought with
@@ -36,17 +37,20 @@ logger = logging.getLogger(__name__)
 
 
 class InterpretIntentModuleQA(dspy.Module):
-    """Module for interpreting user intent using MultiChainComparison.
+    """
+    Module for interpreting user intent using MultiChainComparison.
 
     Generates multiple interpretations and selects the best one for higher accuracy.
     Uses dspy.MultiChainComparison to improve confidence in intent detection.
     """
 
     def __init__(self, n_candidates: int = 3):
-        """Initialize with MultiChainComparison for quality assurance.
+        """
+        Initialize with MultiChainComparison for quality assurance.
 
         Args:
             n_candidates: Number of candidate interpretations to generate (default: 3)
+
         """
         super().__init__()
         # MultiChainComparison requires a Signature class directly
@@ -61,7 +65,8 @@ class InterpretIntentModuleQA(dspy.Module):
         conversation_history: list[dict] | str = "",
         current_state: str = "EXPLORING",
     ) -> dict:
-        """Interpret user's intent with multi-candidate quality assurance.
+        """
+        Interpret user's intent with multi-candidate quality assurance.
 
         Args:
             user_message: User's message
@@ -70,6 +75,7 @@ class InterpretIntentModuleQA(dspy.Module):
 
         Returns:
             Dict with intent_type, extracted_task, and confidence
+
         """
         history_str = (
             json.dumps(conversation_history, indent=2)
@@ -94,10 +100,12 @@ class DetectMultiSkillModuleQA(dspy.Module):
     """Module for detecting multi-skill needs using MultiChainComparison."""
 
     def __init__(self, n_candidates: int = 3):
-        """Initialize with MultiChainComparison.
+        """
+        Initialize with MultiChainComparison.
 
         Args:
             n_candidates: Number of candidates for skill breakdown analysis
+
         """
         super().__init__()
         # MultiChainComparison requires a Signature class directly
@@ -112,7 +120,8 @@ class DetectMultiSkillModuleQA(dspy.Module):
         collected_examples: list[dict] | str = "",
         existing_skills: list[str] | str = "",
     ) -> dict:
-        """Detect if task requires multiple skills with quality assurance.
+        """
+        Detect if task requires multiple skills with quality assurance.
 
         Args:
             task_description: User's complete task description
@@ -121,6 +130,7 @@ class DetectMultiSkillModuleQA(dspy.Module):
 
         Returns:
             Dict with requires_multiple_skills, skill_breakdown, reasoning, and suggested_order
+
         """
         examples_str = (
             json.dumps(collected_examples, indent=2)
@@ -164,7 +174,8 @@ class DetectMultiSkillModuleQA(dspy.Module):
 
 
 class GenerateQuestionModuleQA(dspy.Module):
-    """Module for generating contextual clarifying questions using MultiChainComparison.
+    """
+    Module for generating contextual clarifying questions using MultiChainComparison.
 
     Uses multiple candidates to generate the most relevant question based on:
     - Task description
@@ -176,10 +187,12 @@ class GenerateQuestionModuleQA(dspy.Module):
     """
 
     def __init__(self, n_candidates: int = 3):
-        """Initialize with MultiChainComparison for contextual questions.
+        """
+        Initialize with MultiChainComparison for contextual questions.
 
         Args:
             n_candidates: Number of candidate questions to generate
+
         """
         super().__init__()
         # MultiChainComparison requires a Signature class directly
@@ -195,7 +208,8 @@ class GenerateQuestionModuleQA(dspy.Module):
         conversation_context: str = "",
         previous_questions: list[str] | None = None,
     ) -> dict:
-        """Generate a contextual clarifying question (NO fallback defaults).
+        """
+        Generate a contextual clarifying question (NO fallback defaults).
 
         Each question is dynamically generated based on:
         - What we know so far (task_description, collected_examples)
@@ -210,6 +224,7 @@ class GenerateQuestionModuleQA(dspy.Module):
 
         Returns:
             Dict with question, question_options, and reasoning
+
         """
         examples_str = (
             json.dumps(collected_examples, indent=2)
@@ -250,7 +265,8 @@ class GenerateQuestionModuleQA(dspy.Module):
 
 
 class DeepUnderstandingModuleQA(dspy.Module):
-    """Module for deep understanding using MultiChainComparison.
+    """
+    Module for deep understanding using MultiChainComparison.
 
     Generates contextual multi-choice questions that understand:
     - User's problem (WHY do they need this?)
@@ -261,10 +277,12 @@ class DeepUnderstandingModuleQA(dspy.Module):
     """
 
     def __init__(self, n_candidates: int = 3):
-        """Initialize with MultiChainComparison for deep understanding.
+        """
+        Initialize with MultiChainComparison for deep understanding.
 
         Args:
             n_candidates: Number of candidates for question generation
+
         """
         super().__init__()
         # MultiChainComparison requires a Signature class directly
@@ -281,7 +299,8 @@ class DeepUnderstandingModuleQA(dspy.Module):
         current_understanding: str = "",
         previous_questions: list[dict] | None = None,
     ) -> dict:
-        """Generate next contextual question based on deep understanding.
+        """
+        Generate next contextual question based on deep understanding.
 
         Args:
             initial_task: User's original task description
@@ -293,6 +312,7 @@ class DeepUnderstandingModuleQA(dspy.Module):
         Returns:
             Dict with next_question, reasoning, research_needed, understanding_summary,
             readiness_score, refined_task_description, user_problem, user_goals
+
         """
         history_str = (
             json.dumps(conversation_history, indent=2)
@@ -383,10 +403,12 @@ class PresentSkillModuleQA(dspy.Module):
     """Module for presenting skill results using MultiChainComparison."""
 
     def __init__(self, n_candidates: int = 3):
-        """Initialize with MultiChainComparison.
+        """
+        Initialize with MultiChainComparison.
 
         Args:
             n_candidates: Number of candidates for presentation formatting
+
         """
         super().__init__()
         # MultiChainComparison requires a Signature class directly
@@ -401,7 +423,8 @@ class PresentSkillModuleQA(dspy.Module):
         skill_metadata: dict | str,
         validation_report: dict | str,
     ) -> dict:
-        """Format skill results for conversational presentation with quality assurance.
+        """
+        Format skill results for conversational presentation with quality assurance.
 
         Args:
             skill_content: Generated SKILL.md content
@@ -410,6 +433,7 @@ class PresentSkillModuleQA(dspy.Module):
 
         Returns:
             Dict with conversational_summary, key_highlights, and suggested_questions
+
         """
         metadata_str = (
             json.dumps(skill_metadata, indent=2)
@@ -454,17 +478,20 @@ class PresentSkillModuleQA(dspy.Module):
 
 
 class SuggestTestsModuleQA(dspy.Module):
-    """Module for suggesting test scenarios using MultiChainComparison.
+    """
+    Module for suggesting test scenarios using MultiChainComparison.
 
     Generates pressure scenarios for TDD testing with multi-candidate quality assurance.
     Different skill types require different test approaches.
     """
 
     def __init__(self, n_candidates: int = 3):
-        """Initialize with MultiChainComparison.
+        """
+        Initialize with MultiChainComparison.
 
         Args:
             n_candidates: Number of candidates for test scenario generation
+
         """
         super().__init__()
         # MultiChainComparison requires a Signature class directly
@@ -479,7 +506,8 @@ class SuggestTestsModuleQA(dspy.Module):
         skill_type: str,
         skill_metadata: dict | str,
     ) -> dict:
-        """Suggest test scenarios with quality assurance.
+        """
+        Suggest test scenarios with quality assurance.
 
         Args:
             skill_content: Generated skill content (SKILL.md)
@@ -488,6 +516,7 @@ class SuggestTestsModuleQA(dspy.Module):
 
         Returns:
             Dict with test_scenarios, baseline_predictions, and expected_rationalizations
+
         """
         metadata_str = (
             json.dumps(skill_metadata, indent=2)
@@ -542,7 +571,8 @@ class SuggestTestsModuleQA(dspy.Module):
 
 
 class AssessReadinessModule(dspy.Module):
-    """Module for assessing readiness using dspy.Predict.
+    """
+    Module for assessing readiness using dspy.Predict.
 
     Simple prediction that doesn't require MultiChainComparison.
     """
@@ -557,7 +587,8 @@ class AssessReadinessModule(dspy.Module):
         examples: list[dict] | str = "",
         questions_asked: int = 0,
     ) -> dict:
-        """Assess if we have enough information to proceed.
+        """
+        Assess if we have enough information to proceed.
 
         Args:
             task_description: Refined task description
@@ -566,6 +597,7 @@ class AssessReadinessModule(dspy.Module):
 
         Returns:
             Dict with readiness_score, readiness_reasoning, and should_proceed
+
         """
         examples_str = json.dumps(examples, indent=2) if isinstance(examples, list) else examples
 
@@ -583,7 +615,8 @@ class AssessReadinessModule(dspy.Module):
 
 
 class ConfirmUnderstandingModule(dspy.Module):
-    """Module for generating confirmation message before skill creation.
+    """
+    Module for generating confirmation message before skill creation.
 
     MANDATORY checkpoint before writing any skill directory structure or content.
     """
@@ -599,7 +632,8 @@ class ConfirmUnderstandingModule(dspy.Module):
         skill_metadata_draft: dict | str,
         collected_examples: list[dict] | str = "",
     ) -> dict:
-        """Generate confirmation summary before creation.
+        """
+        Generate confirmation summary before creation.
 
         Args:
             task_description: Refined task description
@@ -609,6 +643,7 @@ class ConfirmUnderstandingModule(dspy.Module):
 
         Returns:
             Dict with confirmation_summary, key_points, and confirmation_question
+
         """
         metadata_str = (
             json.dumps(skill_metadata_draft, indent=2)
@@ -656,7 +691,8 @@ class ProcessFeedbackModule(dspy.Module):
         current_skill_content: str,
         validation_errors: list[str] | str = "",
     ) -> dict:
-        """Process user feedback and determine revision plan.
+        """
+        Process user feedback and determine revision plan.
 
         Args:
             user_feedback: User's feedback message
@@ -665,6 +701,7 @@ class ProcessFeedbackModule(dspy.Module):
 
         Returns:
             Dict with feedback_type, revision_plan, and requires_regeneration
+
         """
         errors_str = (
             json.dumps(validation_errors, indent=2)
@@ -699,7 +736,8 @@ class VerifyTDDModule(dspy.Module):
         skill_content: str,
         checklist_state: dict | str,
     ) -> dict:
-        """Verify TDD checklist is complete.
+        """
+        Verify TDD checklist is complete.
 
         Args:
             skill_content: Generated skill content (SKILL.md)
@@ -707,6 +745,7 @@ class VerifyTDDModule(dspy.Module):
 
         Returns:
             Dict with all_passed, missing_items, and ready_to_save
+
         """
         checklist_str = (
             json.dumps(checklist_state, indent=2)

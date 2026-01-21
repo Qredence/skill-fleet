@@ -1,4 +1,5 @@
-"""Database management commands.
+"""
+Database management commands.
 
 Provides CLI commands for:
 - Initializing database schema
@@ -25,7 +26,8 @@ def init(
         help="Force re-creation of all tables (WARNING: will delete data)",
     ),
 ) -> None:
-    """Initialize database schema.
+    """
+    Initialize database schema.
 
     Creates all necessary tables for skills-fleet persistence.
     Idempotent - safe to run multiple times.
@@ -71,7 +73,8 @@ from sqlalchemy import text  # noqa: E402
 
 @db_app.command()
 def status() -> None:
-    """Check database connection and table status.
+    """
+    Check database connection and table status.
 
     Verifies that the database is accessible and all required
     tables exist.
@@ -120,7 +123,8 @@ def status() -> None:
 
 @db_app.command()
 def migrate() -> None:
-    """Run database migrations.
+    """
+    Run database migrations.
 
     Currently, migrations are handled automatically via SQLAlchemy
     in the init command. This is a placeholder for future migration
@@ -138,7 +142,8 @@ def reset_db(
         help="Skip confirmation prompt",
     ),
 ) -> None:
-    """Reset database to empty state (DEVELOPMENT ONLY).
+    """
+    Reset database to empty state (DEVELOPMENT ONLY).
 
     WARNING: This will delete ALL data. Use only in development.
     """

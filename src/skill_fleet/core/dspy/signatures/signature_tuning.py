@@ -1,4 +1,5 @@
-"""DSPy signatures for metric-driven signature tuning.
+"""
+DSPy signatures for metric-driven signature tuning.
 
 These signatures support the SignatureTuner module for analyzing
 skill quality failures and proposing improved signatures.
@@ -18,7 +19,8 @@ import dspy
 
 
 class AnalyzeSignatureFailures(dspy.Signature):
-    """Analyze why a skill failed to meet quality thresholds.
+    """
+    Analyze why a skill failed to meet quality thresholds.
 
     Identify root causes of low quality scores by examining:
     1. What quality indicators are missing (core principle, contrast patterns, etc.)
@@ -81,7 +83,8 @@ class AnalyzeSignatureFailures(dspy.Signature):
 
 
 class ProposeSignatureImprovement(dspy.Signature):
-    """Propose an improved DSPy signature to address quality failures.
+    """
+    Propose an improved DSPy signature to address quality failures.
 
     Generate a modified signature that:
     1. Adds explicit OutputField constraints for missing quality indicators
@@ -135,7 +138,8 @@ class ProposeSignatureImprovement(dspy.Signature):
 
 
 class ValidateSignatureImprovement(dspy.Signature):
-    """Validate that a proposed signature improvement is safe and beneficial.
+    """
+    Validate that a proposed signature improvement is safe and beneficial.
 
     Check that the improved signature:
     1. Is syntactically valid DSPy signature
@@ -180,7 +184,8 @@ class ValidateSignatureImprovement(dspy.Signature):
 
 
 class CompareSignatureVersions(dspy.Signature):
-    """Compare two signature versions to determine which is better.
+    """
+    Compare two signature versions to determine which is better.
 
     Used for A/B testing of signature improvements to validate
     that changes actually improve quality in practice.

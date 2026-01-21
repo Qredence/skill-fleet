@@ -1,4 +1,5 @@
-"""Error handling wrappers for DSPy modules.
+"""
+Error handling wrappers for DSPy modules.
 
 Provides robust error handling, fallbacks, and retry logic for production use.
 """
@@ -16,7 +17,8 @@ logger = logging.getLogger(__name__)
 
 
 class RobustModule(dspy.Module):
-    """Wrapper for DSPy modules with error handling and fallbacks.
+    """
+    Wrapper for DSPy modules with error handling and fallbacks.
 
     Features:
     - Automatic retry with exponential backoff
@@ -34,6 +36,7 @@ class RobustModule(dspy.Module):
         )
 
         result = robust(task="Create skill")  # Handles errors gracefully
+
     """
 
     def __init__(
@@ -45,7 +48,8 @@ class RobustModule(dspy.Module):
         fallback_fn: Callable[..., dspy.Prediction] | None = None,
         log_errors: bool = True,
     ) -> None:
-        """Initialize robust module wrapper.
+        """
+        Initialize robust module wrapper.
 
         Args:
             module: DSPy module to wrap
@@ -54,6 +58,7 @@ class RobustModule(dspy.Module):
             retry_delay: Initial retry delay in seconds (exponential backoff)
             fallback_fn: Function to call if all retries fail
             log_errors: Whether to log errors
+
         """
         super().__init__()
         self.module = module
@@ -68,13 +73,15 @@ class RobustModule(dspy.Module):
         self.last_error: str | None = None
 
     def forward(self, **kwargs: Any) -> dspy.Prediction:
-        """Execute module with retry logic and fallback.
+        """
+        Execute module with retry logic and fallback.
 
         Args:
             **kwargs: Module input parameters
 
         Returns:
             Module output or fallback result
+
         """
         last_exception = None
 
@@ -123,7 +130,8 @@ class RobustModule(dspy.Module):
 
 
 class ValidatedModule(dspy.Module):
-    """Wrapper for DSPy modules with output validation.
+    """
+    Wrapper for DSPy modules with output validation.
 
     Validates module output against expected schema/constraints before returning.
 
@@ -139,6 +147,7 @@ class ValidatedModule(dspy.Module):
         validated = ValidatedModule(module, validator=validate_output)
 
         result = validated(question="What is DSPy?")  # Validates before returning
+
     """
 
     def __init__(
@@ -148,13 +157,15 @@ class ValidatedModule(dspy.Module):
         name: str = "validated_module",
         raise_on_invalid: bool = True,
     ) -> None:
-        """Initialize validated module wrapper.
+        """
+        Initialize validated module wrapper.
 
         Args:
             module: DSPy module to wrap
             validator: Function that validates output (raises on invalid)
             name: Name for logging
             raise_on_invalid: Whether to raise exception on validation failure
+
         """
         super().__init__()
         self.module = module
@@ -165,7 +176,8 @@ class ValidatedModule(dspy.Module):
         self.validation_failures = 0
 
     def forward(self, **kwargs: Any) -> dspy.Prediction:
-        """Execute module and validate output.
+        """
+        Execute module and validate output.
 
         Args:
             **kwargs: Module input parameters
@@ -175,6 +187,7 @@ class ValidatedModule(dspy.Module):
 
         Raises:
             ValueError: If validation fails and raise_on_invalid=True
+
         """
         result = self.module(**kwargs)
 
@@ -195,13 +208,15 @@ class ValidatedModule(dspy.Module):
 
 
 def create_fallback_for_phase(phase: str) -> Callable[..., dspy.Prediction]:
-    """Create appropriate fallback function for a workflow phase.
+    """
+    Create appropriate fallback function for a workflow phase.
 
     Args:
         phase: Phase name ('understanding', 'generation', 'validation')
 
     Returns:
         Fallback function that returns safe default
+
     """
     if phase == "understanding":
 

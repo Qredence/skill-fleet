@@ -1,4 +1,5 @@
-"""Reward functions and metrics for DSPy optimization.
+"""
+Reward functions and metrics for DSPy optimization.
 
 This package provides:
 - Phase 1 completeness reward function

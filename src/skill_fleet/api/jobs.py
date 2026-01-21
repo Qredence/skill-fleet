@@ -23,7 +23,8 @@ def _sanitize_for_log(value: Any) -> str:
 
 
 def _is_safe_job_id(job_id: str) -> bool:
-    """Return True if the job_id is safe to use as a filename component.
+    """
+    Return True if the job_id is safe to use as a filename component.
 
     This restricts job IDs to a conservative character set to prevent
     path traversal or injection when constructing paths like
@@ -69,7 +70,8 @@ def get_job(job_id: str) -> JobState | None:
 
 
 async def wait_for_hitl_response(job_id: str, timeout: float = 3600.0) -> dict[str, Any]:
-    """Wait for user to provide HITL response via API.
+    """
+    Wait for user to provide HITL response via API.
 
     This uses an event-driven mechanism instead of polling to avoid:
     - unnecessary latency (poll interval)
@@ -107,7 +109,8 @@ async def wait_for_hitl_response(job_id: str, timeout: float = 3600.0) -> dict[s
 
 
 def notify_hitl_response(job_id: str, response: dict[str, Any]) -> None:
-    """Notify the in-flight HITL waiter that a response arrived.
+    """
+    Notify the in-flight HITL waiter that a response arrived.
 
     This is race-safe: the event is set before storing the response,
     ensuring that any waiters will see the new response.
@@ -143,13 +146,15 @@ SESSION_DIR.mkdir(exist_ok=True)
 
 
 def save_job_session(job_id: str) -> bool:
-    """Save job state to disk for persistence.
+    """
+    Save job state to disk for persistence.
 
     Args:
         job_id: The job ID to save
 
     Returns:
         True if save succeeded, False otherwise
+
     """
     if not _is_safe_job_id(job_id):
         logger.warning("Cannot save session: unsafe job id %s", _sanitize_for_log(job_id))
@@ -183,13 +188,15 @@ def save_job_session(job_id: str) -> bool:
 
 
 def load_job_session(job_id: str) -> JobState | None:
-    """Load job state from disk.
+    """
+    Load job state from disk.
 
     Args:
         job_id: The job ID to load
 
     Returns:
         JobState if found, None otherwise
+
     """
     if not _is_safe_job_id(job_id):
         logger.warning("Cannot load session: unsafe job id %s", _sanitize_for_log(job_id))
@@ -241,10 +248,12 @@ def load_job_session(job_id: str) -> JobState | None:
 
 
 def list_saved_sessions() -> list[str]:
-    """List all saved session IDs.
+    """
+    List all saved session IDs.
 
     Returns:
         List of job IDs with saved sessions
+
     """
     try:
         return [f.stem for f in SESSION_DIR.glob("*.json")]
@@ -253,13 +262,15 @@ def list_saved_sessions() -> list[str]:
 
 
 def delete_job_session(job_id: str) -> bool:
-    """Delete a saved session.
+    """
+    Delete a saved session.
 
     Args:
         job_id: The job ID to delete
 
     Returns:
         True if deletion succeeded, False otherwise
+
     """
     if not _is_safe_job_id(job_id):
         logger.warning("Cannot delete session: unsafe job id %s", _sanitize_for_log(job_id))
@@ -288,13 +299,15 @@ def delete_job_session(job_id: str) -> bool:
 
 
 def cleanup_old_sessions(max_age_hours: float = 24.0) -> int:
-    """Clean up old session files.
+    """
+    Clean up old session files.
 
     Args:
         max_age_hours: Maximum age in hours before deletion
 
     Returns:
         Number of sessions cleaned up
+
     """
     import time
 

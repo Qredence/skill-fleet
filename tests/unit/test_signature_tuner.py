@@ -10,6 +10,7 @@ Tests for metric-driven signature tuning system including:
 
 from __future__ import annotations
 
+from collections.abc import Generator
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -39,7 +40,7 @@ def mock_lm() -> MagicMock:
 
 
 @pytest.fixture
-def configured_dspy(mock_lm: MagicMock) -> MagicMock:
+def configured_dspy(mock_lm: MagicMock) -> Generator[MagicMock, None, None]:
     """Configure DSPy with mock LM."""
     with dspy.context(lm=mock_lm):
         yield mock_lm

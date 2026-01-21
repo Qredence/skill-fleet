@@ -28,7 +28,7 @@ class TestJobPersistenceLifecycle:
         manager = JobManager()
         manager.set_db_repo(mock_repo)
 
-        job = JobState(job_id="persist-1", status="pending", task_description="Test task")
+        job = JobState(job_id="persist-1", status="pending")
         manager.create_job(job)
 
         # Verify in memory
@@ -96,7 +96,7 @@ class TestJobPersistenceLifecycle:
         job_id = "lifecycle-1"
 
         # Step 1: Create (pending)
-        job = JobState(job_id=job_id, status="pending", task_description="Skill creation")
+        job = JobState(job_id=job_id, status="pending")
         manager.create_job(job)
 
         # Step 2: Start (running)
@@ -122,8 +122,8 @@ class TestJobResumeOnStartup:
         """Test workflow for resuming pending jobs."""
         mock_repo = Mock()
         pending_jobs = [
-            Mock(job_id=uuid4(), status="pending", task_description="Task 1"),
-            Mock(job_id=uuid4(), status="pending", task_description="Task 2"),
+            Mock(job_id=uuid4(), status="pending"),
+            Mock(job_id=uuid4(), status="pending"),
         ]
         mock_repo.get_by_status = Mock(return_value=pending_jobs)
 
@@ -136,8 +136,8 @@ class TestJobResumeOnStartup:
         """Test workflow for resuming running jobs."""
         mock_repo = Mock()
         running_jobs = [
-            Mock(job_id=uuid4(), status="running", progress_percent=25),
-            Mock(job_id=uuid4(), status="running", progress_percent=75),
+            Mock(job_id=uuid4(), status="running"),
+            Mock(job_id=uuid4(), status="running"),
         ]
         mock_repo.get_by_status = Mock(return_value=running_jobs)
 
@@ -178,9 +178,7 @@ class TestCrashRecovery:
         job = JobState(
             job_id=job_id,
             status="running",
-            task_description="Skill generation",
             progress_message="Creating content...",
-            progress_percent=65,
         )
         manager.create_job(job)
 
@@ -205,7 +203,7 @@ class TestCrashRecovery:
         manager.create_job(job)
 
         # Partial update
-        manager.update_job(job_id, {"status": "running", "progress_percent": 33})
+        manager.update_job(job_id, {"status": "running"})
 
         # Crash: clear memory
         manager.memory.clear()

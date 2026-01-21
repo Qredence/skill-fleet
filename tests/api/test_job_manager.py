@@ -241,7 +241,7 @@ class TestJobManagerWithMockDB:
                 return None
 
         mock_repo = MockDBRepo()
-        manager.set_db_repo(mock_repo)
+        manager.set_db_repo(mock_repo)  # type: ignore[arg-type]
 
         assert manager.db_repo == mock_repo
 
@@ -270,7 +270,7 @@ class TestJobManagerWithMockDB:
                 return None
 
         mock_repo = MockDBRepo()
-        manager.set_db_repo(mock_repo)
+        manager.set_db_repo(mock_repo)  # type: ignore[arg-type]
 
         # Get job (should reconstruct from DB)
         job = manager.get_job(str(job_uuid))
@@ -305,7 +305,7 @@ class TestJobManagerWithMockDB:
                 return None
 
         mock_repo = MockDBRepo()
-        manager.set_db_repo(mock_repo)
+        manager.set_db_repo(mock_repo)  # type: ignore[arg-type]
 
         # First access: from DB
         job1 = manager.get_job(str(job_uuid))

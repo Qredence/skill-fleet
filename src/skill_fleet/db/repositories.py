@@ -225,7 +225,13 @@ class SkillRepository(BaseRepository[Skill]):
         Returns a dict with 'dependencies' (what this skill needs)
         and 'dependents' (what needs this skill).
         """
-        skill = self.get_by_path_with_relations(skill_id, load_dependencies=True)
+        # First get the skill to find its path
+        skill = self.get(skill_id)
+        if not skill:
+            return {"dependencies": [], "dependents": []}
+
+        # Now get with relations using the path
+        skill = self.get_by_path_with_relations(skill.skill_path, load_dependencies=True)
         if not skill:
             return {"dependencies": [], "dependents": []}
 

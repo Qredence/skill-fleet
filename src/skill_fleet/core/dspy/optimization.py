@@ -37,11 +37,14 @@ from typing import Any, Literal, cast
 import dspy
 import yaml
 
-from ...common.paths import default_config_path, find_repo_root
-from ...llm.dspy_config import configure_dspy
-from .evaluation import SkillEvaluator
-from .metrics import skill_quality_metric
-from .training import GoldStandardLoader
+from ...common.paths import (  # type: ignore[unresolved-import]
+    default_config_path,
+    find_repo_root,
+)
+from ...llm.dspy_config import configure_dspy  # type: ignore[unresolved-import]
+from .evaluation import SkillEvaluator  # type: ignore[unresolved-import]
+from .metrics import skill_quality_metric  # type: ignore[unresolved-import]
+from .training import GoldStandardLoader  # type: ignore[unresolved-import]
 
 logger = logging.getLogger(__name__)
 
@@ -447,8 +450,11 @@ class SkillOptimizer:
         """
         from dspy.teleprompt import MIPROv2
 
-        from ...llm.fleet_config import build_lm_for_task, load_fleet_config
-        from .skill_creator import SkillCreationProgram
+        from ...llm.fleet_config import (  # type: ignore[unresolved-import]
+            build_lm_for_task,
+            load_fleet_config,
+        )
+        from .skill_creator import SkillCreationProgram  # type: ignore[unresolved-import]
 
         # Build LM for this context (don't use global configure)
         config = load_fleet_config(self.config_path)
@@ -512,8 +518,11 @@ class SkillOptimizer:
         """
         from dspy.teleprompt import BootstrapFewShot
 
-        from ...llm.fleet_config import build_lm_for_task, load_fleet_config
-        from .skill_creator import SkillCreationProgram
+        from ...llm.fleet_config import (  # type: ignore[unresolved-import]
+            build_lm_for_task,
+            load_fleet_config,
+        )
+        from .skill_creator import SkillCreationProgram  # type: ignore[unresolved-import]
 
         # Build LM for this context (don't use global configure)
         config = load_fleet_config(self.config_path)
@@ -608,7 +617,9 @@ def run_optimization(
     """
     # Import here to avoid circular imports
     if program is None:
-        from .skill_creator import SkillCreationProgram
+        from .skill_creator import (  # type: ignore[unresolved-import]
+            SkillCreationProgram,
+        )
 
         program = SkillCreationProgram(quality_assured=True, hitl_enabled=False)
 

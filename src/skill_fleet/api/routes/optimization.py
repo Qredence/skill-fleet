@@ -9,6 +9,10 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+
+# Import SkillOptimizer from optimization.py module (not optimization/ package)
+# Use importlib to force load the .py file instead of the package directory
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -21,12 +25,29 @@ from ...common.security import (
     sanitize_relative_file_path,
     sanitize_taxonomy_path,
 )
-from ...core.dspy.optimization import SkillOptimizer
-from ...core.dspy.optimization.selector import (
+
+# Load the optimization.py file directly
+_optimization_file = Path(__file__).parent.parent.parent / "core/dspy/optimization.py"
+if _optimization_file.exists():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "skill_fleet.core.dspy._optimization_module", _optimization_file
+    )
+    if spec and spec.loader:
+        _optimization_module = importlib.util.module_from_spec(spec)
+        sys.modules["skill_fleet.core.dspy._optimization_module"] = _optimization_module
+        spec.loader.exec_module(_optimization_module)
+        SkillOptimizer = _optimization_module.SkillOptimizer
+    else:
+        raise ImportError("Could not load optimization.py module")
+else:
+    raise ImportError(f"optimization.py not found at {_optimization_file}")
+from ...core.dspy.optimization.selector import (  # noqa: E402
     OptimizerContext,
     OptimizerSelector,
 )
-from ..dependencies import SkillsRoot
+from ..dependencies import SkillsRoot  # noqa: E402
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -425,8 +446,9 @@ async def _run_fast_optimization(
             save_file = resolve_path_within_root(save_dir, request.save_path)
             save_file.parent.mkdir(parents=True, exist_ok=True)
 
-            if hasattr(result, "save"):
-                result.save(str(save_file))
+            save_method = getattr(result, "save", None)
+            if callable(save_method):
+                save_method(str(save_file))
                 message = f"Optimization complete. Saved to {save_file}"
             else:
                 message = "Optimization complete (save not supported)"
@@ -648,8 +670,9 @@ async def _run_optimization(
             save_file = resolve_path_within_root(save_dir, request.save_path)
             save_file.parent.mkdir(parents=True, exist_ok=True)
 
-            if hasattr(result, "save"):
-                result.save(str(save_file))
+            save_method = getattr(result, "save", None)
+            if callable(save_method):
+                save_method(str(save_file))
                 message = f"Optimization complete. Saved to {save_file}"
             else:
                 message = "Optimization complete (save not supported)"

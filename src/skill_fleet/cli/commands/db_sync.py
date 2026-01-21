@@ -48,9 +48,18 @@ def export_to_db_command(
     try:
         # Import here to avoid issues if DATABASE_URL not set
         from dotenv import load_dotenv
-        from scripts.import_skills import SkillImporter
 
         load_dotenv()
+
+        # Add scripts to path for import
+        import sys
+        from pathlib import Path
+
+        scripts_dir = Path(__file__).parent.parent.parent.parent / "scripts"
+        if str(scripts_dir) not in sys.path:
+            sys.path.insert(0, str(scripts_dir))
+
+        from import_skills import SkillImporter  # type: ignore
 
         # Resolve skills directory path
         skills_path = Path(skills_dir).resolve()
@@ -167,8 +176,8 @@ def import_from_db_command(
             from skill_fleet.db.models import (
                 Skill,
                 SkillCategory,
+                SkillStatusEnum,
                 TaxonomyCategory,
-                skill_status_enum,
             )
 
             query = session.query(Skill).join(SkillCategory).join(TaxonomyCategory)
@@ -179,10 +188,10 @@ def import_from_db_command(
                 console.print(f"Filter: path='{skill_path}'")
             else:
                 if status_filter == "active":
-                    query = query.filter(Skill.status == skill_status_enum.active)
+                    query = query.filter(Skill.status == SkillStatusEnum.ACTIVE)
                     console.print("Filter: status=active")
                 elif status_filter == "draft":
-                    query = query.filter(Skill.status == skill_status_enum.draft)
+                    query = query.filter(Skill.status == SkillStatusEnum.DRAFT)
                     console.print("Filter: status=draft")
                 # If "all", no filter
 

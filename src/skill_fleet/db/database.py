@@ -5,7 +5,8 @@ Database connection and session management for the skills fleet database.
 """
 
 import os
-from collections.abc import Generator
+from collections.abc import AsyncGenerator
+from collections.abc import Generator as SyncGenerator
 from contextlib import contextmanager
 
 from sqlalchemy import create_engine, text
@@ -62,7 +63,7 @@ AsyncSessionLocal = async_sessionmaker(
 )
 
 
-def get_db() -> Generator[Session, None, None]:
+def get_db() -> SyncGenerator[Session, None, None]:
     """
     Get a database session for dependency injection.
 
@@ -79,7 +80,7 @@ def get_db() -> Generator[Session, None, None]:
 
 
 @contextmanager
-def get_db_context() -> Generator[Session, None, None]:
+def get_db_context() -> SyncGenerator[Session, None, None]:
     """
     Context manager for database sessions.
 
@@ -98,7 +99,7 @@ def get_db_context() -> Generator[Session, None, None]:
         db.close()
 
 
-async def get_async_db() -> Generator[AsyncSession, None, None]:
+async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
     """
     Get an async database session for dependency injection.
 
@@ -116,7 +117,7 @@ async def get_async_db() -> Generator[AsyncSession, None, None]:
 
 
 @contextmanager
-def get_db_context_manager() -> Generator[Session, None, None]:
+def get_db_context_manager() -> SyncGenerator[Session, None, None]:
     """
     Alias for get_db_context() for backward compatibility.
     """

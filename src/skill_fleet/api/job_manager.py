@@ -14,16 +14,23 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import async_sessionmaker
+    from sqlalchemy.orm import Session
+
     from ..db.repositories import JobRepository
 
 from .schemas import DeepUnderstandingState, JobState, TDDWorkflowState
 
 logger = logging.getLogger(__name__)
+
+# Valid job status values for validation
+VALID_STATUSES = {"pending", "running", "completed", "failed", "cancelled"}
 
 
 class JobMemoryStore:
@@ -148,7 +155,9 @@ class JobManager:
         self.db_repo = db_repo
         logger.info("JobManager database repository configured")
 
-    def set_db_session_factory(self, factory) -> None:
+    def set_db_session_factory(
+        self, factory: async_sessionmaker[Any] | Callable[[], Session] | None
+    ) -> None:
         """Set database session factory for async operations.
 
         Args:
@@ -184,12 +193,15 @@ class JobManager:
                 if db_job:
                     # Reconstruct JobState from DB model
                     job_state = self._db_to_memory(db_job)
-                    # Warm the memory cache for future access
-                    self.memory.set(job_id, job_state)
+                    # Double-check not already added by another thread/routine
+                    if not self.memory.get(job_id):
+                        self.memory.set(job_id, job_state)
                     logger.info(f"Job {job_id} loaded from database and cached")
                     return job_state
-            except (ValueError, Exception) as e:
-                logger.warning(f"Error loading job {job_id} from database: {e}")
+            except ValueError as e:
+                logger.warning(f"Invalid UUID for job {job_id}: {e}")
+            except Exception as e:
+                logger.error(f"Unexpected error loading job {job_id} from database: {e}")
 
         logger.warning(f"Job {job_id} not found in memory or database")
         return None
@@ -249,17 +261,21 @@ class JobManager:
             if hasattr(job, key):
                 setattr(job, key, value)
 
-        # Update both layers
+        # Update memory first (always succeeds)
         self.memory.set(job_id, job)
         logger.debug(f"Job {job_id} updated in memory")
 
+        # Attempt DB update with explicit failure handling
         if self.db_repo:
             try:
                 self._save_job_to_db(job)
                 logger.debug(f"Job {job_id} updated in database")
+            except ValueError as e:
+                logger.error(f"Validation failed updating job {job_id}: {e}")
+                # Consider rolling back memory update or marking as dirty
             except Exception as e:
-                logger.error(f"Failed to update job {job_id} in database: {e}")
-                # Continue anyway - memory update succeeded
+                logger.error(f"Database error updating job {job_id}: {e}")
+                # Memory update succeeded but DB failed - log discrepancy
 
         return job
 
@@ -317,10 +333,15 @@ class JobManager:
             job: JobState to save
 
         Raises:
+            ValueError: If job status is invalid
             Exception: If database operation fails
         """
         if not self.db_repo:
             return
+
+        # Validate status before saving
+        if job.status not in VALID_STATUSES:
+            raise ValueError(f"Invalid job status: {job.status}. Must be one of {VALID_STATUSES}")
 
         try:
             # Build job data for database
@@ -368,11 +389,14 @@ class JobManager:
         if obj is None:
             return None
         try:
-            # Always sanitize to ensure clean JSON primitives
+            # Use Pydantic model_dump for model instances
+            if hasattr(obj, "model_dump"):
+                return obj.model_dump(mode="json")
+            # Fallback to JSON serialization
             return json.loads(json.dumps(obj, default=str))
         except Exception as e:
             logger.warning(f"Failed to serialize object: {e}")
-            return None
+            return {}
 
     def _db_to_memory(self, db_job: Any) -> JobState:
         """Internal: Reconstruct JobState from database model.

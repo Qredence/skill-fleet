@@ -252,4 +252,3 @@ async def test_run_hitl_job_clarify_single_select_with_options():
     assert len(client.posted) == 1
     payload = client.posted[0]["answers"]["response"]
     assert "Python" in payload
-

@@ -54,7 +54,7 @@ class TestFrontmatterCanonicalization:
         # Create description that exceeds 1024 chars
         long_desc = "A description that is definitely way too long for the description field." * 50
         assert len(long_desc) > 1024, "Test setup: description must exceed 1024 chars"
-        
+
         metadata = {
             "name": "test-skill",
             "description": long_desc,

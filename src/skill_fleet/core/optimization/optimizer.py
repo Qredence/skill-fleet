@@ -133,7 +133,7 @@ class OptimizationWrapper(dspy.Module):
 # =============================================================================
 
 
-from ...config.training.manager import TrainingDataManager
+from ...config.training.manager import TrainingDataManager  # noqa: E402
 
 
 def optimize_with_miprov2(

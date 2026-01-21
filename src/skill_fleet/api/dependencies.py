@@ -32,6 +32,7 @@ def _get_settings():
     Import lazily to avoid circular dependencies.
     """
     from .config import get_settings
+
     return get_settings()
 
 

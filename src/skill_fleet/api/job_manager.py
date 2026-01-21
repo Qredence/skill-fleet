@@ -147,10 +147,10 @@ class JobManager:
         """
         self.db_repo = db_repo
         logger.info("JobManager database repository configured")
-    
+
     def set_db_session_factory(self, factory) -> None:
         """Set database session factory for async operations.
-        
+
         Args:
             factory: SQLAlchemy AsyncSessionLocal or SessionLocal factory
         """
@@ -327,20 +327,22 @@ class JobManager:
             job_data = {
                 "job_id": UUID(job.job_id),
                 "status": job.status,
-                "task_description": getattr(job, 'task_description', ''),
-                "progress_percent": job.progress_percent,
+                "task_description": getattr(job, "task_description", ""),
+                "progress_percent": getattr(job, "progress_percent", 0.0),
                 "result": self._serialize_json(job.result),
                 "error": job.error,
-                "error_stack": getattr(job, 'error_stack', None),
-                "progress_message": getattr(job, 'progress_message', None),
-                "current_phase": getattr(job, 'current_phase', None),
+                "error_stack": getattr(job, "error_stack", None),
+                "progress_message": getattr(job, "progress_message", None),
+                "current_phase": getattr(job, "current_phase", None),
                 "updated_at": job.updated_at or datetime.now(UTC),
-                "started_at": getattr(job, 'started_at', None),
-                "completed_at": getattr(job, 'completed_at', None),
+                "started_at": getattr(job, "started_at", None),
+                "completed_at": getattr(job, "completed_at", None),
             }
 
             # Filter out None values for optional fields
-            job_data = {k: v for k, v in job_data.items() if v is not None or k in ['error', 'error_stack']}
+            job_data = {
+                k: v for k, v in job_data.items() if v is not None or k in ["error", "error_stack"]
+            }
 
             # Try to fetch existing job
             existing = self.db_repo.get_by_id(UUID(job.job_id))
@@ -356,10 +358,10 @@ class JobManager:
 
     def _serialize_json(self, obj: Any) -> dict | None:
         """Serialize an object to JSON-compatible dict.
-        
+
         Args:
             obj: Object to serialize
-            
+
         Returns:
             JSON-compatible dict or None
         """
@@ -398,8 +400,8 @@ class JobManager:
                     questions_asked=getattr(deep_state, "questions_asked", []),
                     answers=getattr(deep_state, "answers", []),
                     research_performed=getattr(deep_state, "research_performed", []),
-                    understanding_summary=getattr(deep_state, "understanding_summary", None),
-                    user_problem=getattr(deep_state, "user_problem", None),
+                    understanding_summary=getattr(deep_state, "understanding_summary", "") or "",
+                    user_problem=getattr(deep_state, "user_problem", "") or "",
                     readiness_score=getattr(deep_state, "readiness_score", 0.0),
                     complete=getattr(deep_state, "complete", False),
                 )

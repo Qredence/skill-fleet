@@ -234,7 +234,7 @@ class TestCrashRecovery:
         mock_db_job = Mock()
         try:
             mock_db_job.job_id = UUID(job_id)
-        except:
+        except ValueError:
             mock_db_job.job_id = uuid4()
         mock_db_job.status = "running"
         mock_db_job.error = None
@@ -243,13 +243,13 @@ class TestCrashRecovery:
 
         try:
             mock_repo.get_by_id = Mock(return_value=mock_db_job)
-            retrieved = manager.get_job(job_id)
+            manager.get_job(job_id)
 
             # Now should be in memory if DB hit worked
             in_memory = manager.memory.get(job_id)
             if in_memory:
                 assert in_memory.job_id == job_id
-        except:
+        except Exception:
             # Memory-only fallback is acceptable
             pass
 
@@ -258,9 +258,10 @@ def is_valid_uuid(uuid_string):
     """Check if string is valid UUID."""
     try:
         from uuid import UUID
+
         UUID(uuid_string)
         return True
-    except:
+    except ValueError:
         return False
 
 

@@ -131,9 +131,7 @@ class FindTaxonomyPath(dspy.Signature):
     """
 
     # Inputs
-    task_description: str = dspy.InputField(
-        desc="User's task description with skill requirements"
-    )
+    task_description: str = dspy.InputField(desc="User's task description with skill requirements")
     taxonomy_structure: str = dspy.InputField(
         desc="JSON taxonomy tree showing all existing categories and their structure"
     )
@@ -221,7 +219,7 @@ class SynthesizePlan(dspy.Signature):
 
     Create unified plan incorporating intent, taxonomy placement, dependencies,
     and any HITL feedback. This plan drives Phase 2 generation quality.
-    
+
     IMPORTANT: v0.2 Changes (Jan 2026)
     - Description must emphasize WHEN to use (triggering conditions, symptoms)
       NOT what the skill teaches. This enables CSO (Claude Search Optimization).

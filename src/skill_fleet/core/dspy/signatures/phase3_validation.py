@@ -89,9 +89,7 @@ class AnalyzeValidationIssues(dspy.Signature):
     validation_report: str = dspy.InputField(
         desc="JSON ValidationReport with all issues, warnings, and quality scores"
     )
-    skill_content: str = dspy.InputField(
-        desc="Current SKILL.md content that has validation issues"
-    )
+    skill_content: str = dspy.InputField(desc="Current SKILL.md content that has validation issues")
 
     # Outputs
     auto_fixable_issues: list[ValidationCheckItem] = dspy.OutputField(
@@ -127,9 +125,7 @@ class RefineSkillFromFeedback(dspy.Signature):
     """
 
     # Inputs
-    current_content: str = dspy.InputField(
-        desc="Current SKILL.md content requiring refinement"
-    )
+    current_content: str = dspy.InputField(desc="Current SKILL.md content requiring refinement")
     validation_issues: str = dspy.InputField(
         desc="JSON array of ValidationCheckItem objects ordered by severity (critical first)"
     )
@@ -181,9 +177,7 @@ class GenerateAutoFix(dspy.Signature):
     """
 
     # Inputs
-    skill_content: str = dspy.InputField(
-        desc="Current SKILL.md content with the validation issue"
-    )
+    skill_content: str = dspy.InputField(desc="Current SKILL.md content with the validation issue")
     issue: ValidationCheckItem = dspy.InputField(
         desc="Specific issue to fix (has: check_id, severity, message, suggested_fix)"
     )
@@ -219,9 +213,7 @@ class AssessSkillQuality(dspy.Signature):
     """
 
     # Inputs
-    skill_content: str = dspy.InputField(
-        desc="Complete SKILL.md content to assess"
-    )
+    skill_content: str = dspy.InputField(desc="Complete SKILL.md content to assess")
     skill_metadata: SkillMetadata = dspy.InputField(
         desc="Metadata for context: name, description, target audience"
     )

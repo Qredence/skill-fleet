@@ -64,21 +64,26 @@ class PromptToolkitUI:
             from prompt_toolkit.shortcuts import prompt
         except ImportError:
             logger.debug("prompt_toolkit not available, using Rich fallback")
+
             # RichPrompt.ask accepts keyword arguments
             def _rich_ask_wrapper(p: str, d: str) -> Any:
                 return RichPrompt.ask(p, default=d)
+
             result = await asyncio.to_thread(_rich_ask_wrapper, str(prompt), default)
             return str(result) if result is not None else default
         except Exception as e:
             logger.warning(f"prompt_toolkit import failed unexpectedly: {e}")
+
             def _rich_ask_wrapper(p: str, d: str) -> Any:
                 return RichPrompt.ask(p, default=d)
+
             result = await asyncio.to_thread(_rich_ask_wrapper, str(prompt), default)
             return str(result) if result is not None else default
 
         # prompt_toolkit's prompt function is not async, so we run it in a thread
         def _prompt_wrapper(p: str, d: str) -> Any:
             return prompt(p, default=d)
+
         result = await asyncio.to_thread(_prompt_wrapper, f"{prompt}: ", default)
         return str(result) if result is not None else default
 
@@ -109,6 +114,7 @@ class PromptToolkitUI:
         pt_choice: Callable[..., _T] | None = None
         try:
             from prompt_toolkit.shortcuts import choice as _pt_choice_impl
+
             pt_choice = _pt_choice_impl
         except ImportError:
             logger.debug("choice() helper not available, trying radiolist_dialog")
@@ -213,8 +219,10 @@ class RichFallbackUI:
 
     async def ask_text(self, prompt: str, *, default: str = "") -> str:
         """Ask for free-form text using Rich prompt."""
+
         def _rich_ask_wrapper(p: str, d: str) -> Any:
             return RichPrompt.ask(p, default=d)
+
         result = await asyncio.to_thread(_rich_ask_wrapper, prompt, default)
         return str(result) if result is not None else default
 
@@ -230,9 +238,11 @@ class RichFallbackUI:
             return ""
         ids = [c[0] for c in choices]
         default = default_id or ids[0]
+
         # RichPrompt.ask accepts keyword arguments
         def _rich_choose_wrapper(p: str, c: list[str], d: str, sc: bool) -> Any:
             return RichPrompt.ask(p, choices=c, default=d, show_choices=sc)
+
         result = await asyncio.to_thread(
             _rich_choose_wrapper,
             prompt,
@@ -255,9 +265,11 @@ class RichFallbackUI:
 
         ids = [c[0] for c in choices]
         default_str = ",".join(default_ids) if default_ids else ""
+
         # RichPrompt.ask accepts keyword arguments
         def _rich_ask_wrapper(p: str, d: str) -> Any:
             return RichPrompt.ask(p, default=d)
+
         raw = await asyncio.to_thread(
             _rich_ask_wrapper,
             f"{prompt} (comma-separated, options: {', '.join(ids)})",

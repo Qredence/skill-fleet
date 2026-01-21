@@ -51,7 +51,7 @@ class GenerateSkillContent(dspy.Signature):
     - name: kebab-case, max 64 chars (must match directory)
     - description: Triggering conditions (WHEN to use), not workflow summary. Max 1024 chars.
     - NO metadata block in SKILL.md (move to metadata.json for tooling)
-    
+
     REQUIRED SECTIONS: When to Use, Quick Start, Core Patterns with ❌/✅, Real-World Impact, Validation.
     QUALITY INDICATORS: Core principle statement, Iron Law style guidance, paired Good/Bad examples.
 

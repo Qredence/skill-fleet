@@ -21,6 +21,7 @@ from ...common.security import (
     sanitize_relative_file_path,
     sanitize_taxonomy_path,
 )
+from ...core.dspy.optimization import SkillOptimizer
 from ...core.dspy.optimization.selector import (
     OptimizerContext,
     OptimizerSelector,

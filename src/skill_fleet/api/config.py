@@ -60,7 +60,9 @@ class APISettings(BaseSettings):
     )
 
     # Logging
-    log_level: str = Field(default="INFO", description="Logging level (DEBUG, INFO, WARNING, ERROR)")
+    log_level: str = Field(
+        default="INFO", description="Logging level (DEBUG, INFO, WARNING, ERROR)"
+    )
     log_format: str = Field(default="json", description="Log format (json, text)")
 
     # Job configuration

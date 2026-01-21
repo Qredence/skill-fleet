@@ -31,10 +31,18 @@ class ValidationResult:
 
 
 # v2 Golden Standard: Valid subdirectory names
-VALID_SUBDIRECTORIES = frozenset({
-    "references", "guides", "templates", "scripts", "examples",
-    "assets", "images", "static"  # Documentation assets
-})
+VALID_SUBDIRECTORIES = frozenset(
+    {
+        "references",
+        "guides",
+        "templates",
+        "scripts",
+        "examples",
+        "assets",
+        "images",
+        "static",  # Documentation assets
+    }
+)
 # Legacy subdirectories (grandfathered but not recommended for new skills)
 LEGACY_SUBDIRECTORIES = frozenset({"capabilities", "resources", "tests"})
 

@@ -436,12 +436,10 @@ class DeepUnderstandingModule(dspy.Module):
 
         # If question parsed but has no options, generate smart options
         if next_question and not next_question.options:
-            smart_options, refined_q = generate_smart_options(
-                next_question.question,
-                initial_task
-            )
+            smart_options, refined_q = generate_smart_options(next_question.question, initial_task)
             if smart_options:
                 from ..core.models import QuestionOption
+
                 next_question.options = [
                     QuestionOption(id=str(i), label=opt, description="")
                     for i, opt in enumerate(smart_options)
@@ -532,12 +530,10 @@ class DeepUnderstandingModule(dspy.Module):
 
         # If question parsed but has no options, generate smart options
         if next_question and not next_question.options:
-            smart_options, refined_q = generate_smart_options(
-                next_question.question,
-                initial_task
-            )
+            smart_options, refined_q = generate_smart_options(next_question.question, initial_task)
             if smart_options:
                 from ..core.models import QuestionOption
+
                 next_question.options = [
                     QuestionOption(id=str(i), label=opt, description="")
                     for i, opt in enumerate(smart_options)

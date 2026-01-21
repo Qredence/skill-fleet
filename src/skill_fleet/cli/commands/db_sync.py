@@ -25,19 +25,13 @@ def export_to_db_command(
         "--skills-dir",
         "-s",
         help="Directory containing skill files (SKILL.md)",
-        envvar="SKILL_FLEET_SKILLS_DIR"
+        envvar="SKILL_FLEET_SKILLS_DIR",
     ),
     dry_run: bool = typer.Option(
-        False,
-        "--dry-run",
-        "-n",
-        help="Preview changes without writing to database"
+        False, "--dry-run", "-n", help="Preview changes without writing to database"
     ),
     force: bool = typer.Option(
-        False,
-        "--force",
-        "-f",
-        help="Force overwrite of existing skills in database"
+        False, "--force", "-f", help="Force overwrite of existing skills in database"
     ),
 ):
     """
@@ -88,10 +82,10 @@ def export_to_db_command(
         table.add_column("Metric", style="cyan")
         table.add_column("Count", style="green")
 
-        table.add_row("Created", str(stats['created']))
-        table.add_row("Updated", str(stats['updated']))
-        table.add_row("Skipped", str(stats['skipped']))
-        table.add_row("Errors", str(stats['errors']))
+        table.add_row("Created", str(stats["created"]))
+        table.add_row("Updated", str(stats["updated"]))
+        table.add_row("Skipped", str(stats["skipped"]))
+        table.add_row("Errors", str(stats["errors"]))
 
         console.print("\n")
         console.print(table)
@@ -99,14 +93,15 @@ def export_to_db_command(
         if dry_run:
             console.print("\n[yellow]Run without --dry-run to apply changes.[/yellow]")
 
-        if stats['errors'] > 0:
+        if stats["errors"] > 0:
             raise typer.Exit(1)
 
     except Exception as e:
         console.print(f"\n[red]✗ Export failed: {e}[/red]")
         import traceback
+
         traceback.print_exc()
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 def import_from_db_command(
@@ -115,13 +110,13 @@ def import_from_db_command(
         "--skills-dir",
         "-s",
         help="Directory to write skill files to",
-        envvar="SKILL_FLEET_SKILLS_DIR"
+        envvar="SKILL_FLEET_SKILLS_DIR",
     ),
     skill_path: str = typer.Option(
         None,
         "--skill-path",
         "-p",
-        help="Import specific skill by path (e.g., 'development/languages/python')"
+        help="Import specific skill by path (e.g., 'development/languages/python')",
     ),
     status_filter: str = typer.Option(
         "active",
@@ -164,7 +159,9 @@ def import_from_db_command(
         with Session(engine) as session:
             console.print("\n[bold]Importing skills from database...[/bold]")
             console.print(f"Target: {skills_dir}")
-            console.print(f"Database: {os.getenv('DATABASE_URL', '').split('@')[1] if '@' in os.getenv('DATABASE_URL', '') else 'unknown'}")
+            console.print(
+                f"Database: {os.getenv('DATABASE_URL', '').split('@')[1] if '@' in os.getenv('DATABASE_URL', '') else 'unknown'}"
+            )
 
             # Build query
             from skill_fleet.db.models import (
@@ -201,7 +198,7 @@ def import_from_db_command(
 
             for skill in skills:
                 # Resolve target directory
-                target_dir = Path(skills_dir) / skill.skill_path.replace('/', os.sep)
+                target_dir = Path(skills_dir) / skill.skill_path.replace("/", os.sep)
                 target_dir.mkdir(parents=True, exist_ok=True)
 
                 skill_file = target_dir / "SKILL.md"
@@ -243,7 +240,7 @@ def import_from_db_command(
                     created_count += 1
                     console.print(f"  [green]→ Created:[/green] {skill.skill_path}")
 
-                with open(skill_file, 'w', encoding='utf-8') as f:
+                with open(skill_file, "w", encoding="utf-8") as f:
                     # Write YAML frontmatter
                     f.write("---\n")
                     yaml.dump(frontmatter, f, default_flow_style=False, sort_keys=False)
@@ -268,8 +265,9 @@ def import_from_db_command(
     except Exception as e:
         console.print(f"\n[red]✗ Import failed: {e}[/red]")
         import traceback
+
         traceback.print_exc()
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 def sync_command(
@@ -279,12 +277,7 @@ def sync_command(
         "-s",
         help="Directory containing skill files (SKILL.md)",
     ),
-    dry_run: bool = typer.Option(
-        False,
-        "--dry-run",
-        "-n",
-        help="Preview changes without writing"
-    ),
+    dry_run: bool = typer.Option(False, "--dry-run", "-n", help="Preview changes without writing"),
 ):
     """
     Bidirectional sync between local files and database.

@@ -7,7 +7,6 @@ import pytest
 from skill_fleet.core.dspy.optimization.selector import (
     OptimizerConfig,
     OptimizerContext,
-    OptimizerRecommendation,
     OptimizerSelector,
     OptimizerType,
 )
@@ -52,9 +51,7 @@ class TestOptimizerSelector:
         assert result.recommended == OptimizerType.REFLECTION_METRICS
         assert "Budget" in result.reasoning
 
-    def test_small_trainset_low_budget_recommends_gepa(
-        self, selector: OptimizerSelector
-    ) -> None:
+    def test_small_trainset_low_budget_recommends_gepa(self, selector: OptimizerSelector) -> None:
         """trainset < 100 AND budget < $5 → GEPA."""
         context = OptimizerContext(
             trainset_size=50,
@@ -91,9 +88,7 @@ class TestOptimizerSelector:
         assert result.recommended == OptimizerType.MIPROV2
         assert result.config.auto == "medium"
 
-    def test_high_budget_recommends_miprov2_heavy(
-        self, selector: OptimizerSelector
-    ) -> None:
+    def test_high_budget_recommends_miprov2_heavy(self, selector: OptimizerSelector) -> None:
         """budget >= $100 → MIPROv2 heavy."""
         context = OptimizerContext(
             trainset_size=500,
@@ -118,9 +113,7 @@ class TestOptimizerSelector:
 
         assert result.recommended == OptimizerType.BOOTSTRAP_FINETUNE
 
-    def test_fallback_to_bootstrap_fewshot(
-        self, selector: OptimizerSelector
-    ) -> None:
+    def test_fallback_to_bootstrap_fewshot(self, selector: OptimizerSelector) -> None:
         """Edge case defaults to BootstrapFewShot or appropriate match."""
         # Context that matches MIPROv2 light rule
         context = OptimizerContext(
@@ -139,9 +132,7 @@ class TestOptimizerSelector:
     # Cost & Time Estimation Tests
     # =========================================================================
 
-    def test_cost_estimation_scales_with_trainset(
-        self, selector: OptimizerSelector
-    ) -> None:
+    def test_cost_estimation_scales_with_trainset(self, selector: OptimizerSelector) -> None:
         """Cost should scale with trainset size."""
         context_small = OptimizerContext(trainset_size=50, budget_dollars=3.0)
         context_large = OptimizerContext(trainset_size=500, budget_dollars=50.0)
@@ -154,9 +145,7 @@ class TestOptimizerSelector:
         assert result_large.estimated_cost >= 0
         assert result_small.estimated_cost >= 0
 
-    def test_time_estimation_is_reasonable(
-        self, selector: OptimizerSelector
-    ) -> None:
+    def test_time_estimation_is_reasonable(self, selector: OptimizerSelector) -> None:
         """Time estimates should be in reasonable range."""
         context = OptimizerContext(trainset_size=100, budget_dollars=10.0)
         result = selector.recommend(context)
@@ -164,20 +153,14 @@ class TestOptimizerSelector:
         assert result.estimated_time_minutes >= 1
         assert result.estimated_time_minutes <= 120  # Max 2 hours
 
-    def test_miprov2_cost_varies_by_auto_setting(
-        self, selector: OptimizerSelector
-    ) -> None:
+    def test_miprov2_cost_varies_by_auto_setting(self, selector: OptimizerSelector) -> None:
         """MIPROv2 cost should vary by auto setting."""
         # Force MIPROv2 with different budgets
         config_light = OptimizerConfig(auto="light")
         config_heavy = OptimizerConfig(auto="heavy")
 
-        cost_light = selector._estimate_cost(
-            OptimizerType.MIPROV2, config_light, 100
-        )
-        cost_heavy = selector._estimate_cost(
-            OptimizerType.MIPROV2, config_heavy, 100
-        )
+        cost_light = selector._estimate_cost(OptimizerType.MIPROV2, config_light, 100)
+        cost_heavy = selector._estimate_cost(OptimizerType.MIPROV2, config_heavy, 100)
 
         assert cost_heavy > cost_light
 
@@ -192,9 +175,7 @@ class TestOptimizerSelector:
 
         assert 0.5 <= result.confidence <= 1.0
 
-    def test_confidence_reduced_for_tiny_trainset(
-        self, selector: OptimizerSelector
-    ) -> None:
+    def test_confidence_reduced_for_tiny_trainset(self, selector: OptimizerSelector) -> None:
         """Very small trainset should reduce confidence."""
         context = OptimizerContext(trainset_size=10, budget_dollars=10.0)
         result = selector.recommend(context)
@@ -206,9 +187,7 @@ class TestOptimizerSelector:
     # Alternatives Tests
     # =========================================================================
 
-    def test_alternatives_always_present(
-        self, selector: OptimizerSelector
-    ) -> None:
+    def test_alternatives_always_present(self, selector: OptimizerSelector) -> None:
         """Should always provide alternatives."""
         context = OptimizerContext(trainset_size=100, budget_dollars=10.0)
         result = selector.recommend(context)
@@ -216,9 +195,7 @@ class TestOptimizerSelector:
         assert len(result.alternatives) >= 1
         assert len(result.alternatives) <= 3
 
-    def test_alternatives_include_fast_option(
-        self, selector: OptimizerSelector
-    ) -> None:
+    def test_alternatives_include_fast_option(self, selector: OptimizerSelector) -> None:
         """Alternatives should include a fast option."""
         context = OptimizerContext(
             trainset_size=500,
@@ -231,9 +208,7 @@ class TestOptimizerSelector:
             optimizer_names = [a["optimizer"] for a in result.alternatives]
             assert OptimizerType.REFLECTION_METRICS.value in optimizer_names
 
-    def test_alternatives_have_required_fields(
-        self, selector: OptimizerSelector
-    ) -> None:
+    def test_alternatives_have_required_fields(self, selector: OptimizerSelector) -> None:
         """Each alternative should have required fields."""
         context = OptimizerContext(trainset_size=100, budget_dollars=10.0)
         result = selector.recommend(context)
@@ -248,9 +223,7 @@ class TestOptimizerSelector:
     # Recommendation Structure Tests
     # =========================================================================
 
-    def test_recommendation_has_all_fields(
-        self, selector: OptimizerSelector
-    ) -> None:
+    def test_recommendation_has_all_fields(self, selector: OptimizerSelector) -> None:
         """Recommendation should have all required fields."""
         context = OptimizerContext(trainset_size=100, budget_dollars=10.0)
         result = selector.recommend(context)
@@ -263,9 +236,7 @@ class TestOptimizerSelector:
         assert len(result.reasoning) > 0
         assert isinstance(result.alternatives, list)
 
-    def test_config_has_correct_structure(
-        self, selector: OptimizerSelector
-    ) -> None:
+    def test_config_has_correct_structure(self, selector: OptimizerSelector) -> None:
         """Config should have correct structure."""
         context = OptimizerContext(trainset_size=100, budget_dollars=10.0)
         result = selector.recommend(context)

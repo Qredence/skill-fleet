@@ -417,7 +417,9 @@ async def get_adaptive_weights(request: DetectStyleRequest) -> StyleDetectionRes
             # Estimate improvement
             if len(request.current_scores) > 0:
                 avg_score = sum(request.current_scores.values()) / len(request.current_scores)
-                improvement = ((composite_score - avg_score) / avg_score * 100) if avg_score > 0 else 0
+                improvement = (
+                    ((composite_score - avg_score) / avg_score * 100) if avg_score > 0 else 0
+                )
                 expected_improvement = f"{improvement:+.1f}% on composite score"
 
         return StyleDetectionResponse(
@@ -433,4 +435,4 @@ async def get_adaptive_weights(request: DetectStyleRequest) -> StyleDetectionRes
         raise HTTPException(
             status_code=500,
             detail=f"Error detecting style: {str(e)}",
-        )
+        ) from e

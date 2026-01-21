@@ -70,7 +70,7 @@ class TUISpawner:
             npm_bin = shutil.which("npm")
             if not npm_bin:
                 raise RuntimeError("npm not found in PATH. Install Node.js 18+ to use TUI mode.")
-            
+
             result = subprocess.run(
                 [npm_bin, "run", "build"],
                 cwd=self.tui_dir,

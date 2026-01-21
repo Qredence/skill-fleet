@@ -250,7 +250,6 @@ class TestJobManagerWithMockDB:
 
         This simulates: job exists in DB but not in memory.
         """
-        from uuid import uuid4
 
         job_uuid = uuid4()
         manager = JobManager()
@@ -282,7 +281,6 @@ class TestJobManagerWithMockDB:
 
     def test_memory_warms_on_db_hit(self):
         """Test that memory is warmed after DB hit."""
-        from uuid import uuid4
 
         job_uuid = uuid4()
         manager = JobManager()

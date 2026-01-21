@@ -7,11 +7,11 @@ This package provides observability for DSPy modules in production:
 
 Usage:
     from skill_fleet.core.dspy.monitoring import ModuleMonitor
-    
+
     # Wrap any DSPy module
     monitored = ModuleMonitor(my_module, name="skill_generator")
     result = monitored(input="test")
-    
+
     # Check metrics
     print(monitored.get_metrics())
 """

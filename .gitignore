@@ -1,79 +1,73 @@
+# =============================================================================
+# Python
+# =============================================================================
 .venv/
 .uv-cache/
-.env
-.env.*
-!.env.example
 __pycache__/
 *.pyc
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
-.DS_Store
 .dspy_cache/
+
+# =============================================================================
+# Environment & Secrets
+# =============================================================================
+.env
+.env.*
+!.env.example
+
+# =============================================================================
+# IDEs & Editors
+# =============================================================================
+.vscode/
+.idea/
+.DS_Store
+
+# =============================================================================
+# Node.js / Bun (for TUI)
+# =============================================================================
 node_modules/
 .bun-cache/
 .bun-install/
 .bun-tmp/
+
+# =============================================================================
+# Project-Specific
+# =============================================================================
+.skills/
 skills/_drafts/
 .skill_fleet_sessions/
 .context/
-.idea/.gitignore
-.idea/copilot.data.migration.ask2agent.xml
-.idea/misc.xml
-.idea/skills-fleet.iml
-.idea/vcs.xml
-.idea/inspectionProfiles/profiles_settings.xml
-.idea/inspectionProfiles/Project_Default.xml
-
-
-docs/plans/
-plans
-.idea/
-
-
-.gitignore
-.gitignore
-.gitignore
-
-.vscode/extensions.json
-.vscode/settings.json
-.letta/
-.vscode/
-.claude/
-
-server.log
-.ai/mcp/mcp.json
-.junie/
-.ai/
-.factory/
-
-.github/BRANCH_PROTECTION.md
-.github/README.md
-.github/QUICKSTART.md
-.codex/skills/initializing-memory/SKILL.md
-!/.claude/skills/
-plans/archive/nimble-serene-ember.md
-plans/archive/skills-fleet_codebase_restructure_4833ae18.plan.md
-plans/2026-01-09-fastapi-baseline-tests.md
-plans/README.md
-plans/
-plans/2026-01-09-fastapi-baseline-tests.md
-plans/nimble-serene-ember.md
-plans/README.md
-plans/skills-fleet_codebase_restructure_4833ae18.plan.md
+.skill_fleet_logs/
 reports/
-cli/tui/dist
-.skill_fleet_logs
-cli/tui/dist/app.d.ts
-cli/tui/dist/app.js
-cli/tui/dist/app.js.map
-cli/tui/dist/streaming-client.d.ts
-cli/tui/dist/streaming-client.js
-cli/tui/dist/streaming-client.js.map
-cli/tui/dist/tabs/chat-tab.d.ts
-cli/tui/dist/tabs/chat-tab.js
-cli/tui/dist/tabs/chat-tab.js.map
-cli/tui/dist/tabs/jobs-tab.d.ts
-cli/tui/dist/tabs/jobs-tab.js
-cli/tui/dist/tabs/jobs-tab.js.map
-.skill_fleet_logs/api-dev.log
+cli/tui/dist/
+
+# =============================================================================
+# Plans & Documentation
+# =============================================================================
+docs/plans/
+plans/
+plans/archive/
+
+# =============================================================================
+# AI & MCP
+# =============================================================================
+.claude/
+.ai/
+.junie/
+.factory/
+.letta/
+
+# =============================================================================
+# Logs
+# =============================================================================
+server.log
+*.log
+
+# =============================================================================
+# Build Artifacts
+# =============================================================================
+*.egg-info/
+dist/
+build/

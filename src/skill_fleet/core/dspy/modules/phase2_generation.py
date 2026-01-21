@@ -103,8 +103,7 @@ def _serialize_pydantic_list(items: Any) -> list[dict[str, Any]]:
 
     # Use consolidated serialization utility
     result = common_serialize_pydantic_objects(
-        items if isinstance(items, list) else [items],
-        output_format="dict"
+        items if isinstance(items, list) else [items], output_format="dict"
     )
 
     # Ensure result is a list and cast to expected type

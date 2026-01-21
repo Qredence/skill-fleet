@@ -36,7 +36,8 @@ class StructuredQuestion(BaseModel):
         default=None, description="Optional list of choices for multiple-choice questions"
     )
     allows_multiple: bool = Field(
-        default=True, description="Whether multiple options can be selected (multi-select by default)"
+        default=True,
+        description="Whether multiple options can be selected (multi-select by default)",
     )
     rationale: str | None = Field(default=None, description="Why this question is being asked")
 

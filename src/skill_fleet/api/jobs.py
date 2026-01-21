@@ -46,15 +46,15 @@ JOBS: dict[str, JobState] = {}
 def create_job() -> str:
     """Create a new job and return its unique ID."""
     from .job_manager import get_job_manager
-    
+
     job_id = str(uuid.uuid4())
     job_state = JobState(job_id=job_id)
-    
+
     # Register in both JOBS dict (for backward compat) and JobManager
     JOBS[job_id] = job_state
     manager = get_job_manager()
     manager.create_job(job_state)
-    
+
     return job_id
 
 
@@ -113,7 +113,7 @@ def notify_hitl_response(job_id: str, response: dict[str, Any]) -> None:
     ensuring that any waiters will see the new response.
     """
     from .job_manager import get_job_manager
-    
+
     manager = get_job_manager()
     job = manager.get_job(job_id)
     if job is None:
@@ -127,7 +127,7 @@ def notify_hitl_response(job_id: str, response: dict[str, Any]) -> None:
     job.hitl_response = response
     job.hitl_event.set()  # Notify any waiting coroutines
     job.updated_at = datetime.now(UTC)
-    
+
     # Update both memory and database
     manager.update_job(job_id, {"updated_at": job.updated_at, "hitl_response": response})
 

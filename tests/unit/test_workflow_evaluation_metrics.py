@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 import dspy
 
 from skill_fleet.core.optimization.evaluation import (

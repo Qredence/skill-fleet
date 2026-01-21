@@ -694,14 +694,16 @@ class TaxonomyManager:
             "resources": f"# Resources (Legacy)\n\n**Note:** This directory is deprecated. Use `guides/` instead for new skills.\n\nResource files for `{skill_name}`.\n\nIncludes configuration files, data files, and other resources needed by the skill.\n",
         }
         # Standard v2 directories
-        subdirs.update({
-            "examples": f"# Examples\n\nUsage examples for `{skill_name}`.\n\nEach file demonstrates a specific use case or pattern.\n",
-            "tests": f"# Tests\n\nIntegration tests for `{skill_name}`.\n\nThese tests verify the skill's capabilities work as expected.\n",
-            "guides": f"# Guides\n\nHow-to guides and tutorials for `{skill_name}`.\n\nStep-by-step instructions for common tasks and workflows.\n",
-            "references": f"# References\n\nReference documentation for `{skill_name}`.\n\n## Contents\n\n- [Quick Start](quick-start.md) - Get started quickly\n- [Common Patterns](common-patterns.md) - Frequently used patterns\n- [API Reference](api-reference.md) - Detailed API documentation\n- [Troubleshooting](troubleshooting.md) - Common issues and solutions\n",
-            "scripts": f"# Scripts\n\nUtility scripts for `{skill_name}`.\n\nThese scripts help with setup, maintenance, or automation tasks.\n",
-            "assets": f"# Assets\n\nStatic assets for `{skill_name}`.\n\nIncludes images, diagrams, and other static files.\n",
-        })
+        subdirs.update(
+            {
+                "examples": f"# Examples\n\nUsage examples for `{skill_name}`.\n\nEach file demonstrates a specific use case or pattern.\n",
+                "tests": f"# Tests\n\nIntegration tests for `{skill_name}`.\n\nThese tests verify the skill's capabilities work as expected.\n",
+                "guides": f"# Guides\n\nHow-to guides and tutorials for `{skill_name}`.\n\nStep-by-step instructions for common tasks and workflows.\n",
+                "references": f"# References\n\nReference documentation for `{skill_name}`.\n\n## Contents\n\n- [Quick Start](quick-start.md) - Get started quickly\n- [Common Patterns](common-patterns.md) - Frequently used patterns\n- [API Reference](api-reference.md) - Detailed API documentation\n- [Troubleshooting](troubleshooting.md) - Common issues and solutions\n",
+                "scripts": f"# Scripts\n\nUtility scripts for `{skill_name}`.\n\nThese scripts help with setup, maintenance, or automation tasks.\n",
+                "assets": f"# Assets\n\nStatic assets for `{skill_name}`.\n\nIncludes images, diagrams, and other static files.\n",
+            }
+        )
 
         # Create each subdirectory with README.md
         for subdir, readme_content in subdirs.items():

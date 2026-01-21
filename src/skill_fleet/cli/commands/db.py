@@ -63,10 +63,10 @@ def init(
     except Exception as e:
         logger.error(f"Failed to initialize database: {e}", exc_info=True)
         typer.echo(f"\n❌ Error: {e}\n", err=True)
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
-from sqlalchemy import text
+from sqlalchemy import text  # noqa: E402
 
 
 @db_app.command()
@@ -115,7 +115,7 @@ def status() -> None:
     except Exception as e:
         logger.error(f"Database health check failed: {e}", exc_info=True)
         typer.echo(f"\n❌ Error: {e}\n", err=True)
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 @db_app.command()
@@ -165,4 +165,4 @@ def reset_db(
     except Exception as e:
         logger.error(f"Failed to reset database: {e}", exc_info=True)
         typer.echo(f"\n❌ Error: {e}\n", err=True)
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e

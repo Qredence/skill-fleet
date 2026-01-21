@@ -17,11 +17,11 @@ Usage:
 from __future__ import annotations
 
 from .enhanced_metrics import (
+    comprehensive_metric,
     create_metric_for_phase,
     metadata_quality_metric,
     skill_style_alignment_metric,
     taxonomy_accuracy_metric,
-    comprehensive_metric,
 )
 from .gepa_reflection import (
     gepa_composite_metric,

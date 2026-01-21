@@ -36,6 +36,8 @@ Base = declarative_base()
 
 
 class SkillStatusEnum:
+    """Skill lifecycle status values."""
+
     DRAFT = "draft"
     ACTIVE = "active"
     DEPRECATED = "deprecated"
@@ -43,6 +45,8 @@ class SkillStatusEnum:
 
 
 class SkillTypeEnum:
+    """Skill category/type classification."""
+
     COGNITIVE = "cognitive"
     TECHNICAL = "technical"
     DOMAIN = "domain"
@@ -54,12 +58,16 @@ class SkillTypeEnum:
 
 
 class SkillWeightEnum:
+    """Skill resource weight/complexity level."""
+
     LIGHTWEIGHT = "lightweight"
     MEDIUM = "medium"
     HEAVYWEIGHT = "heavyweight"
 
 
 class LoadPriorityEnum:
+    """Skill loading priority strategy."""
+
     ALWAYS = "always"
     TASK_SPECIFIC = "task_specific"
     ON_DEMAND = "on_demand"
@@ -67,18 +75,24 @@ class LoadPriorityEnum:
 
 
 class SkillStyleEnum:
+    """Skill structural style pattern."""
+
     NAVIGATION_HUB = "navigation_hub"
     COMPREHENSIVE = "comprehensive"
     MINIMAL = "minimal"
 
 
 class DependencyTypeEnum:
+    """Dependency relationship type."""
+
     REQUIRED = "required"
     RECOMMENDED = "recommended"
     CONFLICT = "conflict"
 
 
 class JobStatusEnum:
+    """Background job execution status."""
+
     PENDING = "pending"
     RUNNING = "running"
     PENDING_HITL = "pending_hitl"
@@ -88,6 +102,8 @@ class JobStatusEnum:
 
 
 class HITLTypeEnum:
+    """Human-in-the-loop interaction type."""
+
     CLARIFY = "clarify"
     CONFIRM = "confirm"
     PREVIEW = "preview"
@@ -99,24 +115,32 @@ class HITLTypeEnum:
 
 
 class ChecklistPhaseEnum:
+    """TDD checklist phase."""
+
     RED = "red"
     GREEN = "green"
     REFACTOR = "refactor"
 
 
 class ValidationStatusEnum:
+    """Skill validation result status."""
+
     PASSED = "passed"
     FAILED = "failed"
     WARNINGS = "warnings"
 
 
 class SeverityEnum:
+    """Issue or diagnostic severity level."""
+
     CRITICAL = "critical"
     WARNING = "warning"
     INFO = "info"
 
 
 class FileTypeEnum:
+    """Attached file classification type."""
+
     REFERENCE = "reference"
     GUIDE = "guide"
     TEMPLATE = "template"

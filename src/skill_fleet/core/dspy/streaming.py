@@ -93,9 +93,7 @@ class StreamingIntentParser(StreamingModule):
             "user_message -> intent: str, confidence: float, parameters: str"
         )
 
-    async def forward_streaming(
-        self, user_message: str
-    ) -> AsyncGenerator[StreamEvent, None]:
+    async def forward_streaming(self, user_message: str) -> AsyncGenerator[StreamEvent, None]:
         """Parse intent with streaming thinking output.
 
         Yields stream events as thinking progresses.
@@ -105,30 +103,36 @@ class StreamingIntentParser(StreamingModule):
         # Yield thinking steps
         yield {
             "type": "thinking",
-            "data": json.dumps({
-                "type": "thought",
-                "content": f"Analyzing user message: {user_message[:50]}...",
-                "step": 1,
-            }),
+            "data": json.dumps(
+                {
+                    "type": "thought",
+                    "content": f"Analyzing user message: {user_message[:50]}...",
+                    "step": 1,
+                }
+            ),
         }
 
         yield {
             "type": "thinking",
-            "data": json.dumps({
-                "type": "reasoning",
-                "content": "Looking for keywords: 'optimize', 'create', 'list', 'validate'...",
-                "step": 2,
-            }),
+            "data": json.dumps(
+                {
+                    "type": "reasoning",
+                    "content": "Looking for keywords: 'optimize', 'create', 'list', 'validate'...",
+                    "step": 2,
+                }
+            ),
         }
 
         # Run classification
         yield {
             "type": "thinking",
-            "data": json.dumps({
-                "type": "reasoning",
-                "content": "Running LM-based intent classification...",
-                "step": 3,
-            }),
+            "data": json.dumps(
+                {
+                    "type": "reasoning",
+                    "content": "Running LM-based intent classification...",
+                    "step": 3,
+                }
+            ),
         }
 
         try:
@@ -136,20 +140,24 @@ class StreamingIntentParser(StreamingModule):
 
             yield {
                 "type": "thinking",
-                "data": json.dumps({
-                    "type": "internal",
-                    "content": f"Intent: {result.intent} (confidence: {result.confidence})",
-                    "step": 4,
-                }),
+                "data": json.dumps(
+                    {
+                        "type": "internal",
+                        "content": f"Intent: {result.intent} (confidence: {result.confidence})",
+                        "step": 4,
+                    }
+                ),
             }
 
             # Yield final response
             yield {
                 "type": "response",
-                "data": json.dumps({
-                    "type": "response",
-                    "content": f"**Intent:** {result.intent}\n**Confidence:** {result.confidence}\n**Parameters:** {result.parameters}",
-                }),
+                "data": json.dumps(
+                    {
+                        "type": "response",
+                        "content": f"**Intent:** {result.intent}\n**Confidence:** {result.confidence}\n**Parameters:** {result.parameters}",
+                    }
+                ),
             }
 
             yield {"type": "complete", "data": ""}
@@ -185,11 +193,13 @@ class StreamingAssistant(StreamingModule):
         # Step 1: Parse intent with streaming
         yield {
             "type": "thinking",
-            "data": json.dumps({
-                "type": "thought",
-                "content": "Step 1: Understanding user intent...",
-                "step": 1,
-            }),
+            "data": json.dumps(
+                {
+                    "type": "thought",
+                    "content": "Step 1: Understanding user intent...",
+                    "step": 1,
+                }
+            ),
         }
 
         # Get intent through streaming
@@ -206,11 +216,13 @@ class StreamingAssistant(StreamingModule):
         # Step 2: Generate response
         yield {
             "type": "thinking",
-            "data": json.dumps({
-                "type": "thought",
-                "content": "Step 2: Generating response with suggested actions...",
-                "step": 5,
-            }),
+            "data": json.dumps(
+                {
+                    "type": "thought",
+                    "content": "Step 2: Generating response with suggested actions...",
+                    "step": 5,
+                }
+            ),
         }
 
         try:
@@ -218,11 +230,13 @@ class StreamingAssistant(StreamingModule):
 
             yield {
                 "type": "thinking",
-                "data": json.dumps({
-                    "type": "internal",
-                    "content": f"Response ready. Suggested actions: {result.suggested_actions}",
-                    "step": 6,
-                }),
+                "data": json.dumps(
+                    {
+                        "type": "internal",
+                        "content": f"Response ready. Suggested actions: {result.suggested_actions}",
+                        "step": 6,
+                    }
+                ),
             }
 
             # Yield streamed response (simulating chunked generation)
@@ -238,10 +252,12 @@ class StreamingAssistant(StreamingModule):
             # Yield suggested actions
             yield {
                 "type": "response",
-                "data": json.dumps({
-                    "type": "response",
-                    "content": f"\n\n**Suggested Actions:**\n{result.suggested_actions}",
-                }),
+                "data": json.dumps(
+                    {
+                        "type": "response",
+                        "content": f"\n\n**Suggested Actions:**\n{result.suggested_actions}",
+                    }
+                ),
             }
 
             yield {"type": "complete", "data": ""}

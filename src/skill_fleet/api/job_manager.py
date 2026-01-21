@@ -28,6 +28,19 @@ if TYPE_CHECKING:
 
 from .schemas import DeepUnderstandingState, JobState, TDDWorkflowState
 
+
+def _sanitize_for_log(value: str) -> str:
+    """
+    Make a string safe for single-line log messages by removing line breaks.
+
+    This helps prevent log injection via user-controlled values that may
+    contain newline characters.
+    """
+    if value is None:
+        return ""
+    # Replace CR and LF characters with spaces to preserve readability
+    return value.replace("\r", " ").replace("\n", " ")
+
 logger = logging.getLogger(__name__)
 
 # Valid job status values for validation
@@ -203,10 +216,11 @@ class JobManager:
             JobState if found, None otherwise
 
         """
+        safe_job_id = _sanitize_for_log(job_id)
         # Try memory first (hot cache, no I/O)
         job = self.memory.get(job_id)
         if job:
-            logger.debug(f"Job {job_id} retrieved from memory cache")
+            logger.debug(f"Job {safe_job_id} retrieved from memory cache")
             return job
 
         # Fall back to database
@@ -219,14 +233,16 @@ class JobManager:
                     # Double-check not already added by another thread/routine
                     if not self.memory.get(job_id):
                         self.memory.set(job_id, job_state)
-                    logger.info(f"Job {job_id} loaded from database and cached")
+                    logger.info(f"Job {safe_job_id} loaded from database and cached")
                     return job_state
             except ValueError as e:
-                logger.warning(f"Invalid UUID for job {job_id}: {e}")
+                logger.warning(f"Invalid UUID for job {safe_job_id}: {e}")
             except Exception as e:
-                logger.error(f"Unexpected error loading job {job_id} from database: {e}")
+                logger.error(
+                    f"Unexpected error loading job {safe_job_id} from database: {e}"
+                )
 
-        logger.warning(f"Job {job_id} not found in memory or database")
+        logger.warning(f"Job {safe_job_id} not found in memory or database")
         return None
 
     def create_job(self, job_state: JobState) -> None:

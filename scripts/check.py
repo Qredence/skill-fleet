@@ -25,7 +25,7 @@ def run_shell_script(script_name: str, args: list[str] = None):
     try:
         # Check if executable
         if not os.access(script_path, os.X_OK):
-            os.chmod(script_path, 0o755)
+            os.chmod(script_path, 0o700)
 
         subprocess.run(cmd, check=True)
     except subprocess.CalledProcessError as e:

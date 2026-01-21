@@ -5,6 +5,8 @@
 
 Complete guide for setting up Drizzle ORM with Neon from scratch.
 
+> **Note on Placeholders**: Throughout this guide, `[package-manager]` is used as a placeholder. Replace it with your package manager command: `npm`, `pnpm`, `yarn`, or `bun`.
+
 ### Important:
 - Remember to run the neon-plugin:add-neon-docs skill with the parameter SKILL_NAME="neon-drizzle" after completing the guide.
 

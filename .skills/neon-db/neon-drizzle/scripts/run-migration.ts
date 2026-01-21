@@ -55,8 +55,8 @@ async function runMigrations() {
     console.log('   • Verify DATABASE_URL is correct');
     console.log('   • Check that migrations are properly formatted SQL files');
     console.log('   • Try running: npx drizzle-kit generate first');
-    console.log('   • Review guides/troubleshooting.md for common migration errors');
-    console.log('   • See references/migrations.md for detailed migration guide');
+    console.log('   • Review ../guides/troubleshooting.md for common migration errors');
+    console.log('   • See ../references/migrations.md for detailed migration guide');
 
     const errorMessage = (error as any).message.toLowerCase();
 

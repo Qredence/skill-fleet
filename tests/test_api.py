@@ -51,6 +51,17 @@ def dependency_override_cleanup():
     get_app().dependency_overrides.clear()
 
 
+@pytest.fixture
+def dependency_override_cleanup():
+    """Fixture to ensure dependency overrides are cleaned up after each test.
+
+    This prevents test isolation issues where overrides from one test
+    affect subsequent tests.
+    """
+    yield
+    app.dependency_overrides.clear()
+
+
 # ============================================================================
 # Test Health Endpoint
 # ============================================================================

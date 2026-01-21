@@ -1,4 +1,4 @@
-from types import SimpleNamespace
+import dspy
 
 from skill_fleet.core.optimization.evaluation import (
     content_quality_metric,
@@ -29,13 +29,13 @@ def test_taxonomy_path_metric_partial_match_same_root() -> None:
 
 
 def test_metadata_metric_scores_matches() -> None:
-    gold = SimpleNamespace(
+    gold = dspy.Example(
         expected_name="python-decorators",
         expected_type="technical",
         expected_weight="lightweight",
         expected_capabilities=["cap_one", "cap_two"],
     )
-    pred = SimpleNamespace(
+    pred = dspy.Prediction(
         plan={
             "skill_metadata": {
                 "name": "python-decorators",
@@ -50,7 +50,7 @@ def test_metadata_metric_scores_matches() -> None:
 
 
 def test_content_quality_metric_requires_sections_and_code() -> None:
-    pred = SimpleNamespace(
+    pred = dspy.Prediction(
         content={
             "skill_content": """# Title
 
@@ -72,14 +72,14 @@ print('hello')
 
 
 def test_skill_creation_metric_combines_components() -> None:
-    gold = SimpleNamespace(
+    gold = dspy.Example(
         expected_taxonomy_path="general/testing",
         expected_name="workflow-testing",
         expected_type="technical",
         expected_weight="lightweight",
         expected_capabilities=["cap_one"],
     )
-    pred = SimpleNamespace(
+    pred = dspy.Prediction(
         understanding={"taxonomy_path": "general/testing"},
         plan={
             "skill_metadata": {

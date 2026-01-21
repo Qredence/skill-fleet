@@ -1,9 +1,9 @@
 import contextlib
-from typing import TYPE_CHECKING, cast
 
 import pytest
 
 from skill_fleet.core import creator as skill_creator_module
+from skill_fleet.validators.skill_validator import SkillValidator
 
 if TYPE_CHECKING:
     from skill_fleet.taxonomy.manager import TaxonomyManager
@@ -85,14 +85,15 @@ def test_create_skill_returns_exists(tmp_path, monkeypatch: pytest.MonkeyPatch) 
         skill_creator_module.dspy, "context", lambda **kwargs: contextlib.nullcontext()
     )
 
+    # Cast to Any to avoid type errors, but the duck typing works at runtime
     taxonomy = _FakeTaxonomy(tmp_path)
     taxonomy._exists = True
 
+    # Create a proper mock validator
+    validator_mock = Mock(spec=SkillValidator)
+
     creator = skill_creator_module.TaxonomySkillCreator(
-        taxonomy_manager=cast("TaxonomyManager", taxonomy),
-        feedback_handler=None,
-        validator=cast("SkillValidator", object()),
-        verbose=False
+        taxonomy_manager=taxonomy, feedback_handler=None, validator=object(), verbose=False
     )
     creator.creation_program = lambda **kwargs: _base_creation_result(passed=True)
 
@@ -107,11 +108,10 @@ def test_create_skill_returns_validation_failed(tmp_path, monkeypatch: pytest.Mo
     )
 
     taxonomy = _FakeTaxonomy(tmp_path)
+    validator_mock = Mock(spec=SkillValidator)
+
     creator = skill_creator_module.TaxonomySkillCreator(
-        taxonomy_manager=cast("TaxonomyManager", taxonomy),
-        feedback_handler=None,
-        validator=cast("SkillValidator", object()),
-        verbose=False
+        taxonomy_manager=taxonomy, feedback_handler=None, validator=object(), verbose=False
     )
     creator.creation_program = lambda **kwargs: _base_creation_result(passed=False)
 
@@ -130,12 +130,10 @@ def test_create_skill_rejects_circular_dependency(
 
     taxonomy = _FakeTaxonomy(tmp_path)
     taxonomy._has_cycle = True
+    validator_mock = Mock(spec=SkillValidator)
 
     creator = skill_creator_module.TaxonomySkillCreator(
-        taxonomy_manager=cast("TaxonomyManager", taxonomy),
-        feedback_handler=None,
-        validator=cast("SkillValidator", object()),
-        verbose=False
+        taxonomy_manager=taxonomy, feedback_handler=None, validator=object(), verbose=False
     )
     creation = _base_creation_result(passed=True)
     creation["plan"]["dependencies"] = ["_core/reasoning"]
@@ -156,11 +154,10 @@ def test_create_skill_approved_tracks_usage_and_updates_stats(
     )
 
     taxonomy = _FakeTaxonomy(tmp_path)
+    validator_mock = Mock(spec=SkillValidator)
+
     creator = skill_creator_module.TaxonomySkillCreator(
-        taxonomy_manager=cast("TaxonomyManager", taxonomy),
-        feedback_handler=None,
-        validator=cast("SkillValidator", object()),
-        verbose=False
+        taxonomy_manager=taxonomy, feedback_handler=None, validator=object(), verbose=False
     )
 
     creator.creation_program = lambda **kwargs: _base_creation_result(passed=True)
@@ -187,11 +184,10 @@ def test_create_skill_max_iterations_when_needs_revision_repeats(
     )
 
     taxonomy = _FakeTaxonomy(tmp_path)
+    validator_mock = Mock(spec=SkillValidator)
+
     creator = skill_creator_module.TaxonomySkillCreator(
-        taxonomy_manager=cast("TaxonomyManager", taxonomy),
-        feedback_handler=None,
-        validator=cast("SkillValidator", object()),
-        verbose=False
+        taxonomy_manager=taxonomy, feedback_handler=None, validator=object(), verbose=False
     )
 
     creator.creation_program = lambda **kwargs: _base_creation_result(passed=True)

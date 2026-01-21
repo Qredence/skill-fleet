@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any
+from typing import Any, cast
 
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
@@ -270,9 +270,7 @@ async def get_prompt(job_id: str) -> HITLPromptResponse:
             }
         )
 
-    # Validate response structure using Pydantic for type safety and runtime validation
-    validated_response = HITLPromptResponse.model_validate(response)
-    return validated_response
+    return HITLPromptResponse(**response)
 
 
 @router.post("/{job_id}/response", response_model=HITLResponseResult)

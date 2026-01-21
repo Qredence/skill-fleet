@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_serializer, model_validator
 
@@ -19,7 +19,7 @@ from ...core.models import ChecklistState
 class TDDWorkflowState(BaseModel):
     """TDD workflow state for job tracking."""
 
-    phase: str | None = None
+    phase: str | None = None  # "red", "green", "refactor", "complete"
     checklist: ChecklistState = Field(default_factory=ChecklistState)
     baseline_tests_run: bool = False
     compliance_tests_run: bool = False
@@ -45,7 +45,7 @@ class JobState(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     job_id: str
-    status: str = "pending"
+    status: str = "pending"  # pending, running, pending_hitl, completed, failed
     hitl_type: str | None = None
     hitl_data: dict[str, Any] | None = None
     hitl_response: dict[str, Any] | None = None

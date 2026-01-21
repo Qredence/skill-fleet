@@ -48,25 +48,6 @@ uv run ruff check --fix .
 uv run ruff format .
 ```
 
-### Type Checking
-
-We use [ty](https://docs.astral.sh/ty/) for fast static type checking:
-
-```bash
-# Check types
-uv run ty check src/ tests/
-
-# Watch mode
-uv run ty check --watch
-
-# Specific files
-uv run ty check src/skill_fleet/llm/fleet_config.py
-```
-
-### Type Suppression
-
-When needed, use ty-specific suppression comments:
-
 ### Type Hints
 
 - Use `str | int` syntax (Python 3.10+ union syntax)

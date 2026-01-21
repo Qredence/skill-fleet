@@ -5,6 +5,8 @@ the features they test.
 """
 
 import json
+import os
+import time
 from datetime import datetime
 
 from skill_fleet.api.jobs import (
@@ -325,9 +327,9 @@ class TestSessionPersistence:
 
     def test_cleanup_old_sessions(self):
         """Test that cleanup_old_sessions removes old session files."""
-        import os
         import time
 
+        # Arrange - create sessions with different ages
         job_id_1 = create_job()
         save_job_session(job_id_1)
         session_file_1 = SESSION_DIR / f"{job_id_1}.json"

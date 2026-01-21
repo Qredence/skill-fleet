@@ -22,6 +22,7 @@ Skill Fleet is an **agentic capability platform** that keeps AI knowledge modula
 
 ```
 docs/
+├── index.md                    # Central documentation hub
 ├── intro/
 │   └── introduction.md         # This page
 ├── getting-started/
@@ -31,6 +32,7 @@ docs/
 │   ├── signatures.md            # All DSPy signatures
 │   ├── modules.md               # All DSPy modules
 │   ├── programs.md              # DSPy programs
+│   ├── evaluation.md            # Quality metrics
 │   └── optimization.md          # MIPROv2, GEPA, caching
 ├── api/                        # FastAPI REST API
 │   ├── index.md                 # API overview
@@ -42,6 +44,7 @@ docs/
 │   ├── index.md                 # CLI overview
 │   ├── commands.md              # Command reference
 │   ├── interactive-chat.md      # Chat mode guide
+│   ├── dev-command.md         # Development command
 │   └── architecture.md          # CLI internals
 ├── llm/                        # LLM configuration
 │   ├── index.md                 # Configuration overview
@@ -55,10 +58,8 @@ docs/
 │   └── runner.md                # HITL runner
 ├── concepts/
 │   ├── concept-guide.md         # Concepts overview
-│   └── developer-reference.md   # DSPy workflows, HITL, taxonomy concepts
-├── agentskills-compliance.md   # Schema/validation
-├── api-reference.md            # FastAPI + programmatic surface
-├── cli-reference.md            # Command reference
+│   ├── developer-reference.md   # DSPy workflows, HITL, taxonomy concepts
+│   └── agentskills-compliance.md # Schema/validation
 ├── overview.md                 # High-level architecture and taxonomy
 ├── architecture/
 │   └── skill-creation-workflow.md # 3-phase workflow

@@ -8,24 +8,23 @@ to ensure database operations work correctly.
 
 import os
 import sys
-from datetime import datetime, timezone
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import os as python_os
 
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-import os as python_os
-
 # Import models and repositories
 from skill_fleet.db.models import (
-    Base, Skill, TaxonomyCategory, SkillCategory,
-    Capability, SkillDependency, Job, skill_status_enum,
-    skill_type_enum, job_status_enum
+    job_status_enum,
+    skill_status_enum,
+    skill_type_enum,
 )
-from skill_fleet.db.repositories import SkillRepository, JobRepository, TaxonomyRepository
+from skill_fleet.db.repositories import JobRepository, SkillRepository, TaxonomyRepository
 
 load_dotenv()
 DATABASE_URL = python_os.getenv("DATABASE_URL", "")
@@ -67,8 +66,8 @@ def print_tree(items, indent=""):
     """Helper to print tree structure."""
     for item in items:
         print(f"{indent}• {item['name']}")
-        if item.get('children'):
-            print_tree(item['children'], indent + "  ")
+        if item.get("children"):
+            print_tree(item["children"], indent + "  ")
 
 
 def test_skills():
@@ -100,7 +99,7 @@ def test_skills():
                 "version": "1.0.0",
                 "type": skill_type_enum.technical,
                 "status": skill_status_enum.draft,
-                "skill_content": "# Test Skill\n\nThis is a test skill."
+                "skill_content": "# Test Skill\n\nThis is a test skill.",
             }
 
             skill = repo.create_with_relations(
@@ -108,7 +107,7 @@ def test_skills():
                 capabilities=[],
                 dependencies=[],
                 keywords=["test", "repository"],
-                tags=["test"]
+                tags=["test"],
             )
             print(f"  ✓ Created skill: {skill.name} (ID: {skill.skill_id})")
 
@@ -135,6 +134,7 @@ def test_skills():
         except Exception as e:
             print(f"  ❌ Error: {e}")
             import traceback
+
             traceback.print_exc()
 
 
@@ -153,7 +153,7 @@ def test_jobs():
         job_data = {
             "user_id": "test_user",
             "task_description": "Create a test skill for validation",
-            "status": job_status_enum.pending
+            "status": job_status_enum.pending,
         }
 
         job = repo.create(job_data)
@@ -163,7 +163,9 @@ def test_jobs():
 
         # Update job status
         print("\n📝 Updating job status...")
-        updated = repo.update_status(job.job_id, job_status_enum.completed, result={"success": True})
+        updated = repo.update_status(
+            job.job_id, job_status_enum.completed, result={"success": True}
+        )
         print(f"  ✓ Job status: {updated.status}")
 
         # Get pending jobs
@@ -202,6 +204,7 @@ def run_all_tests():
     except Exception as e:
         print(f"\n❌ Test failed: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

@@ -1,4 +1,5 @@
-"""Evaluation routes for skill quality assessment.
+"""
+Evaluation routes for skill quality assessment.
 
 API-first approach for skill evaluation using DSPy metrics calibrated
 against golden skills from https://github.com/obra/superpowers.
@@ -145,7 +146,8 @@ def _scores_to_response(scores: SkillQualityScores) -> EvaluationResponse:
 
 
 def _resolve_skill_md_path(*, skills_root: Path, taxonomy_path: str) -> Path:
-    """Resolve an untrusted taxonomy-relative path to a SKILL.md path safely.
+    """
+    Resolve an untrusted taxonomy-relative path to a SKILL.md path safely.
 
     Delegates to the shared resolve_skill_md_path function in
     common.path_validation to ensure consistent security handling.
@@ -153,6 +155,7 @@ def _resolve_skill_md_path(*, skills_root: Path, taxonomy_path: str) -> Path:
     Raises:
         ValueError: If the taxonomy path is invalid or escapes skills_root.
         FileNotFoundError: If the SKILL.md file does not exist.
+
     """
     return resolve_skill_md_path(skills_root=skills_root, taxonomy_path=taxonomy_path)
 
@@ -162,7 +165,8 @@ async def evaluate_skill(
     request: EvaluateSkillRequest,
     skills_root: SkillsRoot,
 ) -> EvaluationResponse:
-    """Evaluate a skill's quality at the specified path.
+    """
+    Evaluate a skill's quality at the specified path.
 
     Uses DSPy metrics calibrated against golden skills from Obra/superpowers.
     Applies stricter criteria including:
@@ -203,7 +207,8 @@ async def evaluate_skill(
 async def evaluate_content(
     request: EvaluateContentRequest,
 ) -> EvaluationResponse:
-    """Evaluate raw SKILL.md content directly.
+    """
+    Evaluate raw SKILL.md content directly.
 
     Useful for evaluating content before saving to disk or for
     testing generated content quality.
@@ -220,7 +225,8 @@ async def evaluate_batch(
     request: BatchEvaluateRequest,
     skills_root: SkillsRoot,
 ) -> BatchEvaluateResponse:
-    """Evaluate multiple skills in batch.
+    """
+    Evaluate multiple skills in batch.
 
     Returns individual scores and aggregate statistics.
     """
@@ -296,7 +302,8 @@ async def evaluate_batch(
 
 @router.get("/metrics-info")
 async def get_metrics_info() -> dict[str, Any]:
-    """Get information about the evaluation metrics and weights.
+    """
+    Get information about the evaluation metrics and weights.
 
     Returns the default weights and descriptions for each metric.
     """
@@ -381,7 +388,8 @@ class StyleDetectionResponse(BaseModel):
 
 @router.post("/adaptive-weights", response_model=StyleDetectionResponse)
 async def get_adaptive_weights(request: DetectStyleRequest) -> StyleDetectionResponse:
-    """Detect skill style and get adaptive metric weights.
+    """
+    Detect skill style and get adaptive metric weights.
 
     This endpoint analyzes a skill's content to determine its style
     (navigation_hub, comprehensive, or minimal) and returns appropriate
@@ -392,6 +400,7 @@ async def get_adaptive_weights(request: DetectStyleRequest) -> StyleDetectionRes
 
     Returns:
         StyleDetectionResponse with detected style, weights, and optional composite score
+
     """
     try:
         weighting = AdaptiveMetricWeighting()
@@ -417,7 +426,9 @@ async def get_adaptive_weights(request: DetectStyleRequest) -> StyleDetectionRes
             # Estimate improvement
             if len(request.current_scores) > 0:
                 avg_score = sum(request.current_scores.values()) / len(request.current_scores)
-                improvement = ((composite_score - avg_score) / avg_score * 100) if avg_score > 0 else 0
+                improvement = (
+                    ((composite_score - avg_score) / avg_score * 100) if avg_score > 0 else 0
+                )
                 expected_improvement = f"{improvement:+.1f}% on composite score"
 
         return StyleDetectionResponse(
@@ -433,4 +444,4 @@ async def get_adaptive_weights(request: DetectStyleRequest) -> StyleDetectionRes
         raise HTTPException(
             status_code=500,
             detail=f"Error detecting style: {str(e)}",
-        )
+        ) from e

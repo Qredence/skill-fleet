@@ -1,4 +1,5 @@
-"""Shared HITL job runner for CLI commands.
+"""
+Shared HITL job runner for CLI commands.
 
 The Skill Fleet API uses a background job + HITL (Human-in-the-Loop) prompt model:
 - CLI starts a job via `/api/v2/skills/create`
@@ -32,7 +33,8 @@ from .handlers import get_handler
 
 
 def _render_questions(questions: object) -> str:
-    """Render questions to a displayable string.
+    """
+    Render questions to a displayable string.
 
     Now expects pre-structured questions from the server (StructuredQuestion format).
     """
@@ -43,7 +45,7 @@ def _render_questions(questions: object) -> str:
         for idx, q in enumerate(questions, 1):
             if isinstance(q, dict):
                 # Server returns StructuredQuestion with 'text' field
-                q_dict = cast(dict[str, Any], q)
+                q_dict = cast("dict[str, Any]", q)
                 text = q_dict.get("text") or q_dict.get("question") or str(q)
             else:
                 text = str(q)
@@ -53,7 +55,8 @@ def _render_questions(questions: object) -> str:
 
 
 def _normalize_questions(questions: object) -> list[object]:
-    """Pass through pre-structured questions from the server.
+    """
+    Pass through pre-structured questions from the server.
 
     The server now normalizes questions via normalize_questions() in api/schemas/hitl.py.
     This function is kept for backward compatibility but does minimal processing.
@@ -72,7 +75,8 @@ def _normalize_questions(questions: object) -> list[object]:
 
 
 def _question_text(question: object) -> str:
-    """Extract question text from a StructuredQuestion dict.
+    """
+    Extract question text from a StructuredQuestion dict.
 
     Server returns StructuredQuestion with 'text' field.
     """
@@ -80,13 +84,14 @@ def _question_text(question: object) -> str:
         return question
     if isinstance(question, dict):
         # StructuredQuestion uses 'text' as primary field
-        q_dict = cast(dict[str, Any], question)
+        q_dict = cast("dict[str, Any]", question)
         return str(q_dict.get("text") or q_dict.get("question") or question)
     return str(question)
 
 
 def _question_options(question: object) -> tuple[list[tuple[str, str]], bool]:
-    """Extract options from a StructuredQuestion dict.
+    """
+    Extract options from a StructuredQuestion dict.
 
     Server returns StructuredQuestion with 'options' (list of QuestionOption)
     and 'allows_multiple' fields.
@@ -94,7 +99,7 @@ def _question_options(question: object) -> tuple[list[tuple[str, str]], bool]:
     if not isinstance(question, dict):
         return ([], False)
 
-    q_dict = cast(dict[str, Any], question)
+    q_dict = cast("dict[str, Any]", question)
     raw_options = q_dict.get("options")
     if not isinstance(raw_options, list) or not raw_options:
         return ([], False)
@@ -103,7 +108,7 @@ def _question_options(question: object) -> tuple[list[tuple[str, str]], bool]:
     for opt in raw_options:
         if isinstance(opt, dict):
             # QuestionOption has 'id', 'label', 'description' fields
-            opt_dict = cast(dict[str, Any], opt)
+            opt_dict = cast("dict[str, Any]", opt)
             opt_id = str(opt_dict.get("id") or opt_dict.get("value") or "")
             label = str(opt_dict.get("label") or opt_dict.get("text") or opt_id)
             desc = opt_dict.get("description")
@@ -129,7 +134,8 @@ async def run_hitl_job(
     force_plain_text: bool = False,
     poll_interval: float = HITL_POLL_INTERVAL,
 ) -> dict[str, Any]:
-    """Poll and satisfy HITL prompts until the job reaches a terminal state.
+    """
+    Poll and satisfy HITL prompts until the job reaches a terminal state.
 
     Returns the final prompt payload from the API (status + result fields).
     """

@@ -1,4 +1,5 @@
-"""Research tools for deep understanding phase.
+"""
+Research tools for deep understanding phase.
 
 Provides web search (Google Search API via Gemini) and filesystem search
 capabilities to gather context before skill creation.
@@ -14,7 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 def web_search_research(query: str, max_results: int = 5) -> dict[str, Any]:
-    """Execute web search using Google Search API for Gemini.
+    """
+    Execute web search using Google Search API for Gemini.
 
     Uses Google's Search API integration with Gemini as documented at:
     https://ai.google.dev/gemini-api/docs/google-search
@@ -29,6 +31,7 @@ def web_search_research(query: str, max_results: int = 5) -> dict[str, Any]:
             - results: list[dict] with {url, title, snippet, ...}
             - error: str | None
             - query: str
+
     """
     try:
         # Use Google Search API for Gemini
@@ -98,7 +101,8 @@ def web_search_research(query: str, max_results: int = 5) -> dict[str, Any]:
 
 
 def _parse_search_response(response, max_results: int) -> list[dict[str, Any]]:
-    """Parse Gemini search response to extract structured results.
+    """
+    Parse Gemini search response to extract structured results.
 
     Args:
         response: Gemini API response object
@@ -106,6 +110,7 @@ def _parse_search_response(response, max_results: int) -> list[dict[str, Any]]:
 
     Returns:
         List of result dicts with {url, title, snippet}
+
     """
     results = []
 
@@ -150,7 +155,8 @@ def _parse_search_response(response, max_results: int) -> list[dict[str, Any]]:
 
 
 def filesystem_research(query: str, workspace_path: Path, max_results: int = 10) -> dict[str, Any]:
-    """Search filesystem using codebase_search and read_file tools.
+    """
+    Search filesystem using codebase_search and read_file tools.
 
     Uses semantic search to find relevant files and code snippets.
 
@@ -166,6 +172,7 @@ def filesystem_research(query: str, workspace_path: Path, max_results: int = 10)
             - snippets: list[dict] with {file, content_snippet, relevance}
             - error: str | None
             - query: str
+
     """
     try:
         # Use codebase_search tool if available
@@ -191,7 +198,8 @@ def filesystem_research(query: str, workspace_path: Path, max_results: int = 10)
 
 
 def _simple_file_search(query: str, workspace_path: Path, max_results: int) -> dict[str, Any]:
-    """Simple file search fallback implementation.
+    """
+    Simple file search fallback implementation.
 
     Searches for files containing query terms in their names or paths.
     This is a basic implementation - can be enhanced with semantic search later.
@@ -203,6 +211,7 @@ def _simple_file_search(query: str, workspace_path: Path, max_results: int) -> d
 
     Returns:
         Dict with files and snippets
+
     """
     files_found = []
     snippets = []
@@ -285,7 +294,8 @@ def gather_context(
     workspace_path: Path | None,
     research_types: list[str] | None = None,
 ) -> dict[str, Any]:
-    """Gather context from both web and filesystem search.
+    """
+    Gather context from both web and filesystem search.
 
     Args:
         topic: Topic to research
@@ -295,6 +305,7 @@ def gather_context(
 
     Returns:
         Combined context dict with web and filesystem results
+
     """
     if research_types is None:
         research_types = ["both"]

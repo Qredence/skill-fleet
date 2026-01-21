@@ -1,4 +1,5 @@
-"""Consolidated serialization utilities for Pydantic models and DSPy outputs.
+"""
+Consolidated serialization utilities for Pydantic models and DSPy outputs.
 
 This module provides unified functions for serializing Pydantic models,
 dicts, and other complex objects to JSON-serializable formats.
@@ -25,7 +26,8 @@ from pydantic import BaseModel
 def serialize_pydantic_object(
     obj: Any, output_format: str = "dict"
 ) -> dict[str, Any] | list[Any] | str:
-    """Serialize a Pydantic object or dict to JSON-compatible format.
+    """
+    Serialize a Pydantic object or dict to JSON-compatible format.
 
     Args:
         obj: Object to serialize (Pydantic model, dict, or primitive)
@@ -42,6 +44,7 @@ def serialize_pydantic_object(
         {'name': 'test'}
         >>> serialize_pydantic_object(obj, output_format="json")
         '{"name":"test"}'
+
     """
     if obj is None:
         return {} if output_format == "dict" else "{}"
@@ -72,7 +75,8 @@ def serialize_pydantic_object(
 def serialize_pydantic_objects(
     items: list[Any], output_format: str = "dict"
 ) -> dict[str, Any] | list[Any] | str:
-    """Serialize a list of Pydantic objects or dicts.
+    """
+    Serialize a list of Pydantic objects or dicts.
 
     Args:
         items: List of objects to serialize
@@ -91,6 +95,7 @@ def serialize_pydantic_objects(
         [{'id': 1, 'name': 'a'}, {'id': 2, 'name': 'b'}]
         >>> serialize_pydantic_objects(items, output_format="by_key", key_attr="id")
         {1: {'id': 1, 'name': 'a'}, 2: {'id': 2, 'name': 'b'}}
+
     """
     if not items:
         return {} if output_format == "by_key" else []
@@ -129,7 +134,8 @@ def normalize_dict_output(
     expected_keys: list[str] | None = None,
     remove_none: bool = True,
 ) -> dict[str, Any]:
-    """Normalize an object to dict format with optional validation.
+    """
+    Normalize an object to dict format with optional validation.
 
     Args:
         obj: Object to normalize (Pydantic model, dict, etc.)
@@ -151,6 +157,7 @@ def normalize_dict_output(
         {'name': 'test'}
         >>> normalize_dict_output(obj, expected_keys=["name", "value"], remove_none=False)
         {'name': 'test', 'value': None}
+
     """
     # Convert to dict
     result = serialize_pydantic_object(obj, output_format="dict")
@@ -175,7 +182,8 @@ def merge_subdirectory_files(
     *file_dicts: dict[str, Any],
     override: bool = False,
 ) -> dict[str, dict[str, Any]]:
-    """Merge multiple subdirectory file dictionaries.
+    """
+    Merge multiple subdirectory file dictionaries.
 
     Args:
         *file_dicts: Dicts to merge (e.g., references_files, guides_files, etc.)
@@ -190,6 +198,7 @@ def merge_subdirectory_files(
         >>> merge_subdirectory_files({"references": refs, "guides": guides})
         {'references': {'api.md': 'API content', 'patterns.md': 'Patterns'},
          'guides': {'setup.md': 'Setup content'}}
+
     """
     merged: dict[str, dict[str, Any]] = {}
 

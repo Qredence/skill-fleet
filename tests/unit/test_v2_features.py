@@ -8,7 +8,6 @@ Tests for:
 - Phase 2 generation serialization utilities
 """
 
-import json
 from pathlib import Path
 
 import pytest
@@ -19,7 +18,6 @@ from skill_fleet.core.dspy.metrics.skill_quality import (
     evaluate_patterns,
     evaluate_structure,
     parse_skill_content,
-    SkillQualityScores,
 )
 from skill_fleet.validators.skill_validator import SkillValidator
 

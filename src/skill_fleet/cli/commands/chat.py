@@ -1,4 +1,5 @@
-"""CLI command for interactive chat sessions.
+"""
+CLI command for interactive chat sessions.
 
 Features:
 - Try to launch interactive Ink TUI with streaming support
@@ -46,8 +47,9 @@ def chat_command(
         help="Disable Ink TUI and use simple terminal chat",
     ),
 ):
-    """Start an interactive guided session to build a skill (job + HITL).
-    
+    """
+    Start an interactive guided session to build a skill (job + HITL).
+
     Try to launch interactive Ink TUI with real-time streaming responses,
     thinking/reasoning display, and agentic suggestions. Falls back to
     simple terminal chat if TUI is unavailable.
@@ -57,7 +59,9 @@ def chat_command(
     # Try to spawn TUI first (if available and not disabled)
     if not no_tui and not force_plain_text:
         try:
-            exit_code = spawn_tui(api_url=config.api_url, user_id=config.user_id, force_no_tui=False)
+            exit_code = spawn_tui(
+                api_url=config.api_url, user_id=config.user_id, force_no_tui=False
+            )
             if exit_code == 0:
                 # TUI not available, continue with fallback
                 console.print("[dim]TUI not available, using terminal chat...[/dim]")

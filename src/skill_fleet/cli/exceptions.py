@@ -1,4 +1,5 @@
-"""Custom exception classes for CLI error handling.
+"""
+Custom exception classes for CLI error handling.
 
 This module provides a hierarchy of custom exceptions for consistent
 error handling throughout the CLI application. Each exception has
@@ -19,7 +20,8 @@ EXIT_NETWORK_ERROR = 4
 
 
 class CLIError(Exception):
-    """Base exception class for CLI errors.
+    """
+    Base exception class for CLI errors.
 
     Attributes:
         message: Error message to display
@@ -37,7 +39,8 @@ class CLIError(Exception):
         exit_code: int = EXIT_ERROR,
         suggestion: str | None = None,
     ) -> None:
-        """Initialize a CLI error.
+        """
+        Initialize a CLI error.
 
         Args:
             message: Human-readable error message
@@ -56,7 +59,8 @@ class CLIError(Exception):
         return self.message
 
     def display(self, console: Any) -> None:
-        """Display the error using Rich formatting.
+        """
+        Display the error using Rich formatting.
 
         Args:
             console: Rich Console instance for output
@@ -79,7 +83,8 @@ class CLIError(Exception):
 
 
 class ConfigError(CLIError):
-    """Exception raised for configuration-related errors.
+    """
+    Exception raised for configuration-related errors.
 
     Used when the CLI configuration is missing, invalid, or malformed.
 
@@ -93,7 +98,8 @@ class ConfigError(CLIError):
         *,
         suggestion: str | None = "Check your configuration file",
     ) -> None:
-        """Initialize a configuration error.
+        """
+        Initialize a configuration error.
 
         Args:
             message: Human-readable error message
@@ -107,7 +113,8 @@ class ConfigError(CLIError):
 
 
 class APIError(CLIError):
-    """Exception raised for network and API-related errors.
+    """
+    Exception raised for network and API-related errors.
 
     Used when API requests fail due to network issues, server errors,
     or invalid responses.
@@ -126,7 +133,8 @@ class APIError(CLIError):
         status_code: int | None = None,
         suggestion: str | None = "Check your network connection and API URL",
     ) -> None:
-        """Initialize an API error.
+        """
+        Initialize an API error.
 
         Args:
             message: Human-readable error message
@@ -148,7 +156,8 @@ class APIError(CLIError):
 
 
 class ValidationError(CLIError):
-    """Exception raised for input validation errors.
+    """
+    Exception raised for input validation errors.
 
     Used when user input fails validation checks (e.g., invalid
     arguments, malformed data, constraint violations).
@@ -163,7 +172,8 @@ class ValidationError(CLIError):
         *,
         suggestion: str | None = "Run with --help for usage information",
     ) -> None:
-        """Initialize a validation error.
+        """
+        Initialize a validation error.
 
         Args:
             message: Human-readable error message
@@ -177,7 +187,8 @@ class ValidationError(CLIError):
 
 
 class CLIExit(Exception):
-    """Exception for clean CLI exits.
+    """
+    Exception for clean CLI exits.
 
     This exception is compatible with typer.Exit and can be used
     for clean exits without displaying error messages.
@@ -196,7 +207,8 @@ class CLIExit(Exception):
         *,
         exit_code: int = EXIT_SUCCESS,
     ) -> None:
-        """Initialize a CLI exit.
+        """
+        Initialize a CLI exit.
 
         Args:
             message: Optional exit message

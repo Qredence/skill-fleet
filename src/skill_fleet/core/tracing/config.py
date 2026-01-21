@@ -1,4 +1,5 @@
-"""Reasoning model configuration for skill creation workflow.
+"""
+Reasoning model configuration for skill creation workflow.
 
 Uses the existing model registry from config.yaml:
 - Default: gemini:gemini-3-flash-preview (with thinking_level parameter support)
@@ -29,7 +30,8 @@ logger = logging.getLogger(__name__)
 
 
 class ConfigModelLoader:
-    """Load and configure models from existing config.yaml.
+    """
+    Load and configure models from existing config.yaml.
 
     This class reads the skill-fleet config.yaml file and provides
     task-specific model configurations with role-based parameter overrides.
@@ -64,16 +66,19 @@ class ConfigModelLoader:
     """
 
     def __init__(self, config_path: Path | None = None):
-        """Initialize ConfigModelLoader.
+        """
+        Initialize ConfigModelLoader.
 
         Args:
             config_path: Path to config.yaml file
+
         """
         self.config_path = config_path or default_config_path()
         self.config = self._load_config()
 
     def _load_config(self) -> Mapping:
-        """Load config.yaml file.
+        """
+        Load config.yaml file.
 
         Returns:
             Parsed YAML configuration as a dictionary
@@ -81,6 +86,7 @@ class ConfigModelLoader:
         Raises:
             FileNotFoundError: If config file doesn't exist
             yaml.YAMLError: If config file is invalid YAML
+
         """
         if not self.config_path.exists():
             raise FileNotFoundError(f"Config file not found: {self.config_path}")
@@ -89,7 +95,8 @@ class ConfigModelLoader:
             return yaml.safe_load(f)
 
     def get_model_for_task(self, task_name: str) -> dspy.LM:
-        """Get DSPy LM instance for a specific task from config.yaml.
+        """
+        Get DSPy LM instance for a specific task from config.yaml.
 
         This method:
         1. Looks up the task configuration in config.yaml
@@ -105,6 +112,7 @@ class ConfigModelLoader:
 
         Raises:
             ValueError: If task or model is not found in config
+
         """
         task_config = self.config.get("tasks", {}).get(task_name, {})
 
@@ -132,7 +140,8 @@ class ConfigModelLoader:
         )
 
     def _resolve_model_ref(self, model_ref: str, role: str | None = None) -> dict:
-        """Resolve model reference (e.g., 'gemini:gemini-3-flash-preview').
+        """
+        Resolve model reference (e.g., 'gemini:gemini-3-flash-preview').
 
         Args:
             model_ref: Model reference string (provider:model format)
@@ -143,6 +152,7 @@ class ConfigModelLoader:
 
         Raises:
             ValueError: If model reference is not found in registry
+
         """
         model_config = self.config.get("models", {}).get("registry", {}).get(model_ref)
 
@@ -163,13 +173,15 @@ class ConfigModelLoader:
         return model_config
 
     def _get_api_key(self, model_config: dict) -> str:
-        """Get API key from environment variable specified in config.
+        """
+        Get API key from environment variable specified in config.
 
         Args:
             model_config: Model configuration dictionary
 
         Returns:
             API key string (empty if not configured)
+
         """
         # Prefer LITELLM proxy credentials when available
         from ...common.env_utils import resolve_api_credentials
@@ -198,7 +210,8 @@ _config_loader: ConfigModelLoader | None = None
 
 
 def get_reasoning_lm(task_name: str = "skill_understand") -> dspy.LM:
-    """Get reasoning LM for a specific task.
+    """
+    Get reasoning LM for a specific task.
 
     Uses the existing config.yaml model registry and role-based configuration.
     Phase 1 and Phase 2 will use the 'planner' role with thinking_level overrides.
@@ -215,6 +228,7 @@ def get_reasoning_lm(task_name: str = "skill_understand") -> dspy.LM:
 
         Get Phase 2 LM (plan task with planner role, thinking_level: high):
         >>> lm = get_reasoning_lm("skill_plan")
+
     """
     global _config_loader
     if _config_loader is None:
@@ -223,7 +237,8 @@ def get_reasoning_lm(task_name: str = "skill_understand") -> dspy.LM:
 
 
 def get_phase1_lm() -> dspy.LM:
-    """Get LM for Phase 1: Understand task.
+    """
+    Get LM for Phase 1: Understand task.
 
     Uses the 'skill_understand' task configuration which includes:
     - Model: gemini:gemini-3-flash-preview
@@ -236,12 +251,14 @@ def get_phase1_lm() -> dspy.LM:
     Examples:
         >>> lm = get_phase1_lm()
         >>> dspy.configure(lm=lm)
+
     """
     return get_reasoning_lm("skill_understand")
 
 
 def get_phase2_lm() -> dspy.LM:
-    """Get LM for Phase 2: Plan task.
+    """
+    Get LM for Phase 2: Plan task.
 
     Uses the 'skill_plan' task configuration which includes:
     - Model: gemini:gemini-3-flash-preview
@@ -254,6 +271,7 @@ def get_phase2_lm() -> dspy.LM:
     Examples:
         >>> lm = get_phase2_lm()
         >>> dspy.configure(lm=lm)
+
     """
     return get_reasoning_lm("skill_plan")
 

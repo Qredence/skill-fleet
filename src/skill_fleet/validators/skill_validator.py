@@ -1,4 +1,5 @@
-"""Skill validation utilities for taxonomy and agentskills.io compliance.
+"""
+Skill validation utilities for taxonomy and agentskills.io compliance.
 
 v2 Golden Standard (Jan 2026):
 - Only SKILL.md is required (no metadata.json)
@@ -31,16 +32,25 @@ class ValidationResult:
 
 
 # v2 Golden Standard: Valid subdirectory names
-VALID_SUBDIRECTORIES = frozenset({
-    "references", "guides", "templates", "scripts", "examples",
-    "assets", "images", "static"  # Documentation assets
-})
+VALID_SUBDIRECTORIES = frozenset(
+    {
+        "references",
+        "guides",
+        "templates",
+        "scripts",
+        "examples",
+        "assets",
+        "images",
+        "static",  # Documentation assets
+    }
+)
 # Legacy subdirectories (grandfathered but not recommended for new skills)
 LEGACY_SUBDIRECTORIES = frozenset({"capabilities", "resources", "tests"})
 
 
 class SkillValidator:
-    """Validates skill metadata, directory structure, and agentskills.io compliance.
+    """
+    Validates skill metadata, directory structure, and agentskills.io compliance.
 
     v2 Golden Standard Changes:
     - SKILL.md is the only required file (no metadata.json)
@@ -96,7 +106,8 @@ class SkillValidator:
     def _resolve_existing_path_within_dir(
         self, *, base_dir: Path, relative_path: str, label: str
     ) -> tuple[Path | None, str | None]:
-        """Resolve an untrusted relative path and enforce it stays within base_dir.
+        """
+        Resolve an untrusted relative path and enforce it stays within base_dir.
 
         This is defense-in-depth against path traversal and symlink escapes.
         """
@@ -143,7 +154,8 @@ class SkillValidator:
         )
 
     def resolve_skill_ref(self, skill_ref: str) -> Path:
-        """Resolve an untrusted skill reference safely within skills_root.
+        """
+        Resolve an untrusted skill reference safely within skills_root.
 
         A skill reference is a taxonomy-relative directory path (e.g.
         "general/testing") or a taxonomy-relative JSON file (e.g.
@@ -151,6 +163,7 @@ class SkillValidator:
 
         Raises:
             ValueError: If the reference is malformed or escapes skills_root.
+
         """
         if not isinstance(skill_ref, str):
             raise ValueError("Invalid path")
@@ -301,7 +314,8 @@ class SkillValidator:
         return ValidationResult(len(errors) == 0, errors, warnings)
 
     def validate_structure(self, skill_dir: Path) -> ValidationResult:
-        """Validate that a directory skill has the expected files and folders.
+        """
+        Validate that a directory skill has the expected files and folders.
 
         Security: This method implements defense-in-depth against path traversal:
         1. Resolves skill_dir and validates it's within skills_root
@@ -364,7 +378,8 @@ class SkillValidator:
         return ValidationResult(len(errors) == 0, errors, warnings)
 
     def validate_documentation(self, skill_md_path: Path) -> ValidationResult:
-        """Validate expected documentation sections and basic markdown structure.
+        """
+        Validate expected documentation sections and basic markdown structure.
 
         v2 Golden Standard required sections:
         - "When to Use" (required)
@@ -441,7 +456,8 @@ class SkillValidator:
         return ValidationResult(len(errors) == 0, errors, warnings)
 
     def validate_frontmatter(self, skill_md_path: Path) -> ValidationResult:
-        """Validate SKILL.md has valid agentskills.io compliant YAML frontmatter.
+        """
+        Validate SKILL.md has valid agentskills.io compliant YAML frontmatter.
 
         Per agentskills.io spec:
         - name: required, 1-64 chars, lowercase alphanumeric + hyphens
@@ -525,7 +541,8 @@ class SkillValidator:
         return ValidationResult(len(errors) == 0, errors, warnings)
 
     def _validate_skill_name(self, name: str) -> tuple[bool, str | None]:
-        """Validate skill name per agentskills.io spec.
+        """
+        Validate skill name per agentskills.io spec.
 
         Requirements:
         - 1-64 characters
@@ -545,7 +562,8 @@ class SkillValidator:
         return True, None
 
     def validate_subdirectories(self, skill_path: Path) -> ValidationResult:
-        """Validate skill subdirectory structure follows v2 Golden Standard.
+        """
+        Validate skill subdirectory structure follows v2 Golden Standard.
 
         v2 Golden Standard subdirectories:
         - references/: Deep technical documentation
@@ -617,7 +635,8 @@ class SkillValidator:
         return ValidationResult(len(errors) == 0, errors, warnings)
 
     def validate_examples(self, examples_path: Path) -> ValidationResult:
-        """Validate example markdown files under a skill's examples directory.
+        """
+        Validate example markdown files under a skill's examples directory.
 
         Note: Examples directory is optional. If it doesn't exist, validation passes
         with a warning rather than an error.
@@ -909,7 +928,8 @@ class SkillValidator:
         return True
 
     def _is_safe_path_component(self, component: str) -> bool:
-        """Validate that a path component is safe and doesn't allow traversal attacks.
+        """
+        Validate that a path component is safe and doesn't allow traversal attacks.
 
         Rules:
         - Cannot be empty

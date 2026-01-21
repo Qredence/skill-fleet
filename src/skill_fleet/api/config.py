@@ -1,4 +1,5 @@
-"""API configuration using pydantic-settings.
+"""
+API configuration using pydantic-settings.
 
 This module provides runtime validation for API-specific configuration,
 ensuring type safety and catching configuration errors early.
@@ -14,7 +15,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class APISettings(BaseSettings):
-    """Configuration settings for FastAPI application.
+    """
+    Configuration settings for FastAPI application.
 
     Uses environment variables with SKILL_FLEET_ prefix for configuration.
     """
@@ -60,7 +62,9 @@ class APISettings(BaseSettings):
     )
 
     # Logging
-    log_level: str = Field(default="INFO", description="Logging level (DEBUG, INFO, WARNING, ERROR)")
+    log_level: str = Field(
+        default="INFO", description="Logging level (DEBUG, INFO, WARNING, ERROR)"
+    )
     log_format: str = Field(default="json", description="Log format (json, text)")
 
     # Job configuration
@@ -133,13 +137,15 @@ class APISettings(BaseSettings):
 
 @lru_cache(maxsize=1)
 def get_settings() -> APISettings:
-    """Get cached APISettings instance.
+    """
+    Get cached APISettings instance.
 
     This ensures configuration is loaded once and reused, which is
     important for performance and consistency.
 
     Returns:
         Cached APISettings instance
+
     """
     return APISettings()
 

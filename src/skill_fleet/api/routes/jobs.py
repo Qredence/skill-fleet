@@ -1,4 +1,5 @@
-"""Job inspection routes.
+"""
+Job inspection routes.
 
 The Skill Fleet server runs skill creation as background jobs. This router
 exposes read-only job state for clients (CLI/UI) to inspect progress and
@@ -25,7 +26,8 @@ async def list_jobs(
     user_id: str | None = Query(default=None, description="Filter by user ID"),
     include_saved: bool = Query(default=True, description="Include jobs from disk sessions"),
 ) -> list[JobState]:
-    """List all jobs with optional filtering.
+    """
+    List all jobs with optional filtering.
 
     Returns jobs from in-memory store and optionally from persisted sessions.
 
@@ -36,6 +38,7 @@ async def list_jobs(
 
     Returns:
         List of JobState objects matching the filters
+
     """
     jobs: list[JobState] = []
     manager = get_job_manager()
@@ -70,7 +73,8 @@ async def list_jobs(
 
 @router.get("/{job_id}", response_model=JobState)
 async def get_job_state(job_id: str) -> JobState:
-    """Fetch job status and any persisted artifacts/results.
+    """
+    Fetch job status and any persisted artifacts/results.
 
     Returns the complete job state including:
     - Current status (pending, running, pending_hitl, completed, failed)
@@ -86,6 +90,7 @@ async def get_job_state(job_id: str) -> JobState:
 
     Raises:
         NotFoundException: If job not found
+
     """
     manager = get_job_manager()
     job = manager.get_job(job_id)

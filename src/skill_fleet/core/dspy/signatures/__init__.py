@@ -1,4 +1,5 @@
-"""DSPy signatures for skill creation workflow.
+"""
+DSPy signatures for skill creation workflow.
 
 This module provides DSPy signature definitions for:
 - Phase 1: Understanding (task analysis, taxonomy placement)

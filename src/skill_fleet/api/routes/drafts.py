@@ -1,4 +1,5 @@
-"""Draft lifecycle routes.
+"""
+Draft lifecycle routes.
 
 Skill creation is draft-first:
 - Jobs write drafts under `skills/_drafts/<job_id>/...`
@@ -51,7 +52,8 @@ async def promote_draft(
     skills_root: SkillsRoot,
     taxonomy_manager: TaxonomyManagerDep,
 ) -> PromoteDraftResponse:
-    """Validate and promote a job draft into the real taxonomy.
+    """
+    Validate and promote a job draft into the real taxonomy.
 
     This endpoint moves a draft skill from the staging area into the
     production taxonomy. The draft must have been created by a completed
@@ -68,6 +70,7 @@ async def promote_draft(
     Raises:
         HTTPException: 404 if job not found, 400 if job not completed or no draft,
                       409 if target exists and overwrite=false, 500 on promotion failure
+
     """
     # Normalize and validate the injected skills root to ensure it is an absolute,
     # filesystem-rooted path before using it in any filesystem operations.

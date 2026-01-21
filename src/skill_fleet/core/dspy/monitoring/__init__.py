@@ -1,4 +1,5 @@
-"""DSPy module monitoring and tracing infrastructure.
+"""
+DSPy module monitoring and tracing infrastructure.
 
 This package provides observability for DSPy modules in production:
 - ModuleMonitor: Wrapper for tracking module execution metrics
@@ -7,11 +8,11 @@ This package provides observability for DSPy modules in production:
 
 Usage:
     from skill_fleet.core.dspy.monitoring import ModuleMonitor
-    
+
     # Wrap any DSPy module
     monitored = ModuleMonitor(my_module, name="skill_generator")
     result = monitored(input="test")
-    
+
     # Check metrics
     print(monitored.get_metrics())
 """

@@ -1,4 +1,5 @@
-"""Sync packaged runtime resources into `src/skill_fleet/`.
+"""
+Sync packaged runtime resources into `src/skill_fleet/`.
 
 Skill Fleet ships a small set of runtime defaults inside the Python package so
 the wheel works out-of-the-box (no repo checkout required):

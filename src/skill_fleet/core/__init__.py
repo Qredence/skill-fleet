@@ -1,4 +1,5 @@
-"""Unified core logic for Skill Fleet.
+"""
+Unified core logic for Skill Fleet.
 
 This module consolidates the workflow and core packages into a unified architecture.
 

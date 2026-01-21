@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from skill_fleet.core.dspy.metrics.adaptive_weighting import (
     AdaptiveMetricWeighting,
     MetricWeights,
@@ -137,7 +135,9 @@ class TestAdaptiveMetricWeighting:
         weighting = AdaptiveMetricWeighting()
 
         scores = {"skill_quality": 0.8}
-        weights = MetricWeights(skill_quality=1.0, semantic_f1=0.0, entity_f1=0.0, readability=0.0, coverage=0.0)
+        weights = MetricWeights(
+            skill_quality=1.0, semantic_f1=0.0, entity_f1=0.0, readability=0.0, coverage=0.0
+        )
 
         score = weighting.apply_weights(scores, weights)
         assert abs(score - 0.8) < 0.01  # Close to 0.8

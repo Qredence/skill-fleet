@@ -181,6 +181,7 @@ class TestJobManager:
 
         # Verify in memory
         retrieved = manager.get_job("test-job-3")
+        assert retrieved is not None
         assert retrieved.progress_message == "50% complete"
 
     def test_update_nonexistent_job(self):
@@ -241,7 +242,7 @@ class TestJobManagerWithMockDB:
                 return None
 
         mock_repo = MockDBRepo()
-        manager.set_db_repo(mock_repo)
+        manager.set_db_repo(mock_repo)  # type: ignore[arg-type]
 
         assert manager.db_repo == mock_repo
 
@@ -250,7 +251,6 @@ class TestJobManagerWithMockDB:
 
         This simulates: job exists in DB but not in memory.
         """
-        from uuid import uuid4
 
         job_uuid = uuid4()
         manager = JobManager()
@@ -271,7 +271,7 @@ class TestJobManagerWithMockDB:
                 return None
 
         mock_repo = MockDBRepo()
-        manager.set_db_repo(mock_repo)
+        manager.set_db_repo(mock_repo)  # type: ignore[arg-type]
 
         # Get job (should reconstruct from DB)
         job = manager.get_job(str(job_uuid))
@@ -282,7 +282,6 @@ class TestJobManagerWithMockDB:
 
     def test_memory_warms_on_db_hit(self):
         """Test that memory is warmed after DB hit."""
-        from uuid import uuid4
 
         job_uuid = uuid4()
         manager = JobManager()
@@ -307,14 +306,16 @@ class TestJobManagerWithMockDB:
                 return None
 
         mock_repo = MockDBRepo()
-        manager.set_db_repo(mock_repo)
+        manager.set_db_repo(mock_repo)  # type: ignore[arg-type]
 
         # First access: from DB
         job1 = manager.get_job(str(job_uuid))
+        assert job1 is not None
         assert mock_repo.call_count == 1
 
         # Second access: from memory (no DB call)
         job2 = manager.get_job(str(job_uuid))
+        assert job2 is not None
         assert mock_repo.call_count == 1  # No additional call
 
         assert job1.job_id == job2.job_id
@@ -334,10 +335,12 @@ class TestJobStateIntegration:
         # Simulate status transitions
         manager.update_job("status-job", {"status": "running"})
         retrieved = manager.get_job("status-job")
+        assert retrieved is not None
         assert retrieved.status == "running"
 
         manager.update_job("status-job", {"status": "completed"})
         retrieved = manager.get_job("status-job")
+        assert retrieved is not None
         assert retrieved.status == "completed"
 
     def test_job_state_with_progress(self):
@@ -353,6 +356,7 @@ class TestJobStateIntegration:
             manager.update_job("progress-job", {"progress_message": msg})
 
         final = manager.get_job("progress-job")
+        assert final is not None
         assert final.progress_message == "100% complete"
 
     def test_job_state_with_errors(self):
@@ -366,6 +370,7 @@ class TestJobStateIntegration:
         manager.update_job("error-job", {"error": error_msg})
 
         retrieved = manager.get_job("error-job")
+        assert retrieved is not None
         assert retrieved.error == error_msg
 
     def test_job_state_with_result(self):
@@ -379,6 +384,7 @@ class TestJobStateIntegration:
         manager.update_job("result-job", {"result": result})
 
         retrieved = manager.get_job("result-job")
+        assert retrieved is not None
         assert retrieved.result == result
 
 
@@ -405,6 +411,7 @@ class TestJobManagerConcurrency:
         )
 
         final = manager.get_job("concurrent-job")
+        assert final is not None
         assert final.progress_message == "100% complete"  # Last one wins
 
     def test_multiple_jobs(self):
@@ -437,7 +444,9 @@ class TestJobManagerConcurrency:
         retrieved1 = manager.get_job("isolated-1")
         retrieved2 = manager.get_job("isolated-2")
 
+        assert retrieved1 is not None
         assert retrieved1.progress_message == "50% complete"
+        assert retrieved2 is not None
         assert retrieved2.progress_message is None
 
 

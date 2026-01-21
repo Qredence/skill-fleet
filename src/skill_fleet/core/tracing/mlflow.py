@@ -1,4 +1,5 @@
-"""MLflow integration for skill creation experiment tracking.
+"""
+MLflow integration for skill creation experiment tracking.
 
 Based on: https://dspy.ai/tutorials/math/#mlflow-dspy-integration
 
@@ -25,6 +26,7 @@ Example:
     >>> log_phase_metrics("phase1", "extract_problem", {"accuracy": 0.95})
     >>> log_decision_tree("phase1", ["is_new_skill=True", "skill_type=technical"], "technical")
     >>> log_checkpoint_result("phase1", True, 0.9, [])
+
 """
 
 from __future__ import annotations
@@ -46,7 +48,8 @@ def setup_mlflow_experiment(
     experiment_name: str = DEFAULT_EXPERIMENT_NAME,
     tracking_uri: str = DEFAULT_TRACKING_URI,
 ) -> None:
-    """Setup MLflow experiment for skill creation tracking.
+    """
+    Setup MLflow experiment for skill creation tracking.
 
     Args:
         experiment_name: Name of the MLflow experiment
@@ -58,6 +61,7 @@ def setup_mlflow_experiment(
     Examples:
         >>> setup_mlflow_experiment()
         >>> setup_mlflow_experiment("custom-experiment", "custom-tracking-uri")
+
     """
     try:
         import mlflow
@@ -88,7 +92,8 @@ def log_phase_metrics(
     step: str,
     metrics: Mapping[str, float],
 ) -> None:
-    """Log metrics for a phase step.
+    """
+    Log metrics for a phase step.
 
     Args:
         phase: Phase identifier (e.g., "phase1", "phase2")
@@ -97,6 +102,7 @@ def log_phase_metrics(
 
     Examples:
         >>> log_phase_metrics("phase1", "extract_problem", {"accuracy": 0.95, "latency": 1.2})
+
     """
     try:
         import mlflow
@@ -113,7 +119,8 @@ def log_decision_tree(
     decision_path: list[str],
     final_decision: str,
 ) -> None:
-    """Log decision tree traversal to MLflow.
+    """
+    Log decision tree traversal to MLflow.
 
     Args:
         phase: Phase identifier (e.g., "phase1", "phase2")
@@ -126,6 +133,7 @@ def log_decision_tree(
         ...     ["is_new_skill=True", "skill_type=technical"],
         ...     "technical"
         ... )
+
     """
     try:
         import mlflow
@@ -146,7 +154,8 @@ def log_checkpoint_result(
     score: float,
     errors: list[str],
 ) -> None:
-    """Log checkpoint validation result.
+    """
+    Log checkpoint validation result.
 
     Args:
         phase: Phase identifier (e.g., "phase1", "phase2")
@@ -157,6 +166,7 @@ def log_checkpoint_result(
     Examples:
         >>> log_checkpoint_result("phase1", True, 0.95, [])
         >>> log_checkpoint_result("phase2", False, 0.6, ["Missing capability", "Invalid type"])
+
     """
     try:
         import mlflow
@@ -185,7 +195,8 @@ def log_phase_artifact(
     artifact_name: str,
     content: str,
 ) -> None:
-    """Log a text artifact for a phase.
+    """
+    Log a text artifact for a phase.
 
     Args:
         phase: Phase identifier (e.g., "phase1", "phase2")
@@ -194,6 +205,7 @@ def log_phase_artifact(
 
     Examples:
         >>> log_phase_artifact("phase1", "problem_statement.txt", "Clear problem here...")
+
     """
     try:
         import mlflow
@@ -210,7 +222,8 @@ def log_parameter(
     name: str,
     value: Any,
 ) -> None:
-    """Log a parameter for a phase.
+    """
+    Log a parameter for a phase.
 
     Args:
         phase: Phase identifier (e.g., "phase1", "phase2")
@@ -220,6 +233,7 @@ def log_parameter(
     Examples:
         >>> log_parameter("phase1", "temperature", 0.8)
         >>> log_parameter("phase2", "max_iterations", 3)
+
     """
     try:
         import mlflow
@@ -232,7 +246,8 @@ def log_parameter(
 
 
 def get_mlflow_run_id() -> str | None:
-    """Get the current active MLflow run ID.
+    """
+    Get the current active MLflow run ID.
 
     Returns:
         Active MLflow run ID or None if no run is active
@@ -241,6 +256,7 @@ def get_mlflow_run_id() -> str | None:
         >>> run_id = get_mlflow_run_id()
         >>> if run_id:
         ...     print(f"Active run: {run_id}")
+
     """
     try:
         import mlflow
@@ -252,10 +268,12 @@ def get_mlflow_run_id() -> str | None:
 
 
 def end_mlflow_run() -> None:
-    """End the current active MLflow run.
+    """
+    End the current active MLflow run.
 
     Examples:
         >>> end_mlflow_run()
+
     """
     try:
         import mlflow

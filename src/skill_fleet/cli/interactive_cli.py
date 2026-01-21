@@ -1,4 +1,5 @@
-"""Interactive CLI for conversational skill creation.
+"""
+Interactive CLI for conversational skill creation.
 
 Provides a Rich-based chat interface where users converse naturally
 with an AI agent that uses DSPy framework internally to create skills.
@@ -41,7 +42,8 @@ class InteractiveSkillCLI:
         skills_root: Path,
         user_id: str = "default",
     ):
-        """Initialize interactive CLI.
+        """
+        Initialize interactive CLI.
 
         Args:
             taxonomy_manager: Taxonomy management instance
@@ -98,7 +100,8 @@ class InteractiveSkillCLI:
                 self.console.print(f"[yellow]Could not load session: {e}[/yellow]\n")
 
     def run(self) -> int:
-        """Run the interactive CLI main loop.
+        """
+        Run the interactive CLI main loop.
 
         Returns:
             Exit code (0 for success, 1 for error)
@@ -264,7 +267,8 @@ class InteractiveSkillCLI:
                 continue
 
     def _handle_command(self, command: str) -> str:
-        """Handle CLI commands.
+        """
+        Handle CLI commands.
 
         Args:
             command: Command string (e.g., "/help", "/exit")
@@ -493,7 +497,8 @@ class InteractiveSkillCLI:
             logger.warning(f"Could not save session: {e}")
 
     def _respond_with_streaming(self, user_message: str) -> AgentResponse:
-        """Get agent response with real-time thinking display.
+        """
+        Get agent response with real-time thinking display.
 
         Uses Rich's Live display to show thinking content as it streams
         from the LLM, providing immediate feedback to the user.
@@ -572,7 +577,8 @@ class InteractiveSkillCLI:
             self.console.print()
 
     def _display_multi_choice_question(self, question, reasoning: str = "") -> str:
-        """Display multi-choice question with reasoning context.
+        """
+        Display multi-choice question with reasoning context.
 
         Args:
             question: ClarifyingQuestion object with question text and options
@@ -630,7 +636,8 @@ class InteractiveSkillCLI:
 
 
 def interactive_skill_cli(args) -> int:
-    """CLI entrypoint for interactive mode.
+    """
+    CLI entrypoint for interactive mode.
 
     Args:
         args: argparse.Namespace with config, skills_root, user_id, model

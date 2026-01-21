@@ -1,4 +1,5 @@
-"""Skill evaluation pipeline using DSPy Evaluate.
+"""
+Skill evaluation pipeline using DSPy Evaluate.
 
 This module provides evaluation capabilities for assessing skill generation quality.
 It integrates with DSPy's Evaluate class and the skill quality metrics.
@@ -127,7 +128,8 @@ class EvaluationReport:
 
 
 class SkillEvaluator:
-    """Evaluator for skill quality assessment.
+    """
+    Evaluator for skill quality assessment.
 
     This class provides methods for evaluating individual skills,
     skill creation programs, and existing skill directories.
@@ -138,11 +140,13 @@ class SkillEvaluator:
         config_path: Path | None = None,
         configure_lm: bool = True,
     ):
-        """Initialize the evaluator.
+        """
+        Initialize the evaluator.
 
         Args:
             config_path: Path to config.yaml (default: auto-detect)
             configure_lm: Whether to configure DSPy LM on init
+
         """
         self.config_path = config_path or default_config_path()
         self.config = self._load_config()
@@ -172,7 +176,8 @@ class SkillEvaluator:
         skill_path: str | None = None,
         skill_name: str | None = None,
     ) -> EvaluationResult:
-        """Evaluate a single skill's quality.
+        """
+        Evaluate a single skill's quality.
 
         Args:
             skill_content: Raw SKILL.md content
@@ -181,6 +186,7 @@ class SkillEvaluator:
 
         Returns:
             EvaluationResult with quality scores
+
         """
         try:
             if skill_name is None:
@@ -208,13 +214,15 @@ class SkillEvaluator:
             )
 
     def evaluate_skill_file(self, skill_path: Path) -> EvaluationResult:
-        """Evaluate a skill from a SKILL.md file.
+        """
+        Evaluate a skill from a SKILL.md file.
 
         Args:
             skill_path: Path to SKILL.md file
 
         Returns:
             EvaluationResult with quality scores
+
         """
         try:
             content = skill_path.read_text(encoding="utf-8")
@@ -237,7 +245,8 @@ class SkillEvaluator:
         recursive: bool = True,
         exclude_drafts: bool = False,
     ) -> EvaluationReport:
-        """Evaluate all skills in a directory.
+        """
+        Evaluate all skills in a directory.
 
         Args:
             skills_dir: Path to skills directory
@@ -246,6 +255,7 @@ class SkillEvaluator:
 
         Returns:
             EvaluationReport with aggregated results
+
         """
         skills_dir = Path(skills_dir)
         results: list[EvaluationResult] = []
@@ -273,7 +283,8 @@ class SkillEvaluator:
         display_progress: bool = True,
         display_table: bool = True,
     ) -> tuple[float, EvaluationReport]:
-        """Evaluate a skill creation program using DSPy Evaluate.
+        """
+        Evaluate a skill creation program using DSPy Evaluate.
 
         Args:
             program: DSPy program to evaluate
@@ -284,6 +295,7 @@ class SkillEvaluator:
 
         Returns:
             Tuple of (average_score, detailed_report)
+
         """
         eval_config = self.config.get("evaluation", {})
         num_threads = num_threads or eval_config.get("num_threads", 8)
@@ -324,13 +336,15 @@ class SkillEvaluator:
         return average_score, report
 
     def _aggregate_results(self, results: list[EvaluationResult]) -> EvaluationReport:
-        """Aggregate individual results into a report.
+        """
+        Aggregate individual results into a report.
 
         Args:
             results: List of individual evaluation results
 
         Returns:
             Aggregated EvaluationReport
+
         """
         if not results:
             return EvaluationReport(thresholds=self.thresholds)
@@ -357,7 +371,8 @@ class SkillEvaluator:
         optimized_program: dspy.Module,
         test_set: list[dspy.Example],
     ) -> dict[str, Any]:
-        """Compare baseline and optimized programs.
+        """
+        Compare baseline and optimized programs.
 
         Args:
             baseline_program: Original program
@@ -366,6 +381,7 @@ class SkillEvaluator:
 
         Returns:
             Comparison results with improvement metrics
+
         """
         logger.info("Evaluating baseline program...")
         baseline_score, baseline_report = self.evaluate_program(
@@ -405,7 +421,8 @@ def run_evaluation(
     exclude_drafts: bool = False,
     verbose: bool = True,
 ) -> EvaluationReport:
-    """Run evaluation on existing skills.
+    """
+    Run evaluation on existing skills.
 
     This is a convenience function for running evaluations from CLI or scripts.
 
@@ -417,6 +434,7 @@ def run_evaluation(
 
     Returns:
         EvaluationReport with results
+
     """
     from ...common.paths import find_repo_root
 

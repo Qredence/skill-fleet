@@ -1,4 +1,5 @@
-"""CLI interaction handlers for HITL workflow.
+"""
+CLI interaction handlers for HITL workflow.
 
 Each handler is responsible for:
 1. Rendering the interaction prompt to the user
@@ -21,14 +22,16 @@ from ...ui.prompts import PromptUI, get_default_ui
 
 
 class InteractionHandler:
-    """Base class for HITL interaction handlers.
+    """
+    Base class for HITL interaction handlers.
 
     All handlers must implement the handle() method which takes
     the prompt data from the API and posts a response back.
     """
 
     def __init__(self, console: Console, ui: PromptUI | None = None) -> None:
-        """Initialize the handler.
+        """
+        Initialize the handler.
 
         Args:
             console: Rich console for rendering output
@@ -43,7 +46,8 @@ class InteractionHandler:
         prompt_data: dict[str, Any],
         client: Any,
     ) -> None:
-        """Handle the interaction and post response to API.
+        """
+        Handle the interaction and post response to API.
 
         Args:
             job_id: The job ID for this interaction
@@ -57,7 +61,8 @@ class InteractionHandler:
 
 
 class DeepUnderstandingHandler(InteractionHandler):
-    """Handler for deep_understanding interaction type.
+    """
+    Handler for deep_understanding interaction type.
 
     Asks WHY questions to understand the user's true problem and goals.
     Shows research performed and current understanding.
@@ -147,7 +152,8 @@ class DeepUnderstandingHandler(InteractionHandler):
 
 
 class TDDRedHandler(InteractionHandler):
-    """Handler for tdd_red interaction type.
+    """
+    Handler for tdd_red interaction type.
 
     TDD Red Phase: User writes failing tests before implementation.
     Shows test requirements, acceptance criteria, and checklist.
@@ -213,7 +219,8 @@ class TDDRedHandler(InteractionHandler):
 
 
 class TDDGreenHandler(InteractionHandler):
-    """Handler for tdd_green interaction type.
+    """
+    Handler for tdd_green interaction type.
 
     TDD Green Phase: User makes tests pass with minimal implementation.
     Shows failing test name, location, and implementation hint.
@@ -266,7 +273,8 @@ class TDDGreenHandler(InteractionHandler):
 
 
 class TDDRefactorHandler(InteractionHandler):
-    """Handler for tdd_refactor interaction type.
+    """
+    Handler for tdd_refactor interaction type.
 
     TDD Refactor Phase: User cleans up code while keeping tests passing.
     Shows refactor opportunities, code smells, and coverage report.
@@ -342,7 +350,8 @@ HANDLERS: dict[str, type[InteractionHandler]] = {
 def get_handler(
     interaction_type: str, console: Console, ui: PromptUI | None = None
 ) -> InteractionHandler | None:
-    """Get a handler instance for the given interaction type.
+    """
+    Get a handler instance for the given interaction type.
 
     Args:
         interaction_type: The HITL interaction type (e.g., "deep_understanding")

@@ -251,6 +251,7 @@ class TestSessionPersistence:
         save_job_session(job_id)
 
         from skill_fleet.api.jobs import JOBS
+
         JOBS.clear()
 
         restored = load_job_session(job_id)
@@ -283,6 +284,7 @@ class TestSessionPersistence:
         save_job_session(job_id)
 
         from skill_fleet.api.jobs import JOBS
+
         JOBS.clear()
 
         restored = load_job_session(job_id)
@@ -327,8 +329,6 @@ class TestSessionPersistence:
 
     def test_cleanup_old_sessions(self):
         """Test that cleanup_old_sessions removes old session files."""
-        import os
-        import time
 
         job_id_1 = create_job()
         save_job_session(job_id_1)

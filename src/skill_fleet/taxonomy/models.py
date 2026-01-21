@@ -1,4 +1,5 @@
-"""Pydantic models for the Taxonomy Index system.
+"""
+Pydantic models for the Taxonomy Index system.
 
 These models define the structure of the `taxonomy_index.json` file,
 which serves as the canonical source of truth for the skill taxonomy.

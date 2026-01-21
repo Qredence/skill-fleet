@@ -12,9 +12,10 @@ import sys
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import os as python_os
+
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
-import os as python_os
 
 load_dotenv()
 DATABASE_URL = python_os.getenv("DATABASE_URL", "")
@@ -49,7 +50,7 @@ def seed_taxonomy():
                     VALUES (:path, :name, :description, NULL, 0, :sort_order)
                     ON CONFLICT (path) DO NOTHING
                 """),
-                {"path": path, "name": name, "description": description, "sort_order": sort_order}
+                {"path": path, "name": name, "description": description, "sort_order": sort_order},
             )
             print(f"  ✓ {name}")
 
@@ -58,21 +59,98 @@ def seed_taxonomy():
         dev_categories = [
             # Languages
             ("development/languages", "Languages", "Programming languages", "development", 1, 1),
-            ("development/languages/python", "Python", "Python programming", "development/languages", 2, 1),
-            ("development/languages/typescript", "TypeScript", "TypeScript programming", "development/languages", 2, 2),
-            ("development/languages/javascript", "JavaScript", "JavaScript programming", "development/languages", 2, 3),
+            (
+                "development/languages/python",
+                "Python",
+                "Python programming",
+                "development/languages",
+                2,
+                1,
+            ),
+            (
+                "development/languages/typescript",
+                "TypeScript",
+                "TypeScript programming",
+                "development/languages",
+                2,
+                2,
+            ),
+            (
+                "development/languages/javascript",
+                "JavaScript",
+                "JavaScript programming",
+                "development/languages",
+                2,
+                3,
+            ),
             ("development/languages/go", "Go", "Go programming", "development/languages", 2, 4),
-            ("development/languages/rust", "Rust", "Rust programming", "development/languages", 2, 5),
+            (
+                "development/languages/rust",
+                "Rust",
+                "Rust programming",
+                "development/languages",
+                2,
+                5,
+            ),
             # Frameworks
-            ("development/frameworks", "Frameworks", "Web and application frameworks", "development", 1, 2),
-            ("development/frameworks/fastapi", "FastAPI", "FastAPI framework", "development/frameworks", 2, 1),
-            ("development/frameworks/react", "React", "React framework", "development/frameworks", 2, 2),
-            ("development/frameworks/dspy", "DSPy", "DSPy framework", "development/frameworks", 2, 3),
+            (
+                "development/frameworks",
+                "Frameworks",
+                "Web and application frameworks",
+                "development",
+                1,
+                2,
+            ),
+            (
+                "development/frameworks/fastapi",
+                "FastAPI",
+                "FastAPI framework",
+                "development/frameworks",
+                2,
+                1,
+            ),
+            (
+                "development/frameworks/react",
+                "React",
+                "React framework",
+                "development/frameworks",
+                2,
+                2,
+            ),
+            (
+                "development/frameworks/dspy",
+                "DSPy",
+                "DSPy framework",
+                "development/frameworks",
+                2,
+                3,
+            ),
             # Practices
             ("development/practices", "Practices", "Development practices", "development", 1, 3),
-            ("development/practices/tdd", "Test-Driven Development", "TDD workflow", "development/practices", 2, 1),
-            ("development/practices/testing", "Testing", "Testing strategies", "development/practices", 2, 2),
-            ("development/practices/refactoring", "Refactoring", "Code refactoring", "development/practices", 2, 3),
+            (
+                "development/practices/tdd",
+                "Test-Driven Development",
+                "TDD workflow",
+                "development/practices",
+                2,
+                1,
+            ),
+            (
+                "development/practices/testing",
+                "Testing",
+                "Testing strategies",
+                "development/practices",
+                2,
+                2,
+            ),
+            (
+                "development/practices/refactoring",
+                "Refactoring",
+                "Code refactoring",
+                "development/practices",
+                2,
+                3,
+            ),
         ]
 
         for path, name, description, parent_path, level, sort_order in dev_categories:
@@ -84,7 +162,14 @@ def seed_taxonomy():
                         :level, :sort_order)
                     ON CONFLICT (path) DO NOTHING
                 """),
-                {"path": path, "name": name, "description": description, "parent_path": parent_path, "level": level, "sort_order": sort_order}
+                {
+                    "path": path,
+                    "name": name,
+                    "description": description,
+                    "parent_path": parent_path,
+                    "level": level,
+                    "sort_order": sort_order,
+                },
             )
             print(f"  ✓ {name}")
 
@@ -92,9 +177,30 @@ def seed_taxonomy():
         print("\n📁 Creating operations categories...")
         ops_categories = [
             ("operations/deployment", "Deployment", "Deployment strategies", "operations", 1, 1),
-            ("operations/deployment/docker", "Docker", "Containerization", "operations/deployment", 2, 1),
-            ("operations/deployment/kubernetes", "Kubernetes", "K8s orchestration", "operations/deployment", 2, 2),
-            ("operations/monitoring", "Monitoring", "Monitoring and observability", "operations", 1, 2),
+            (
+                "operations/deployment/docker",
+                "Docker",
+                "Containerization",
+                "operations/deployment",
+                2,
+                1,
+            ),
+            (
+                "operations/deployment/kubernetes",
+                "Kubernetes",
+                "K8s orchestration",
+                "operations/deployment",
+                2,
+                2,
+            ),
+            (
+                "operations/monitoring",
+                "Monitoring",
+                "Monitoring and observability",
+                "operations",
+                1,
+                2,
+            ),
             ("operations/cicd", "CI/CD", "Continuous integration", "operations", 1, 3),
         ]
 
@@ -107,7 +213,14 @@ def seed_taxonomy():
                         :level, :sort_order)
                     ON CONFLICT (path) DO NOTHING
                 """),
-                {"path": path, "name": name, "description": description, "parent_path": parent_path, "level": level, "sort_order": sort_order}
+                {
+                    "path": path,
+                    "name": name,
+                    "description": description,
+                    "parent_path": parent_path,
+                    "level": level,
+                    "sort_order": sort_order,
+                },
             )
             print(f"  ✓ {name}")
 
@@ -117,7 +230,14 @@ def seed_taxonomy():
             ("data/analytics", "Analytics", "Data analytics", "data", 1, 1),
             ("data/ml", "Machine Learning", "ML and AI", "data", 1, 2),
             ("data/databases", "Databases", "Database management", "data", 1, 3),
-            ("data/databases/postgresql", "PostgreSQL", "PostgreSQL database", "data/databases", 2, 1),
+            (
+                "data/databases/postgresql",
+                "PostgreSQL",
+                "PostgreSQL database",
+                "data/databases",
+                2,
+                1,
+            ),
             ("data/databases/redis", "Redis", "Redis caching", "data/databases", 2, 2),
         ]
 
@@ -130,15 +250,36 @@ def seed_taxonomy():
                         :level, :sort_order)
                     ON CONFLICT (path) DO NOTHING
                 """),
-                {"path": path, "name": name, "description": description, "parent_path": parent_path, "level": level, "sort_order": sort_order}
+                {
+                    "path": path,
+                    "name": name,
+                    "description": description,
+                    "parent_path": parent_path,
+                    "level": level,
+                    "sort_order": sort_order,
+                },
             )
             print(f"  ✓ {name}")
 
         # Communication and Research
         print("\n📁 Creating communication & research categories...")
         misc_categories = [
-            ("communication/documentation", "Documentation", "Technical docs", "communication", 1, 1),
-            ("communication/collaboration", "Collaboration", "Team collaboration", "communication", 1, 2),
+            (
+                "communication/documentation",
+                "Documentation",
+                "Technical docs",
+                "communication",
+                1,
+                1,
+            ),
+            (
+                "communication/collaboration",
+                "Collaboration",
+                "Team collaboration",
+                "communication",
+                1,
+                2,
+            ),
             ("research/analysis", "Analysis", "Analytical research", "research", 1, 1),
             ("research/investigation", "Investigation", "Investigative research", "research", 1, 2),
         ]
@@ -152,7 +293,14 @@ def seed_taxonomy():
                         :level, :sort_order)
                     ON CONFLICT (path) DO NOTHING
                 """),
-                {"path": path, "name": name, "description": description, "parent_path": parent_path, "level": level, "sort_order": sort_order}
+                {
+                    "path": path,
+                    "name": name,
+                    "description": description,
+                    "parent_path": parent_path,
+                    "level": level,
+                    "sort_order": sort_order,
+                },
             )
             print(f"  ✓ {name}")
 
@@ -202,5 +350,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n❌ Error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

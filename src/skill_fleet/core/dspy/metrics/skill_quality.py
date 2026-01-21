@@ -1,4 +1,5 @@
-"""Skill quality metrics for DSPy evaluation and optimization.
+"""
+Skill quality metrics for DSPy evaluation and optimization.
 
 This module provides multi-dimensional quality assessment functions for evaluating
 generated skills. These metrics are used by:
@@ -31,7 +32,8 @@ import yaml
 
 @dataclass
 class SkillQualityScores:
-    """Detailed quality scores for a skill.
+    """
+    Detailed quality scores for a skill.
 
     v2 Golden Standard additions:
     - has_when_to_use_section: Required "When to Use" section
@@ -112,13 +114,15 @@ class SkillQualityScores:
 
 
 def parse_skill_content(skill_content: str) -> tuple[dict[str, Any], str]:
-    """Parse SKILL.md content into frontmatter and body.
+    """
+    Parse SKILL.md content into frontmatter and body.
 
     Args:
         skill_content: Raw SKILL.md content
 
     Returns:
         Tuple of (frontmatter_dict, body_content)
+
     """
     frontmatter: dict[str, Any] = {}
     body = skill_content
@@ -137,7 +141,8 @@ def parse_skill_content(skill_content: str) -> tuple[dict[str, Any], str]:
 
 
 def evaluate_frontmatter(frontmatter: dict[str, Any]) -> tuple[float, list[str], list[str]]:
-    """Evaluate frontmatter completeness.
+    """
+    Evaluate frontmatter completeness.
 
     Required fields: name, description
     Recommended fields: metadata (skill_id, version, type, weight)
@@ -145,6 +150,7 @@ def evaluate_frontmatter(frontmatter: dict[str, Any]) -> tuple[float, list[str],
 
     Returns:
         Tuple of (score, issues, strengths)
+
     """
     issues: list[str] = []
     strengths: list[str] = []
@@ -198,7 +204,8 @@ def evaluate_frontmatter(frontmatter: dict[str, Any]) -> tuple[float, list[str],
 
 
 def evaluate_structure(body: str) -> tuple[dict[str, bool | str], list[str], list[str]]:
-    """Evaluate skill body structure for required sections.
+    """
+    Evaluate skill body structure for required sections.
 
     v2 Golden Standard additions:
     - has_when_to_use_section: Required "When to Use This Skill" section
@@ -207,6 +214,7 @@ def evaluate_structure(body: str) -> tuple[dict[str, bool | str], list[str], lis
 
     Returns:
         Tuple of (section_flags, issues, strengths)
+
     """
     issues: list[str] = []
     strengths: list[str] = []
@@ -324,7 +332,8 @@ def evaluate_structure(body: str) -> tuple[dict[str, bool | str], list[str], lis
 
 
 def evaluate_patterns(body: str) -> tuple[dict[str, Any], list[str], list[str]]:
-    """Evaluate pattern quality in skill content.
+    """
+    Evaluate pattern quality in skill content.
 
     Looks for:
     - Pattern count (target: 5+)
@@ -334,6 +343,7 @@ def evaluate_patterns(body: str) -> tuple[dict[str, Any], list[str], list[str]]:
 
     Returns:
         Tuple of (pattern_metrics, issues, strengths)
+
     """
     issues: list[str] = []
     strengths: list[str] = []
@@ -390,7 +400,8 @@ def evaluate_patterns(body: str) -> tuple[dict[str, Any], list[str], list[str]]:
 
 
 def evaluate_code_examples(body: str) -> tuple[dict[str, Any], list[str], list[str]]:
-    """Evaluate code example quality.
+    """
+    Evaluate code example quality.
 
     Checks for:
     - Code block count
@@ -400,6 +411,7 @@ def evaluate_code_examples(body: str) -> tuple[dict[str, Any], list[str], list[s
 
     Returns:
         Tuple of (code_metrics, issues, strengths)
+
     """
     issues: list[str] = []
     strengths: list[str] = []
@@ -464,7 +476,8 @@ def evaluate_code_examples(body: str) -> tuple[dict[str, Any], list[str], list[s
 def evaluate_quality_indicators(
     body: str, frontmatter: dict[str, Any]
 ) -> tuple[dict[str, Any], list[str], list[str]]:
-    """Evaluate Obra/superpowers-style quality indicators.
+    """
+    Evaluate Obra/superpowers-style quality indicators.
 
     These are stricter criteria based on golden skills from:
     - https://github.com/obra/superpowers/tree/main/skills
@@ -477,6 +490,7 @@ def evaluate_quality_indicators(
 
     Returns:
         Tuple of (quality_metrics, issues, strengths)
+
     """
     issues: list[str] = []
     strengths: list[str] = []
@@ -595,7 +609,8 @@ def evaluate_quality_indicators(
 def compute_overall_score(
     scores: SkillQualityScores, weights: dict[str, float] | None = None
 ) -> float:
-    """Compute weighted overall quality score with stricter calibration.
+    """
+    Compute weighted overall quality score with stricter calibration.
 
     Applies Obra/superpowers-style quality standards:
     - Includes new quality indicators (core principle, strong guidance, etc.)
@@ -613,6 +628,7 @@ def compute_overall_score(
 
     Returns:
         Overall score between 0.0 and 1.0
+
     """
     if weights is None:
         # Updated weights with stricter calibration
@@ -721,7 +737,8 @@ def assess_skill_quality(
     skill_content: str,
     weights: dict[str, float] | None = None,
 ) -> SkillQualityScores:
-    """Comprehensive skill quality assessment.
+    """
+    Comprehensive skill quality assessment.
 
     This is the main entry point for evaluating skill quality.
 
@@ -737,6 +754,7 @@ def assess_skill_quality(
 
     Returns:
         SkillQualityScores with detailed assessment
+
     """
     scores = SkillQualityScores()
 
@@ -810,7 +828,8 @@ def skill_quality_metric(
     prediction: dspy.Prediction,
     trace: Any = None,
 ) -> float:
-    """DSPy-compatible metric function for skill quality.
+    """
+    DSPy-compatible metric function for skill quality.
 
     This function is designed to be used with dspy.Evaluate and DSPy optimizers.
 
@@ -821,6 +840,7 @@ def skill_quality_metric(
 
     Returns:
         Quality score between 0.0 and 1.0
+
     """
     # Extract skill content from prediction
     skill_content = ""
@@ -846,7 +866,8 @@ def skill_quality_metric_detailed(
     prediction: dspy.Prediction,
     trace: Any = None,
 ) -> tuple[float, SkillQualityScores]:
-    """DSPy-compatible metric with detailed scores.
+    """
+    DSPy-compatible metric with detailed scores.
 
     Returns both the overall score and detailed breakdown.
 
@@ -857,6 +878,7 @@ def skill_quality_metric_detailed(
 
     Returns:
         Tuple of (overall_score, detailed_scores)
+
     """
     skill_content = ""
     if hasattr(prediction, "skill_content"):

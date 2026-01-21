@@ -1,4 +1,5 @@
-"""High-level skill creation orchestrator.
+"""
+High-level skill creation orchestrator.
 
 This module provides the main interface for skill creation,
 coordinating DSPy programs, taxonomy operations, and feedback.
@@ -24,7 +25,8 @@ logger = logging.getLogger(__name__)
 
 
 class TaxonomySkillCreator(dspy.Module):
-    """High-level orchestrator for skill creation.
+    """
+    High-level orchestrator for skill creation.
 
     Coordinates DSPy programs, taxonomy management, validation,
     and human feedback to create skills end-to-end.
@@ -40,7 +42,8 @@ class TaxonomySkillCreator(dspy.Module):
         verbose: bool = True,
         reasoning_tracer: Any | None = None,  # TODO: Type properly when available
     ):
-        """Initialize skill creator.
+        """
+        Initialize skill creator.
 
         Args:
             taxonomy_manager: Taxonomy management instance
@@ -50,6 +53,7 @@ class TaxonomySkillCreator(dspy.Module):
             optimizer: Workflow optimizer for caching (optional)
             verbose: Whether to print progress
             reasoning_tracer: Optional tracer for Phase 1/2 reasoning visibility
+
         """
         super().__init__()
         self.taxonomy = taxonomy_manager
@@ -85,7 +89,8 @@ class TaxonomySkillCreator(dspy.Module):
         feedback_kwargs: dict[str, Any] | None = None,
         task_lms: dict[str, dspy.LM] | None = None,
     ) -> dict[str, Any]:
-        """Execute full skill creation workflow (DSPy compatibility).
+        """
+        Execute full skill creation workflow (DSPy compatibility).
 
         Args:
             task_description: User's task or capability requirement
@@ -98,6 +103,7 @@ class TaxonomySkillCreator(dspy.Module):
 
         Returns:
             Result dictionary with status and metadata
+
         """
         # Determine feedback handler based on parameters
         if auto_approve:
@@ -120,7 +126,8 @@ class TaxonomySkillCreator(dspy.Module):
         max_iterations: int = 3,
         task_lms: dict[str, dspy.LM] | None = None,
     ) -> dict[str, Any]:
-        """Create a new skill from task description.
+        """
+        Create a new skill from task description.
 
         Args:
             task_description: User's task or capability requirement
@@ -130,6 +137,7 @@ class TaxonomySkillCreator(dspy.Module):
 
         Returns:
             Result dictionary with status and metadata
+
         """
         self.stats["total"] += 1
 
@@ -209,7 +217,6 @@ class TaxonomySkillCreator(dspy.Module):
 
     def _validate_plan(self, plan: dict[str, Any]) -> bool:
         """Validate skill plan (dependencies, circular refs)."""
-
         dependencies = plan.get("dependencies", [])
         dep_ids = []
         for d in dependencies:
@@ -236,7 +243,7 @@ class TaxonomySkillCreator(dspy.Module):
             has_cycle, path = self.taxonomy.detect_circular_dependencies(skill_id, dep_ids)
             if has_cycle:
                 if self.verbose:
-                    print(f"❌ Circular dependency: {' -> '.join(cast(list[str], path))}")
+                    print(f"❌ Circular dependency: {' -> '.join(cast('list[str]', path))}")
                 return False
 
         return True
@@ -248,7 +255,6 @@ class TaxonomySkillCreator(dspy.Module):
         task_lms: dict[str, dspy.LM] | None = None,
     ) -> dict[str, Any]:
         """Iterate with human feedback until approved or max iterations."""
-
         understanding = result["understanding"]
         plan = result["plan"]
         skeleton = result["skeleton"]

@@ -1,4 +1,5 @@
-"""Reward functions for Phase 1: Understanding the Need.
+"""
+Reward functions for Phase 1: Understanding the Need.
 
 These reward functions are used for:
 - DSPy Refine wrapper iterative improvement
@@ -41,7 +42,8 @@ VALID_SKILL_TYPES = [
 
 
 def phase1_completeness_reward(args: Mapping[str, Any], pred: Any) -> float:
-    """Reward function for Phase 1 completeness.
+    """
+    Reward function for Phase 1 completeness.
 
     This function evaluates Phase 1 outputs against the validation criteria
     from guidelines lines 1018-1024 and returns a score from 0.0 to 1.0.
@@ -71,6 +73,7 @@ def phase1_completeness_reward(args: Mapping[str, Any], pred: Any) -> float:
         ... }
         >>> score = phase1_completeness_reward({}, result)
         >>> print(score)  # Should be 1.0
+
     """
     score = 0.0
 
@@ -138,7 +141,8 @@ def phase1_checkpoint_score(
     proposed_path: str,
     overlapping_skills: list | None = None,
 ) -> float:
-    """Calculate Phase 1 checkpoint score.
+    """
+    Calculate Phase 1 checkpoint score.
 
     This is a convenience function for calculating the checkpoint score
     directly from Phase 1 outputs, without requiring a Prediction object.
@@ -161,6 +165,7 @@ def phase1_checkpoint_score(
         ...     proposed_path="technical/programming/python"
         ... )
         >>> print(score)  # Should be 1.0
+
     """
     pred = {
         "problem_statement": problem_statement,

@@ -1,4 +1,5 @@
-"""DSPy modules for conversational skill creation agent.
+"""
+DSPy modules for conversational skill creation agent.
 
 Each module encapsulates a conversational signature with proper
 JSON parsing, error handling, and async support.
@@ -49,7 +50,8 @@ class InterpretIntentModule(dspy.Module):
         conversation_history: list[dict] | str = "",
         current_state: str = "EXPLORING",
     ) -> dict:
-        """Interpret user's intent from their message.
+        """
+        Interpret user's intent from their message.
 
         Args:
             user_message: User's message
@@ -58,6 +60,7 @@ class InterpretIntentModule(dspy.Module):
 
         Returns:
             Dict with intent_type, extracted_task, and confidence
+
         """
         history_str = (
             json.dumps(conversation_history, indent=2)
@@ -116,7 +119,8 @@ class DetectMultiSkillModule(dspy.Module):
         collected_examples: list[dict] | str = "",
         existing_skills: list[str] | str = "",
     ) -> dict:
-        """Detect if task requires multiple skills.
+        """
+        Detect if task requires multiple skills.
 
         Args:
             task_description: User's complete task description
@@ -125,6 +129,7 @@ class DetectMultiSkillModule(dspy.Module):
 
         Returns:
             Dict with requires_multiple_skills, skill_breakdown, reasoning, and suggested_order
+
         """
         examples_str = (
             json.dumps(collected_examples, indent=2)
@@ -228,7 +233,8 @@ class GenerateQuestionModule(dspy.Module):
         collected_examples: list[dict] | str = "",
         conversation_context: str = "",
     ) -> dict:
-        """Generate a clarifying question.
+        """
+        Generate a clarifying question.
 
         Args:
             task_description: Current understanding of task
@@ -237,6 +243,7 @@ class GenerateQuestionModule(dspy.Module):
 
         Returns:
             Dict with question, question_options, and reasoning
+
         """
         examples_str = (
             json.dumps(collected_examples, indent=2)
@@ -322,7 +329,8 @@ class AssessReadinessModule(dspy.Module):
         examples: list[dict] | str = "",
         questions_asked: int = 0,
     ) -> dict:
-        """Assess if we have enough information to proceed.
+        """
+        Assess if we have enough information to proceed.
 
         Args:
             task_description: Refined task description
@@ -331,6 +339,7 @@ class AssessReadinessModule(dspy.Module):
 
         Returns:
             Dict with readiness_score, readiness_reasoning, and should_proceed
+
         """
         examples_str = json.dumps(examples, indent=2) if isinstance(examples, list) else examples
 
@@ -382,7 +391,8 @@ class DeepUnderstandingModule(dspy.Module):
         research_findings: dict | str = "",
         current_understanding: str = "",
     ) -> dict:
-        """Generate next question or proceed based on understanding.
+        """
+        Generate next question or proceed based on understanding.
 
         Args:
             initial_task: User's original task description
@@ -393,6 +403,7 @@ class DeepUnderstandingModule(dspy.Module):
         Returns:
             Dict with next_question, reasoning, research_needed, understanding_summary,
             readiness_score, refined_task_description, user_problem, user_goals
+
         """
         history_str = (
             json.dumps(conversation_history, indent=2)
@@ -436,12 +447,10 @@ class DeepUnderstandingModule(dspy.Module):
 
         # If question parsed but has no options, generate smart options
         if next_question and not next_question.options:
-            smart_options, refined_q = generate_smart_options(
-                next_question.question,
-                initial_task
-            )
+            smart_options, refined_q = generate_smart_options(next_question.question, initial_task)
             if smart_options:
                 from ..core.models import QuestionOption
+
                 next_question.options = [
                     QuestionOption(id=str(i), label=opt, description="")
                     for i, opt in enumerate(smart_options)
@@ -532,12 +541,10 @@ class DeepUnderstandingModule(dspy.Module):
 
         # If question parsed but has no options, generate smart options
         if next_question and not next_question.options:
-            smart_options, refined_q = generate_smart_options(
-                next_question.question,
-                initial_task
-            )
+            smart_options, refined_q = generate_smart_options(next_question.question, initial_task)
             if smart_options:
                 from ..core.models import QuestionOption
+
                 next_question.options = [
                     QuestionOption(id=str(i), label=opt, description="")
                     for i, opt in enumerate(smart_options)
@@ -581,7 +588,8 @@ class DeepUnderstandingModule(dspy.Module):
 
 
 class ConfirmUnderstandingModule(dspy.Module):
-    """Module for generating confirmation message before skill creation.
+    """
+    Module for generating confirmation message before skill creation.
 
     MANDATORY checkpoint before writing any skill directory structure or content.
     """
@@ -597,7 +605,8 @@ class ConfirmUnderstandingModule(dspy.Module):
         skill_metadata_draft: dict | str,
         collected_examples: list[dict] | str = "",
     ) -> dict:
-        """Generate confirmation summary before creation.
+        """
+        Generate confirmation summary before creation.
 
         Args:
             task_description: Refined task description
@@ -607,6 +616,7 @@ class ConfirmUnderstandingModule(dspy.Module):
 
         Returns:
             Dict with confirmation_summary, key_points, and confirmation_question
+
         """
         metadata_str = (
             json.dumps(skill_metadata_draft, indent=2)
@@ -683,7 +693,8 @@ class ConfirmUnderstandingModule(dspy.Module):
 
 
 class UnderstandingSummaryModule(dspy.Module):
-    """Module for generating structured understanding summary before creation.
+    """
+    Module for generating structured understanding summary before creation.
 
     Creates a three-part structured summary that clearly communicates:
     1. What was understood: User's problem, goals, and context
@@ -707,7 +718,8 @@ class UnderstandingSummaryModule(dspy.Module):
         research_context: dict | str = "",
         collected_examples: list[dict] | str = "",
     ) -> dict:
-        """Generate structured understanding summary.
+        """
+        Generate structured understanding summary.
 
         Args:
             task_description: Refined task description
@@ -721,6 +733,7 @@ class UnderstandingSummaryModule(dspy.Module):
         Returns:
             Dict with what_was_understood, what_will_be_created,
             how_it_addresses_task, and alignment_summary
+
         """
         metadata_str = (
             json.dumps(skill_metadata_draft, indent=2)
@@ -815,7 +828,8 @@ class PresentSkillModule(dspy.Module):
         skill_metadata: dict | str,
         validation_report: dict | str,
     ) -> dict:
-        """Format skill results for conversational presentation.
+        """
+        Format skill results for conversational presentation.
 
         Args:
             skill_content: Generated SKILL.md content
@@ -824,6 +838,7 @@ class PresentSkillModule(dspy.Module):
 
         Returns:
             Dict with conversational_summary, key_highlights, and suggested_questions
+
         """
         metadata_str = (
             json.dumps(skill_metadata, indent=2)
@@ -929,7 +944,8 @@ class ProcessFeedbackModule(dspy.Module):
         current_skill_content: str,
         validation_errors: list[str] | str = "",
     ) -> dict:
-        """Process user feedback and determine revision plan.
+        """
+        Process user feedback and determine revision plan.
 
         Args:
             user_feedback: User's feedback message
@@ -938,6 +954,7 @@ class ProcessFeedbackModule(dspy.Module):
 
         Returns:
             Dict with feedback_type, revision_plan, and requires_regeneration
+
         """
         errors_str = (
             json.dumps(validation_errors, indent=2)
@@ -1000,7 +1017,8 @@ class SuggestTestsModule(dspy.Module):
         skill_type: str,
         skill_metadata: dict | str,
     ) -> dict:
-        """Suggest test scenarios for skill validation.
+        """
+        Suggest test scenarios for skill validation.
 
         Args:
             skill_content: Generated skill content (SKILL.md)
@@ -1009,6 +1027,7 @@ class SuggestTestsModule(dspy.Module):
 
         Returns:
             Dict with test_scenarios, baseline_predictions, and expected_rationalizations
+
         """
         metadata_str = (
             json.dumps(skill_metadata, indent=2)
@@ -1123,7 +1142,8 @@ class VerifyTDDModule(dspy.Module):
         skill_content: str,
         checklist_state: dict | str,
     ) -> dict:
-        """Verify TDD checklist is complete.
+        """
+        Verify TDD checklist is complete.
 
         Args:
             skill_content: Generated skill content (SKILL.md)
@@ -1131,6 +1151,7 @@ class VerifyTDDModule(dspy.Module):
 
         Returns:
             Dict with all_passed, missing_items, and ready_to_save
+
         """
         checklist_str = (
             json.dumps(checklist_state, indent=2)

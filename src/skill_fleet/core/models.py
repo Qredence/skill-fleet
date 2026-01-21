@@ -1,4 +1,5 @@
-"""Unified Pydantic models for skill-fleet.
+"""
+Unified Pydantic models for skill-fleet.
 
 Consolidated from workflow/models.py and core/config/models.py.
 These models provide type-safe interfaces for all workflow steps,
@@ -85,7 +86,8 @@ class HITLSession(BaseModel):
 
 
 class UserExample(BaseModel):
-    """A concrete example provided by the user showing desired skill behavior.
+    """
+    A concrete example provided by the user showing desired skill behavior.
 
     Used in Step 0 to collect real-world usage patterns before skill creation.
     This ensures the skill is grounded in actual use cases, not assumptions.
@@ -130,7 +132,8 @@ class ExampleGatheringConfig(BaseModel):
 
 
 class ExampleGatheringSession(BaseModel):
-    """Session state for collecting examples from user before skill creation.
+    """
+    Session state for collecting examples from user before skill creation.
 
     This represents Step 0 of the workflow - understanding what the user
     actually wants through concrete examples before jumping to implementation.
@@ -202,7 +205,8 @@ class DependencyRef(BaseModel):
 
 
 class DependencyAnalysis(BaseModel):
-    """Complete analysis of required skill dependencies.
+    """
+    Complete analysis of required skill dependencies.
 
     Merged from workflow (flat lists) and core (structured refs).
     """
@@ -259,7 +263,8 @@ class UnderstandingResult(BaseModel):
 
 
 class SkillMetadata(BaseModel):
-    """Metadata for a skill following agentskills.io spec.
+    """
+    Metadata for a skill following agentskills.io spec.
 
     All skills must have:
     - skill_id: Internal path-style identifier
@@ -393,7 +398,8 @@ class FileSpec(BaseModel):
 
 
 class SkillSkeleton(BaseModel):
-    """Directory and file structure for a skill.
+    """
+    Directory and file structure for a skill.
 
     Standard skill directory structure (v2 Golden Standard format):
     skill-name/
@@ -440,7 +446,8 @@ class SkillSkeleton(BaseModel):
 
 
 class ValidationCheckItem(BaseModel):
-    """A single validation check result.
+    """
+    A single validation check result.
 
     Merged from workflow (simple) and core (detailed).
     """
@@ -491,7 +498,8 @@ class CapabilityImplementation(BaseModel):
 
 
 class EditResult(BaseModel):
-    """Result from the Edit step (Step 4).
+    """
+    Result from the Edit step (Step 4).
 
     v2 Golden Standard: Supports progressive disclosure with subdirectory files.
     """
@@ -519,7 +527,8 @@ class EditResult(BaseModel):
 
 
 class ValidationReport(BaseModel):
-    """Validation results for a skill package.
+    """
+    Validation results for a skill package.
 
     Merged from workflow (status-based) and core (score-based).
     """
@@ -610,7 +619,8 @@ class IterateResult(BaseModel):
 
 
 class SkillCreationResult(BaseModel):
-    """Complete result from the skill creation workflow.
+    """
+    Complete result from the skill creation workflow.
 
     Merged from workflow (step-based) and core (status-based).
     Supports both the legacy step results and new status-based results.
@@ -670,7 +680,8 @@ class QuickSkillResult(BaseModel):
 
 
 class ChecklistState(BaseModel):
-    """Tracks TDD checklist completion state for writing-skills TDD enforcement.
+    """
+    Tracks TDD checklist completion state for writing-skills TDD enforcement.
 
     This model enforces the mandatory TDD checklist from writing-skills skill.
     All phases must be complete before saving any skill.
@@ -733,11 +744,13 @@ class ChecklistState(BaseModel):
     )
 
     def is_complete(self) -> bool:
-        """Check if all required items are complete.
+        """
+        Check if all required items are complete.
 
         Returns:
             True if all mandatory checklist items are complete, False otherwise.
             flowchart_present is optional (only required if decision is non-obvious).
+
         """
         # All RED items required
         red_complete = (
@@ -771,10 +784,12 @@ class ChecklistState(BaseModel):
         return red_complete and green_complete and refactor_complete and quality_complete
 
     def get_missing_items(self) -> list[str]:
-        """Get list of incomplete checklist items.
+        """
+        Get list of incomplete checklist items.
 
         Returns:
             List of missing item descriptions for user presentation.
+
         """
         missing = []
 

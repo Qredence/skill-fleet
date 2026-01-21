@@ -1,4 +1,5 @@
-"""DSPy modules for skill creation workflow steps.
+"""
+DSPy modules for skill creation workflow steps.
 
 Each module encapsulates one step of the workflow with its own
 logic, validation, and error handling.
@@ -42,7 +43,8 @@ logger = logging.getLogger(__name__)
 
 
 class GatherExamplesModule(dspy.Module):
-    """Module for Step 0: Gathering concrete examples before skill creation.
+    """
+    Module for Step 0: Gathering concrete examples before skill creation.
 
     This module iteratively asks clarifying questions and collects usage
     examples from the user until we have enough context to proceed with
@@ -60,7 +62,8 @@ class GatherExamplesModule(dspy.Module):
         collected_examples: list[dict] | None = None,
         config: ExampleGatheringConfig | None = None,
     ) -> dict:
-        """Gather examples and ask clarifying questions.
+        """
+        Gather examples and ask clarifying questions.
 
         Args:
             task_description: Original task description from user
@@ -71,6 +74,7 @@ class GatherExamplesModule(dspy.Module):
         Returns:
             Dict with clarifying_questions, new_examples, terminology_updates,
             refined_task, readiness_score, and readiness_reasoning
+
         """
         user_responses = user_responses or []
         collected_examples = collected_examples or []
@@ -198,11 +202,13 @@ class UnderstandModule(dspy.Module):
         existing_skills: list[str],
         taxonomy_structure: dict,
     ) -> dict:
-        """Analyze task and determine taxonomy placement.
+        """
+        Analyze task and determine taxonomy placement.
 
         Returns:
             Dict with task_intent, taxonomy_path, parent_skills,
             dependency_analysis, and confidence_score
+
         """
         result = self.understand(
             task_description=task_description,
@@ -262,12 +268,14 @@ class PlanModule(dspy.Module):
         parent_skills: list[dict],
         dependency_analysis: dict | str,
     ) -> dict:
-        """Design skill structure with dependencies.
+        """
+        Design skill structure with dependencies.
 
         Returns:
             Dict with skill_metadata, dependencies, capabilities,
             resource_requirements, compatibility_constraints,
             and composition_strategy
+
         """
         result = self.plan(
             task_intent=task_intent,
@@ -347,10 +355,12 @@ class InitializeModule(dspy.Module):
         capabilities: list[Capability] | list[dict],
         taxonomy_path: str,
     ) -> dict:
-        """Create a skill file structure.
+        """
+        Create a skill file structure.
 
         Returns:
             Dict with skill_skeleton and validation_checklist
+
         """
         result = self.initialize(
             skill_metadata=json_serialize(skill_metadata),
@@ -404,7 +414,8 @@ class EditModule(dspy.Module):
         composition_strategy: str,
         revision_feedback: str | None = None,
     ) -> dict:
-        """Generate comprehensive skill content.
+        """
+        Generate comprehensive skill content.
 
         Args:
             skill_skeleton: Directory structure
@@ -415,6 +426,7 @@ class EditModule(dspy.Module):
         Returns:
             Dict with skill_content, capability_implementations,
             usage_examples, best_practices, and integration_guide
+
         """
         result = self.edit(
             skill_skeleton=json_serialize(skill_skeleton),
@@ -485,11 +497,13 @@ class PackageModule(dspy.Module):
         taxonomy_path: str,
         capability_implementations: str,
     ) -> dict:
-        """Validate and package skill for approval.
+        """
+        Validate and package skill for approval.
 
         Returns:
             Dict with validation_report, integration_tests,
             packaging_manifest, and quality_score
+
         """
         result = self.package(
             skill_content=skill_content,
@@ -560,11 +574,13 @@ class IterateModule(dspy.Module):
         human_feedback: str,
         usage_analytics: dict | None = None,
     ) -> dict:
-        """Process human feedback and determine next steps.
+        """
+        Process human feedback and determine next steps.
 
         Returns:
             Dict with approval_status, revision_plan,
             evolution_metadata, and next_steps
+
         """
         result = self.iterate(
             packaged_skill=packaged_skill,
@@ -620,18 +636,21 @@ class IterateModule(dspy.Module):
 
 
 class UnderstandModuleQA(dspy.Module):
-    """Quality-assured UnderstandModule with Refine wrapper.
+    """
+    Quality-assured UnderstandModule with Refine wrapper.
 
     Uses dspy.Refine to automatically retry and improve taxonomy
     path selection based on the taxonomy_path_reward function.
     """
 
     def __init__(self, n_refinements: int = 3, threshold: float = 0.8):
-        """Initialize with refinement parameters.
+        """
+        Initialize with refinement parameters.
 
         Args:
             n_refinements: Maximum attempts before accepting best result
             threshold: Score threshold to accept result early (0.0-1.0)
+
         """
         super().__init__()
         from ...optimization.rewards import taxonomy_path_reward
@@ -652,11 +671,13 @@ class UnderstandModuleQA(dspy.Module):
         existing_skills: list[str],
         taxonomy_structure: dict,
     ) -> dict:
-        """Analyze task with quality assurance.
+        """
+        Analyze task with quality assurance.
 
         Returns:
             Dict with task_intent, taxonomy_path, parent_skills,
             dependency_analysis, and confidence_score
+
         """
         result = self.understand(
             task_description=task_description,
@@ -703,7 +724,8 @@ class UnderstandModuleQA(dspy.Module):
 
 
 class PlanModuleQA(dspy.Module):
-    """Quality-assured PlanModule with Refine wrapper.
+    """
+    Quality-assured PlanModule with Refine wrapper.
 
     Uses dspy.Refine to ensure metadata completeness and validity.
     """
@@ -793,18 +815,21 @@ class PlanModuleQA(dspy.Module):
 
 
 class EditModuleQA(dspy.Module):
-    """Quality-assured EditModule with BestOfN wrapper.
+    """
+    Quality-assured EditModule with BestOfN wrapper.
 
     Uses dspy.BestOfN to generate multiple content candidates
     and select the best based on content quality scoring.
     """
 
     def __init__(self, n_candidates: int = 3, threshold: float = 0.85):
-        """Initialize with BestOfN parameters.
+        """
+        Initialize with BestOfN parameters.
 
         Args:
             n_candidates: Number of content candidates to generate
             threshold: Score threshold to accept result early (0.0-1.0)
+
         """
         super().__init__()
         from ...optimization.rewards import combined_edit_reward
@@ -826,7 +851,8 @@ class EditModuleQA(dspy.Module):
         composition_strategy: str,
         revision_feedback: str | None = None,
     ) -> dict:
-        """Generate skill content with quality assurance.
+        """
+        Generate skill content with quality assurance.
 
         Args:
             skill_skeleton: Directory structure
@@ -837,6 +863,7 @@ class EditModuleQA(dspy.Module):
         Returns:
             Dict with skill_content, capability_implementations,
             usage_examples, best_practices, and integration_guide
+
         """
         result = self.edit(
             skill_skeleton=json_serialize(skill_skeleton),
@@ -894,7 +921,8 @@ class EditModuleQA(dspy.Module):
 
 
 class PackageModuleQA(dspy.Module):
-    """Quality-assured PackageModule with Refine wrapper.
+    """
+    Quality-assured PackageModule with Refine wrapper.
 
     Uses dspy.Refine to ensure validation report completeness.
     """
@@ -983,7 +1011,8 @@ class PackageModuleQA(dspy.Module):
 
 
 class DynamicQuestionGeneratorModule(dspy.Module):
-    """Generate contextual, domain-aware questions for skill feedback.
+    """
+    Generate contextual, domain-aware questions for skill feedback.
 
     Replaces static template questions with LLM-generated dynamic questions
     that are specific to the domain, task, and skill being reviewed.
@@ -1002,7 +1031,8 @@ class DynamicQuestionGeneratorModule(dspy.Module):
         round_number: int = 1,
         previous_feedback: str = "",
     ) -> dict:
-        """Generate dynamic feedback questions.
+        """
+        Generate dynamic feedback questions.
 
         Args:
             task_description: User's original task description
@@ -1014,6 +1044,7 @@ class DynamicQuestionGeneratorModule(dspy.Module):
 
         Returns:
             Dict with questions (list of question objects)
+
         """
         metadata_str = (
             json_serialize(skill_metadata) if isinstance(skill_metadata, dict) else skill_metadata
@@ -1054,7 +1085,8 @@ class DynamicQuestionGeneratorModule(dspy.Module):
         round_number: int = 1,
         previous_feedback: str = "",
     ) -> dict:
-        """Async version of forward method for generating dynamic feedback questions.
+        """
+        Async version of forward method for generating dynamic feedback questions.
 
         Args:
             task_description: User's original task description
@@ -1066,6 +1098,7 @@ class DynamicQuestionGeneratorModule(dspy.Module):
 
         Returns:
             Dict with questions (list of question objects)
+
         """
         # For now, delegate to sync version since underlying ChainOfThought
         # doesn't have async support in this version
@@ -1113,7 +1146,8 @@ def create_modules(
     edit_candidates: int = 3,
     package_refinements: int = 2,
 ) -> dict[str, dspy.Module]:
-    """Create a set of workflow modules.
+    """
+    Create a set of workflow modules.
 
     Args:
         quality_assured: If True, use Refine/BestOfN wrappers
@@ -1124,6 +1158,7 @@ def create_modules(
 
     Returns:
         Dict mapping step names to modules
+
     """
     if quality_assured:
         return {

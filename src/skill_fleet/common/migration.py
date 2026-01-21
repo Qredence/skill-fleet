@@ -13,7 +13,8 @@ def migrate_all_skills(
     dry_run: bool = False,
     verbose: bool = False,
 ) -> dict[str, Any]:
-    """Migrate skill directories to canonical paths based on taxonomy_index.json.
+    """
+    Migrate skill directories to canonical paths based on taxonomy_index.json.
 
     Args:
         skills_root_path: Path to skills directory
@@ -22,6 +23,7 @@ def migrate_all_skills(
 
     Returns:
         Dict with migration results: {'migrated': count, 'skipped': count, 'failed': count, 'errors': list}
+
     """
     index_path = skills_root_path / "taxonomy_index.json"
 

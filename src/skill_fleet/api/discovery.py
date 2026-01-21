@@ -40,13 +40,15 @@ def discover_and_expose(app: FastAPI, module_package: Any, prefix: str = "/api/v
         """Factory function to create endpoint with properly captured closure variables."""
 
         async def dynamic_endpoint(request: BaseModel):
-            """Dynamically created endpoint for auto-exposed DSPy modules.
+            """
+            Dynamically created endpoint for auto-exposed DSPy modules.
 
             Args:
                 request: Pydantic model containing the request data
 
             Returns:
                 The result from executing the DSPy module
+
             """
             # Initialize module
             instance = module_class()

@@ -48,25 +48,60 @@ cp .env.example .env
 
 Create your first skill in under 2 minutes:
 
-1. **Start the API server**:
-   ```bash
-   uv run skill-fleet serve
-   ```
+1. **Install dependencies**:
+    ```bash
+    uv sync --group dev
+    cp .env.example .env
+    # Edit .env and add your GOOGLE_API_KEY
+    ```
 
-2. **Create a skill via chat** (in a new terminal):
-   ```bash
-   uv run skill-fleet chat "Create a Python decorators skill"
-   ```
+2. **Start the API server**:
+    ```bash
+    uv run skill-fleet serve
+    ```
 
-3. **Review and Promote**:
-   The skill is created as a draft. After reviewing it in `skills/_drafts/<job_id>`, promote it:
-   ```bash
-   uv run skill-fleet promote <job_id>
-   ```
+3. **Create a skill via chat** (in a new terminal):
+    ```bash
+    uv run skill-fleet chat "Create a Python decorators skill"
+    ```
+
+4. **Review and Promote**:
+    The skill is created as a draft. After reviewing it in `skills/_drafts/<job_id>`, promote it:
+    ```bash
+    uv run skill-fleet promote <job_id>
+    ```
 
 **Note**: Taxonomy v0.2 uses simplified paths (e.g., `python/decorators` instead of `technical_skills/programming/languages/python/decorators`). Legacy paths still resolve with deprecation warnings.
 
-## Core Commands
+## Interactive & Advanced Workflows
+
+Unlock the full power of the Skills Fleet CLI:
+
+### 💬 Interactive Chat
+Build skills conversationally with real-time feedback and streaming.
+```bash
+uv run skill-fleet chat "Create a Redis caching skill"
+```
+
+### 📊 Quality Evaluation
+Score skills against calibrated metrics (0.0-1.0) to ensure quality.
+```bash
+uv run skill-fleet evaluate skills/python/async
+```
+
+### 🧠 DSPy Optimization
+Automatically tune prompts using MIPROv2 or GEPA for better reliability.
+```bash
+uv run skill-fleet optimize --optimizer miprov2
+```
+
+### ✅ Compliance Validation
+Ensure skills meet [agentskills.io](https://agentskills.io) standards.
+```bash
+uv run skill-fleet validate skills/general/testing
+```
+
+## Command Reference
 
 | Command | Description |
 |---------|-------------|
@@ -144,10 +179,30 @@ uv run ruff format .
 
 ## Documentation
 
-- [Getting Started](docs/getting-started/index.md)
-- [DSPy Architecture](docs/dspy/index.md)
-- [CLI Reference](docs/cli/commands.md)
-- [API Endpoints](docs/api/endpoints.md)
+### Getting Started
+- [Documentation Index](docs/index.md) - Central hub for all documentation
+- [Getting Started Guide](docs/getting-started/index.md) - Installation, CLI usage, validation
+- [Introduction](docs/intro/introduction.md) - System introduction and navigation
+
+### Core Concepts
+- [System Overview](docs/overview.md) - Architecture, taxonomy model, and concepts
+- [AGENTS.md](AGENTS.md) - Comprehensive working guide for AI agents
+- [Developer Reference](docs/concepts/developer-reference.md) - Development workflows
+
+### Technical Documentation
+- [DSPy Framework](docs/dspy/index.md) - 3-phase workflow, signatures, modules
+- [API Documentation](docs/api/index.md) - REST API endpoints and schemas
+- [CLI Reference](docs/cli/index.md) - Command-line interface
+- [LLM Configuration](docs/llm/index.md) - Provider setup and task models
+
+### Advanced Topics
+- [HITL System](docs/hitl/index.md) - Human-in-the-Loop workflow
+- [agentskills.io Compliance](docs/concepts/agentskills-compliance.md) - Schema and validation
+- [Optimization](docs/dspy/optimization.md) - MIPROv2, GEPA, caching
+
+### Development
+- [Contributing](docs/development/CONTRIBUTING.md) - Contribution guidelines
+- [Architecture Decisions](docs/development/ARCHITECTURE_DECISIONS.md) - Design rationale
 
 ## License
 

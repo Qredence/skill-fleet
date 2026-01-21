@@ -1,4 +1,5 @@
-"""DSPy signatures for Human-in-the-Loop (HITL) interactions.
+"""
+DSPy signatures for Human-in-the-Loop (HITL) interactions.
 
 These signatures define the contracts for generating questions, confirmations,
 previews, and other interactive elements throughout the 3-phase skill creation workflow.
@@ -21,7 +22,8 @@ from ...models import ClarifyingQuestion, ValidationCheckItem
 
 
 class GenerateClarifyingQuestions(dspy.Signature):
-    """Generate focused clarifying questions to better understand user intent.
+    """
+    Generate focused clarifying questions to better understand user intent.
 
     Ask 2-3 focused questions to:
     - Clarify ambiguous requirements
@@ -51,7 +53,8 @@ class GenerateClarifyingQuestions(dspy.Signature):
 
 
 class GenerateHITLQuestions(dspy.Signature):
-    """Generate HITL clarification questions from gathered requirements.
+    """
+    Generate HITL clarification questions from gathered requirements.
 
     This is a simpler signature used during the initial HITL clarification
     checkpoint when ambiguities are detected in the requirements gathering phase.
@@ -76,7 +79,8 @@ class GenerateHITLQuestions(dspy.Signature):
 
 
 class SummarizeUnderstanding(dspy.Signature):
-    """Summarize understanding of user intent for confirmation.
+    """
+    Summarize understanding of user intent for confirmation.
 
     Create a clear, concise summary of what we understood from the task
     and user's clarifying answers. This is shown to user for confirmation
@@ -114,7 +118,8 @@ class SummarizeUnderstanding(dspy.Signature):
 
 
 class GeneratePreview(dspy.Signature):
-    """Generate a preview of skill content for user review.
+    """
+    Generate a preview of skill content for user review.
 
     Create a concise preview showing:
     - Skill structure (sections/headings)
@@ -142,7 +147,8 @@ class GeneratePreview(dspy.Signature):
 
 
 class AnalyzeFeedback(dspy.Signature):
-    """Analyze user feedback and determine what changes to make.
+    """
+    Analyze user feedback and determine what changes to make.
 
     Parse user's free-form feedback and convert it into structured
     change requests that can be used to refine the skill content.
@@ -170,7 +176,8 @@ class AnalyzeFeedback(dspy.Signature):
 
 
 class FormatValidationResults(dspy.Signature):
-    """Format validation results for human-readable display.
+    """
+    Format validation results for human-readable display.
 
     Convert technical validation output into clear, actionable
     feedback for the user. Group issues by severity and provide
@@ -199,7 +206,8 @@ class FormatValidationResults(dspy.Signature):
 
 
 class GenerateRefinementPlan(dspy.Signature):
-    """Generate a refinement plan based on validation issues and user feedback.
+    """
+    Generate a refinement plan based on validation issues and user feedback.
 
     Create a structured plan for how to refine the skill to address
     validation failures and incorporate user's feedback.
@@ -228,7 +236,8 @@ class GenerateRefinementPlan(dspy.Signature):
 
 
 class AssessReadiness(dspy.Signature):
-    """Assess if we're ready to proceed to next phase.
+    """
+    Assess if we're ready to proceed to next phase.
 
     Evaluate whether we have enough information to proceed,
     or if more HITL interaction is needed.
@@ -251,7 +260,8 @@ class AssessReadiness(dspy.Signature):
 
 
 class DetermineHITLStrategy(dspy.Signature):
-    """Determine optimal HITL strategy for a given task.
+    """
+    Determine optimal HITL strategy for a given task.
 
     Analyze the task and decide:
     - Which HITL checkpoints are needed

@@ -1,4 +1,5 @@
-"""Common utility functions for skill_fleet modules.
+"""
+Common utility functions for skill_fleet modules.
 
 This module provides shared utilities used across the skill_fleet codebase,
 including safe JSON parsing and type conversion functions that handle
@@ -19,7 +20,8 @@ def safe_json_loads(
     default: dict | list | None = None,
     field_name: str = "unknown",
 ) -> dict | list:
-    """Safely parse JSON string with fallback to default.
+    """
+    Safely parse JSON string with fallback to default.
 
     Handles:
     - Already parsed objects (returns as-is)
@@ -38,6 +40,7 @@ def safe_json_loads(
 
     Returns:
         Parsed JSON or default value (never None)
+
     """
     if default is None:
         default = {}
@@ -75,7 +78,8 @@ def safe_json_loads(
 
 
 def safe_float(value: Any, default: float = 0.0) -> float:
-    """Safely convert value to float.
+    """
+    Safely convert value to float.
 
     Useful for parsing confidence scores, thresholds, and other numeric
     values from LLM outputs that may be returned as strings, ints, or floats.
@@ -86,6 +90,7 @@ def safe_float(value: Any, default: float = 0.0) -> float:
 
     Returns:
         Float value
+
     """
     if isinstance(value, (int, float)):
         return float(value)
@@ -104,7 +109,8 @@ def json_serialize(
     default: Any = "",
     ensure_list: bool = False,
 ) -> str | list | dict:
-    """Serialize value to JSON string if it's a list or dict, otherwise return as-is.
+    """
+    Serialize value to JSON string if it's a list or dict, otherwise return as-is.
 
     This helper reduces code duplication across DSPy modules that need to pass
     structured data to LLMs as JSON strings while also accepting pre-serialized
@@ -126,6 +132,7 @@ def json_serialize(
         'already json'
         >>> json_serialize(None)
         ''
+
     """
     if value is None:
         return default

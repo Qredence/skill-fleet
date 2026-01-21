@@ -7,28 +7,29 @@ It parses the agentSkills.io specification (YAML frontmatter + markdown).
 """
 
 import os
-import sys
 import re
-import yaml
+import sys
 from pathlib import Path
-from datetime import datetime, timezone
-from typing import Dict, List, Optional, Any
+from typing import Any
+
+import yaml
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import os as python_os
 
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-import os as python_os
-
 # Import models and repositories
 from skill_fleet.db.models import (
-    Skill, TaxonomyCategory, SkillCategory, Capability,
-    SkillKeyword, SkillTag, SkillFile, skill_type_enum,
-    skill_weight_enum, skill_status_enum, load_priority_enum,
-    skill_style_enum, file_type_enum
+    Skill,
+    load_priority_enum,
+    skill_status_enum,
+    skill_type_enum,
+    skill_weight_enum,
 )
 from skill_fleet.db.repositories import SkillRepository, TaxonomyRepository
 
@@ -46,21 +47,18 @@ class SkillImporter:
         self.skills_dir = Path(skills_dir)
         self.db_url = db_url
         self.engine = create_engine(db_url)
-        self.stats = {
-            "created": 0,
-            "updated": 0,
-            "skipped": 0,
-            "errors": 0
-        }
+        self.stats = {"created": 0, "updated": 0, "skipped": 0, "errors": 0}
 
-    def parse_frontmatter(self, content: str) -> tuple[Dict[str, Any], str]:
-        """Parse YAML frontmatter from markdown content.
+    def parse_frontmatter(self, content: str) -> tuple[dict[str, Any], str]:
+        """
+        Parse YAML frontmatter from markdown content.
 
         Returns:
             Tuple of (metadata_dict, content_without_frontmatter)
+
         """
         # Match YAML frontmatter between --- delimiters
-        pattern = r'^---\s*\n(.*?)\n---\s*\n(.*)$'
+        pattern = r"^---\s*\n(.*?)\n---\s*\n(.*)$"
         match = re.match(pattern, content, re.DOTALL)
 
         if match:
@@ -74,8 +72,9 @@ class SkillImporter:
 
         return {}, content
 
-    def extract_capability_data(self, content: str) -> List[Dict[str, Any]]:
-        """Extract capabilities from skill content.
+    def extract_capability_data(self, content: str) -> list[dict[str, Any]]:
+        """
+        Extract capabilities from skill content.
 
         Looks for sections like:
         ## Capabilities
@@ -84,26 +83,24 @@ class SkillImporter:
         capabilities = []
 
         # Find capabilities section
-        pattern = r'##\s*Capabilities\s*\n(.*?)(?=##\s|\Z)'
+        pattern = r"##\s*Capabilities\s*\n(.*?)(?=##\s|\Z)"
         match = re.search(pattern, content, re.DOTALL)
 
         if match:
             cap_section = match.group(1)
             # Parse list items: "- **name**: description"
-            cap_pattern = r'-\s*\*\*(.*?)\*\*:\s*(.*?)(?=\n-|\n\n|\Z)'
+            cap_pattern = r"-\s*\*\*(.*?)\*\*:\s*(.*?)(?=\n-|\n\n|\Z)"
             for cap_match in re.finditer(cap_pattern, cap_section, re.DOTALL):
                 name = cap_match.group(1).strip()
                 description = cap_match.group(2).strip()
                 if name:
-                    capabilities.append({
-                        "name": name,
-                        "description": description,
-                        "test_criteria": None
-                    })
+                    capabilities.append(
+                        {"name": name, "description": description, "test_criteria": None}
+                    )
 
         return capabilities
 
-    def extract_keywords(self, metadata: Dict[str, Any], content: str) -> List[str]:
+    def extract_keywords(self, metadata: dict[str, Any], content: str) -> list[str]:
         """Extract keywords from metadata and content."""
         keywords = set()
 
@@ -123,7 +120,7 @@ class SkillImporter:
 
         return list(keywords)
 
-    def infer_taxonomy(self, skill_path: str, metadata: Dict[str, Any]) -> Optional[str]:
+    def infer_taxonomy(self, skill_path: str, metadata: dict[str, Any]) -> str | None:
         """Infer taxonomy category from skill path and metadata."""
         # Use explicit taxonomy if provided
         if "taxonomy" in metadata:
@@ -171,7 +168,7 @@ class SkillImporter:
         except (KeyError, ValueError):
             return default
 
-    def import_skill_file(self, skill_path: Path) -> Optional[Skill]:
+    def import_skill_file(self, skill_path: Path) -> Skill | None:
         """Import a single skill from SKILL.md file."""
         skill_md = skill_path / "SKILL.md"
 
@@ -179,7 +176,7 @@ class SkillImporter:
             return None
 
         # Read content
-        with open(skill_md, 'r', encoding='utf-8') as f:
+        with open(skill_md, encoding="utf-8") as f:
             content = f.read()
 
         # Parse frontmatter
@@ -196,24 +193,16 @@ class SkillImporter:
 
         # Normalize enums
         skill_type = self.normalize_enum(
-            metadata.get("type"),
-            skill_type_enum,
-            skill_type_enum.technical
+            metadata.get("type"), skill_type_enum, skill_type_enum.technical
         )
         weight = self.normalize_enum(
-            metadata.get("weight"),
-            skill_weight_enum,
-            skill_weight_enum.medium
+            metadata.get("weight"), skill_weight_enum, skill_weight_enum.medium
         )
         load_priority = self.normalize_enum(
-            metadata.get("load_priority"),
-            load_priority_enum,
-            load_priority_enum.task_specific
+            metadata.get("load_priority"), load_priority_enum, load_priority_enum.task_specific
         )
         status = self.normalize_enum(
-            metadata.get("status"),
-            skill_status_enum,
-            skill_status_enum.draft
+            metadata.get("status"), skill_status_enum, skill_status_enum.draft
         )
 
         # Infer taxonomy
@@ -246,19 +235,19 @@ class SkillImporter:
             "tags": tags,
         }
 
-    def scan_skills_directory(self) -> List[Path]:
+    def scan_skills_directory(self) -> list[Path]:
         """Scan .skills directory for skill directories."""
         skills = []
 
         for skill_path in self.skills_dir.rglob("*"):
             if skill_path.is_dir() and (skill_path / "SKILL.md").exists():
                 # Skip hidden directories
-                if not any(part.startswith('.') for part in skill_path.parts):
+                if not any(part.startswith(".") for part in skill_path.parts):
                     skills.append(skill_path)
 
         return sorted(skills)
 
-    def import_all(self, dry_run: bool = False) -> Dict[str, int]:
+    def import_all(self, dry_run: bool = False) -> dict[str, int]:
         """Import all skills from the directory."""
         print("\n" + "=" * 60)
         print("Skills-Fleet Skill Importer")
@@ -280,7 +269,7 @@ class SkillImporter:
         # Import each skill
         with Session(self.engine) as session:
             skill_repo = SkillRepository(session)
-            tax_repo = TaxonomyRepository(session)
+            TaxonomyRepository(session)
 
             for skill_path in skill_dirs:
                 print(f"\n📄 Processing: {skill_path.relative_to(self.skills_dir)}")
@@ -289,7 +278,7 @@ class SkillImporter:
                     # Parse skill file
                     skill_info = self.import_skill_file(skill_path)
                     if not skill_info:
-                        print(f"  ⚠️  Skipped: No SKILL.md found")
+                        print("  ⚠️  Skipped: No SKILL.md found")
                         self.stats["skipped"] += 1
                         continue
 
@@ -299,7 +288,7 @@ class SkillImporter:
                     print(f"  Status: {skill_data['status'].value}")
 
                     if dry_run:
-                        print(f"  [DRY RUN] Would create skill")
+                        print("  [DRY RUN] Would create skill")
                         self.stats["created"] += 1
                         continue
 
@@ -309,15 +298,15 @@ class SkillImporter:
                     if existing:
                         print(f"  ⚠️  Skill already exists (ID: {existing.skill_id})")
                         # Update existing
-                        updated = skill_repo.update(
+                        skill_repo.update(
                             existing.skill_id,
                             skill_data,
                             capabilities=skill_info["capabilities"],
                             keywords=skill_info["keywords"],
-                            tags=skill_info["tags"]
+                            tags=skill_info["tags"],
                         )
                         self.stats["updated"] += 1
-                        print(f"  ✓ Updated skill")
+                        print("  ✓ Updated skill")
 
                     else:
                         # Create new skill
@@ -327,7 +316,7 @@ class SkillImporter:
                             dependencies=[],
                             keywords=skill_info["keywords"],
                             tags=skill_info["tags"],
-                            taxonomy_paths=[skill_info["taxonomy"]]
+                            taxonomy_paths=[skill_info["taxonomy"]],
                         )
                         self.stats["created"] += 1
                         print(f"  ✓ Created skill (ID: {skill.skill_id})")
@@ -336,6 +325,7 @@ class SkillImporter:
                     print(f"  ❌ Error: {e}")
                     self.stats["errors"] += 1
                     import traceback
+
                     traceback.print_exc()
 
             if not dry_run:

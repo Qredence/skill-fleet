@@ -5,21 +5,12 @@ Tests FastAPI endpoints in src/skill_fleet/api/
 
 from __future__ import annotations
 
-import asyncio
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
-from httpx import Response
 
 from skill_fleet.api.app import get_app
-from skill_fleet.api.dependencies import (
-    SkillsRoot,
-    DraftsRoot,
-    TaxonomyManagerDep,
-)
-
 
 # ============================================================================
 # Constants
@@ -49,17 +40,6 @@ def dependency_override_cleanup():
     """
     yield
     get_app().dependency_overrides.clear()
-
-
-@pytest.fixture
-def dependency_override_cleanup():
-    """Fixture to ensure dependency overrides are cleaned up after each test.
-
-    This prevents test isolation issues where overrides from one test
-    affect subsequent tests.
-    """
-    yield
-    app.dependency_overrides.clear()
 
 
 # ============================================================================

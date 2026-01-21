@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""CLI tool for running DSPy evaluation and optimization.
+"""
+CLI tool for running DSPy evaluation and optimization.
 
 This script provides commands for:
 1. Evaluating existing skills quality

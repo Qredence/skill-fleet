@@ -305,3 +305,13 @@ with dspy.context(lm=edit_lm):
 - **[LLM Configuration](../llm/dspy-config.md)** - Centralized DSPy configuration
 - **[HITL System](../hitl/)** - Human-in-the-Loop interactions
 - **[API Endpoints](../api/endpoints.md)** - REST API usage (includes evaluation & optimization)
+
+## External DSPy Resources
+
+For comprehensive DSPy knowledge beyond Skills Fleet integration:
+
+- **[Official DSPy Documentation](https://dspy.ai)** - Complete DSPy framework documentation
+- **[DSPy GitHub Repository](https://github.com/stanford-nlp/dspy)** - Source code and examples
+- **[DSPy Research Papers](https://dspy.ai/publications/)** - MIPRO, GEPA, and other research
+
+**Note**: Skills Fleet provides a focused DSPy integration for skill creation workflows. For general DSPy usage and advanced patterns beyond skill creation, refer to the official DSPy documentation.

@@ -1,4 +1,5 @@
-"""Gold-standard training data management for DSPy optimization.
+"""
+Gold-standard training data management for DSPy optimization.
 
 This module provides utilities for loading, managing, and creating training
 examples from high-quality skills. These examples are used by DSPy optimizers
@@ -53,7 +54,8 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class GoldSkillEntry:
-    """Entry for a gold-standard skill.
+    """
+    Entry for a gold-standard skill.
 
     v2 Golden Standard additions:
     - skill_style: navigation_hub, comprehensive, or minimal
@@ -103,7 +105,8 @@ class GoldSkillEntry:
 
 
 class GoldStandardLoader:
-    """Loader for gold-standard training examples.
+    """
+    Loader for gold-standard training examples.
 
     This class manages the loading and creation of training examples
     from high-quality skills for DSPy optimization.
@@ -114,11 +117,13 @@ class GoldStandardLoader:
         config_path: Path | None = None,
         gold_skills_path: Path | None = None,
     ):
-        """Initialize the loader.
+        """
+        Initialize the loader.
 
         Args:
             config_path: Path to config.yaml (default: auto-detect)
             gold_skills_path: Path to gold_skills.json (default: from config)
+
         """
         self.config_path = config_path or default_config_path()
         self.config = self._load_config()
@@ -173,13 +178,15 @@ class GoldStandardLoader:
             json.dump({"skills": skills, "version": "1.0"}, f, indent=2)
 
     def load_gold_skills(self, min_quality: float = 0.0) -> list[GoldSkillEntry]:
-        """Load all gold-standard skills.
+        """
+        Load all gold-standard skills.
 
         Args:
             min_quality: Minimum quality score filter
 
         Returns:
             List of GoldSkillEntry objects
+
         """
         if self._gold_skills:
             return [s for s in self._gold_skills if s.quality_score >= min_quality]
@@ -208,7 +215,8 @@ class GoldStandardLoader:
         return entries
 
     def _create_entry_from_data(self, data: dict[str, Any]) -> GoldSkillEntry | None:
-        """Create GoldSkillEntry from JSON data.
+        """
+        Create GoldSkillEntry from JSON data.
 
         Supports both v1 and v2 format data.
         """
@@ -257,7 +265,8 @@ class GoldStandardLoader:
         skills_dir: Path,
         min_quality: float = 0.8,
     ) -> list[GoldSkillEntry]:
-        """Auto-discover high-quality skills from directory.
+        """
+        Auto-discover high-quality skills from directory.
 
         Args:
             skills_dir: Path to skills directory
@@ -265,6 +274,7 @@ class GoldStandardLoader:
 
         Returns:
             List of discovered high-quality skills
+
         """
         entries: list[GoldSkillEntry] = []
 
@@ -313,7 +323,8 @@ class GoldStandardLoader:
     def _detect_skill_style(
         self, content: str, skill_dir: Path
     ) -> Literal["navigation_hub", "comprehensive", "minimal"]:
-        """Detect skill style based on content and structure.
+        """
+        Detect skill style based on content and structure.
 
         Args:
             content: SKILL.md content
@@ -321,6 +332,7 @@ class GoldStandardLoader:
 
         Returns:
             Detected skill style
+
         """
         body_length = len(content)
         has_many_subdirectory_refs = (
@@ -345,13 +357,15 @@ class GoldStandardLoader:
             return "minimal"
 
     def _collect_subdirectory_files(self, skill_dir: Path) -> dict[str, list[str]]:
-        """Collect files from skill subdirectories.
+        """
+        Collect files from skill subdirectories.
 
         Args:
             skill_dir: Path to skill directory
 
         Returns:
             Dict mapping subdirectory name to list of file names
+
         """
         subdirs: dict[str, list[str]] = {}
         for subdir_name in ["references", "guides", "templates", "scripts", "examples"]:
@@ -366,7 +380,8 @@ class GoldStandardLoader:
         self,
         skills_dir: Path | str | None = None,
     ) -> list[GoldSkillEntry]:
-        """Load golden examples from .skills/ directory.
+        """
+        Load golden examples from .skills/ directory.
 
         This method specifically loads skills from the .skills/ directory
         which contains curated golden examples in v2 format.
@@ -376,6 +391,7 @@ class GoldStandardLoader:
 
         Returns:
             List of GoldSkillEntry objects from golden examples
+
         """
         if skills_dir is None:
             if self.repo_root:
@@ -474,7 +490,8 @@ class GoldStandardLoader:
         min_quality: float = 0.8,
         max_examples: int | None = None,
     ) -> list[dspy.Example]:
-        """Load training set for DSPy optimization.
+        """
+        Load training set for DSPy optimization.
 
         Args:
             min_quality: Minimum quality score for training examples
@@ -482,6 +499,7 @@ class GoldStandardLoader:
 
         Returns:
             List of DSPy Examples for training
+
         """
         gold_skills = self.load_gold_skills(min_quality=min_quality)
 
@@ -499,7 +517,8 @@ class GoldStandardLoader:
         max_examples: int | None = None,
         exclude_trainset: bool = True,
     ) -> list[dspy.Example]:
-        """Load test set for evaluation.
+        """
+        Load test set for evaluation.
 
         Args:
             min_quality: Minimum quality score for test examples
@@ -508,6 +527,7 @@ class GoldStandardLoader:
 
         Returns:
             List of DSPy Examples for testing
+
         """
         gold_skills = self.load_gold_skills(min_quality=min_quality)
 
@@ -527,7 +547,8 @@ class GoldStandardLoader:
         source: str = "manual",
         metadata: dict[str, Any] | None = None,
     ) -> GoldSkillEntry | None:
-        """Add a new gold-standard skill.
+        """
+        Add a new gold-standard skill.
 
         Args:
             skill_path: Path to SKILL.md file
@@ -537,6 +558,7 @@ class GoldStandardLoader:
 
         Returns:
             Created GoldSkillEntry or None if failed
+
         """
         skill_path = Path(skill_path)
         if not skill_path.exists():
@@ -583,7 +605,8 @@ class GoldStandardLoader:
         topics: list[str],
         count_per_topic: int = 1,
     ) -> list[dspy.Example]:
-        """Create synthetic training examples from topic descriptions.
+        """
+        Create synthetic training examples from topic descriptions.
 
         This is useful for bootstrapping when few gold-standard skills exist.
 
@@ -593,6 +616,7 @@ class GoldStandardLoader:
 
         Returns:
             List of synthetic DSPy Examples
+
         """
         examples: list[dspy.Example] = []
 
@@ -615,26 +639,30 @@ class GoldStandardLoader:
 
 
 def load_trainset(min_quality: float = 0.8) -> list[dspy.Example]:
-    """Convenience function to load training set.
+    """
+    Convenience function to load training set.
 
     Args:
         min_quality: Minimum quality score threshold
 
     Returns:
         List of DSPy Examples for training
+
     """
     loader = GoldStandardLoader()
     return loader.load_trainset(min_quality=min_quality)
 
 
 def load_testset(min_quality: float = 0.6) -> list[dspy.Example]:
-    """Convenience function to load test set.
+    """
+    Convenience function to load test set.
 
     Args:
         min_quality: Minimum quality score threshold
 
     Returns:
         List of DSPy Examples for testing
+
     """
     loader = GoldStandardLoader()
     return loader.load_testset(min_quality=min_quality)

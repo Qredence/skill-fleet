@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-"""Regenerate training data from .skills golden examples.
+"""
+Regenerate training data from .skills golden examples.
 
 This script reads the skill files from .skills/ and generates updated
 trainset.json and gold_skills.json files with v2 Golden Standard format.

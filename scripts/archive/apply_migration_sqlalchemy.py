@@ -19,7 +19,7 @@ from sqlalchemy import create_engine, text
 load_dotenv()
 
 # Get database URL from environment
-DATABASE_URL = os.getenv('DATABASE_URL')
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
     print("❌ DATABASE_URL environment variable not set!")
@@ -28,15 +28,15 @@ if not DATABASE_URL:
     sys.exit(1)
 
 # Ensure psycopg driver is specified for SQLAlchemy
-if not DATABASE_URL.startswith('postgresql+'):
-    DATABASE_URL = DATABASE_URL.replace('postgresql://', 'postgresql+psycopg://')
+if not DATABASE_URL.startswith("postgresql+"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://")
 
 
 def get_migration_script_path() -> str:
     """Get the path to the migration SQL file."""
     current_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(current_dir)
-    return os.path.join(project_root, 'migrations', '001_init_skills_schema.sql')
+    return os.path.join(project_root, "migrations", "001_init_skills_schema.sql")
 
 
 def read_migration_script() -> str:
@@ -44,7 +44,7 @@ def read_migration_script() -> str:
     migration_path = get_migration_script_path()
     if not os.path.exists(migration_path):
         raise FileNotFoundError(f"Migration file not found: {migration_path}")
-    with open(migration_path, 'r') as f:
+    with open(migration_path) as f:
         return f.read()
 
 
@@ -57,11 +57,10 @@ def split_sql_script(script: str) -> list[str]:
     statements = []
     current = []
     in_body = False
-    body_delimiter = None
 
-    for line in script.split('\n'):
+    for line in script.split("\n"):
         # Check for BODY delimiter start/end
-        if '$$' in line:
+        if "$$" in line:
             if not in_body:
                 in_body = True
                 current.append(line)
@@ -70,8 +69,8 @@ def split_sql_script(script: str) -> list[str]:
                 in_body = False
                 current.append(line)
                 # Check if statement ends here
-                if ';' in line:
-                    stmt = '\n'.join(current).strip()
+                if ";" in line:
+                    stmt = "\n".join(current).strip()
                     if stmt:
                         statements.append(stmt)
                     current = []
@@ -80,15 +79,15 @@ def split_sql_script(script: str) -> list[str]:
         current.append(line)
 
         # If not in BODY and line ends with semicolon, it's a complete statement
-        if not in_body and line.strip().endswith(';'):
-            stmt = '\n'.join(current).strip()
+        if not in_body and line.strip().endswith(";"):
+            stmt = "\n".join(current).strip()
             if stmt:
                 statements.append(stmt)
             current = []
 
     # Add any remaining content
     if current:
-        stmt = '\n'.join(current).strip()
+        stmt = "\n".join(current).strip()
         if stmt:
             statements.append(stmt)
 
@@ -97,10 +96,10 @@ def split_sql_script(script: str) -> list[str]:
 
 def apply_migration() -> None:
     """Apply the database migration using SQLAlchemy."""
-    print(f"Connecting to database...")
+    print("Connecting to database...")
     # Extract host info for display
-    if '@' in DATABASE_URL:
-        host = DATABASE_URL.split('@')[1].split('/')[0]
+    if "@" in DATABASE_URL:
+        host = DATABASE_URL.split("@")[1].split("/")[0]
         print(f"Host: {host}")
 
     # Read migration script
@@ -124,7 +123,7 @@ def apply_migration() -> None:
     try:
         with engine.begin() as conn:
             for i, statement in enumerate(statements, 1):
-                if not statement.strip() or statement.strip().startswith('--'):
+                if not statement.strip() or statement.strip().startswith("--"):
                     continue
 
                 try:
@@ -142,8 +141,8 @@ def apply_migration() -> None:
                         print(f"   ⚠️  Statement {i} failed: {e}")
                         print(f"   Statement preview: {statement[:100]}...")
 
-        print(f"\n✅ Migration completed!")
-        print(f"\n📊 Results:")
+        print("\n✅ Migration completed!")
+        print("\n📊 Results:")
         print(f"   - {success_count} statements executed successfully")
         if error_count > 0:
             print(f"   - {error_count} statements failed (may be expected if objects exist)")
@@ -152,26 +151,32 @@ def apply_migration() -> None:
         print("\n🔍 Verifying created objects...")
         with engine.begin() as conn:
             # Check tables
-            result = conn.execute(text("""
+            result = conn.execute(
+                text("""
                 SELECT COUNT(*) FROM information_schema.tables
                 WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
-            """))
+            """)
+            )
             table_count = result.scalar()
 
             # Check enums
-            result = conn.execute(text("""
+            result = conn.execute(
+                text("""
                 SELECT COUNT(*) FROM pg_type WHERE typtype = 'e'
-            """))
+            """)
+            )
             enum_count = result.scalar()
 
             # Check views
-            result = conn.execute(text("""
+            result = conn.execute(
+                text("""
                 SELECT COUNT(*) FROM information_schema.views
                 WHERE table_schema = 'public'
-            """))
+            """)
+            )
             view_count = result.scalar()
 
-        print(f"\n📋 Database Objects:")
+        print("\n📋 Database Objects:")
         print(f"   - {table_count} tables")
         print(f"   - {enum_count} enum types")
         print(f"   - {view_count} views")
@@ -179,6 +184,7 @@ def apply_migration() -> None:
     except Exception as e:
         print(f"\n❌ Migration failed: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
     finally:
@@ -219,7 +225,7 @@ def main() -> int:
     print("\n⚠️  This will create/modify database tables.")
     try:
         response = input("Proceed? (yes/no): ").strip().lower()
-        if response not in ('yes', 'y'):
+        if response not in ("yes", "y"):
             print("Migration cancelled.")
             return 0
     except (EOFError, KeyboardInterrupt):
@@ -236,9 +242,10 @@ def main() -> int:
     except Exception as e:
         print(f"\n❌ Error: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

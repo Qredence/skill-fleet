@@ -4,7 +4,7 @@ Skills-Fleet Database Repositories
 Repository layer for common CRUD operations on skills fleet entities.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any, Generic, TypeVar
 
 from sqlalchemy import asc, desc
@@ -22,6 +22,7 @@ from skill_fleet.db.models import (
     SkillStatusEnum,
     SkillTag,
     TaxonomyCategory,
+    TaxonomyClosure,
     UsageEvent,
     ValidationReport,
 )
@@ -29,7 +30,7 @@ from skill_fleet.db.models import (
 ModelType = TypeVar("ModelType", bound=Any)
 
 
-class BaseRepository(Generic[ModelType]):
+class BaseRepository(Generic[ModelType]):  # noqa: UP046
     """
     Base repository with common CRUD operations.
     """
@@ -60,6 +61,7 @@ class BaseRepository(Generic[ModelType]):
             order_by: Field to order by
             order_desc: Whether to order in descending order
             **filters: Filter parameters (field=value)
+
         """
         query = self.db.query(self.model)
 
@@ -135,7 +137,9 @@ class SkillRepository(BaseRepository[Skill]):
             query = query.options(joinedload(Skill.capabilities))
         if load_dependencies:
             query = query.options(
-                joinedload(Skill.dependencies_as_dependent).joinedload(SkillDependency.dependency_skill)
+                joinedload(Skill.dependencies_as_dependent).joinedload(
+                    SkillDependency.dependency_skill
+                )
             )
         if load_keywords:
             query = query.options(joinedload(Skill.keywords))
@@ -179,13 +183,17 @@ class SkillRepository(BaseRepository[Skill]):
         if query:
             # Use PostgreSQL's tsvector for full-text search
             search_query = search_query.filter(
-                Skill.search_vector.op('@@')(func.plainto_tsquery('english', query))
+                Skill.search_vector.op("@@")(func.plainto_tsquery("english", query))
             )
 
         # Order by relevance and limit
-        return search_query.order_by(
-            func.ts_rank(Skill.search_vector, func.plainto_tsquery('english', query)).desc()
-        ).limit(limit).all()
+        return (
+            search_query.order_by(
+                func.ts_rank(Skill.search_vector, func.plainto_tsquery("english", query)).desc()
+            )
+            .limit(limit)
+            .all()
+        )
 
     def get_active_skills(
         self,
@@ -218,27 +226,37 @@ class SkillRepository(BaseRepository[Skill]):
         Returns a dict with 'dependencies' (what this skill needs)
         and 'dependents' (what needs this skill).
         """
-        skill = self.get_by_path_with_relations(skill_id, load_dependencies=True)
+        # First get the skill to find its path
+        skill = self.get(skill_id)
         if not skill:
-            return {'dependencies': [], 'dependents': []}
+            return {"dependencies": [], "dependents": []}
+
+        # Now get with relations using the path
+        skill = self.get_by_path_with_relations(skill.skill_path, load_dependencies=True)
+        if not skill:
+            return {"dependencies": [], "dependents": []}
 
         dependencies = []
         for dep in skill.dependencies_as_dependent:
-            dependencies.append({
-                'skill_path': dep.dependency_skill.skill_path,
-                'name': dep.dependency_skill.name,
-                'type': dep.dependency_type,
-                'justification': dep.justification,
-            })
+            dependencies.append(
+                {
+                    "skill_path": dep.dependency_skill.skill_path,
+                    "name": dep.dependency_skill.name,
+                    "type": dep.dependency_type,
+                    "justification": dep.justification,
+                }
+            )
 
         dependents = []
         for dep in self.get_dependent_skills(skill_id):
-            dependents.append({
-                'skill_path': dep.skill_path,
-                'name': dep.name,
-            })
+            dependents.append(
+                {
+                    "skill_path": dep.skill_path,
+                    "name": dep.name,
+                }
+            )
 
-        return {'dependencies': dependencies, 'dependents': dependents}
+        return {"dependencies": dependencies, "dependents": dependents}
 
     def create_with_relations(
         self,
@@ -257,13 +275,13 @@ class SkillRepository(BaseRepository[Skill]):
         # Add capabilities
         if capabilities:
             for cap_data in capabilities:
-                cap_data['skill_id'] = skill.skill_id
+                cap_data["skill_id"] = skill.skill_id
                 self.db.add(Capability(**cap_data))
 
         # Add dependencies
         if dependencies:
             for dep_data in dependencies:
-                dep_data['dependent_id'] = skill.skill_id
+                dep_data["dependent_id"] = skill.skill_id
                 self.db.add(SkillDependency(**dep_data))
 
         # Add keywords
@@ -290,7 +308,7 @@ class SkillRepository(BaseRepository[Skill]):
         skill = self.get(skill_id)
         if skill:
             skill.status = SkillStatusEnum.ACTIVE
-            skill.published_at = datetime.utcnow()
+            skill.published_at = datetime.now(UTC)
             self.db.commit()
             self.db.refresh(skill)
         return skill
@@ -312,28 +330,33 @@ class JobRepository(BaseRepository[Job]):
         super().__init__(Job, db)
 
     def get_by_id(self, job_id: Any) -> Job | None:
-        """Get a job by its ID (UUID).
-        
+        """
+        Get a job by its ID (UUID).
+
         Args:
             job_id: UUID of the job
-            
+
         Returns:
             Job instance or None if not found
+
         """
         from uuid import UUID
+
         if isinstance(job_id, str):
             job_id = UUID(job_id)
         return self.db.query(Job).filter(Job.job_id == job_id).first()
 
     def get_by_status(self, status: str, *, limit: int = 100) -> list[Job]:
-        """Get all jobs with a specific status.
-        
+        """
+        Get all jobs with a specific status.
+
         Args:
             status: Job status (pending, running, pending_hitl, completed, failed, cancelled)
             limit: Maximum number of jobs to return
-            
+
         Returns:
             List of Job instances
+
         """
         return (
             self.db.query(Job)
@@ -363,7 +386,7 @@ class JobRepository(BaseRepository[Job]):
         """Get jobs that are waiting for human input."""
         return (
             self.db.query(Job)
-            .filter(Job.status == 'pending_hitl')
+            .filter(Job.status == "pending_hitl")
             .order_by(Job.created_at.asc())
             .limit(limit)
             .all()
@@ -402,9 +425,9 @@ class JobRepository(BaseRepository[Job]):
         """Mark a job as completed with result."""
         job = self.db.query(Job).filter(Job.job_id == job_id).first()
         if job:
-            job.status = 'completed'
+            job.status = "completed"
             job.result = result
-            job.completed_at = datetime.utcnow()
+            job.completed_at = datetime.now(UTC)
             job.progress_percent = 100
             self.db.commit()
             self.db.refresh(job)
@@ -427,12 +450,15 @@ class TaxonomyRepository(BaseRepository[TaxonomyCategory]):
 
         Args:
             root_path: Optional path to start from (defaults to root level)
+
         """
         if root_path:
             root = self.get_by_path(root_path)
             if not root:
                 return []
-            query = self.db.query(TaxonomyCategory).filter(TaxonomyCategory.parent_id == root.category_id)
+            query = self.db.query(TaxonomyCategory).filter(
+                TaxonomyCategory.parent_id == root.category_id
+            )
         else:
             query = self.db.query(TaxonomyCategory).filter(TaxonomyCategory.parent_id.is_(None))
 
@@ -440,14 +466,16 @@ class TaxonomyRepository(BaseRepository[TaxonomyCategory]):
 
         result = []
         for cat in categories:
-            result.append({
-                'category_id': cat.category_id,
-                'path': cat.path,
-                'name': cat.name,
-                'description': cat.description,
-                'level': cat.level,
-                'children': self._get_children(cat.category_id),
-            })
+            result.append(
+                {
+                    "category_id": cat.category_id,
+                    "path": cat.path,
+                    "name": cat.name,
+                    "description": cat.description,
+                    "level": cat.level,
+                    "children": self._get_children(cat.category_id),
+                }
+            )
 
         return result
 
@@ -462,14 +490,16 @@ class TaxonomyRepository(BaseRepository[TaxonomyCategory]):
 
         result = []
         for cat in children:
-            result.append({
-                'category_id': cat.category_id,
-                'path': cat.path,
-                'name': cat.name,
-                'description': cat.description,
-                'level': cat.level,
-                'children': self._get_children(cat.category_id),
-            })
+            result.append(
+                {
+                    "category_id": cat.category_id,
+                    "path": cat.path,
+                    "name": cat.name,
+                    "description": cat.description,
+                    "level": cat.level,
+                    "children": self._get_children(cat.category_id),
+                }
+            )
 
         return result
 
@@ -514,7 +544,7 @@ class ValidationRepository(BaseRepository[ValidationReport]):
         """Get all failed validation reports."""
         return (
             self.db.query(ValidationReport)
-            .filter(ValidationReport.status == 'failed')
+            .filter(ValidationReport.status == "failed")
             .order_by(ValidationReport.created_at.desc())
             .limit(limit)
             .all()
@@ -564,14 +594,14 @@ class UsageRepository:
 
         from sqlalchemy import func
 
-        since = datetime.utcnow() - timedelta(days=days)
+        since = datetime.now(UTC) - timedelta(days=days)
 
         stats = (
             self.db.query(
-                func.count(UsageEvent.event_id).label('total_uses'),
-                func.count(func.distinct(UsageEvent.user_id)).label('unique_users'),
-                func.avg(UsageEvent.success.cast('integer')).label('success_rate'),
-                func.avg(UsageEvent.duration_ms).label('avg_duration_ms'),
+                func.count(UsageEvent.event_id).label("total_uses"),
+                func.count(func.distinct(UsageEvent.user_id)).label("unique_users"),
+                func.avg(UsageEvent.success.cast("integer")).label("success_rate"),
+                func.avg(UsageEvent.duration_ms).label("avg_duration_ms"),
             )
             .filter(
                 UsageEvent.skill_id == skill_id,
@@ -581,10 +611,10 @@ class UsageRepository:
         )
 
         return {
-            'total_uses': stats.total_uses or 0,
-            'unique_users': stats.unique_users or 0,
-            'success_rate': float(stats.success_rate or 0),
-            'avg_duration_ms': float(stats.avg_duration_ms or 0),
+            "total_uses": stats.total_uses or 0,
+            "unique_users": stats.unique_users or 0,
+            "success_rate": float(stats.success_rate or 0),
+            "avg_duration_ms": float(stats.avg_duration_ms or 0),
         }
 
     def get_popular_skills(self, *, days: int = 30, limit: int = 20) -> list[dict]:
@@ -593,31 +623,31 @@ class UsageRepository:
 
         from sqlalchemy import desc, func
 
-        since = datetime.utcnow() - timedelta(days=days)
+        since = datetime.now(UTC) - timedelta(days=days)
 
         results = (
             self.db.query(
                 Skill.skill_id,
                 Skill.skill_path,
                 Skill.name,
-                func.count(UsageEvent.event_id).label('usage_count'),
-                func.count(func.distinct(UsageEvent.user_id)).label('unique_users'),
+                func.count(UsageEvent.event_id).label("usage_count"),
+                func.count(func.distinct(UsageEvent.user_id)).label("unique_users"),
             )
             .join(UsageEvent, Skill.skill_id == UsageEvent.skill_id)
             .filter(UsageEvent.occurred_at >= since)
             .group_by(Skill.skill_id, Skill.skill_path, Skill.name)
-            .order_by(desc('usage_count'))
+            .order_by(desc("usage_count"))
             .limit(limit)
             .all()
         )
 
         return [
             {
-                'skill_id': r.skill_id,
-                'skill_path': r.skill_path,
-                'name': r.name,
-                'usage_count': r.usage_count,
-                'unique_users': r.unique_users,
+                "skill_id": r.skill_id,
+                "skill_path": r.skill_path,
+                "name": r.name,
+                "usage_count": r.usage_count,
+                "unique_users": r.unique_users,
             }
             for r in results
         ]

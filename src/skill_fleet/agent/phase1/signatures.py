@@ -1,4 +1,5 @@
-"""DSPy signatures for Phase 1: Understanding the Need.
+"""
+DSPy signatures for Phase 1: Understanding the Need.
 
 These signatures implement the decision-driven workflow from skill-creation-guidelines.md
 lines 191-239, using DSPy ChainOfThought for flexible reasoning within
@@ -38,7 +39,8 @@ VALID_SKILL_TYPES = [
 
 
 class ExtractProblemStatement(dspy.Signature):
-    """Extract a clear, specific problem statement from the task description.
+    """
+    Extract a clear, specific problem statement from the task description.
 
     Step 1.1 of Phase 1 - Forms the foundation for all subsequent decisions.
     A clear problem statement ensures we're solving the right problem.
@@ -70,7 +72,8 @@ class ExtractProblemStatement(dspy.Signature):
 
 
 class DecideNovelty(dspy.Signature):
-    """Determine if this is a new skill or enhancement to existing skill.
+    """
+    Determine if this is a new skill or enhancement to existing skill.
 
     Step 1.2 of Phase 1 - Critical decision that affects the entire workflow:
     - New skill: Create from scratch with full Phase 1-5 workflow
@@ -99,7 +102,8 @@ class DecideNovelty(dspy.Signature):
 
 
 class DetectOverlap(dspy.Signature):
-    """Detect overlap with existing skills.
+    """
+    Detect overlap with existing skills.
 
     Step 1.3 of Phase 1 - Ensures we don't duplicate functionality.
     Even if a skill is "new", there may be overlapping capabilities that
@@ -133,7 +137,8 @@ class DetectOverlap(dspy.Signature):
 
 
 class ClassifyDomain(dspy.Signature):
-    """Classify skill into one of 8 types using decision matrix.
+    """
+    Classify skill into one of 8 types using decision matrix.
 
     Step 1.4 of Phase 1 - Uses the decision matrix from guidelines lines 269-282:
 
@@ -165,7 +170,8 @@ class ClassifyDomain(dspy.Signature):
 
 
 class ProposeTaxonomyPath(dspy.Signature):
-    """Propose taxonomy path based on domain classification and existing structure.
+    """
+    Propose taxonomy path based on domain classification and existing structure.
 
     Step 1.5 of Phase 1 - Determines where this skill fits in the taxonomy.
     A well-chosen path ensures discoverability and logical organization.
@@ -196,7 +202,8 @@ class ProposeTaxonomyPath(dspy.Signature):
 
 
 class Phase1Checkpoint(dspy.Signature):
-    """Validate Phase 1 outputs before proceeding to Phase 2.
+    """
+    Validate Phase 1 outputs before proceeding to Phase 2.
 
     This checkpoint enforces the validation criteria from guidelines lines 1018-1024:
     1. Problem statement is clear and specific

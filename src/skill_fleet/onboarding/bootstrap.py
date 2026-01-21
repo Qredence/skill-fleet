@@ -30,7 +30,8 @@ class SkillBootstrapper:
             return json.load(f)
 
     async def onboard_user(self, user_id: str, responses: dict) -> dict:
-        """Onboard a new user and bootstrap their skills.
+        """
+        Onboard a new user and bootstrap their skills.
 
         Args:
             user_id: Unique user identifier
@@ -38,6 +39,7 @@ class SkillBootstrapper:
 
         Returns:
             Dict with user profile and mounted skills
+
         """
         logger.info(f"Onboarding user: {user_id}")
 

@@ -104,11 +104,11 @@ _HEADING_BACKTICK_RE = re.compile(r"^\s{0,3}#{2,6}\s+`(?P<name>[^`]+)`\s*$")
 
 
 def _safe_single_filename(candidate: str) -> str | None:
-    """Return a safe single-path filename or None.
+    """
+    Return a safe single-path filename or None.
 
     LLM output is untrusted; keep this strict to prevent path traversal.
     """
-
     name = candidate.strip()
     if not name:
         return None
@@ -122,15 +122,16 @@ def _safe_single_filename(candidate: str) -> str | None:
 
 
 def _extract_named_file_code_blocks(skill_md: str) -> dict[str, str]:
-    """Extract code blocks that are explicitly labeled with a backticked filename heading.
+    """
+    Extract code blocks that are explicitly labeled with a backticked filename heading.
 
     Example:
         ### `pytest.ini`
         ```ini
         ...
         ```
-    """
 
+    """
     assets: dict[str, str] = {}
     lines = skill_md.splitlines()
     i = 0
@@ -177,11 +178,11 @@ def _extract_named_file_code_blocks(skill_md: str) -> dict[str, str]:
 
 
 def _extract_usage_example_code_blocks(skill_md: str) -> dict[str, str]:
-    """Extract fenced code blocks under the '## Usage Examples' section.
+    """
+    Extract fenced code blocks under the '## Usage Examples' section.
 
     Writes as simple `example_N.<ext>` files (best-effort).
     """
-
     lines = skill_md.splitlines()
     start = None
     for idx, line in enumerate(lines):
@@ -244,7 +245,8 @@ def _extract_usage_example_code_blocks(skill_md: str) -> dict[str, str]:
 
 
 def _ensure_draft_root(drafts_root: Path, job_id: str) -> Path:
-    """Ensure the per-job draft root exists (with its own taxonomy_meta.json).
+    """
+    Ensure the per-job draft root exists (with its own taxonomy_meta.json).
 
     Args:
         drafts_root: Base directory for drafts
@@ -252,6 +254,7 @@ def _ensure_draft_root(drafts_root: Path, job_id: str) -> Path:
 
     Returns:
         Path to the job-specific draft root
+
     """
     job_root = drafts_root / job_id
     job_root.mkdir(parents=True, exist_ok=True)
@@ -276,7 +279,8 @@ def _ensure_draft_root(drafts_root: Path, job_id: str) -> Path:
 def _save_skill_to_draft(
     *, drafts_root: Path, job_id: str, result: SkillCreationResult
 ) -> str | None:
-    """Save a completed skill to the draft area.
+    """
+    Save a completed skill to the draft area.
 
     v2 Golden Standard: Also writes subdirectory files if provided in edit_result.
 
@@ -287,6 +291,7 @@ def _save_skill_to_draft(
 
     Returns:
         Path where the draft skill was saved, or None if save failed
+
     """
     if not result.skill_content or not result.metadata:
         logger.warning("Cannot save skill: missing content or metadata")
@@ -422,7 +427,8 @@ async def run_skill_creation(
     skills_root: Path,
     drafts_root: Path,
 ):
-    """Execute the end-to-end skill creation workflow as a background job.
+    """
+    Execute the end-to-end skill creation workflow as a background job.
 
     This coroutine is intended to be scheduled via FastAPI's ``BackgroundTasks``
     mechanism (see the ``/create`` route in this module). When invoked, it
@@ -436,20 +442,20 @@ async def run_skill_creation(
         user_id: User identifier for context
         skills_root: Root directory for skills taxonomy
         drafts_root: Root directory for draft skills
-    """
 
+    """
     job = JOBS[job_id]
     job.status = "running"
 
     async def hitl_callback(interaction_type: str, data: dict):
-        """Handle Human-in-the-Loop interactions during skill creation.
+        """
+        Handle Human-in-the-Loop interactions during skill creation.
 
         The callback updates the job state to indicate a pending HITL
         interaction, then awaits the response posted to the HITL endpoint for
         this job. If a timeout occurs, the job is marked failed and the
         TimeoutError is propagated.
         """
-
         job.status = "pending_hitl"
         job.hitl_type = interaction_type
         job.hitl_data = data
@@ -534,7 +540,8 @@ async def create(
     skills_root: SkillsRoot,
     drafts_root: DraftsRoot,
 ) -> CreateSkillResponse:
-    """Initiate a new skill creation job.
+    """
+    Initiate a new skill creation job.
 
     Creates a background job that executes the 3-phase skill creation workflow:
     1. Understanding & Planning (with HITL clarification)

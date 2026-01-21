@@ -1,4 +1,5 @@
-"""HITL (Human-in-the-Loop) schema models.
+"""
+HITL (Human-in-the-Loop) schema models.
 
 This module provides structured models for HITL interactions, ensuring
 the API returns consistent, typed data that CLI clients can consume
@@ -25,7 +26,8 @@ class QuestionOption(BaseModel):
 
 
 class StructuredQuestion(BaseModel):
-    """A structured question for HITL clarification.
+    """
+    A structured question for HITL clarification.
 
     This model ensures questions are always in a consistent format,
     regardless of how they were generated (string, dict, or list).
@@ -36,13 +38,15 @@ class StructuredQuestion(BaseModel):
         default=None, description="Optional list of choices for multiple-choice questions"
     )
     allows_multiple: bool = Field(
-        default=True, description="Whether multiple options can be selected (multi-select by default)"
+        default=True,
+        description="Whether multiple options can be selected (multi-select by default)",
     )
     rationale: str | None = Field(default=None, description="Why this question is being asked")
 
 
 def normalize_questions(questions: Any) -> list[StructuredQuestion]:
-    """Normalize raw questions into a list of StructuredQuestion objects.
+    """
+    Normalize raw questions into a list of StructuredQuestion objects.
 
     This function handles the various formats that questions may arrive in:
     - None -> empty list
@@ -59,6 +63,7 @@ def normalize_questions(questions: Any) -> list[StructuredQuestion]:
 
     Returns:
         List of StructuredQuestion objects
+
     """
     if questions is None:
         return []
@@ -85,7 +90,8 @@ def normalize_questions(questions: Any) -> list[StructuredQuestion]:
 
 
 def _normalize_string_questions(text: str) -> list[StructuredQuestion]:
-    """Split a string that may contain numbered questions into individual questions.
+    """
+    Split a string that may contain numbered questions into individual questions.
 
     Handles formats like:
     - "1. First question\n2. Second question"
@@ -117,7 +123,8 @@ def _normalize_string_questions(text: str) -> list[StructuredQuestion]:
 
 
 def _dict_to_structured_question(data: dict[str, Any]) -> StructuredQuestion:
-    """Convert a dictionary to a StructuredQuestion.
+    """
+    Convert a dictionary to a StructuredQuestion.
 
     Handles various dict formats that may come from DSPy modules:
     - {"question": "...", "rationale": "..."}

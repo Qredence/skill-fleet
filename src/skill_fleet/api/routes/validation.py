@@ -39,7 +39,8 @@ async def validate_skill(
     request: ValidateSkillRequest,
     skills_root: SkillsRoot,
 ) -> ValidationResponse:
-    """Validate a skill at the specified path.
+    """
+    Validate a skill at the specified path.
 
     Performs comprehensive validation including:
     - Metadata validation (required fields, formats)

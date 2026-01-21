@@ -28,7 +28,7 @@ class TestJobPersistenceLifecycle:
         manager = JobManager()
         manager.set_db_repo(mock_repo)
 
-        job = JobState(job_id="persist-1", status="pending", task_description="Test task")
+        job = JobState(job_id="persist-1", status="pending")
         manager.create_job(job)
 
         # Verify in memory
@@ -86,6 +86,7 @@ class TestJobPersistenceLifecycle:
 
         # Verify in memory
         in_memory = manager.memory.get(job_id)
+        assert in_memory is not None
         assert in_memory.status == "completed"
         assert in_memory.progress_message == "100%"
 
@@ -96,22 +97,25 @@ class TestJobPersistenceLifecycle:
         job_id = "lifecycle-1"
 
         # Step 1: Create (pending)
-        job = JobState(job_id=job_id, status="pending", task_description="Skill creation")
+        job = JobState(job_id=job_id, status="pending")
         manager.create_job(job)
 
         # Step 2: Start (running)
         manager.update_job(job_id, {"status": "running"})
         in_memory = manager.memory.get(job_id)
+        assert in_memory is not None
         assert in_memory.status == "running"
 
         # Step 3: Progress
         manager.update_job(job_id, {"progress_message": "50%"})
         in_memory = manager.memory.get(job_id)
+        assert in_memory is not None
         assert in_memory.progress_message == "50%"
 
         # Step 4: Complete
         manager.update_job(job_id, {"status": "completed", "result": {"score": 0.85}})
         final = manager.memory.get(job_id)
+        assert final is not None
         assert final.status == "completed"
 
 
@@ -122,8 +126,8 @@ class TestJobResumeOnStartup:
         """Test workflow for resuming pending jobs."""
         mock_repo = Mock()
         pending_jobs = [
-            Mock(job_id=uuid4(), status="pending", task_description="Task 1"),
-            Mock(job_id=uuid4(), status="pending", task_description="Task 2"),
+            Mock(job_id=uuid4(), status="pending"),
+            Mock(job_id=uuid4(), status="pending"),
         ]
         mock_repo.get_by_status = Mock(return_value=pending_jobs)
 
@@ -136,8 +140,8 @@ class TestJobResumeOnStartup:
         """Test workflow for resuming running jobs."""
         mock_repo = Mock()
         running_jobs = [
-            Mock(job_id=uuid4(), status="running", progress_percent=25),
-            Mock(job_id=uuid4(), status="running", progress_percent=75),
+            Mock(job_id=uuid4(), status="running"),
+            Mock(job_id=uuid4(), status="running"),
         ]
         mock_repo.get_by_status = Mock(return_value=running_jobs)
 
@@ -178,9 +182,7 @@ class TestCrashRecovery:
         job = JobState(
             job_id=job_id,
             status="running",
-            task_description="Skill generation",
             progress_message="Creating content...",
-            progress_percent=65,
         )
         manager.create_job(job)
 
@@ -205,7 +207,7 @@ class TestCrashRecovery:
         manager.create_job(job)
 
         # Partial update
-        manager.update_job(job_id, {"status": "running", "progress_percent": 33})
+        manager.update_job(job_id, {"status": "running"})
 
         # Crash: clear memory
         manager.memory.clear()
@@ -234,7 +236,7 @@ class TestCrashRecovery:
         mock_db_job = Mock()
         try:
             mock_db_job.job_id = UUID(job_id)
-        except:
+        except ValueError:
             mock_db_job.job_id = uuid4()
         mock_db_job.status = "running"
         mock_db_job.error = None
@@ -243,13 +245,13 @@ class TestCrashRecovery:
 
         try:
             mock_repo.get_by_id = Mock(return_value=mock_db_job)
-            retrieved = manager.get_job(job_id)
+            manager.get_job(job_id)
 
             # Now should be in memory if DB hit worked
             in_memory = manager.memory.get(job_id)
             if in_memory:
                 assert in_memory.job_id == job_id
-        except:
+        except Exception:
             # Memory-only fallback is acceptable
             pass
 
@@ -258,9 +260,10 @@ def is_valid_uuid(uuid_string):
     """Check if string is valid UUID."""
     try:
         from uuid import UUID
+
         UUID(uuid_string)
         return True
-    except:
+    except ValueError:
         return False
 
 

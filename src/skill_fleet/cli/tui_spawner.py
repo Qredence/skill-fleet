@@ -1,4 +1,5 @@
-"""Spawn and manage the Node.js TUI process from Python CLI.
+"""
+Spawn and manage the Node.js TUI process from Python CLI.
 
 This module handles:
 1. Checking if Node.js and TUI dependencies are available
@@ -23,7 +24,8 @@ class TUISpawner:
     """Manages spawning and lifecycle of the Ink TUI process."""
 
     def __init__(self, api_url: str = "http://localhost:8000", user_id: str = "default"):
-        """Initialize the TUI spawner.
+        """
+        Initialize the TUI spawner.
 
         Args:
             api_url: URL of the FastAPI backend
@@ -70,7 +72,7 @@ class TUISpawner:
             npm_bin = shutil.which("npm")
             if not npm_bin:
                 raise RuntimeError("npm not found in PATH. Install Node.js 18+ to use TUI mode.")
-            
+
             result = subprocess.run(
                 [npm_bin, "run", "build"],
                 cwd=self.tui_dir,
@@ -82,7 +84,8 @@ class TUISpawner:
                 raise RuntimeError("Failed to build TUI")
 
     def spawn(self) -> subprocess.Popen:
-        """Spawn the TUI process.
+        """
+        Spawn the TUI process.
 
         Returns:
             subprocess.Popen: The spawned process
@@ -123,7 +126,8 @@ class TUISpawner:
             raise RuntimeError(f"Failed to spawn TUI: {e}") from e
 
     def wait(self) -> int:
-        """Wait for the TUI process to exit and return exit code.
+        """
+        Wait for the TUI process to exit and return exit code.
 
         Returns:
             int: Process exit code
@@ -144,7 +148,8 @@ class TUISpawner:
             return 130  # Standard exit code for Ctrl+C
 
     def run(self) -> int:
-        """Spawn and wait for TUI to complete.
+        """
+        Spawn and wait for TUI to complete.
 
         Returns:
             int: Process exit code
@@ -173,7 +178,8 @@ def spawn_tui(
     user_id: str = "default",
     force_no_tui: bool = False,
 ) -> int:
-    """Spawn the Ink TUI if available, otherwise return 0 to continue with fallback.
+    """
+    Spawn the Ink TUI if available, otherwise return 0 to continue with fallback.
 
     Args:
         api_url: FastAPI backend URL

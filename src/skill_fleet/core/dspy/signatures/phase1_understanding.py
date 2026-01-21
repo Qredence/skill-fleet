@@ -1,4 +1,5 @@
-"""DSPy signatures for Phase 1: Understanding & Planning.
+"""
+DSPy signatures for Phase 1: Understanding & Planning.
 
 Phase 1 performs parallel analysis of user intent, taxonomy placement,
 and dependencies, then synthesizes a coherent plan.
@@ -39,7 +40,8 @@ SkillLength = Literal["short", "medium", "long"]
 
 
 class GatherRequirements(dspy.Signature):
-    """Extract structured requirements from user task description.
+    """
+    Extract structured requirements from user task description.
 
     Identify domain, skill level, topics, and ambiguities for HITL clarification.
     Be specific about what's unclear vs. what can be inferred.
@@ -83,7 +85,8 @@ class GatherRequirements(dspy.Signature):
 
 
 class AnalyzeIntent(dspy.Signature):
-    """Analyze user intent to determine skill purpose and value.
+    """
+    Analyze user intent to determine skill purpose and value.
 
     Focus on WHY needed, WHAT problem solved, WHO target user, WHAT value provided.
     Be thorough but concise. This analysis guides all downstream generation.
@@ -124,16 +127,15 @@ class AnalyzeIntent(dspy.Signature):
 
 
 class FindTaxonomyPath(dspy.Signature):
-    """Find optimal taxonomy path using existing structure and similar skills.
+    """
+    Find optimal taxonomy path using existing structure and similar skills.
 
     Rules: prefer specific over general, use existing categories, follow kebab-case naming.
     Avoid creating new top-level categories unless absolutely necessary.
     """
 
     # Inputs
-    task_description: str = dspy.InputField(
-        desc="User's task description with skill requirements"
-    )
+    task_description: str = dspy.InputField(desc="User's task description with skill requirements")
     taxonomy_structure: str = dspy.InputField(
         desc="JSON taxonomy tree showing all existing categories and their structure"
     )
@@ -172,7 +174,8 @@ class FindTaxonomyPath(dspy.Signature):
 
 
 class AnalyzeDependencies(dspy.Signature):
-    """Identify prerequisites, complementary skills, and conflicts.
+    """
+    Identify prerequisites, complementary skills, and conflicts.
 
     Determine: MUST know first (prerequisites), SHOULD know (complementary),
     CANNOT use together (conflicts). Be conservative with prerequisites.
@@ -217,11 +220,12 @@ class AnalyzeDependencies(dspy.Signature):
 
 
 class SynthesizePlan(dspy.Signature):
-    """Combine all Phase 1 analyses into a coherent, executable skill plan (v0.2).
+    """
+    Combine all Phase 1 analyses into a coherent, executable skill plan (v0.2).
 
     Create unified plan incorporating intent, taxonomy placement, dependencies,
     and any HITL feedback. This plan drives Phase 2 generation quality.
-    
+
     IMPORTANT: v0.2 Changes (Jan 2026)
     - Description must emphasize WHEN to use (triggering conditions, symptoms)
       NOT what the skill teaches. This enables CSO (Claude Search Optimization).

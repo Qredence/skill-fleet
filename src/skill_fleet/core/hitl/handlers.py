@@ -63,7 +63,8 @@ class FeedbackHandler(ABC):
         skill_content: str = "",
         task_description: str = "",
     ) -> str:
-        """Get human feedback on packaged skill.
+        """
+        Get human feedback on packaged skill.
 
         Args:
             packaging_manifest: JSON string with skill metadata and manifest
@@ -79,6 +80,7 @@ class FeedbackHandler(ABC):
                 "reviewer": "...",
                 "timestamp": "..."
             }
+
         """
         pass
 
@@ -94,7 +96,6 @@ class AutoApprovalHandler(FeedbackHandler):
         task_description: str = "",
     ) -> str:
         """Auto-approve if validation passed, otherwise request revision."""
-
         passed_statuses = ["passed", "validated", "approved", "success"]
         is_passed = (
             validation_report.get("passed", False)
@@ -134,7 +135,6 @@ class CLIFeedbackHandler(FeedbackHandler):
         task_description: str = "",
     ) -> str:
         """Collect feedback via command-line prompts."""
-
         from rich.console import Console
         from rich.prompt import Prompt
 
@@ -182,7 +182,8 @@ class CLIFeedbackHandler(FeedbackHandler):
 
 
 class InteractiveHITLHandler(FeedbackHandler):
-    """Interactive HITL handler with multi-choice clarifying questions.
+    """
+    Interactive HITL handler with multi-choice clarifying questions.
 
     Implements a real human-in-the-loop workflow with:
     - Minimum 1 round of clarifying questions before approval
@@ -415,7 +416,8 @@ class InteractiveHITLHandler(FeedbackHandler):
     def _generate_questions(
         self, manifest: dict, validation_report: dict, round_num: int
     ) -> list[dict]:
-        """Generate contextual clarifying questions based on the skill and current round.
+        """
+        Generate contextual clarifying questions based on the skill and current round.
 
         Questions are tailored to the specific skill being reviewed, using:
         - skill_name, skill_id from manifest
@@ -674,7 +676,8 @@ class InteractiveHITLHandler(FeedbackHandler):
     def _generate_questions_dynamic(
         self, manifest: dict, validation_report: dict, round_num: int
     ) -> list[dict]:
-        """Generate dynamic, domain-aware questions using LLM.
+        """
+        Generate dynamic, domain-aware questions using LLM.
 
         Uses DynamicQuestionGeneratorModule to create contextual questions
         that are specific to the task, domain, and skill being reviewed.
@@ -723,7 +726,8 @@ class InteractiveHITLHandler(FeedbackHandler):
         return self._generate_questions(manifest, validation_report, round_num)
 
     def _build_refinements(self, answers: dict) -> list[str]:
-        """Build list of refinements based on user answers.
+        """
+        Build list of refinements based on user answers.
 
         Uses the module-level REFINEMENT_MAP to convert user answer
         choices into actionable refinement suggestions.
@@ -756,7 +760,6 @@ class WebhookFeedbackHandler(FeedbackHandler):
         task_description: str = "",
     ) -> str:
         """Post to webhook and wait for approval response."""
-
         import time
 
         import requests
@@ -805,7 +808,8 @@ class WebhookFeedbackHandler(FeedbackHandler):
 
 
 def create_feedback_handler(handler_type: str = "auto", **kwargs) -> FeedbackHandler:
-    """Factory function for creating feedback handlers.
+    """
+    Factory function for creating feedback handlers.
 
     Args:
         handler_type: Type of handler
@@ -826,6 +830,7 @@ def create_feedback_handler(handler_type: str = "auto", **kwargs) -> FeedbackHan
 
         # For automated testing/CI
         handler = create_feedback_handler("auto")
+
     """
     handlers = {
         "auto": AutoApprovalHandler,

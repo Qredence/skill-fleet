@@ -1,4 +1,5 @@
-"""Capture and store LM reasoning traces throughout skill creation.
+"""
+Capture and store LM reasoning traces throughout skill creation.
 
 This module provides the ReasoningTracer class for capturing, displaying,
 and storing LM reasoning traces during the skill creation workflow.
@@ -36,10 +37,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    pass
+from typing import Any
 
 import dspy
 
@@ -48,7 +46,8 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ReasoningTrace:
-    """Single reasoning trace from a DSPy module call.
+    """
+    Single reasoning trace from a DSPy module call.
 
     Attributes:
         phase: Phase identifier (e.g., "phase1", "phase2")
@@ -58,6 +57,7 @@ class ReasoningTrace:
         inputs: Input values provided to the module
         outputs: Output values returned by the module
         trace_id: Unique identifier for this trace (ISO format timestamp)
+
     """
 
     phase: str
@@ -69,10 +69,12 @@ class ReasoningTrace:
     trace_id: str = field(default_factory=lambda: datetime.now().isoformat())
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert trace to dictionary for JSON serialization.
+        """
+        Convert trace to dictionary for JSON serialization.
 
         Returns:
             Dictionary representation of the trace
+
         """
         return {
             "trace_id": self.trace_id,
@@ -86,7 +88,8 @@ class ReasoningTrace:
 
 
 class ReasoningTracer:
-    """Capture reasoning traces during skill creation.
+    """
+    Capture reasoning traces during skill creation.
 
     This tracer supports multiple modes for different use cases:
     - CLI mode: Display reasoning in real-time with --verbose flag
@@ -120,6 +123,7 @@ class ReasoningTracer:
         >>> tracer.start_run("Create async Python skill")
         >>> # ... run modules ...
         >>> tracer.end_run(save_traces=True)
+
     """
 
     # Valid tracing modes
@@ -130,7 +134,8 @@ class ReasoningTracer:
         mode: str = "cli",
         output_dir: Path | None = None,
     ) -> None:
-        """Initialize ReasoningTracer.
+        """
+        Initialize ReasoningTracer.
 
         Args:
             mode: Tracing mode ("cli", "mlflow", "training", combined like "cli+mlflow", "none")
@@ -138,6 +143,7 @@ class ReasoningTracer:
 
         Raises:
             ValueError: If mode contains invalid components
+
         """
         # Parse combined mode
         mode_parts = mode.split("+") if "+" in mode else [mode]
@@ -160,7 +166,8 @@ class ReasoningTracer:
         self._save_traces = "training" in mode_parts
 
     def start_run(self, task_description: str, is_training: bool = False) -> None:
-        """Start a new tracing run.
+        """
+        Start a new tracing run.
 
         Args:
             task_description: Description of the skill being created
@@ -173,6 +180,7 @@ class ReasoningTracer:
             >>> # Combined mode
             >>> tracer = ReasoningTracer(mode="cli+mlflow+training")
             >>> tracer.start_run("Create async Python skill", is_training=True)
+
         """
         self.traces = []
 
@@ -198,7 +206,8 @@ class ReasoningTracer:
         result: dspy.Prediction,
         inputs: dict[str, Any],
     ) -> ReasoningTrace:
-        """Capture reasoning from a DSPy module result.
+        """
+        Capture reasoning from a DSPy module result.
 
         This method:
         1. Extracts reasoning from the DSPy Prediction result
@@ -223,6 +232,7 @@ class ReasoningTracer:
             ...     result=result,
             ...     inputs={"input": "test"}
             ... )
+
         """
         # Extract reasoning from DSPy Prediction
         reasoning = ""
@@ -260,10 +270,12 @@ class ReasoningTracer:
         return trace
 
     def _display_trace(self, trace: ReasoningTrace) -> None:
-        """Display reasoning in CLI with formatted output.
+        """
+        Display reasoning in CLI with formatted output.
 
         Args:
             trace: ReasoningTrace to display
+
         """
         print(f"\n{'=' * 70}")
         print(f"[{trace.phase.upper()}] {trace.step}")
@@ -279,10 +291,12 @@ class ReasoningTracer:
                 print(f"  • {key}: {value_str}")
 
     def _log_to_mlflow(self, trace: ReasoningTrace) -> None:
-        """Log reasoning trace to MLflow.
+        """
+        Log reasoning trace to MLflow.
 
         Args:
             trace: ReasoningTrace to log
+
         """
         try:
             import mlflow
@@ -305,7 +319,8 @@ class ReasoningTracer:
             logger.warning(f"Failed to log trace to MLflow: {e}")
 
     def end_run(self, save_traces: bool = False) -> None:
-        """End tracing run.
+        """
+        End tracing run.
 
         Args:
             save_traces: If True, save traces to file (training mode)
@@ -315,6 +330,7 @@ class ReasoningTracer:
 
             For training data collection:
             >>> tracer.end_run(save_traces=True)
+
         """
         if self._mlflow_run_id:
             try:
@@ -332,7 +348,8 @@ class ReasoningTracer:
             self._save_training_traces()
 
     def _save_training_traces(self) -> None:
-        """Save all traces to training data file.
+        """
+        Save all traces to training data file.
 
         Creates a JSONL file with one trace per line for easy processing.
         """
@@ -346,32 +363,38 @@ class ReasoningTracer:
         logger.info(f"Saved {len(self.traces)} traces to {output_file}")
 
     def get_traces_by_phase(self, phase: str) -> list[ReasoningTrace]:
-        """Get all traces for a specific phase.
+        """
+        Get all traces for a specific phase.
 
         Args:
             phase: Phase identifier (e.g., "phase1", "phase2")
 
         Returns:
             List of ReasoningTrace objects for the phase
+
         """
         return [t for t in self.traces if t.phase == phase]
 
     def get_traces_by_step(self, step: str) -> list[ReasoningTrace]:
-        """Get all traces for a specific step.
+        """
+        Get all traces for a specific step.
 
         Args:
             step: Step identifier (e.g., "extract_problem", "decide_novelty")
 
         Returns:
             List of ReasoningTrace objects for the step
+
         """
         return [t for t in self.traces if t.step == step]
 
     def to_dict_list(self) -> list[dict[str, Any]]:
-        """Convert all traces to a list of dictionaries.
+        """
+        Convert all traces to a list of dictionaries.
 
         Returns:
             List of trace dictionaries
+
         """
         return [trace.to_dict() for trace in self.traces]
 

@@ -1,4 +1,5 @@
-"""Optimization routes for DSPy program optimization.
+"""
+Optimization routes for DSPy program optimization.
 
 API-first approach for optimizing skill creation programs using
 MIPROv2 and BootstrapFewShot optimizers.
@@ -9,6 +10,10 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+
+# Import SkillOptimizer from optimization.py module (not optimization/ package)
+# Use importlib to force load the .py file instead of the package directory
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -21,11 +26,29 @@ from ...common.security import (
     sanitize_relative_file_path,
     sanitize_taxonomy_path,
 )
-from ...core.dspy.optimization.selector import (
+
+# Load the optimization.py file directly
+_optimization_file = Path(__file__).parent.parent.parent / "core/dspy/optimization.py"
+if _optimization_file.exists():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "skill_fleet.core.dspy._optimization_module", _optimization_file
+    )
+    if spec and spec.loader:
+        _optimization_module = importlib.util.module_from_spec(spec)
+        sys.modules["skill_fleet.core.dspy._optimization_module"] = _optimization_module
+        spec.loader.exec_module(_optimization_module)
+        SkillOptimizer = _optimization_module.SkillOptimizer
+    else:
+        raise ImportError("Could not load optimization.py module")
+else:
+    raise ImportError(f"optimization.py not found at {_optimization_file}")
+from ...core.dspy.optimization.selector import (  # noqa: E402
     OptimizerContext,
     OptimizerSelector,
 )
-from ..dependencies import SkillsRoot
+from ..dependencies import SkillsRoot  # noqa: E402
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -191,7 +214,8 @@ class RecommendResponse(BaseModel):
 
 @router.post("/recommend", response_model=RecommendResponse)
 async def recommend_optimizer(request: RecommendRequest) -> RecommendResponse:
-    """Recommend the best optimizer for given context.
+    """
+    Recommend the best optimizer for given context.
 
     Uses intelligent decision rules based on:
     - Training set size
@@ -245,7 +269,8 @@ async def fast_optimization(
     background_tasks: BackgroundTasks,
     skills_root: SkillsRoot,
 ) -> OptimizeResponse:
-    """Start a FAST optimization job using Reflection Metrics.
+    """
+    Start a FAST optimization job using Reflection Metrics.
 
     This is the recommended endpoint for quick iteration:
     - Uses BootstrapFewShot with Reflection Metrics
@@ -296,7 +321,8 @@ async def start_optimization(
     background_tasks: BackgroundTasks,
     skills_root: SkillsRoot,
 ) -> OptimizeResponse:
-    """Start an optimization job.
+    """
+    Start an optimization job.
 
     Optimization runs in the background. Use the returned job_id
     to check status via GET /optimization/status/{job_id}.
@@ -344,7 +370,8 @@ async def _run_fast_optimization(
     request: OptimizeRequest,
     skills_root: Path,
 ) -> None:
-    """Run fast optimization with Reflection Metrics in background.
+    """
+    Run fast optimization with Reflection Metrics in background.
 
     This is the recommended path for quick iteration:
     - Uses BootstrapFewShot with Reflection Metrics
@@ -424,8 +451,9 @@ async def _run_fast_optimization(
             save_file = resolve_path_within_root(save_dir, request.save_path)
             save_file.parent.mkdir(parents=True, exist_ok=True)
 
-            if hasattr(result, "save"):
-                result.save(str(save_file))
+            save_method = getattr(result, "save", None)
+            if callable(save_method):
+                save_method(str(save_file))
                 message = f"Optimization complete. Saved to {save_file}"
             else:
                 message = "Optimization complete (save not supported)"
@@ -456,7 +484,8 @@ async def _run_fast_optimization(
 def _reflection_metrics_optimize(
     training_examples: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    """Run reflection metrics optimization (sync, runs in thread).
+    """
+    Run reflection metrics optimization (sync, runs in thread).
 
     Uses BootstrapFewShot with Reflection Metrics for fast iteration.
     """
@@ -647,8 +676,9 @@ async def _run_optimization(
             save_file = resolve_path_within_root(save_dir, request.save_path)
             save_file.parent.mkdir(parents=True, exist_ok=True)
 
-            if hasattr(result, "save"):
-                result.save(str(save_file))
+            save_method = getattr(result, "save", None)
+            if callable(save_method):
+                save_method(str(save_file))
                 message = f"Optimization complete. Saved to {save_file}"
             else:
                 message = "Optimization complete (save not supported)"
@@ -799,7 +829,8 @@ async def list_optimizers() -> list[OptimizerInfo]:
 
 @router.delete("/jobs/{job_id}")
 async def cancel_optimization(job_id: str) -> dict[str, str]:
-    """Cancel or remove an optimization job.
+    """
+    Cancel or remove an optimization job.
 
     Note: Running jobs cannot be cancelled, only removed from tracking.
     """

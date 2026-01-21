@@ -862,6 +862,27 @@ uv run ruff format .
 
 ---
 
+## 📚 Documentation Navigation
+
+### Where to Start
+- **[docs/index.md](docs/index.md)** - Central documentation hub with all resources
+- **[README.md](README.md)** - Project overview and quick start
+- **[docs/getting-started/index.md](docs/getting-started/index.md)** - Installation and basic usage
+
+### Deep Dives by Topic
+- **[docs/dspy/](docs/dspy/)** - DSPy framework integration
+- **[docs/api/](docs/api/)** - REST API and endpoints
+- **[docs/cli/](docs/cli/)** - Command-line interface
+- **[docs/hitl/](docs/hitl/)** - Human-in-the-Loop system
+- **[docs/llm/](docs/llm/)** - LLM configuration
+
+### Advanced Topics
+- **[docs/overview.md](docs/overview.md)** - System architecture and taxonomy
+- **[docs/concepts/](docs/concepts/)** - Core concepts and compliance
+- **[docs/development/](docs/development/)** - Contributing and architecture decisions
+
+---
+
 ## 💡 Tips for AI Agents
 
 1. **Always read `SKILL.md` files** to understand skill format before creating new ones

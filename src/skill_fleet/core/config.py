@@ -1,4 +1,5 @@
-"""Configuration validation using Pydantic.
+"""
+Configuration validation using Pydantic.
 
 This module provides runtime validation for the Skills Fleet configuration,
 ensuring type safety and catching configuration errors early.
@@ -185,7 +186,8 @@ class LegacyAliases(BaseModel):
 
 
 class FleetConfig(BaseModel):
-    """Complete fleet configuration.
+    """
+    Complete fleet configuration.
 
     This is the main entry point for configuration validation. It validates
     the entire config.yaml structure and provides type-safe access to all
@@ -205,7 +207,8 @@ class FleetConfig(BaseModel):
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> FleetConfig:
-        """Create a FleetConfig from a dictionary.
+        """
+        Create a FleetConfig from a dictionary.
 
         Args:
             data: Dictionary representation of the config
@@ -215,6 +218,7 @@ class FleetConfig(BaseModel):
 
         Raises:
             ConfigurationError: If configuration is invalid
+
         """
         from skill_fleet.common import ConfigurationError
 
@@ -225,7 +229,8 @@ class FleetConfig(BaseModel):
 
     @classmethod
     def from_yaml(cls, config_path: str | Path) -> FleetConfig:
-        """Load and validate a fleet config from a YAML file.
+        """
+        Load and validate a fleet config from a YAML file.
 
         Args:
             config_path: Path to the config.yaml file
@@ -235,6 +240,7 @@ class FleetConfig(BaseModel):
 
         Raises:
             ConfigurationError: If file cannot be read or config is invalid
+
         """
         from skill_fleet.common import ConfigurationError
 
@@ -259,7 +265,8 @@ class FleetConfig(BaseModel):
         return cls.from_dict(raw)
 
     def get_model_config(self, task_name: str) -> tuple[str, ModelConfig, ModelParameters]:
-        """Get the resolved model configuration for a task.
+        """
+        Get the resolved model configuration for a task.
 
         This implements the model resolution hierarchy:
         1. Environment variable: FLEET_MODEL_{TASK_NAME}
@@ -276,6 +283,7 @@ class FleetConfig(BaseModel):
 
         Raises:
             ConfigurationError: If model cannot be resolved
+
         """
         from skill_fleet.common import ConfigurationError
 
@@ -352,10 +360,12 @@ class FleetConfig(BaseModel):
         return model_key, model_config, merged_params
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert the config back to a dictionary.
+        """
+        Convert the config back to a dictionary.
 
         Returns:
             Dictionary representation of the config
+
         """
         return self.model_dump(mode="json", exclude_none=True)
 
@@ -366,7 +376,8 @@ class FleetConfig(BaseModel):
 
 
 def load_config(config_path: str | Path = "config/config.yaml") -> FleetConfig:
-    """Load and validate the fleet configuration.
+    """
+    Load and validate the fleet configuration.
 
     This is the recommended way to load configuration in production code.
 
@@ -383,6 +394,7 @@ def load_config(config_path: str | Path = "config/config.yaml") -> FleetConfig:
         >>> config = load_config()
         >>> model_key, model_config, params = config.get_model_config("skill_understand")
         >>> print(f"Using model: {model_key}")
+
     """
     from ..common.paths import default_config_path
 
@@ -396,7 +408,8 @@ def load_config(config_path: str | Path = "config/config.yaml") -> FleetConfig:
 
 
 def validate_config(config_path: str | Path = "config/config.yaml") -> bool:
-    """Validate the configuration without loading it.
+    """
+    Validate the configuration without loading it.
 
     This is useful for pre-commit hooks and CI validation.
 
@@ -408,6 +421,7 @@ def validate_config(config_path: str | Path = "config/config.yaml") -> bool:
 
     Raises:
         ConfigurationError: If configuration is invalid
+
     """
     from ..common.paths import default_config_path
 

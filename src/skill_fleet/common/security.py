@@ -1,4 +1,5 @@
-"""Security utilities for path validation and sanitization.
+"""
+Security utilities for path validation and sanitization.
 
 This module provides centralized security functions for validating and sanitizing
 user-provided paths to prevent path traversal attacks and ensure paths remain
@@ -12,7 +13,8 @@ from pathlib import Path
 
 
 def sanitize_taxonomy_path(path: str) -> str | None:
-    """Sanitize a taxonomy path to prevent traversal attacks.
+    """
+    Sanitize a taxonomy path to prevent traversal attacks.
 
     Validates and normalizes a taxonomy-relative path to ensure it:
     - Is not empty
@@ -35,6 +37,7 @@ def sanitize_taxonomy_path(path: str) -> str | None:
         None
         >>> sanitize_taxonomy_path("path/with spaces")
         None
+
     """
     if not path:
         return None
@@ -63,7 +66,8 @@ def sanitize_taxonomy_path(path: str) -> str | None:
 
 
 def sanitize_relative_file_path(path: str) -> str | None:
-    """Sanitize a relative file path to prevent traversal attacks.
+    """
+    Sanitize a relative file path to prevent traversal attacks.
 
     Validates and normalizes a relative path to ensure it:
     - Is not empty
@@ -100,7 +104,8 @@ def sanitize_relative_file_path(path: str) -> str | None:
 
 
 def resolve_path_within_root(root: Path, relative_path: str) -> Path:
-    """Resolve a sanitized relative path under a root directory.
+    """
+    Resolve a sanitized relative path under a root directory.
 
     Returns an absolute path and raises ValueError if the resolved path escapes
     the given root directory (including via `..` segments or symlink traversal).
@@ -122,7 +127,8 @@ def resolve_path_within_root(root: Path, relative_path: str) -> Path:
 
 
 def is_safe_path_component(component: str) -> bool:
-    """Validate that a single path component is safe.
+    """
+    Validate that a single path component is safe.
 
     A safe component:
     - Is not empty
@@ -144,6 +150,7 @@ def is_safe_path_component(component: str) -> bool:
         False
         >>> is_safe_path_component("path/traversal")
         False
+
     """
     if not component:
         return False

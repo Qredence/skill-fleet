@@ -1,4 +1,5 @@
-"""CLI UI helpers.
+"""
+CLI UI helpers.
 
 This package contains small, testable UI abstractions used by Typer commands.
 The primary goal is to support richer terminal UX (arrow-key selection) while

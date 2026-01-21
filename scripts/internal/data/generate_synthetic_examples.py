@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Generate synthetic training examples for underrepresented categories.
+"""
+Generate synthetic training examples for underrepresented categories.
 
 This script creates diverse, realistic training examples based on common
 patterns in software development to reach the recommended 50-100 examples.
@@ -9,7 +10,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-
 
 # Synthetic training examples across diverse categories
 SYNTHETIC_EXAMPLES = [
@@ -54,7 +54,6 @@ SYNTHETIC_EXAMPLES = [
         "expected_description": "Configure Python logging with handlers, formatters, and log levels for production. Use for structured logging or debugging workflows.",
         "source": "synthetic",
     },
-    
     # Testing category
     {
         "task_description": "Create a testing pytest fixtures skill: Master pytest fixtures for test setup, teardown, and dependency injection. Use when writing maintainable tests with reusable test components and complex test scenarios.",
@@ -76,7 +75,6 @@ SYNTHETIC_EXAMPLES = [
         "expected_description": "Implement effective test mocking with unittest.mock and pytest-mock. Use when isolating units under test or mocking external services.",
         "source": "synthetic",
     },
-    
     # Web category
     {
         "task_description": "Create a web react hooks patterns skill: Master React hooks (useState, useEffect, useContext, custom hooks) for functional components. Use when building modern React applications with state management and side effects.",
@@ -108,7 +106,6 @@ SYNTHETIC_EXAMPLES = [
         "expected_description": "Implement JWT-based authentication with token generation and validation. Use when adding authentication to web APIs or SPAs.",
         "source": "synthetic",
     },
-    
     # DevOps category
     {
         "task_description": "Create a devops docker compose skill: Orchestrate multi-container applications with Docker Compose including service dependencies, networking, and volumes. Use when setting up development environments or deploying multi-service applications.",
@@ -140,7 +137,6 @@ SYNTHETIC_EXAMPLES = [
         "expected_description": "Manage environment-specific configuration with .env files and secrets. Use when configuring applications for different environments.",
         "source": "synthetic",
     },
-    
     # Database category
     {
         "task_description": "Create a database sql query optimization skill: Optimize SQL queries with indexes, query planning, and performance analysis. Use when diagnosing slow queries, improving database performance, or scaling data access.",
@@ -162,7 +158,6 @@ SYNTHETIC_EXAMPLES = [
         "expected_description": "Manage database schema changes with migration tools. Use when evolving database schemas or deploying schema changes.",
         "source": "synthetic",
     },
-    
     # Architecture category
     {
         "task_description": "Create an architecture dependency injection skill: Implement dependency injection patterns for loose coupling and testability. Use when building modular applications, improving testability, or managing object lifecycles.",
@@ -184,7 +179,6 @@ SYNTHETIC_EXAMPLES = [
         "expected_description": "Design event-driven architectures with message queues and event buses. Use when building scalable distributed systems.",
         "source": "synthetic",
     },
-    
     # API category
     {
         "task_description": "Create an api error responses skill: Design consistent API error responses with proper status codes, error messages, and error details. Use when building production APIs requiring clear error communication.",
@@ -216,7 +210,6 @@ SYNTHETIC_EXAMPLES = [
         "expected_description": "Implement API versioning strategies including URL and header versioning. Use when evolving APIs while maintaining compatibility.",
         "source": "synthetic",
     },
-    
     # Practices category
     {
         "task_description": "Create a practices code review skill: Conduct effective code reviews with checklists, best practices, and constructive feedback techniques. Use when establishing code review processes or improving code quality through peer review.",
@@ -248,7 +241,6 @@ SYNTHETIC_EXAMPLES = [
         "expected_description": "Write effective technical documentation with structure and examples. Use when documenting APIs or creating onboarding materials.",
         "source": "synthetic",
     },
-    
     # Domain category
     {
         "task_description": "Create a domain machine learning basics skill: Understand ML fundamentals including supervised learning, model training, and evaluation metrics. Use when starting ML projects, understanding model behavior, or implementing basic ML workflows.",
@@ -280,7 +272,6 @@ SYNTHETIC_EXAMPLES = [
         "expected_description": "Implement observability with metrics, logging, and tracing. Use when monitoring application health or debugging production issues.",
         "source": "synthetic",
     },
-    
     # Memory category
     {
         "task_description": "Create a memory caching strategies skill: Implement caching with Redis, in-memory caches, and cache invalidation strategies. Use when optimizing performance, reducing database load, or implementing distributed caching.",
@@ -296,25 +287,31 @@ SYNTHETIC_EXAMPLES = [
 
 
 def main():
+    """
+    Generate synthetic training examples.
+
+    Creates additional training examples by varying
+    existing examples with different task descriptions.
+    """
     # Load existing trainset_v3.json
     trainset_path = Path("config/training/trainset_v3.json")
-    
+
     if not trainset_path.exists():
         print(f"❌ {trainset_path} not found. Run expand_training_data.py first.")
         return
-    
+
     with trainset_path.open("r", encoding="utf-8") as f:
         existing_examples = json.load(f)
-    
+
     print("=" * 60)
     print("Synthetic Training Examples Generator")
     print("=" * 60)
     print(f"\n📦 Loaded {len(existing_examples)} existing examples")
     print(f"📝 Generating {len(SYNTHETIC_EXAMPLES)} synthetic examples")
-    
+
     # Combine existing and synthetic
     all_examples = existing_examples + SYNTHETIC_EXAMPLES
-    
+
     # Deduplicate by name
     seen_names = set()
     unique_examples = []
@@ -323,54 +320,54 @@ def main():
         if name and name not in seen_names:
             seen_names.add(name)
             unique_examples.append(example)
-    
+
     print(f"🔧 After deduplication: {len(unique_examples)} total examples")
-    
+
     # Save updated trainset
     output_path = Path("config/training/trainset_v4.json")
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     with output_path.open("w", encoding="utf-8") as f:
         json.dump(unique_examples, f, indent=2, ensure_ascii=False)
-    
+
     print(f"\n✅ Saved {len(unique_examples)} training examples to {output_path}")
-    
+
     # Print statistics
     print("\n" + "=" * 60)
     print("Final Training Set Statistics")
     print("=" * 60)
-    
+
     sources = {}
     categories = {}
     styles = {}
-    
+
     for example in unique_examples:
         source = example.get("source", "unknown")
         sources[source] = sources.get(source, 0) + 1
-        
+
         category = example.get("expected_taxonomy_path", "").split("/")[0]
         categories[category] = categories.get(category, 0) + 1
-        
+
         style = example.get("expected_skill_style", "unknown")
         styles[style] = styles.get(style, 0) + 1
-    
+
     print(f"\nTotal: {len(unique_examples)} examples")
     print(f"By source: {dict(sorted(sources.items()))}")
     print(f"By style: {dict(sorted(styles.items()))}")
     print(f"By category: {dict(sorted(categories.items()))}")
-    
+
     # DSPy readiness
     print("\n" + "=" * 60)
     print("DSPy Optimization Readiness")
     print("=" * 60)
-    
+
     if len(unique_examples) >= 50:
         print(f"✅ Excellent! {len(unique_examples)} examples meets DSPy best practices (50-100)")
         print("   Recommended: MIPROv2 with auto='medium' or auto='heavy'")
     else:
         print(f"⚠️  {len(unique_examples)} examples - close but below 50 threshold")
         print(f"   Need {50 - len(unique_examples)} more examples for optimal results")
-    
+
     print("\n" + "=" * 60)
 
 

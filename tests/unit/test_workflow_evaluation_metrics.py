@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 import dspy
 
 from skill_fleet.core.optimization.evaluation import (
@@ -46,7 +48,7 @@ def test_metadata_metric_scores_matches() -> None:
         }
     )
 
-    assert metadata_metric(gold, pred) > 0.7  # type: ignore[arg-type]
+    assert metadata_metric(gold, pred) > 0.7
 
 
 def test_content_quality_metric_requires_sections_and_code() -> None:
@@ -107,6 +109,6 @@ pass
         },
     )
 
-    score = skill_creation_metric(gold, pred)  # type: ignore[arg-type]
+    score = skill_creation_metric(gold, pred)
     assert 0.0 <= score <= 1.0
     assert score > 0.5

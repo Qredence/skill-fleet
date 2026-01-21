@@ -1,7 +1,5 @@
 """Tests for multi-select clarification questions."""
 
-import pytest
-
 from skill_fleet.api.schemas.hitl import (
     StructuredQuestion,
     _dict_to_structured_question,

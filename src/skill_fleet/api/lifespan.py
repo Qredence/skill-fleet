@@ -1,4 +1,5 @@
-"""FastAPI lifespan management for job persistence.
+"""
+FastAPI lifespan management for job persistence.
 
 Handles:
 1. Initialization of JobManager with database backing at startup
@@ -20,7 +21,8 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """FastAPI lifespan context manager for startup/shutdown.
+    """
+    FastAPI lifespan context manager for startup/shutdown.
 
     Startup (before yield):
     - Initialize database and create tables
@@ -92,7 +94,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 async def _cleanup_expired_jobs() -> None:
-    """Background task: Periodically clean up expired jobs from memory cache.
+    """
+    Background task: Periodically clean up expired jobs from memory cache.
 
     Runs every 5 minutes. Removes jobs from memory that are older than the
     TTL (default: 60 minutes). These jobs remain in the database for durability.

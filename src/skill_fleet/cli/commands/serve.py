@@ -20,7 +20,8 @@ async def _ask_server_config(
     auto_accept: bool,
     force_plain_text: bool,
 ) -> tuple[int, str, bool]:
-    """Ask clarifying questions about server configuration.
+    """
+    Ask clarifying questions about server configuration.
 
     Returns:
         (port, host, reload)
@@ -96,11 +97,12 @@ def serve_command(
         help="Skip database initialization (assumes DB already initialized)",
     ),
 ):
-    """Start the Skill Fleet API server.
+    """
+    Start the Skill Fleet API server.
 
     Interactively asks for configuration (port, host, reload mode) unless
     --auto-accept is specified.
-    
+
     Automatically initializes the database on startup unless --skip-db-init
     is specified.
     """
@@ -116,7 +118,7 @@ def serve_command(
             console.print("[dim]✅ Database initialized[/dim]")
         except Exception as e:
             console.print(f"[red]❌ Database initialization failed: {e}[/red]")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
 
     # Ask for configuration
     final_port, final_host, final_reload = asyncio.run(

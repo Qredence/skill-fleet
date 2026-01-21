@@ -25,7 +25,7 @@ def get_migration_script_path() -> str:
     """Get the path to the migration SQL file."""
     current_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(current_dir)
-    return os.path.join(project_root, 'migrations', '001_init_skills_schema.sql')
+    return os.path.join(project_root, "migrations", "001_init_skills_schema.sql")
 
 
 def read_migration_script() -> str:
@@ -33,7 +33,7 @@ def read_migration_script() -> str:
     migration_path = get_migration_script_path()
     if not os.path.exists(migration_path):
         raise FileNotFoundError(f"Migration file not found: {migration_path}")
-    with open(migration_path, 'r') as f:
+    with open(migration_path) as f:
         return f.read()
 
 
@@ -47,9 +47,9 @@ def apply_migration() -> None:
     3. Create all tables, indexes, enums, and views
     """
     # Get database URL from environment or default
-    database_url = os.getenv('DATABASE_URL', DATABASE_URL)
+    database_url = os.getenv("DATABASE_URL", DATABASE_URL)
 
-    print(f"Connecting to Neon database...")
+    print("Connecting to Neon database...")
     print(f"Database: {database_url.split('@')[1] if '@' in database_url else 'unknown'}")
 
     # Read migration script
@@ -60,52 +60,51 @@ def apply_migration() -> None:
     # Connect and apply migration
     print("\n🚀 Applying migration...")
     try:
-        with psycopg.connect(database_url, autocommit=True) as conn:
-            with conn.cursor() as cur:
-                # Execute the migration
-                cur.execute(migration_sql)
+        with psycopg.connect(database_url, autocommit=True) as conn, conn.cursor() as cur:
+            # Execute the migration
+            cur.execute(migration_sql)
 
-                # Verify tables were created
-                cur.execute("""
+            # Verify tables were created
+            cur.execute("""
                     SELECT table_name
                     FROM information_schema.tables
                     WHERE table_schema = 'public'
                     ORDER BY table_name;
                 """)
-                tables = [row[0] for row in cur.fetchall()]
+            tables = [row[0] for row in cur.fetchall()]
 
-                # Verify enums were created
-                cur.execute("""
+            # Verify enums were created
+            cur.execute("""
                     SELECT typname
                     FROM pg_type
                     WHERE typtype = 'e'
                     ORDER BY typname;
                 """)
-                enums = [row[0] for row in cur.fetchall()]
+            enums = [row[0] for row in cur.fetchall()]
 
-                # Verify views were created
-                cur.execute("""
+            # Verify views were created
+            cur.execute("""
                     SELECT table_name
                     FROM information_schema.views
                     WHERE table_schema = 'public'
                     ORDER BY table_name;
                 """)
-                views = [row[0] for row in cur.fetchall()]
+            views = [row[0] for row in cur.fetchall()]
 
         print("\n✅ Migration applied successfully!")
-        print(f"\n📊 Summary:")
+        print("\n📊 Summary:")
         print(f"   - {len(tables)} tables created")
         print(f"   - {len(enums)} enum types created")
         print(f"   - {len(views)} views created")
-        print(f"\n📋 Tables:")
+        print("\n📋 Tables:")
         for table in tables[:10]:  # Show first 10
             print(f"   - {table}")
         if len(tables) > 10:
             print(f"   ... and {len(tables) - 10} more")
-        print(f"\n🔷 Enums:")
+        print("\n🔷 Enums:")
         for enum in enums:
             print(f"   - {enum}")
-        print(f"\n👁️  Views:")
+        print("\n👁️  Views:")
         for view in views:
             print(f"   - {view}")
 
@@ -116,12 +115,11 @@ def apply_migration() -> None:
 
 def check_database_exists() -> bool:
     """Check if the database connection works."""
-    database_url = os.getenv('DATABASE_URL', DATABASE_URL)
+    database_url = os.getenv("DATABASE_URL", DATABASE_URL)
     try:
-        with psycopg.connect(database_url, autocommit=True) as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT 1")
-                return True
+        with psycopg.connect(database_url, autocommit=True) as conn, conn.cursor() as cur:
+            cur.execute("SELECT 1")
+            return True
     except psycopg.Error:
         return False
 
@@ -147,7 +145,7 @@ def main() -> int:
     # Confirm before proceeding
     print("\n⚠️  This will create/modify database tables.")
     response = input("Proceed? (yes/no): ").strip().lower()
-    if response not in ('yes', 'y'):
+    if response not in ("yes", "y"):
         print("Migration cancelled.")
         return 0
 
@@ -161,9 +159,10 @@ def main() -> int:
     except Exception as e:
         print(f"\n❌ Error: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

@@ -51,12 +51,12 @@ def validate_command(
     errors = results.get("errors")
     if errors:
         print("errors:")
-        for message in cast(list[str], errors):
+        for message in cast("list[str]", errors):
             print(f"- {message}")
     warnings = results.get("warnings")
     if warnings:
         print("warnings:")
-        for message in cast(list[str], warnings):
+        for message in cast("list[str]", warnings):
             print(f"- {message}")
 
     if not results.get("passed"):

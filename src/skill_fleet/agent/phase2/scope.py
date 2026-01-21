@@ -1,4 +1,5 @@
-"""Phase 2: Scope & Boundaries - Decision module with reasoning trace capture.
+"""
+Phase 2: Scope & Boundaries - Decision module with reasoning trace capture.
 
 This module implements Phase 2 of the skill creation workflow from
 skill-creation-guidelines.md lines 240-353.
@@ -35,7 +36,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import dspy
 
@@ -52,14 +53,12 @@ from .signatures import (
     ValidateDependencies,
 )
 
-if TYPE_CHECKING:
-    pass
-
 logger = logging.getLogger(__name__)
 
 
 class Phase2Scope(dspy.Module):
-    """Phase 2: Scope & Boundaries with explicit decision trees.
+    """
+    Phase 2: Scope & Boundaries with explicit decision trees.
 
     This module implements the 6-step decision process from Phase 2:
     1. Confirm the skill type from Phase 1
@@ -87,6 +86,7 @@ class Phase2Scope(dspy.Module):
         generate_metadata: Metadata generation module
         phase2_checkpoint: Checkpoint validation module
         tracer: Reasoning tracer instance
+
     """
 
     def __init__(
@@ -94,11 +94,13 @@ class Phase2Scope(dspy.Module):
         reasoning_tracer: ReasoningTracer | None = None,
         quality_assured: bool = False,
     ) -> None:
-        """Initialize Phase2Scope module.
+        """
+        Initialize Phase2Scope module.
 
         Args:
             reasoning_tracer: Optional tracer for capturing reasoning traces
             quality_assured: Whether to enable quality assurance wrappers
+
         """
         super().__init__()
 
@@ -123,7 +125,8 @@ class Phase2Scope(dspy.Module):
         parent_skills: list | str = "",
         existing_taxonomy: dict | str = "",
     ) -> dict[str, Any]:
-        """Execute Phase 2 with reasoning capture.
+        """
+        Execute Phase 2 with reasoning capture.
 
         This method runs all 6 decision steps in sequence, capturing
         reasoning traces at each step.
@@ -152,6 +155,7 @@ class Phase2Scope(dspy.Module):
             ...     existing_taxonomy={}
             ... )
             >>> print(result["weight"])  # e.g., "medium"
+
         """
         results = {}
 
@@ -370,7 +374,8 @@ class Phase2Scope(dspy.Module):
         parent_skills: list | str = "",
         existing_taxonomy: dict | str = "",
     ) -> dict[str, Any]:
-        """Asynchronously execute Phase 2 with reasoning capture.
+        """
+        Asynchronously execute Phase 2 with reasoning capture.
 
         Mirrors `forward()` but awaits DSPy sub-modules via `.acall()`.
         """

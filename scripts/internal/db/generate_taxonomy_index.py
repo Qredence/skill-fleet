@@ -1,4 +1,5 @@
-"""Generate the taxonomy_index.json from the taxonomy mapping report.
+"""
+Generate the taxonomy_index.json from the taxonomy mapping report.
 
 This script parses reports/taxonomy-map.md and converts it into the
 skills/taxonomy_index.json format using the new TaxonomyIndex models.

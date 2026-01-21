@@ -1,14 +1,11 @@
 """Tests for TrainingDataManager."""
 
 import json
-from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 
 from skill_fleet.config.training.manager import (
     ExampleMetadata,
-    TrainingDataConfig,
     TrainingDataManager,
 )
 
@@ -85,7 +82,7 @@ def test_update_scores(temp_training_dir):
     # Setup initial metadata
     import hashlib
 
-    id1 = hashlib.md5("Task 1".encode()).hexdigest()
+    id1 = hashlib.md5(b"Task 1").hexdigest()
 
     manager._metadata = {
         id1: ExampleMetadata(

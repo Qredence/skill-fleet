@@ -1,8 +1,8 @@
-"""DSPy optimization modules.
+"""
+DSPy optimization modules.
 
 This package provides:
 - OptimizerSelector: Intelligent auto-selection of DSPy optimizers
-- SkillOptimizer: Core optimization functionality
 """
 
 from __future__ import annotations

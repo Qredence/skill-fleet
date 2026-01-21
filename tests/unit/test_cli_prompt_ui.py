@@ -122,7 +122,7 @@ class TestChooseWithOther:
 
         # Act
         selected, free_text = await choose_one_with_other(
-            cast(PromptUI, _FakeUI()),
+            cast("PromptUI", _FakeUI()),
             "Pick one",
             [("a", "A"), ("b", "B")],
         )
@@ -146,7 +146,7 @@ class TestChooseWithOther:
 
         # Act
         selected, free_text = await choose_many_with_other(
-            cast(PromptUI, _FakeUI()),
+            cast("PromptUI", _FakeUI()),
             "Pick many",
             [("a", "A"), ("b", "B")],
         )

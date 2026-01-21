@@ -1,4 +1,5 @@
-"""Chat streaming endpoints for real-time assistant responses.
+"""
+Chat streaming endpoints for real-time assistant responses.
 
 Provides Server-Sent Events (SSE) endpoints for streaming thinking
 content, reasoning, and responses in real-time.
@@ -40,7 +41,8 @@ class ChatStreamEvent(BaseModel):
 
 @router.post("/stream")
 async def chat_stream(request: ChatMessageRequest):
-    """Stream real-time chat response with thinking process.
+    """
+    Stream real-time chat response with thinking process.
 
     This endpoint streams Server-Sent Events (SSE) that include:
     - **thinking**: Intermediate reasoning steps
@@ -67,19 +69,21 @@ async def chat_stream(request: ChatMessageRequest):
 
     Returns:
         Server-Sent Events stream
+
     """
     logger.info(f"Chat stream request received: message='{request.message}'")
-    
+
     try:
         # Check DSPy configuration
         import dspy
-        if not hasattr(dspy.settings, 'lm') or dspy.settings.lm is None:
+
+        if not hasattr(dspy.settings, "lm") or dspy.settings.lm is None:
             logger.error("DSPy not configured - no LM available")
             raise HTTPException(
                 status_code=503,
-                detail="DSPy not configured. Please ensure GOOGLE_API_KEY is set and server was restarted."
+                detail="DSPy not configured. Please ensure GOOGLE_API_KEY is set and server was restarted.",
             )
-        
+
         logger.info(f"DSPy LM configured: {dspy.settings.lm}")
         assistant = StreamingAssistant()
         logger.info("StreamingAssistant initialized")
@@ -97,7 +101,10 @@ async def chat_stream(request: ChatMessageRequest):
                 logger.info(f"Streaming completed successfully ({event_count} events)")
             except Exception as e:
                 logger.exception("Error during streaming generation")
-                yield {"type": "error", "data": json.dumps({"error": str(e), "type": type(e).__name__})}
+                yield {
+                    "type": "error",
+                    "data": json.dumps({"error": str(e), "type": type(e).__name__}),
+                }
 
         # Convert to SSE format and return as StreamingResponse
         logger.info("Creating StreamingResponse")
@@ -115,12 +122,15 @@ async def chat_stream(request: ChatMessageRequest):
         raise
     except Exception as e:
         logger.exception("Error in chat stream endpoint")
-        raise HTTPException(status_code=500, detail=f"Internal error: {type(e).__name__}: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Internal error: {type(e).__name__}: {str(e)}"
+        ) from e
 
 
 @router.post("/sync")
 async def chat_sync(request: ChatMessageRequest) -> dict[str, Any]:
-    """Non-streaming chat response (for compatibility).
+    """
+    Non-streaming chat response (for compatibility).
 
     Collects all streaming events and returns as complete response.
 
@@ -129,6 +139,7 @@ async def chat_sync(request: ChatMessageRequest) -> dict[str, Any]:
 
     Returns:
         Complete response with thinking summary and response
+
     """
     try:
         assistant = StreamingAssistant()
@@ -169,4 +180,4 @@ async def chat_sync(request: ChatMessageRequest) -> dict[str, Any]:
         raise
     except Exception as e:
         logger.exception("Error in sync chat")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e

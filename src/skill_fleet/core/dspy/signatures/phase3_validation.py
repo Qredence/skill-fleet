@@ -1,4 +1,5 @@
-"""DSPy signatures for Phase 3: Validation & Refinement.
+"""
+DSPy signatures for Phase 3: Validation & Refinement.
 
 Phase 3 validates the generated skill content and iteratively refines
 it based on validation results and user feedback.
@@ -27,7 +28,8 @@ from ...models import (
 
 
 class ValidateSkill(dspy.Signature):
-    """Validate skill against agentskills.io spec and quality standards.
+    """
+    Validate skill against agentskills.io spec and quality standards.
 
     Check: (1) spec compliance (frontmatter, kebab-case name), (2) content quality
     (sections, examples, patterns), (3) structure (markdown, links), (4) metadata consistency.
@@ -79,7 +81,8 @@ class ValidateSkill(dspy.Signature):
 
 
 class AnalyzeValidationIssues(dspy.Signature):
-    """Categorize validation issues and plan fixes.
+    """
+    Categorize validation issues and plan fixes.
 
     Determine: auto-fixable vs. needs user input, fix strategies, priority, grouped fixes.
     Enable efficient batch processing of issues.
@@ -89,9 +92,7 @@ class AnalyzeValidationIssues(dspy.Signature):
     validation_report: str = dspy.InputField(
         desc="JSON ValidationReport with all issues, warnings, and quality scores"
     )
-    skill_content: str = dspy.InputField(
-        desc="Current SKILL.md content that has validation issues"
-    )
+    skill_content: str = dspy.InputField(desc="Current SKILL.md content that has validation issues")
 
     # Outputs
     auto_fixable_issues: list[ValidationCheckItem] = dspy.OutputField(
@@ -120,16 +121,15 @@ class AnalyzeValidationIssues(dspy.Signature):
 
 
 class RefineSkillFromFeedback(dspy.Signature):
-    """Apply fixes to skill content addressing validation issues and user feedback.
+    """
+    Apply fixes to skill content addressing validation issues and user feedback.
 
     Prioritize critical issues, maintain quality, preserve strengths.
     Use iterative refinement with dspy.Refine module. Stop when quality threshold met.
     """
 
     # Inputs
-    current_content: str = dspy.InputField(
-        desc="Current SKILL.md content requiring refinement"
-    )
+    current_content: str = dspy.InputField(desc="Current SKILL.md content requiring refinement")
     validation_issues: str = dspy.InputField(
         desc="JSON array of ValidationCheckItem objects ordered by severity (critical first)"
     )
@@ -174,16 +174,15 @@ class RefineSkillFromFeedback(dspy.Signature):
 
 
 class GenerateAutoFix(dspy.Signature):
-    """Generate automatic fix for a single validation issue.
+    """
+    Generate automatic fix for a single validation issue.
 
     Apply targeted fix without affecting other content. Common fixes: frontmatter, kebab-case,
     markdown format, missing sections, broken links. Preserve quality and style.
     """
 
     # Inputs
-    skill_content: str = dspy.InputField(
-        desc="Current SKILL.md content with the validation issue"
-    )
+    skill_content: str = dspy.InputField(desc="Current SKILL.md content with the validation issue")
     issue: ValidationCheckItem = dspy.InputField(
         desc="Specific issue to fix (has: check_id, severity, message, suggested_fix)"
     )
@@ -212,16 +211,15 @@ class GenerateAutoFix(dspy.Signature):
 
 
 class AssessSkillQuality(dspy.Signature):
-    """Assess content quality beyond structural validation.
+    """
+    Assess content quality beyond structural validation.
 
     Evaluate: example clarity, writing engagement, explanation depth, practical usefulness.
     Use skill_quality_metric criteria. Provide actionable feedback for refinement.
     """
 
     # Inputs
-    skill_content: str = dspy.InputField(
-        desc="Complete SKILL.md content to assess"
-    )
+    skill_content: str = dspy.InputField(desc="Complete SKILL.md content to assess")
     skill_metadata: SkillMetadata = dspy.InputField(
         desc="Metadata for context: name, description, target audience"
     )

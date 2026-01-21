@@ -1,4 +1,5 @@
-"""Database management commands.
+"""
+Database management commands.
 
 Provides CLI commands for:
 - Initializing database schema
@@ -25,7 +26,8 @@ def init(
         help="Force re-creation of all tables (WARNING: will delete data)",
     ),
 ) -> None:
-    """Initialize database schema.
+    """
+    Initialize database schema.
 
     Creates all necessary tables for skills-fleet persistence.
     Idempotent - safe to run multiple times.
@@ -63,15 +65,16 @@ def init(
     except Exception as e:
         logger.error(f"Failed to initialize database: {e}", exc_info=True)
         typer.echo(f"\n❌ Error: {e}\n", err=True)
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
-from sqlalchemy import text
+from sqlalchemy import text  # noqa: E402
 
 
 @db_app.command()
 def status() -> None:
-    """Check database connection and table status.
+    """
+    Check database connection and table status.
 
     Verifies that the database is accessible and all required
     tables exist.
@@ -115,12 +118,13 @@ def status() -> None:
     except Exception as e:
         logger.error(f"Database health check failed: {e}", exc_info=True)
         typer.echo(f"\n❌ Error: {e}\n", err=True)
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 @db_app.command()
 def migrate() -> None:
-    """Run database migrations.
+    """
+    Run database migrations.
 
     Currently, migrations are handled automatically via SQLAlchemy
     in the init command. This is a placeholder for future migration
@@ -138,7 +142,8 @@ def reset_db(
         help="Skip confirmation prompt",
     ),
 ) -> None:
-    """Reset database to empty state (DEVELOPMENT ONLY).
+    """
+    Reset database to empty state (DEVELOPMENT ONLY).
 
     WARNING: This will delete ALL data. Use only in development.
     """
@@ -165,4 +170,4 @@ def reset_db(
     except Exception as e:
         logger.error(f"Failed to reset database: {e}", exc_info=True)
         typer.echo(f"\n❌ Error: {e}\n", err=True)
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e

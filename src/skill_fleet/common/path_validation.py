@@ -1,4 +1,5 @@
-"""Path validation utilities for security and safe filesystem operations.
+"""
+Path validation utilities for security and safe filesystem operations.
 
 This module consolidates path validation logic from multiple locations to ensure
 consistent security and prevent path traversal attacks.
@@ -21,7 +22,8 @@ SAFE_COMPONENT_PATTERN = re.compile(r"^[a-zA-Z0-9_.\-/]+$")
 
 
 def sanitize_taxonomy_path(path: str) -> str | None:
-    """Validate and sanitize a taxonomy path.
+    """
+    Validate and sanitize a taxonomy path.
 
     Args:
         path: The taxonomy path to validate (e.g., "python/fastapi")
@@ -36,6 +38,7 @@ def sanitize_taxonomy_path(path: str) -> str | None:
         None
         >>> sanitize_taxonomy_path("python/../../etc")
         None
+
     """
     if not path:
         return None
@@ -61,7 +64,8 @@ def sanitize_taxonomy_path(path: str) -> str | None:
 
 
 def sanitize_relative_file_path(path: str) -> str | None:
-    """Validate and sanitize a relative file path.
+    """
+    Validate and sanitize a relative file path.
 
     Args:
         path: The relative file path to validate
@@ -74,6 +78,7 @@ def sanitize_relative_file_path(path: str) -> str | None:
         "skills/python/async.md"
         >>> sanitize_relative_file_path("../config.yaml")
         None
+
     """
     if not path:
         return None
@@ -99,7 +104,8 @@ def sanitize_relative_file_path(path: str) -> str | None:
 
 
 def resolve_path_within_root(root: Path, relative_path: str) -> Path:
-    """Resolve a relative path within a root directory, ensuring safety.
+    """
+    Resolve a relative path within a root directory, ensuring safety.
 
     This function validates that the resolved absolute path is within
     the specified root directory to prevent path traversal attacks.
@@ -114,6 +120,7 @@ def resolve_path_within_root(root: Path, relative_path: str) -> Path:
     Raises:
         ValueError: If the path would escape the root directory
         FileNotFoundError: If the root directory doesn't exist
+
     """
     if not root.is_absolute():
         raise ValueError("Root must be an absolute path")
@@ -132,7 +139,8 @@ def resolve_path_within_root(root: Path, relative_path: str) -> Path:
 
 
 def resolve_skill_md_path(skills_root: Path, taxonomy_path: str) -> Path:
-    """Resolve the path to a skill's SKILL.md file atomically.
+    """
+    Resolve the path to a skill's SKILL.md file atomically.
 
     This function is TOCTOU (time-of-check-time-of-use) safe and
     prevents symlink-based path traversal attacks.
@@ -147,6 +155,7 @@ def resolve_skill_md_path(skills_root: Path, taxonomy_path: str) -> Path:
     Raises:
         ValueError: If the path is invalid or escapes the skills root
         FileNotFoundError: If the SKILL.md file doesn't exist
+
     """
     # Sanitize and validate taxonomy path
     safe_taxonomy_path = sanitize_taxonomy_path(taxonomy_path)
@@ -178,7 +187,8 @@ def resolve_skill_md_path(skills_root: Path, taxonomy_path: str) -> Path:
 
 
 def is_safe_path_component(component: str) -> bool:
-    """Check if a path component is safe (no special characters or patterns).
+    """
+    Check if a path component is safe (no special characters or patterns).
 
     Args:
         component: A single path component (e.g., "python", "fastapi")
@@ -193,6 +203,7 @@ def is_safe_path_component(component: str) -> bool:
         False
         >>> is_safe_path_component("file:name")
         False
+
     """
     if not component:
         return False

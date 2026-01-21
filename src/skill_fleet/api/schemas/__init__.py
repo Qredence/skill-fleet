@@ -1,4 +1,5 @@
-"""API schemas package.
+"""
+API schemas package.
 
 Pydantic models for request/response validation are defined here,
 following the codebase pattern (see core/models.py).

@@ -1,4 +1,5 @@
-"""Phase 1: Understanding the Need - Decision module with reasoning trace capture.
+"""
+Phase 1: Understanding the Need - Decision module with reasoning trace capture.
 
 This module implements Phase 1 of the skill creation workflow from
 skill-creation-guidelines.md lines 191-239.
@@ -34,7 +35,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import dspy
 
@@ -49,14 +50,12 @@ from .signatures import (
     ProposeTaxonomyPath,
 )
 
-if TYPE_CHECKING:
-    pass
-
 logger = logging.getLogger(__name__)
 
 
 class Phase1Understand(dspy.Module):
-    """Phase 1: Understanding the Need with explicit decision modules.
+    """
+    Phase 1: Understanding the Need with explicit decision modules.
 
     This module implements the 5-step decision process from Phase 1:
     1. Extract a clear problem statement
@@ -82,6 +81,7 @@ class Phase1Understand(dspy.Module):
         propose_taxonomy_path: Taxonomy path proposal module
         phase1_checkpoint: Checkpoint validation module
         tracer: Reasoning tracer instance
+
     """
 
     def __init__(
@@ -89,11 +89,13 @@ class Phase1Understand(dspy.Module):
         reasoning_tracer: ReasoningTracer | None = None,
         quality_assured: bool = False,
     ) -> None:
-        """Initialize Phase1Understand module.
+        """
+        Initialize Phase1Understand module.
 
         Args:
             reasoning_tracer: Optional tracer for capturing reasoning traces
             quality_assured: Whether to enable quality assurance wrappers
+
         """
         super().__init__()
 
@@ -117,7 +119,8 @@ class Phase1Understand(dspy.Module):
         existing_skills: list | str = "",
         taxonomy_structure: dict | str = "",
     ) -> dict[str, Any]:
-        """Execute Phase 1 with reasoning capture.
+        """
+        Execute Phase 1 with reasoning capture.
 
         This method runs all 5 decision steps in sequence, capturing
         reasoning traces at each step.
@@ -151,6 +154,7 @@ class Phase1Understand(dspy.Module):
             ...     taxonomy_structure={}
             ... )
             >>> print(result["skill_type"])  # e.g., "technical"
+
         """
         results = {}
 
@@ -314,7 +318,8 @@ class Phase1Understand(dspy.Module):
         existing_skills: list | str = "",
         taxonomy_structure: dict | str = "",
     ) -> dict[str, Any]:
-        """Asynchronously execute Phase 1 with reasoning capture.
+        """
+        Asynchronously execute Phase 1 with reasoning capture.
 
         DSPy supports async execution via `.acall()` on modules (see dspy.ai
         async tutorial). This implementation mirrors `forward()` but awaits the
@@ -468,13 +473,15 @@ class Phase1Understand(dspy.Module):
         return results
 
     def _preliminary_classify(self, problem_statement: str) -> str:
-        """Quick preliminary classification for overlap detection.
+        """
+        Quick preliminary classification for overlap detection.
 
         Args:
             problem_statement: Problem statement to classify
 
         Returns:
             Preliminary skill type
+
         """
         # Simple heuristic-based classification
         # This will be refined by the actual ClassifyDomain module

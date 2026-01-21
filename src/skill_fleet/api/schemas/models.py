@@ -1,4 +1,5 @@
-"""Pydantic schemas for API models.
+"""
+Pydantic schemas for API models.
 
 Following FastAPI best practices and codebase patterns (see core/models.py),
 all Pydantic models for request/response validation are defined in this module.
@@ -9,7 +10,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_serializer, model_validator
 

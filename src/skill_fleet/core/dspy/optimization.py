@@ -1,4 +1,5 @@
-"""DSPy optimization module for improving skill generation quality.
+"""
+DSPy optimization module for improving skill generation quality.
 
 This module provides optimization capabilities using DSPy's MIPROv2 and
 BootstrapFewShot optimizers to improve skill creation programs.
@@ -37,11 +38,14 @@ from typing import Any, Literal, cast
 import dspy
 import yaml
 
-from ...common.paths import default_config_path, find_repo_root
-from ...llm.dspy_config import configure_dspy
-from .evaluation import SkillEvaluator
-from .metrics import skill_quality_metric
-from .training import GoldStandardLoader
+from ...common.paths import (  # type: ignore[unresolved-import]
+    default_config_path,
+    find_repo_root,
+)
+from ...llm.dspy_config import configure_dspy  # type: ignore[unresolved-import]
+from .evaluation import SkillEvaluator  # type: ignore[unresolved-import]
+from .metrics import skill_quality_metric  # type: ignore[unresolved-import]
+from .training import GoldStandardLoader  # type: ignore[unresolved-import]
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +97,8 @@ Time: {self.optimization_time_seconds:.1f}s
 
 
 class SkillOptimizer:
-    """Optimizer for skill creation programs.
+    """
+    Optimizer for skill creation programs.
 
     This class provides methods for optimizing DSPy programs using
     MIPROv2 or BootstrapFewShot optimizers.
@@ -104,11 +109,13 @@ class SkillOptimizer:
         config_path: Path | None = None,
         configure_lm: bool = True,
     ):
-        """Initialize the optimizer.
+        """
+        Initialize the optimizer.
 
         Args:
             config_path: Path to config.yaml (default: auto-detect)
             configure_lm: Whether to configure DSPy LM on init
+
         """
         self.config_path = config_path or default_config_path()
         self.config = self._load_config()
@@ -147,7 +154,8 @@ class SkillOptimizer:
         optimizer_type: OptimizerType | None = None,
         **kwargs,
     ) -> dspy.Module:
-        """Optimize a skill creation program.
+        """
+        Optimize a skill creation program.
 
         Args:
             program: DSPy program to optimize
@@ -157,6 +165,7 @@ class SkillOptimizer:
 
         Returns:
             Optimized DSPy program
+
         """
         # Load training set if not provided
         if trainset is None:
@@ -186,7 +195,8 @@ class SkillOptimizer:
         trainset: list[dspy.Example],
         **kwargs,
     ) -> dspy.Module:
-        """Optimize using MIPROv2.
+        """
+        Optimize using MIPROv2.
 
         Args:
             program: Program to optimize
@@ -195,6 +205,7 @@ class SkillOptimizer:
 
         Returns:
             Optimized program
+
         """
         from dspy.teleprompt import MIPROv2
 
@@ -230,7 +241,8 @@ class SkillOptimizer:
         trainset: list[dspy.Example],
         **kwargs,
     ) -> dspy.Module:
-        """Optimize using BootstrapFewShot.
+        """
+        Optimize using BootstrapFewShot.
 
         Args:
             program: Program to optimize
@@ -239,6 +251,7 @@ class SkillOptimizer:
 
         Returns:
             Optimized program
+
         """
         from dspy.teleprompt import BootstrapFewShot
 
@@ -270,7 +283,8 @@ class SkillOptimizer:
         save_program: bool = True,
         program_name: str | None = None,
     ) -> tuple[dspy.Module, OptimizationResult]:
-        """Optimize a program and evaluate improvement.
+        """
+        Optimize a program and evaluate improvement.
 
         Args:
             program: Program to optimize
@@ -282,6 +296,7 @@ class SkillOptimizer:
 
         Returns:
             Tuple of (optimized_program, optimization_result)
+
         """
         import time
 
@@ -359,7 +374,8 @@ class SkillOptimizer:
         program: dspy.Module,
         name: str,
     ) -> Path:
-        """Save an optimized program to disk.
+        """
+        Save an optimized program to disk.
 
         Args:
             program: Optimized program to save
@@ -367,6 +383,7 @@ class SkillOptimizer:
 
         Returns:
             Path to saved program directory
+
         """
         program_dir = self.optimized_dir / name
         program_dir.mkdir(parents=True, exist_ok=True)
@@ -391,7 +408,8 @@ class SkillOptimizer:
         name: str,
         program_class: type[dspy.Module] | None = None,
     ) -> dspy.Module | None:
-        """Load a previously saved optimized program.
+        """
+        Load a previously saved optimized program.
 
         Args:
             name: Name of the saved program
@@ -399,6 +417,7 @@ class SkillOptimizer:
 
         Returns:
             Loaded program or None if not found
+
         """
         program_dir = self.optimized_dir / name
 
@@ -431,7 +450,8 @@ class SkillOptimizer:
         max_bootstrapped_demos: int = 4,
         max_labeled_demos: int = 4,
     ) -> dspy.Module:
-        """Optimize using MIPROv2 with training examples from API.
+        """
+        Optimize using MIPROv2 with training examples from API.
 
         This method is designed for use from async contexts (e.g., FastAPI background tasks).
         It uses dspy.context() to avoid async configuration issues.
@@ -444,11 +464,15 @@ class SkillOptimizer:
 
         Returns:
             Optimized DSPy program
+
         """
         from dspy.teleprompt import MIPROv2
 
-        from ...llm.fleet_config import build_lm_for_task, load_fleet_config
-        from .skill_creator import SkillCreationProgram
+        from ...llm.fleet_config import (  # type: ignore[unresolved-import]
+            build_lm_for_task,
+            load_fleet_config,
+        )
+        from .skill_creator import SkillCreationProgram  # type: ignore[unresolved-import]
 
         # Build LM for this context (don't use global configure)
         config = load_fleet_config(self.config_path)
@@ -475,7 +499,7 @@ class SkillOptimizer:
             # Create optimizer
             optimizer = MIPROv2(
                 metric=skill_quality_metric,
-                auto=cast(Literal["light", "medium", "heavy"] | None, auto),
+                auto=cast("Literal['light', 'medium', 'heavy'] | None", auto),
                 num_threads=self.optimization_config.get("miprov2", {}).get("num_threads", 4),
                 verbose=self.optimization_config.get("miprov2", {}).get("verbose", True),
             )
@@ -497,7 +521,8 @@ class SkillOptimizer:
         max_bootstrapped_demos: int = 4,
         max_labeled_demos: int = 4,
     ) -> dspy.Module:
-        """Optimize using BootstrapFewShot with training examples from API.
+        """
+        Optimize using BootstrapFewShot with training examples from API.
 
         This method is designed for use from async contexts (e.g., FastAPI background tasks).
         It uses dspy.context() to avoid async configuration issues.
@@ -509,11 +534,15 @@ class SkillOptimizer:
 
         Returns:
             Optimized DSPy program
+
         """
         from dspy.teleprompt import BootstrapFewShot
 
-        from ...llm.fleet_config import build_lm_for_task, load_fleet_config
-        from .skill_creator import SkillCreationProgram
+        from ...llm.fleet_config import (  # type: ignore[unresolved-import]
+            build_lm_for_task,
+            load_fleet_config,
+        )
+        from .skill_creator import SkillCreationProgram  # type: ignore[unresolved-import]
 
         # Build LM for this context (don't use global configure)
         config = load_fleet_config(self.config_path)
@@ -556,10 +585,12 @@ class SkillOptimizer:
         return optimized_program
 
     def list_optimized_programs(self) -> list[dict[str, Any]]:
-        """List all saved optimized programs.
+        """
+        List all saved optimized programs.
 
         Returns:
             List of program metadata dictionaries
+
         """
         programs: list[dict[str, Any]] = []
 
@@ -592,7 +623,8 @@ def run_optimization(
     program_name: str | None = None,
     verbose: bool = True,
 ) -> tuple[dspy.Module, OptimizationResult]:
-    """Run optimization on a skill creation program.
+    """
+    Run optimization on a skill creation program.
 
     This is a convenience function for running optimization from CLI or scripts.
 
@@ -605,10 +637,13 @@ def run_optimization(
 
     Returns:
         Tuple of (optimized_program, optimization_result)
+
     """
     # Import here to avoid circular imports
     if program is None:
-        from .skill_creator import SkillCreationProgram
+        from .skill_creator import (  # type: ignore[unresolved-import]
+            SkillCreationProgram,
+        )
 
         program = SkillCreationProgram(quality_assured=True, hitl_enabled=False)
 

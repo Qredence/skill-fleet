@@ -1,4 +1,5 @@
-"""DSPy programs for complete skill creation workflows.
+"""
+DSPy programs for complete skill creation workflows.
 
 Programs compose multiple modules into end-to-end workflows
 with proper error handling and state management.
@@ -52,18 +53,21 @@ logger = logging.getLogger(__name__)
 
 
 class LegacySkillCreationProgram(dspy.Module):
-    """Complete skill creation program (Steps 1-5).
+    """
+    Complete skill creation program (Steps 1-5).
 
     This program executes the core creation workflow without
     the HITL iteration step.
     """
 
     def __init__(self, quality_assured: bool = False):
-        """Initialize skill creation program.
+        """
+        Initialize skill creation program.
 
         Args:
             quality_assured: If True, use Refine/BestOfN wrappers for
                             higher quality outputs (slower, more LLM calls)
+
         """
         super().__init__()
         self._quality_assured = quality_assured
@@ -92,7 +96,8 @@ class LegacySkillCreationProgram(dspy.Module):
         task_lms: dict[str, dspy.LM] | None = None,
         gathered_examples: list[dict] | None = None,
     ) -> dict:
-        """Execute Steps 1-5 of skill creation.
+        """
+        Execute Steps 1-5 of skill creation.
 
         Args:
             task_description: User's task description
@@ -104,6 +109,7 @@ class LegacySkillCreationProgram(dspy.Module):
 
         Returns:
             Dict with all outputs from Steps 1-5
+
         """
         # Append examples to task description if provided
         final_task_description = task_description
@@ -184,7 +190,8 @@ class LegacySkillCreationProgram(dspy.Module):
         task_lms: dict[str, dspy.LM] | None = None,
         gathered_examples: list[dict] | None = None,
     ) -> dict:
-        """Async execution of Steps 1-5.
+        """
+        Async execution of Steps 1-5.
 
         Same as forward() but using async LM calls for better throughput.
         """
@@ -265,7 +272,8 @@ class LegacySkillCreationProgram(dspy.Module):
 
 
 class LegacySkillCreationProgramQA(LegacySkillCreationProgram):
-    """Quality-assured skill creation program.
+    """
+    Quality-assured skill creation program.
 
     Convenience class that initializes SkillCreationProgram
     with quality_assured=True.
@@ -281,7 +289,8 @@ class LegacySkillCreationProgramQA(LegacySkillCreationProgram):
 
 
 class SkillRevisionProgram(dspy.Module):
-    """Program for revising existing skill content (Steps 4-5).
+    """
+    Program for revising existing skill content (Steps 4-5).
 
     Used when iteration requires content regeneration.
     """
@@ -305,12 +314,13 @@ class SkillRevisionProgram(dspy.Module):
         revision_feedback: str | None = None,
         task_lms: dict[str, dspy.LM] | None = None,
     ) -> dict:
-        """Regenerate and repackage skill content.
+        """
+        Regenerate and repackage skill content.
 
         Returns:
             Dict with revised content and package
-        """
 
+        """
         # Step 4: EDIT (with feedback)
         lm = task_lms.get("skill_edit") if task_lms else dspy.settings.lm
         with dspy.context(lm=lm):
@@ -344,7 +354,6 @@ class SkillRevisionProgram(dspy.Module):
         task_lms: dict[str, dspy.LM] | None = None,
     ) -> dict:
         """Async regeneration and repackaging."""
-
         # Step 4: EDIT (with feedback)
         lm = task_lms.get("skill_edit") if task_lms else dspy.settings.lm
         with dspy.context(lm=lm):
@@ -374,7 +383,8 @@ class SkillRevisionProgram(dspy.Module):
 
 
 class QuickSkillProgram(dspy.Module):
-    """Streamlined program for rapid skill generation.
+    """
+    Streamlined program for rapid skill generation.
 
     Optimized for speed with minimal validation, useful for
     bootstrap and development scenarios.
@@ -399,11 +409,11 @@ class QuickSkillProgram(dspy.Module):
         parent_skills_getter: Callable[[str], Any],
         task_lms: dict[str, dspy.LM] | None = None,
     ) -> dict:
-        """Quick skill generation (Steps 1-2-4 only).
+        """
+        Quick skill generation (Steps 1-2-4 only).
 
         Skips initialization and packaging for speed.
         """
-
         # Step 1: UNDERSTAND
         lm = task_lms.get("skill_understand") if task_lms else dspy.settings.lm
         with dspy.context(lm=lm):
@@ -464,7 +474,6 @@ class QuickSkillProgram(dspy.Module):
         task_lms: dict[str, dspy.LM] | None = None,
     ) -> dict:
         """Async quick skill generation."""
-
         # Step 1: UNDERSTAND
         lm = task_lms.get("skill_understand") if task_lms else dspy.settings.lm
         with dspy.context(lm=lm):
@@ -526,7 +535,8 @@ def create_skill_creation_program(
     quality_assured: bool = False,
     quick: bool = False,
 ) -> dspy.Module:
-    """Create a skill creation program.
+    """
+    Create a skill creation program.
 
     Args:
         quality_assured: Use Refine/BestOfN for higher quality
@@ -534,6 +544,7 @@ def create_skill_creation_program(
 
     Returns:
         Appropriate program instance
+
     """
     if quick:
         return QuickSkillProgram(quality_assured=quality_assured)

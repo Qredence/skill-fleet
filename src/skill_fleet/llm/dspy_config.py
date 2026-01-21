@@ -1,4 +1,5 @@
-"""Centralized DSPy configuration for skill_fleet.
+"""
+Centralized DSPy configuration for skill_fleet.
 
 This module provides a single entry point for configuring DSPy settings
 across all skill_fleet modules, ensuring consistent LM usage and settings.
@@ -28,7 +29,8 @@ def configure_dspy(
     config_path: Path | None = None,
     default_task: str = "skill_understand",
 ) -> dspy.LM:
-    """Configure DSPy with fleet config and return default LM.
+    """
+    Configure DSPy with fleet config and return default LM.
 
     This should be called once at application startup to set up
     DSPy's global settings. After calling this function, all DSPy
@@ -46,6 +48,7 @@ def configure_dspy(
         >>> from skill_fleet.llm.dspy_config import configure_dspy
         >>> lm = configure_dspy()
         >>> # Now all DSPy modules use this LM by default
+
     """
     if config_path is None:
         config_path = default_config_path()
@@ -72,7 +75,8 @@ def configure_dspy(
 
 
 def get_task_lm(task_name: str, config_path: Path | None = None) -> dspy.LM:
-    """Get an LM for a specific task without changing global settings.
+    """
+    Get an LM for a specific task without changing global settings.
 
     Use this when you need a task-specific LM temporarily.
     For persistent task-specific LMs, use dspy.context() instead.
@@ -89,6 +93,7 @@ def get_task_lm(task_name: str, config_path: Path | None = None) -> dspy.LM:
         >>> lm = get_task_lm("skill_edit")
         >>> with dspy.context(lm=lm):
         ...     result = my_module(**inputs)
+
     """
     if config_path is None:
         config_path = default_config_path()

@@ -1,4 +1,5 @@
-"""DSPy signatures for conversational skill creation agent.
+"""
+DSPy signatures for conversational skill creation agent.
 
 These signatures define the input/output contracts for natural language
 conversation flow in the interactive CLI. They enable the agent to:
@@ -28,7 +29,8 @@ import dspy
 
 
 class InterpretUserIntent(dspy.Signature):
-    """Interpret user's skill creation intent from natural language.
+    """
+    Interpret user's skill creation intent from natural language.
 
     Analyzes user messages to understand what they want to create.
     Handles various forms of natural language input and determines
@@ -59,7 +61,8 @@ class InterpretUserIntent(dspy.Signature):
 
 
 class DetectMultiSkillNeeds(dspy.Signature):
-    """Detect if user's task requires multiple skills to fulfill.
+    """
+    Detect if user's task requires multiple skills to fulfill.
 
     Analyzes the task description to determine if it encompasses
     multiple distinct capabilities that should be separate skills.
@@ -96,7 +99,8 @@ class DetectMultiSkillNeeds(dspy.Signature):
 
 
 class GenerateClarifyingQuestion(dspy.Signature):
-    """Generate one focused clarifying question with multi-select options.
+    """
+    Generate one focused clarifying question with multi-select options.
 
     Creates a single, focused question with 2-5 multi-select options to better
     understand the user's needs. Follows the brainstorming skill pattern:
@@ -127,7 +131,8 @@ class GenerateClarifyingQuestion(dspy.Signature):
 
 
 class AssessReadiness(dspy.Signature):
-    """Assess if we have enough information to proceed with skill creation.
+    """
+    Assess if we have enough information to proceed with skill creation.
 
     Evaluates whether sufficient context has been gathered through examples
     and clarification to create a well-crafted skill. Considers example
@@ -157,7 +162,8 @@ class AssessReadiness(dspy.Signature):
 
 
 class DeepUnderstandingSignature(dspy.Signature):
-    """Understand user's actual needs, problems, and goals before creating skill.
+    """
+    Understand user's actual needs, problems, and goals before creating skill.
 
     This signature generates contextual multi-select questions (2-5 options) to
     understand WHY the user needs the skill, what problem they're solving, and
@@ -211,7 +217,8 @@ class DeepUnderstandingSignature(dspy.Signature):
 
 
 class ConfirmUnderstandingBeforeCreation(dspy.Signature):
-    """Generate confirmation message to verify understanding before creating skill.
+    """
+    Generate confirmation message to verify understanding before creating skill.
 
     MANDATORY checkpoint before writing any skill directory structure or content.
     Presents a clear summary of what will be created and asks for explicit
@@ -243,7 +250,8 @@ class ConfirmUnderstandingBeforeCreation(dspy.Signature):
 
 
 class UnderstandingSummary(dspy.Signature):
-    """Generate structured understanding summary before skill creation.
+    """
+    Generate structured understanding summary before skill creation.
 
     Creates a three-part structured summary that clearly communicates:
     1. What was understood: User's problem, goals, and context
@@ -296,7 +304,8 @@ class UnderstandingSummary(dspy.Signature):
 
 
 class PresentSkillForReview(dspy.Signature):
-    """Format skill creation results for conversational presentation.
+    """
+    Format skill creation results for conversational presentation.
 
     Transforms technical skill creation results into a conversational format
     that's easy for users to understand and review. Highlights key points
@@ -321,7 +330,8 @@ class PresentSkillForReview(dspy.Signature):
 
 
 class ProcessUserFeedback(dspy.Signature):
-    """Process user's feedback and determine revision plan.
+    """
+    Process user's feedback and determine revision plan.
 
     Interprets user feedback (approval, revision requests, rejections) and
     creates a concrete plan for how to proceed. Handles both explicit
@@ -355,7 +365,8 @@ class ProcessUserFeedback(dspy.Signature):
 
 
 class SuggestTestScenarios(dspy.Signature):
-    """Suggest test scenarios for skill validation following writing-skills TDD.
+    """
+    Suggest test scenarios for skill validation following writing-skills TDD.
 
     Creates pressure scenarios to test the skill according to TDD principles.
     Different skill types require different test approaches:
@@ -385,7 +396,8 @@ class SuggestTestScenarios(dspy.Signature):
 
 
 class VerifyTDDPassed(dspy.Signature):
-    """Verify TDD checklist is complete before saving skill.
+    """
+    Verify TDD checklist is complete before saving skill.
 
     Checks that all mandatory checklist items are complete according to
     writing-skills TDD requirements. Prevents saving incomplete skills.

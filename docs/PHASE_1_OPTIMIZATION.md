@@ -36,23 +36,40 @@ Enables skill evaluation metrics to adapt based on detected skill style, ensurin
 
 ---
 
-### 🟡 1.2: Metric-Driven Signature Tuning (Planned)
+### 🟡 1.2: Metric-Driven Signature Tuning (Implementation + Tests Complete)
 
-**Target**: Weeks 4-5 of Phase 1
+**Completion Date**: January 21, 2026
 
 Automatically improve DSPy signatures based on evaluation failures and quality metrics.
 
-**Planned Components**:
-- Signature analysis module (detects weak field descriptions)
-- LLM-powered signature improvement generation
-- Version tracking for signature evolution
-- Integration with evaluation pipeline
-- Auto-improvement when quality < 0.75
+**Implementation Status**: ✅ Core Complete | 🟡 API/CLI Integration Pending (1.4)
+
+**Key Components**:
+- **SignatureTuner** (556 lines): Main orchestrator with iterative tuning
+- **FailureAnalyzerModule**: ChainOfThought-based failure analysis
+- **SignatureProposerModule**: LLM-powered signature improvement generation
+- **SignatureValidatorModule**: Proposal validation before acceptance
+- **Version Tracking**: SignatureVersion + SignatureVersionHistory with JSON persistence
+- **4 DSPy Signatures** (231 lines): For analysis, proposal, validation, comparison
+
+**Test Coverage**: ✅ 36/36 tests passing (950 lines)
+- SignatureVersion: 5 tests
+- SignatureVersionHistory: 7 tests
+- FailureAnalyzerModule: 4 tests
+- SignatureProposerModule: 4 tests
+- SignatureValidatorModule: 4 tests
+- SignatureTuner (orchestrator): 10 tests
+- Integration (end-to-end): 2 tests
 
 **Expected Impact**:
 - 5-10% additional quality improvement
 - Faster iteration on signature design
 - Better field descriptions for optimizer guidance
+
+**Pending (Phase 1.4)**:
+- API endpoint: `POST /api/v1/signatures/tune`
+- CLI command: `tune-signature`
+- Integration with evaluation pipeline
 
 **Dependencies**: 1.1 complete ✅
 
@@ -178,13 +195,15 @@ This 3-pronged approach improves quality while respecting skill design intent.
 
 ### Unit Tests
 - ✅ 26 tests for 1.1 (adaptive weighting)
-- 🟡 12 tests planned for 1.2 (signature tuning)
+- ✅ 36 tests for 1.2 (signature tuning) - **NEW**
 - 🟡 10 tests planned for 1.3 (module registry)
 - 🟡 15 tests planned for 1.4 (E2E)
 
+**Phase 1 Test Total**: 62 tests (1.1 + 1.2) + 25 planned (1.3 + 1.4) = 87 total
+
 ### Integration Tests
 - ✅ API endpoint integration (1.1)
-- 🟡 Signature tuning pipeline (1.2)
+- ✅ Signature tuning pipeline (1.2) - **NEW**
 - 🟡 Module composition workflow (1.3)
 - 🟡 Full optimization cycle (1.4)
 
@@ -197,13 +216,14 @@ This 3-pronged approach improves quality while respecting skill design intent.
 
 ### Week 1 (Jan 21-27)
 - ✅ 1.1 complete + documented
-- 🟡 Start 1.2 implementation
-- 🟡 Plan 1.3 architecture
+- ✅ 1.2 implementation + tests complete (36/36 passing)
+- 🟡 Start 1.3 implementation
+- 🟡 Plan 1.4 E2E test
 
 ### Week 2 (Jan 28 - Feb 3)
-- 🟡 1.2 complete
-- 🟡 Start 1.3 implementation
-- 🟡 Validate adaptive metrics effectiveness
+- 🟡 1.3 complete
+- 🟡 Start 1.4 E2E testing
+- 🟡 Validate adaptive metrics + signature tuning effectiveness
 
 ### Week 3 (Feb 4-10)
 - 🟡 1.3 complete
@@ -283,12 +303,13 @@ This 3-pronged approach improves quality while respecting skill design intent.
 Phase 1 is successful when:
 
 - ✅ 1.1 fully integrated and documented (DONE)
-- 🟡 1.2 + 1.3 complete and tested
+- ✅ 1.2 implementation + tests complete (DONE)
+- 🟡 1.3 complete and tested
 - 🟡 1.4 E2E test passes
 - 🟡 Average skill quality improves 15-20%
 - 🟡 Obra compliance improves to 80%+
 - 🟡 Training time reduced 30-50%
-- 🟡 Zero regressions in existing tests
+- ✅ Zero regressions in existing tests (62 tests passing)
 - 🟡 Full documentation complete
 
 ## References
@@ -301,13 +322,16 @@ Phase 1 is successful when:
 ### Code
 - [Implementation Review 1.1](../IMPLEMENTATION_REVIEW_1_1.md)
 - [Adaptive Weighting Module](../src/skill_fleet/core/dspy/metrics/adaptive_weighting.py)
-- [Test Suite](../tests/unit/test_adaptive_weighting.py)
+- [Test Suite (1.1)](../tests/unit/test_adaptive_weighting.py)
+- [Signature Tuner Module (1.2)](../src/skill_fleet/core/dspy/modules/signature_tuner.py)
+- [Signature Tuning Signatures (1.2)](../src/skill_fleet/core/dspy/signatures/signature_tuning.py)
+- [Test Suite (1.2)](../tests/unit/test_signature_tuner.py)
 
 ### Planning
 - [DSPy Optimization Plan](../plans/2026-01-20-dspy-optimization-comprehensive.md)
 
 ---
 
-**Last Updated**: January 21, 2026  
-**Next Review**: January 27, 2026 (after 1.2 starts)  
-**Status**: Phase 1.1 ✅ COMPLETE | Phases 1.2-1.4 🟡 PLANNED
+**Last Updated**: January 21, 2026
+**Next Review**: January 27, 2026 (after 1.3 starts)
+**Status**: Phase 1.1 ✅ COMPLETE | Phase 1.2 ✅ IMPLEMENTATION+TESTS COMPLETE | Phases 1.3-1.4 🟡 PLANNED

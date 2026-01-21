@@ -1,4 +1,5 @@
-"""Skill Fleet API module.
+"""
+Skill Fleet API module.
 
 Provides FastAPI server for skill creation with real-time streaming.
 """

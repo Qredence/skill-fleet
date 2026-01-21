@@ -1,4 +1,5 @@
-"""Agentic skills system.
+"""
+Agentic skills system.
 
 This package provides a hierarchical, composable skills taxonomy plus a DSPy-powered
 workflow for generating new skills on demand.

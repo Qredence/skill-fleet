@@ -1,4 +1,5 @@
-"""Utilities for safely bridging async and sync code.
+"""
+Utilities for safely bridging async and sync code.
 
 This project exposes some synchronous wrappers around async DSPy modules.
 Calling a sync wrapper from within an already-running event loop can deadlock
@@ -18,7 +19,8 @@ from collections.abc import Awaitable, Callable
 
 
 def run_async[T](factory: Callable[[], Awaitable[T]]) -> T:
-    """Run an async callable from synchronous code.
+    """
+    Run an async callable from synchronous code.
 
     This is intended for sync wrappers like `forward()` that need to call an
     async implementation like `aforward()`.

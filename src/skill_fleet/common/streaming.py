@@ -1,4 +1,5 @@
-"""DSPy streaming integration for CLI and FastAPI deployment.
+"""
+DSPy streaming integration for CLI and FastAPI deployment.
 
 This module provides utilities for streaming DSPy module outputs:
 - Real-time thinking/reasoning display for CLI
@@ -25,7 +26,8 @@ logger = logging.getLogger(__name__)
 
 
 class SkillFleetStatusProvider(StatusMessageProvider):
-    """Status messages for skill creation workflow.
+    """
+    Status messages for skill creation workflow.
 
     Provides human-readable status updates during:
     - LLM calls
@@ -65,7 +67,8 @@ def create_streaming_module(
     reasoning_field: str = "reasoning",
     async_mode: bool = False,
 ) -> Any:
-    """Wrap a DSPy module with streaming for reasoning field.
+    """
+    Wrap a DSPy module with streaming for reasoning field.
 
     Args:
         module: DSPy module to wrap (e.g., ChainOfThought module)
@@ -93,6 +96,7 @@ def create_streaming_module(
         ... )
         >>> async for chunk in stream_module(question="What is 2+2?"):
         ...     # Handle async streaming
+
     """
     return dspy.streamify(
         module,
@@ -105,7 +109,8 @@ def create_streaming_module(
 
 
 def create_async_module(module: dspy.Module, max_workers: int = 4) -> Any:
-    """Convert DSPy module to async mode for FastAPI deployment.
+    """
+    Convert DSPy module to async mode for FastAPI deployment.
 
     Uses dspy.asyncify which runs the program in a thread pool.
     Default worker limit is 8, configurable via async_max_workers.
@@ -121,13 +126,15 @@ def create_async_module(module: dspy.Module, max_workers: int = 4) -> Any:
         >>> module = dspy.ChainOfThought("question->answer")
         >>> async_module = create_async_module(module, max_workers=4)
         >>> result = await async_module(question="What is 2+2?")
+
     """
     dspy.configure(async_max_workers=max_workers)
     return dspy.asyncify(module)
 
 
 async def stream_dspy_response(streaming_program: Any, **kwargs: Any) -> AsyncIterator[str]:
-    """Convert DSPy streaming program to FastAPI Server-Sent Events format.
+    """
+    Convert DSPy streaming program to FastAPI Server-Sent Events format.
 
     This is the async generator function that yields SSE-formatted chunks.
 
@@ -151,6 +158,7 @@ async def stream_dspy_response(streaming_program: Any, **kwargs: Any) -> AsyncIt
         ...     stream_dspy_response(stream, question="What is 2+2?"),
         ...     media_type="text/event-stream"
         ... )
+
     """
     async for chunk in streaming_program(**kwargs):
         if isinstance(chunk, dspy.Prediction):
@@ -166,7 +174,8 @@ def process_stream_sync(
     streaming_program: Any,
     **kwargs: Any,
 ) -> Generator[dict[str, Any], None, None]:
-    """Process a sync DSPy stream and yield normalized events.
+    """
+    Process a sync DSPy stream and yield normalized events.
 
     This is useful for CLI usage where you want to handle all stream types
     uniformly.
@@ -187,6 +196,7 @@ def process_stream_sync(
         ...         print(event["content"], end="", flush=True)
         ...     elif event["type"] == "status":
         ...         print(f"\\n{event['content']}")
+
     """
     for chunk in streaming_program(**kwargs):
         if isinstance(chunk, dspy.Prediction):
@@ -219,10 +229,12 @@ class StubPrediction(dspy.Prediction):
     """Stub Prediction class for testing."""
 
     def __init__(self, labels_dict: dict):
-        """Initialize stub prediction with labels dict.
+        """
+        Initialize stub prediction with labels dict.
 
         Args:
             labels_dict: Dictionary of prediction labels
+
         """
         self._labels = labels_dict
 

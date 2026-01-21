@@ -1,4 +1,5 @@
-"""Environment helpers for resolving preferred LLM API credentials.
+"""
+Environment helpers for resolving preferred LLM API credentials.
 
 Provides a small utility to prefer LiteLLM proxy credentials (LITELLM_API_KEY
 and LITELLM_BASE_URL) when present, and fall back to Google/Gemini keys
@@ -15,7 +16,8 @@ from typing import TypedDict, cast
 
 
 class APICredentials(TypedDict, total=False):
-    """Resolved API credential bundle.
+    """
+    Resolved API credential bundle.
 
     Keys are present only when available (TypedDict `total=False`).
     """
@@ -28,7 +30,8 @@ class APICredentials(TypedDict, total=False):
 def resolve_api_credentials(
     prefer_litellm: bool = True, requested_env: str | None = None
 ) -> APICredentials:
-    """Resolve API key and optional base URL.
+    """
+    Resolve API key and optional base URL.
 
     Resolution rules:
     - If `requested_env` is provided, try that env var first. If it is
@@ -71,13 +74,13 @@ def resolve_api_credentials(
             return creds
         if _google_present():
             google_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
-            creds["api_key"] = cast(str, google_key)
+            creds["api_key"] = cast("str", google_key)
             creds["source"] = "GOOGLE/GEMINI"
             return creds
     else:
         if _google_present():
             google_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
-            creds["api_key"] = cast(str, google_key)
+            creds["api_key"] = cast("str", google_key)
             creds["source"] = "GOOGLE/GEMINI"
             return creds
         if _litellm_present():

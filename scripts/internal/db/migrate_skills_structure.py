@@ -7,7 +7,8 @@ from pathlib import Path
 
 
 def main():
-    """Migrate skill directories to their new canonical paths based on taxonomy_index.json.
+    """
+    Migrate skill directories to their new canonical paths based on taxonomy_index.json.
 
     Reads the taxonomy index to determine source and destination paths,
     moves skill directories accordingly, and cleans up empty directories.

@@ -18,7 +18,7 @@ from typer.testing import CliRunner
 load_dotenv()
 
 # Import CLI app
-from skill_fleet.cli.app import app
+from skill_fleet.cli.app import app  # noqa: E402
 
 # Initialize CLI runner
 runner = CliRunner()
@@ -173,6 +173,7 @@ def run_all_tests():
         except Exception as e:
             print(f"\n❌ Test '{name}' raised exception: {e}")
             import traceback
+
             traceback.print_exc()
             results.append((name, False))
 
@@ -207,5 +208,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n\n❌ Unexpected error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

@@ -1,4 +1,5 @@
-"""Optimizer Auto-Selection Engine.
+"""
+Optimizer Auto-Selection Engine.
 
 Intelligently recommends the best DSPy optimizer based on task characteristics,
 budget constraints, and historical performance data.
@@ -36,7 +37,8 @@ class OptimizerType(str, Enum):
 
 @dataclass
 class OptimizerContext:
-    """Context for optimizer selection decision.
+    """
+    Context for optimizer selection decision.
 
     Attributes:
         trainset_size: Number of training examples available
@@ -47,6 +49,7 @@ class OptimizerContext:
         time_constraint_minutes: Maximum time allowed (optional)
         previous_optimizer: Last optimizer used (for iteration)
         historical_quality: Quality from previous optimization runs
+
     """
 
     trainset_size: int
@@ -73,7 +76,8 @@ class OptimizerConfig:
 
 @dataclass
 class OptimizerRecommendation:
-    """Result of optimizer selection.
+    """
+    Result of optimizer selection.
 
     Attributes:
         recommended: The recommended optimizer type
@@ -83,6 +87,7 @@ class OptimizerRecommendation:
         confidence: Confidence in recommendation (0.0-1.0)
         reasoning: Human-readable explanation
         alternatives: Other viable options with trade-offs
+
     """
 
     recommended: OptimizerType
@@ -95,7 +100,8 @@ class OptimizerRecommendation:
 
 
 class OptimizerSelector:
-    """Intelligent optimizer selection based on task characteristics.
+    """
+    Intelligent optimizer selection based on task characteristics.
 
     Decision Rules:
     - trainset < 100 AND budget < $5 → GEPA (fast, reflection-based)
@@ -136,10 +142,12 @@ class OptimizerSelector:
     }
 
     def __init__(self, metrics_path: str | None = None):
-        """Initialize selector.
+        """
+        Initialize selector.
 
         Args:
             metrics_path: Path to historical metrics JSONL file
+
         """
         self.metrics_path = metrics_path
         self._historical_data: list[dict[str, Any]] = []
@@ -160,13 +168,15 @@ class OptimizerSelector:
                 logger.warning(f"Failed to load historical data: {e}")
 
     def recommend(self, context: OptimizerContext) -> OptimizerRecommendation:
-        """Recommend best optimizer for the given context.
+        """
+        Recommend best optimizer for the given context.
 
         Args:
             context: Task and budget context
 
         Returns:
             OptimizerRecommendation with suggested optimizer and config
+
         """
         # Apply decision tree
         optimizer, config, reasoning = self._apply_decision_rules(context)
@@ -194,10 +204,12 @@ class OptimizerSelector:
     def _apply_decision_rules(
         self, context: OptimizerContext
     ) -> tuple[OptimizerType, OptimizerConfig, str]:
-        """Apply decision tree to select optimizer.
+        """
+        Apply decision tree to select optimizer.
 
         Returns:
             Tuple of (optimizer_type, config, reasoning)
+
         """
         trainset = context.trainset_size
         budget = context.budget_dollars
@@ -395,7 +407,8 @@ class OptimizerSelector:
         actual_time_minutes: int,
         quality_score: float,
     ) -> None:
-        """Record optimization result for future learning.
+        """
+        Record optimization result for future learning.
 
         Args:
             context: Original context used for selection
@@ -403,6 +416,7 @@ class OptimizerSelector:
             actual_cost: Actual cost incurred
             actual_time_minutes: Actual time taken
             quality_score: Resulting quality score
+
         """
         if not self.metrics_path:
             return

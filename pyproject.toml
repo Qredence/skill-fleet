@@ -101,14 +101,46 @@ line-length = 100
 exclude = ["skills/**"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "D100", "D101", "D102", "D103", "D104"]
-ignore = ["E501"]
+# Enable comprehensive rule set for 2026 best practices
+select = [
+    "E",      # pycodestyle errors
+    "F",      # pyflakes
+    "I",      # isort (import sorting)
+    "UP",     # pyupgrade (modernize Python syntax)
+    "B",      # flake8-bugbear (detect common bugs)
+    "D",      # pydocstyle (docstring conventions)
+    "N",      # pep8-naming (naming conventions)
+    "C4",     # flake8-comprehensions (optimize comprehensions)
+    "SIM",    # flake8-simplify (simplify code)
+    "TCH",    # flake8-type-checking (type checking optimizations)
+    "D100",   # Missing module docstring
+    "D101",   # Missing class docstring
+    "D102",   # Missing method docstring
+    "D103",   # Missing function docstring
+    "D104",   # Missing package docstring
+]
+ignore = [
+    "E501",        # Line length handled by formatter
+    "D212",        # Alternative to D213 (multi-line docstring style)
+    "D203",        # Alternative to D211 (blank line before class)
+]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["D"]
+"tests/*" = ["D"]  # Disable docstring checks for tests
 # B008: Do not perform function call in default arguments
 # Standard pattern for CLI libraries (typer, click)
-"src/skill_fleet/cli/*.py" = ["B008"]
+"src/skill_fleet/cli/*.py" = ["B008", "D413", "D401", "SIM102"]  # Allow flexible docstring formatting and nested ifs in CLI
+"src/skill_fleet/cli/**/*.py" = ["D413", "D401", "TC002", "TC003", "SIM102"]  # Relax docstring, type-checking, and simplification rules in CLI submodules
+"src/skill_fleet/cli/interactive_cli.py" = ["TC001"]  # Allow runtime imports for type hints
+"src/skill_fleet/cli/commands/db_sync.py" = ["D400", "D415"]  # Relax docstring ending rules for module docstrings
+"src/skill_fleet/cli/exceptions.py" = ["N818"]  # Allow CLIExit exception name
+
+[tool.ruff.format]
+# Explicit formatting configuration
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+skip-magic-trailing-comma = false
 
 [tool.bandit]
 # Bandit security linter configuration

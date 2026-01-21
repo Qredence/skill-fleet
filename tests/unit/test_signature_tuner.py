@@ -426,7 +426,7 @@ class TestSignatureProposerModule:
             module.propose = MagicMock(return_value=mock_result)
 
             failure_analysis = {"categories": ["missing"]}
-            result = module.forward(  # noqa: F841
+            module.forward(
                 current_signature="question -> answer",
                 failure_analysis=failure_analysis,
                 target_score=0.80,
@@ -560,8 +560,6 @@ class TestSignatureTuner:
 
     def test_forward_quality_extraction_fallback(self, configured_dspy: MagicMock) -> None:
         """Handles assess_skill_quality failure gracefully."""
-        tuner = SignatureTuner()
-
         # Mock the modules
         with patch.object(SignatureTuner, "__init__", lambda self, **kwargs: None):
             tuner = SignatureTuner.__new__(SignatureTuner)
@@ -596,7 +594,7 @@ class TestSignatureTuner:
                 tuner.signature_proposer = MagicMock(return_value=mock_proposal)
                 tuner.signature_validator = MagicMock(return_value=mock_validation)
 
-                result = tuner.forward(  # noqa: F841
+                tuner.forward(
                     skill_content="# Skill",
                     current_signature="question -> answer",
                     metric_score=0.65,
@@ -794,7 +792,7 @@ class TestSignatureTuner:
                 }
             )
 
-            result = tuner.tune_iteratively(  # noqa: F841
+            tuner.tune_iteratively(
                 skill_content="# Skill",
                 current_signature="question -> answer",
                 metric_score=0.65,

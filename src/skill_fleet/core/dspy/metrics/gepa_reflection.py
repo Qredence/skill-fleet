@@ -29,9 +29,9 @@ import dspy
 def gepa_skill_quality_metric(
     gold: dspy.Example,
     pred: dspy.Prediction,
-    trace: dspy.Trace | None = None,
+    trace: Any | None = None,
     pred_name: str | None = None,
-    pred_trace: dspy.Trace | None = None,
+    pred_trace: Any | None = None,
 ) -> dict[str, Any]:
     """GEPA-compatible skill quality metric with reflection feedback.
 
@@ -162,9 +162,9 @@ def gepa_skill_quality_metric(
 def gepa_semantic_match_metric(
     gold: dspy.Example,
     pred: dspy.Prediction,
-    trace: dspy.Trace | None = None,
+    trace: Any | None = None,
     pred_name: str | None = None,
-    pred_trace: dspy.Trace | None = None,
+    pred_trace: Any | None = None,
 ) -> dict[str, Any]:
     """GEPA metric: Semantic match between expected and predicted.
 
@@ -216,9 +216,9 @@ def gepa_semantic_match_metric(
 def gepa_composite_metric(
     gold: dspy.Example,
     pred: dspy.Prediction,
-    trace: dspy.Trace | None = None,
+    trace: Any | None = None,
     pred_name: str | None = None,
-    pred_trace: dspy.Trace | None = None,
+    pred_trace: Any | None = None,
 ) -> dict[str, Any]:
     """GEPA metric: Weighted combination of quality checks.
 

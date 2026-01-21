@@ -1,6 +1,6 @@
 [project]
 name = "skill-fleet"
-version = "0.2.0"
+version = "0.3.0"
 description = "Hierarchical skills taxonomy + DSPy workflow prototype"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -18,6 +18,7 @@ dependencies = [
   "litellm[proxy]>=1.80.16",
   "mlflow>=3.8.1",
   "openai>=2.14.0",
+  "psycopg[binary]>=3.2.5",
   "pydantic>=2.12.5",
   "pyyaml>=6.0.3",
   "python-dotenv>=1.2.1",
@@ -29,7 +30,6 @@ dependencies = [
   "uvicorn[standard]>=0.31.1",
   "prompt-toolkit>=3.0.52",
   "ty>=0.0.12",
-  "psycopg>=3.3.2",
 ]
 classifiers = [
   "Development Status :: 3 - Alpha",
@@ -77,10 +77,7 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/skill_fleet"]
-include = [
-  "src/skill_fleet/config/**",
-  "src/skill_fleet/_seed/**",
-]
+include = ["src/skill_fleet/config/**", "src/skill_fleet/_seed/**"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
@@ -123,3 +120,48 @@ skips = [
   "B106",
 ]
 assert_used = false
+
+[tool.ty.environment]
+# Python version to assume (affects syntax and stdlib types)
+python-version = "3.12"
+
+# Path to Python environment for third-party modules (auto-detected by ty)
+# python = "./.venv"
+
+# Target platform ("win32", "darwin", "linux", "android", "ios", "all")
+# ty will auto-detect from current platform
+# python-platform = "linux"
+
+# First-party module search paths (priority order)
+root = ["./src"]
+
+[tool.ty.rules]
+# Set rule severities: "error", "warn", or "ignore"
+
+# Critical errors
+division-by-zero = "error"
+possibly-unresolved-reference = "error"
+invalid-argument-type = "error"
+unsupported-operator = "error"
+
+# Code quality warnings
+unused-ignore-comment = "warn"
+redundant-cast = "warn"
+
+# Relaxed rules for false positives
+index-out-of-bounds = "warn"
+
+[tool.ty.src]
+# Include specific files/directories
+include = ["src", "tests"]
+
+[tool.ty.terminal]
+output-format = "full"
+error-on-warning = false
+
+# Relaxed rules for tests
+[[tool.ty.overrides]]
+include = ["tests/**"]
+
+[tool.ty.overrides.rules]
+possibly-unresolved-reference = "warn"

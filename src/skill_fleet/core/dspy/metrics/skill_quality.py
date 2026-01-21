@@ -11,6 +11,12 @@ Quality dimensions based on analysis of excellent skills (FastAPI, Anthropics, O
 - Pattern quality (anti-patterns, production patterns, key insights)
 - Practical value (real-world impact, common mistakes, red flags)
 - Code quality (executable examples, copy-paste ready)
+
+v2 Golden Standard (Jan 2026):
+- "When to Use" section required
+- Quick Start section recommended
+- Progressive disclosure pattern (subdirectory references)
+- Supports navigation_hub, comprehensive, and minimal skill styles
 """
 
 from __future__ import annotations
@@ -25,12 +31,21 @@ import yaml
 
 @dataclass
 class SkillQualityScores:
-    """Detailed quality scores for a skill."""
+    """Detailed quality scores for a skill.
+
+    v2 Golden Standard additions:
+    - has_when_to_use_section: Required "When to Use" section
+    - has_quick_start: Recommended Quick Start/Examples section
+    - uses_progressive_disclosure: References to subdirectory files
+    - skill_style_detected: navigation_hub, comprehensive, or minimal
+    """
 
     # Structure scores (0.0 - 1.0)
     frontmatter_completeness: float = 0.0
     has_overview: bool = False
-    has_when_to_use: bool = False
+    has_when_to_use: bool = False  # Alias for v1 compatibility
+    has_when_to_use_section: bool = False  # v2: Required section
+    has_quick_start: bool = False  # v2: Recommended section
     has_quick_reference: bool = False
 
     # Pattern scores
@@ -54,6 +69,10 @@ class SkillQualityScores:
     has_good_bad_contrast: bool = False  # Paired Good/Bad or ❌/✅ examples
     description_quality: float = 0.0  # Quality of "Use when..." description
 
+    # v2 Golden Standard: Progressive disclosure
+    uses_progressive_disclosure: bool = False  # References to subdirectory files
+    skill_style_detected: str = ""  # navigation_hub, comprehensive, minimal
+
     # Overall
     overall_score: float = 0.0
     issues: list[str] = field(default_factory=list)
@@ -65,6 +84,8 @@ class SkillQualityScores:
             "frontmatter_completeness": self.frontmatter_completeness,
             "has_overview": self.has_overview,
             "has_when_to_use": self.has_when_to_use,
+            "has_when_to_use_section": self.has_when_to_use_section,
+            "has_quick_start": self.has_quick_start,
             "has_quick_reference": self.has_quick_reference,
             "pattern_count": self.pattern_count,
             "has_anti_patterns": self.has_anti_patterns,
@@ -80,6 +101,9 @@ class SkillQualityScores:
             "has_strong_guidance": self.has_strong_guidance,
             "has_good_bad_contrast": self.has_good_bad_contrast,
             "description_quality": self.description_quality,
+            # v2 Golden Standard
+            "uses_progressive_disclosure": self.uses_progressive_disclosure,
+            "skill_style_detected": self.skill_style_detected,
             # Overall
             "overall_score": self.overall_score,
             "issues": self.issues,
@@ -173,8 +197,13 @@ def evaluate_frontmatter(frontmatter: dict[str, Any]) -> tuple[float, list[str],
     return min(score, 1.0), issues, strengths
 
 
-def evaluate_structure(body: str) -> tuple[dict[str, bool], list[str], list[str]]:
+def evaluate_structure(body: str) -> tuple[dict[str, bool | str], list[str], list[str]]:
     """Evaluate skill body structure for required sections.
+
+    v2 Golden Standard additions:
+    - has_when_to_use_section: Required "When to Use This Skill" section
+    - has_quick_start: Recommended Quick Start/Examples section
+    - uses_progressive_disclosure: References to subdirectory files
 
     Returns:
         Tuple of (section_flags, issues, strengths)
@@ -185,7 +214,9 @@ def evaluate_structure(body: str) -> tuple[dict[str, bool], list[str], list[str]
     # Section detection patterns
     sections = {
         "has_overview": r"##\s*(Overview|Introduction)",
-        "has_when_to_use": r"##\s*When\s+(to\s+)?Use",
+        "has_when_to_use": r"##\s*When\s+(to\s+)?Use",  # v1 compatibility
+        "has_when_to_use_section": r"##\s*When\s+to\s+Use\s+(This\s+)?Skill",  # v2 stricter
+        "has_quick_start": r"##\s*(Quick\s+Start|Quick\s+Examples?|Getting\s+Started)",  # v2
         "has_quick_reference": r"##\s*Quick\s+Reference",
         "has_core_patterns": r"##\s*(Core\s+)?Patterns?",
         "has_common_mistakes": r"##\s*Common\s+Mistakes?",
@@ -193,26 +224,101 @@ def evaluate_structure(body: str) -> tuple[dict[str, bool], list[str], list[str]
         "has_real_world_impact": r"##\s*(Real[- ]World\s+Impact|Impact|Benefits)",
     }
 
-    flags: dict[str, bool] = {}
+    flags: dict[str, bool | str] = {}
     for key, pattern in sections.items():
         flags[key] = bool(re.search(pattern, body, re.IGNORECASE))
 
+    # v2: Detect progressive disclosure pattern (references to subdirectory files)
+    # Look for patterns like: See [guides/...], references/, templates/, etc.
+    progressive_disclosure_patterns = [
+        r"\[.*?\]\((?:references|guides|templates|scripts|examples)/",  # Markdown links
+        r"(?:see|check|refer\s+to)\s+(?:the\s+)?`?(?:references|guides|templates|scripts|examples)/",  # Text refs
+        r"##\s*(?:Reference\s+Files?|Guides?|Templates?|Scripts?|Examples?)\s*$",  # Section headers
+        r"(?:detailed|more|additional)\s+(?:information|docs?|documentation)\s+in\s+`?(?:references|guides)/",
+    ]
+    uses_progressive_disclosure = any(
+        re.search(pattern, body, re.IGNORECASE | re.MULTILINE)
+        for pattern in progressive_disclosure_patterns
+    )
+    flags["uses_progressive_disclosure"] = uses_progressive_disclosure
+
+    # v2: Detect skill style based on content characteristics
+    body_length = len(body)
+    has_many_subdirectory_refs = (
+        len(re.findall(r"(?:references|guides|templates|scripts|examples)/", body, re.IGNORECASE))
+        >= 3
+    )
+    has_detailed_sections = len(re.findall(r"^##\s+", body, re.MULTILINE)) >= 5
+
+    if body_length < 3000 and has_many_subdirectory_refs:
+        flags["skill_style_detected"] = "navigation_hub"
+    elif body_length > 8000 or has_detailed_sections:
+        flags["skill_style_detected"] = "comprehensive"
+    else:
+        flags["skill_style_detected"] = "minimal"
+
     # Evaluate and report
-    required_sections = ["has_overview", "has_when_to_use", "has_core_patterns"]
-    recommended_sections = ["has_quick_reference", "has_common_mistakes", "has_red_flags"]
+    # v2: "When to Use" section is required
+    required_sections = [
+        "has_overview",
+        "has_when_to_use",
+        "has_when_to_use_section",
+        "has_core_patterns",
+    ]
+    recommended_sections = [
+        "has_quick_reference",
+        "has_common_mistakes",
+        "has_red_flags",
+        "has_quick_start",
+    ]
+
+    # Keep track of which logical sections we've already reported to avoid duplicates
+    # (e.g. When to Use vs When to Use This Skill)
+    reported_logical_sections = set()
 
     for section in required_sections:
+        raw_name = section.replace("has_", "").replace("_", " ")
+        # Map to logical section name
+        logical_name = "When to Use" if "when to use" in raw_name.lower() else raw_name.title()
+
         if flags.get(section):
-            strengths.append(f"Has {section.replace('has_', '').replace('_', ' ')} section")
+            if logical_name not in reported_logical_sections:
+                strengths.append(f"Has {logical_name} section")
+                reported_logical_sections.add(logical_name)
         else:
-            issues.append(f"Missing {section.replace('has_', '').replace('_', ' ')} section")
+            # Only report as missing if NO variant of this logical section was found
+            # We'll check all flags for this logical name later
+            pass
+
+    # Re-check for missing required sections
+    for section in required_sections:
+        raw_name = section.replace("has_", "").replace("_", " ")
+        logical_name = "When to Use" if "when to use" in raw_name.lower() else raw_name.title()
+        if logical_name not in reported_logical_sections:
+            issues.append(f"Missing {logical_name} section")
+            reported_logical_sections.add(logical_name)  # Only report once
 
     for section in recommended_sections:
+        raw_name = section.replace("has_", "").replace("_", " ")
+        logical_name = "When to Use" if "when to use" in raw_name.lower() else raw_name.title()
+        if "quick start" in raw_name.lower():
+            logical_name = "Quick Start"
+
         if flags.get(section):
-            strengths.append(f"Has {section.replace('has_', '').replace('_', ' ')} section")
+            if logical_name not in reported_logical_sections:
+                strengths.append(f"Has {logical_name} section")
+                reported_logical_sections.add(logical_name)
 
     if flags.get("has_real_world_impact"):
         strengths.append("Includes real-world impact/benefits")
+
+    # v2: Additional strengths for new features
+    if flags.get("has_quick_start"):
+        strengths.append("Has Quick Start section (v2 recommended)")
+    if flags.get("uses_progressive_disclosure"):
+        strengths.append("Uses progressive disclosure pattern with subdirectories")
+    if flags.get("skill_style_detected") == "navigation_hub":
+        strengths.append("Well-structured navigation hub skill")
 
     return flags, issues, strengths
 
@@ -496,6 +602,11 @@ def compute_overall_score(
     - Applies penalty multiplier for missing critical elements
     - Calibrated against golden skills from https://github.com/obra/superpowers
 
+    v2 Golden Standard additions:
+    - Rewards progressive disclosure pattern
+    - Rewards "When to Use This Skill" section
+    - Rewards Quick Start section
+
     Args:
         scores: Individual quality scores
         weights: Optional custom weights (default uses config weights)
@@ -507,20 +618,24 @@ def compute_overall_score(
         # Updated weights with stricter calibration
         weights = {
             # Original metrics (reduced weights)
-            "pattern_count": 0.10,  # Reduced from 0.15
-            "has_anti_patterns": 0.08,  # Reduced from 0.10
-            "has_key_insights": 0.08,  # Reduced from 0.10
-            "has_real_world_impact": 0.08,  # Reduced from 0.10
-            "has_quick_reference": 0.06,  # Reduced from 0.10
-            "has_common_mistakes": 0.06,  # Reduced from 0.10
-            "has_red_flags": 0.04,  # Reduced from 0.05
-            "frontmatter_completeness": 0.10,  # Reduced from 0.15
-            "code_examples_quality": 0.10,  # Reduced from 0.15
-            # New Obra/superpowers quality indicators (30% total)
-            "has_core_principle": 0.10,
-            "has_strong_guidance": 0.08,
-            "has_good_bad_contrast": 0.07,
-            "description_quality": 0.05,
+            "pattern_count": 0.08,  # Reduced from 0.10
+            "has_anti_patterns": 0.06,  # Reduced from 0.08
+            "has_key_insights": 0.06,  # Reduced from 0.08
+            "has_real_world_impact": 0.06,  # Reduced from 0.08
+            "has_quick_reference": 0.04,  # Reduced from 0.06
+            "has_common_mistakes": 0.04,  # Reduced from 0.06
+            "has_red_flags": 0.03,  # Reduced from 0.04
+            "frontmatter_completeness": 0.08,  # Reduced from 0.10
+            "code_examples_quality": 0.08,  # Reduced from 0.10
+            # Obra/superpowers quality indicators (25% total)
+            "has_core_principle": 0.08,
+            "has_strong_guidance": 0.07,
+            "has_good_bad_contrast": 0.06,
+            "description_quality": 0.04,
+            # v2 Golden Standard (14% total)
+            "has_when_to_use_section": 0.06,  # Required in v2
+            "has_quick_start": 0.04,  # Recommended in v2
+            "uses_progressive_disclosure": 0.04,  # Encouraged for navigation_hub style
         }
 
     weighted_sum = 0.0
@@ -528,8 +643,8 @@ def compute_overall_score(
 
     # Pattern count (normalized to 0-1, target is 5)
     pattern_score = min(scores.pattern_count / 5.0, 1.0)
-    weighted_sum += pattern_score * weights.get("pattern_count", 0.10)
-    total_weight += weights.get("pattern_count", 0.10)
+    weighted_sum += pattern_score * weights.get("pattern_count", 0.08)
+    total_weight += weights.get("pattern_count", 0.08)
 
     # Boolean scores (original)
     bool_metrics = [
@@ -541,30 +656,41 @@ def compute_overall_score(
         ("has_red_flags", scores.has_red_flags),
     ]
     for metric_name, value in bool_metrics:
-        weight = weights.get(metric_name, 0.08)
+        weight = weights.get(metric_name, 0.06)
         weighted_sum += (1.0 if value else 0.0) * weight
         total_weight += weight
 
-    # New Obra/superpowers boolean scores
+    # Obra/superpowers boolean scores
     obra_bool_metrics = [
         ("has_core_principle", scores.has_core_principle),
         ("has_strong_guidance", scores.has_strong_guidance),
         ("has_good_bad_contrast", scores.has_good_bad_contrast),
     ]
     for metric_name, value in obra_bool_metrics:
-        weight = weights.get(metric_name, 0.08)
+        weight = weights.get(metric_name, 0.07)
+        weighted_sum += (1.0 if value else 0.0) * weight
+        total_weight += weight
+
+    # v2 Golden Standard boolean scores
+    v2_bool_metrics = [
+        ("has_when_to_use_section", scores.has_when_to_use_section),
+        ("has_quick_start", scores.has_quick_start),
+        ("uses_progressive_disclosure", scores.uses_progressive_disclosure),
+    ]
+    for metric_name, value in v2_bool_metrics:
+        weight = weights.get(metric_name, 0.04)
         weighted_sum += (1.0 if value else 0.0) * weight
         total_weight += weight
 
     # Float scores
-    weighted_sum += scores.frontmatter_completeness * weights.get("frontmatter_completeness", 0.10)
-    total_weight += weights.get("frontmatter_completeness", 0.10)
+    weighted_sum += scores.frontmatter_completeness * weights.get("frontmatter_completeness", 0.08)
+    total_weight += weights.get("frontmatter_completeness", 0.08)
 
-    weighted_sum += scores.code_examples_quality * weights.get("code_examples_quality", 0.10)
-    total_weight += weights.get("code_examples_quality", 0.10)
+    weighted_sum += scores.code_examples_quality * weights.get("code_examples_quality", 0.08)
+    total_weight += weights.get("code_examples_quality", 0.08)
 
-    weighted_sum += scores.description_quality * weights.get("description_quality", 0.05)
-    total_weight += weights.get("description_quality", 0.05)
+    weighted_sum += scores.description_quality * weights.get("description_quality", 0.04)
+    total_weight += weights.get("description_quality", 0.04)
 
     # Calculate base score
     base_score = weighted_sum / total_weight if total_weight > 0 else 0.0
@@ -579,7 +705,12 @@ def compute_overall_score(
         ]
     )
 
-    # Penalty: 0 critical = 0.7x, 1 critical = 0.85x, 2 critical = 0.95x, 3 critical = 1.0x
+    # v2: Also penalize missing "When to Use" section (required in v2)
+    if not scores.has_when_to_use_section and not scores.has_when_to_use:
+        # Apply small penalty if neither form exists
+        critical_count = max(0, critical_count - 1)
+
+    # Penalty: 0 critical = 0.70x, 1 critical = 0.85x, 2 critical = 0.95x, 3 critical = 1.0x
     penalty_multipliers = {0: 0.70, 1: 0.85, 2: 0.95, 3: 1.0}
     penalty_multiplier = penalty_multipliers.get(critical_count, 1.0)
 
@@ -593,6 +724,12 @@ def assess_skill_quality(
     """Comprehensive skill quality assessment.
 
     This is the main entry point for evaluating skill quality.
+
+    v2 Golden Standard additions:
+    - Detects "When to Use This Skill" section (required)
+    - Detects Quick Start section (recommended)
+    - Evaluates progressive disclosure pattern
+    - Identifies skill style (navigation_hub, comprehensive, minimal)
 
     Args:
         skill_content: Raw SKILL.md content
@@ -614,12 +751,24 @@ def assess_skill_quality(
 
     # Evaluate structure
     structure_flags, struct_issues, struct_strengths = evaluate_structure(body)
-    scores.has_overview = structure_flags.get("has_overview", False)
-    scores.has_when_to_use = structure_flags.get("has_when_to_use", False)
-    scores.has_quick_reference = structure_flags.get("has_quick_reference", False)
-    scores.has_common_mistakes = structure_flags.get("has_common_mistakes", False)
-    scores.has_red_flags = structure_flags.get("has_red_flags", False)
-    scores.has_real_world_impact = structure_flags.get("has_real_world_impact", False)
+
+    # Helper: safely extract bool values from flags dict (which may contain str values)
+    def get_flag_bool(key: str, default: bool = False) -> bool:
+        val = structure_flags.get(key, default)
+        return val if isinstance(val, bool) else default
+
+    scores.has_overview = get_flag_bool("has_overview")
+    scores.has_when_to_use = get_flag_bool("has_when_to_use")
+    scores.has_when_to_use_section = get_flag_bool("has_when_to_use_section")
+    scores.has_quick_start = get_flag_bool("has_quick_start")
+    scores.has_quick_reference = get_flag_bool("has_quick_reference")
+    scores.has_common_mistakes = get_flag_bool("has_common_mistakes")
+    scores.has_red_flags = get_flag_bool("has_red_flags")
+    scores.has_real_world_impact = get_flag_bool("has_real_world_impact")
+    # v2 Golden Standard fields
+    scores.uses_progressive_disclosure = get_flag_bool("uses_progressive_disclosure")
+    skill_style = structure_flags.get("skill_style_detected", "")
+    scores.skill_style_detected = skill_style if isinstance(skill_style, str) else ""
     scores.issues.extend(struct_issues)
     scores.strengths.extend(struct_strengths)
 

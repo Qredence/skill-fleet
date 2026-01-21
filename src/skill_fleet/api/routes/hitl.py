@@ -3,15 +3,45 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any
+from typing import Any, cast
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
-from ..jobs import get_job, notify_hitl_response
+from ..exceptions import NotFoundException
+from ..job_manager import get_job_manager
+from ..jobs import notify_hitl_response
 from ..schemas import StructuredQuestion, normalize_questions
 
 router = APIRouter()
+
+
+class HITLConfigResponse(BaseModel):
+    """Response model for HITL configuration endpoint.
+
+    Contains the accepted keywords and patterns for intent detection.
+    Enables UI clients to stay in sync with backend HITL configuration.
+    """
+
+    action_keywords: dict[str, list[str]] = Field(
+        ...,
+        description="Keywords for detecting user intent (proceed, revise, cancel)",
+        example={
+            "proceed": [
+                "proceed",
+                "yes",
+                "ok",
+                "okay",
+                "continue",
+                "approve",
+                "accept",
+                "save",
+                "y",
+            ],
+            "revise": ["revise", "change", "edit", "modify", "fix", "update"],
+            "cancel": ["cancel", "abort", "stop", "quit", "no", "n"],
+        },
+    )
 
 
 class HITLPromptResponse(BaseModel):
@@ -116,12 +146,43 @@ class HITLResponseResult(BaseModel):
     detail: str | None = Field(default=None, description="Additional details")
 
 
+@router.get("/config", response_model=HITLConfigResponse)
+async def get_hitl_config() -> HITLConfigResponse:
+    """Retrieve the HITL configuration for intent detection.
+
+    This endpoint provides the keywords and patterns used to detect user intent
+    in HITL prompts (proceed, revise, cancel). UI clients should fetch this
+    to stay in sync with the backend if configuration changes.
+
+    Returns:
+        HITLConfigResponse with action keywords for intent detection
+    """
+    return HITLConfigResponse(
+        action_keywords={
+            "proceed": [
+                "proceed",
+                "yes",
+                "ok",
+                "okay",
+                "continue",
+                "approve",
+                "accept",
+                "save",
+                "y",
+            ],
+            "revise": ["revise", "change", "edit", "modify", "fix", "update"],
+            "cancel": ["cancel", "abort", "stop", "quit", "no", "n"],
+        }
+    )
+
+
 @router.get("/{job_id}/prompt", response_model=HITLPromptResponse)
 async def get_prompt(job_id: str) -> HITLPromptResponse:
     """Retrieve the current HITL prompt for a job."""
-    job = get_job(job_id)
+    manager = get_job_manager()
+    job = manager.get_job(job_id)
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise NotFoundException("Job", job_id)
 
     # Extract all possible HITL data fields
     hitl_data = job.hitl_data or {}
@@ -209,7 +270,9 @@ async def get_prompt(job_id: str) -> HITLPromptResponse:
             }
         )
 
-    return HITLPromptResponse(**response)
+    # Validate response structure using Pydantic for type safety and runtime validation
+    validated_response = HITLPromptResponse.model_validate(response)
+    return validated_response
 
 
 @router.post("/{job_id}/response", response_model=HITLResponseResult)
@@ -229,9 +292,10 @@ async def post_response(job_id: str, response: dict) -> HITLResponseResult:
     Returns:
         HITLResponseResult indicating if response was accepted or ignored
     """
-    job = get_job(job_id)
+    manager = get_job_manager()
+    job = manager.get_job(job_id)
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise NotFoundException("Job", job_id)
 
     # Ensure lock is initialized (handles loaded sessions)
     if job.hitl_lock is None:

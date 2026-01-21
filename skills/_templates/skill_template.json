@@ -1,22 +1,47 @@
 {
-  "metadata_template": {
-    "skill_id": "{{taxonomy_path}}",
-    "version": "1.0.0",
-    "type": "{{type}}",
-    "weight": "{{weight}}",
-    "load_priority": "{{priority}}",
-    "dependencies": [],
-    "capabilities": [],
-    "tags": [],
-    "created_at": "{{timestamp}}",
-    "last_modified": "{{timestamp}}",
-    "generation_reason": "{{reason}}",
-    "usage_count": 0,
-    "success_rate": 0.0
+  "$comment": "skill-fleet v2 Golden Standard Template",
+  "skill_styles": {
+    "navigation_hub": {
+      "description": "Short SKILL.md (~100-300 lines) with rich subdirectories",
+      "best_for": ["Complex technical skills", "Many patterns to document"],
+      "examples": ["dspy-basics", "neon-drizzle"]
+    },
+    "comprehensive": {
+      "description": "Long detailed SKILL.md (~400-800 lines) self-contained",
+      "best_for": ["Procedural skills", "Workflows", "Checklists"],
+      "examples": ["vibe-coding", "product-management"]
+    },
+    "minimal": {
+      "description": "Concise SKILL.md (~50-150 lines) focused on one thing",
+      "best_for": ["Simple tools", "Single patterns"],
+      "examples": ["utility skills"]
+    }
   },
-  "required_files": [
-    "metadata.json",
-    "SKILL.md"
-  ]
+  "directory_structure": [
+    "references/",
+    "guides/",
+    "templates/",
+    "scripts/",
+    "examples/"
+  ],
+  "required_files": ["SKILL.md"],
+  "optional_files": [
+    "references/*.md",
+    "guides/*.md",
+    "templates/*",
+    "scripts/*",
+    "examples/*/README.md"
+  ],
+  "subdirectory_purposes": {
+    "references": "Deep technical documentation, API references, pattern catalogs",
+    "guides": "Step-by-step workflows, troubleshooting guides, tutorials",
+    "templates": "Boilerplate code files for copy-paste reuse",
+    "scripts": "Runnable utility scripts, automation helpers",
+    "examples": "Complete runnable demo projects with READMEs"
+  },
+  "deprecated": {
+    "directories": ["capabilities/", "resources/", "tests/"],
+    "files": ["metadata.json"],
+    "note": "Existing skills with these structures are grandfathered; new skills should use v2 structure"
+  }
 }
-

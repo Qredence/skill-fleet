@@ -33,42 +33,10 @@ class TestCreateSkillCommand:
 
     @patch("skill_fleet.cli.main.configure_dspy")
     @patch("skill_fleet.cli.main.TaxonomySkillCreator")
-    @patch("skill_fleet.cli.main.load_fleet_config")
     @patch("skill_fleet.cli.main.TaxonomyManager")
-    def test_create_skill_callable(
-        self, mock_taxonomy_class, mock_load_config, mock_creator_class, mock_configure
-    ):
+    def test_create_skill_callable(self, mock_taxonomy_class, mock_creator_class, mock_configure):
         """Test create-skill is callable with args."""
-        mock_config = {
-            "tasks": {
-                "skill_understand": {"role": "planner", "model": "gemini/gemini-3-flash-preview"},
-                "skill_plan": {"role": "planner", "model": "gemini/gemini-3-flash-preview"},
-                "skill_initialize": {"role": "worker", "model": "gemini/gemini-3-flash-preview"},
-                "skill_edit": {"role": "worker", "model": "gemini/gemini-3-flash-preview"},
-                "skill_package": {"role": "worker", "model": "gemini/gemini-3-flash-preview"},
-                "skill_validate": {"role": "judge", "model": "gemini/gemini-3-flash-preview"},
-            },
-            "roles": {
-                "planner": {"model": "gemini/gemini-3-flash-preview"},
-                "worker": {"model": "gemini/gemini-3-flash-preview"},
-                "judge": {"model": "gemini/gemini-3-flash-preview"},
-            },
-            "models": {
-                "default": "gemini/gemini-3-flash-preview",
-                "registry": {
-                    "gemini/gemini-3-flash-preview": {
-                        "model": "gemini/gemini-3-flash-preview",
-                        "model_type": "chat",
-                        "timeout": 60,
-                        "parameters": {
-                            "temperature": 1.0,
-                            "max_tokens": 8192,
-                        },
-                    },
-                },
-            },
-        }
-        mock_load_config.return_value = mock_config
+        # Note: load_fleet_config is no longer patched as it is no longer used in skill_fleet.cli.main.py
 
         mock_taxonomy_instance = MagicMock()
         mock_taxonomy_class.return_value = mock_taxonomy_instance
@@ -101,10 +69,6 @@ class TestCreateSkillCommand:
 
         # Assert
         assert result == 0
-
-
-class TestValidateSkillCommand:
-    """Test validate-skill command."""
 
     @patch("skill_fleet.cli.main.SkillValidator")
     def test_validate_valid_skill(self, mock_validator_class):

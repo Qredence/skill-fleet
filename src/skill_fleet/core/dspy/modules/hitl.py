@@ -32,6 +32,19 @@ from ..signatures.hitl import (
 logger = logging.getLogger(__name__)
 
 
+def _get_arg(kwargs: dict[str, Any], args: tuple, key: str, index: int) -> Any:
+    """Helper to extract argument from kwargs or positional args safely.
+
+    Prevents "tuple index out of range" when a falsy kwarg (e.g. empty string)
+    causes fallback to a non-existent positional arg.
+    """
+    if key in kwargs:
+        return kwargs[key]
+    if len(args) > index:
+        return args[index]
+    return None
+
+
 # =============================================================================
 # Phase 1 HITL Modules
 # =============================================================================
@@ -69,9 +82,9 @@ class ClarifyingQuestionsModule(dspy.Module):
 
     async def aforward(self, *args, **kwargs) -> dict[str, Any]:
         """Async version using DSPy `.acall(...)` (preferred)."""
-        task_description = kwargs.get("task_description") or args[0]
-        initial_analysis = kwargs.get("initial_analysis") or args[1]
-        ambiguities = kwargs.get("ambiguities") or args[2]
+        task_description = _get_arg(kwargs, args, "task_description", 0)
+        initial_analysis = _get_arg(kwargs, args, "initial_analysis", 1)
+        ambiguities = _get_arg(kwargs, args, "ambiguities", 2)
 
         result = await self.generate_questions.acall(
             task_description=task_description,
@@ -125,11 +138,11 @@ class ConfirmUnderstandingModule(dspy.Module):
     async def aforward(self, *args, **kwargs) -> dict[str, Any]:
         """Async version using DSPy `.acall(...)` (preferred)."""
         # Preserve positional/kw calling flexibility.
-        task_description = kwargs.get("task_description") or args[0]
-        user_clarifications = kwargs.get("user_clarifications") or args[1]
-        intent_analysis = kwargs.get("intent_analysis") or args[2]
-        taxonomy_path = kwargs.get("taxonomy_path") or args[3]
-        dependencies = kwargs.get("dependencies") or args[4]
+        task_description = _get_arg(kwargs, args, "task_description", 0)
+        user_clarifications = _get_arg(kwargs, args, "user_clarifications", 1)
+        intent_analysis = _get_arg(kwargs, args, "intent_analysis", 2)
+        taxonomy_path = _get_arg(kwargs, args, "taxonomy_path", 3)
+        dependencies = _get_arg(kwargs, args, "dependencies", 4)
 
         result = await self.summarize.acall(
             task_description=task_description,
@@ -176,8 +189,8 @@ class PreviewGeneratorModule(dspy.Module):
 
     async def aforward(self, *args, **kwargs) -> dict[str, Any]:
         """Async version using DSPy `.acall(...)` (preferred)."""
-        skill_content = kwargs.get("skill_content") or args[0]
-        metadata = kwargs.get("metadata") or args[1]
+        skill_content = _get_arg(kwargs, args, "skill_content", 0)
+        metadata = _get_arg(kwargs, args, "metadata", 1)
 
         result = await self.generate_preview.acall(skill_content=skill_content, metadata=metadata)
         return {
@@ -214,8 +227,8 @@ class FeedbackAnalyzerModule(dspy.Module):
 
     async def aforward(self, *args, **kwargs) -> dict[str, Any]:
         """Async version using DSPy `.acall(...)` (preferred)."""
-        user_feedback = kwargs.get("user_feedback") or args[0]
-        current_content = kwargs.get("current_content") or args[1]
+        user_feedback = _get_arg(kwargs, args, "user_feedback", 0)
+        current_content = _get_arg(kwargs, args, "current_content", 1)
 
         result = await self.analyze.acall(
             user_feedback=user_feedback, current_content=current_content
@@ -262,8 +275,8 @@ class ValidationFormatterModule(dspy.Module):
 
     async def aforward(self, *args, **kwargs) -> dict[str, Any]:
         """Async version using DSPy `.acall(...)` (preferred)."""
-        validation_report = kwargs.get("validation_report") or args[0]
-        skill_content = kwargs.get("skill_content") or args[1]
+        validation_report = _get_arg(kwargs, args, "validation_report", 0)
+        skill_content = _get_arg(kwargs, args, "skill_content", 1)
 
         result = await self.format_results.acall(
             validation_report=validation_report,
@@ -310,9 +323,9 @@ class RefinementPlannerModule(dspy.Module):
 
     async def aforward(self, *args, **kwargs) -> dict[str, Any]:
         """Async version using DSPy `.acall(...)` (preferred)."""
-        validation_issues = kwargs.get("validation_issues") or args[0]
-        user_feedback = kwargs.get("user_feedback") or args[1]
-        current_skill = kwargs.get("current_skill") or args[2]
+        validation_issues = _get_arg(kwargs, args, "validation_issues", 0)
+        user_feedback = _get_arg(kwargs, args, "user_feedback", 1)
+        current_skill = _get_arg(kwargs, args, "current_skill", 2)
 
         result = await self.plan_refinement.acall(
             validation_issues=validation_issues,
@@ -361,9 +374,9 @@ class ReadinessAssessorModule(dspy.Module):
 
     async def aforward(self, *args, **kwargs) -> dict[str, Any]:
         """Async version using DSPy `.acall(...)` (preferred)."""
-        phase = kwargs.get("phase") or args[0]
-        collected_info = kwargs.get("collected_info") or args[1]
-        min_requirements = kwargs.get("min_requirements") or args[2]
+        phase = _get_arg(kwargs, args, "phase", 0)
+        collected_info = _get_arg(kwargs, args, "collected_info", 1)
+        min_requirements = _get_arg(kwargs, args, "min_requirements", 2)
 
         result = await self.assess.acall(
             phase=phase,
@@ -410,9 +423,9 @@ class HITLStrategyModule(dspy.Module):
 
     async def aforward(self, *args, **kwargs) -> dict[str, Any]:
         """Async version using DSPy `.acall(...)` (preferred)."""
-        task_description = kwargs.get("task_description") or args[0]
-        task_complexity = kwargs.get("task_complexity") or args[1]
-        user_preferences = kwargs.get("user_preferences") or args[2]
+        task_description = _get_arg(kwargs, args, "task_description", 0)
+        task_complexity = _get_arg(kwargs, args, "task_complexity", 1)
+        user_preferences = _get_arg(kwargs, args, "user_preferences", 2)
 
         result = await self.determine_strategy.acall(
             task_description=task_description,

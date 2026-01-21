@@ -26,13 +26,13 @@ def run_async[T](factory: Callable[[], Awaitable[T]]) -> T:
     try:
         asyncio.get_running_loop()
     except RuntimeError:
-        return asyncio.run(factory())
+        return asyncio.run(factory())  # type: ignore[invalid-argument-type]
 
     result_queue: queue.Queue[tuple[bool, T | BaseException]] = queue.Queue(maxsize=1)
 
     def _runner() -> None:
         try:
-            result_queue.put((True, asyncio.run(factory())))
+            result_queue.put((True, asyncio.run(factory())))  # type: ignore[invalid-argument-type]
         except BaseException as exc:
             result_queue.put((False, exc))
 
@@ -42,5 +42,5 @@ def run_async[T](factory: Callable[[], Awaitable[T]]) -> T:
     thread.join()
 
     if ok:
-        return payload  # type: ignore[return-value]
-    raise payload  # type: ignore[misc]
+        return payload  # type: ignore[invalid-return-type]
+    raise payload  # type: ignore[invalid-raise]

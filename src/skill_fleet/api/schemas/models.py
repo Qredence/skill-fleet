@@ -9,9 +9,9 @@ from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_serializer, model_validator
 
 from ...core.models import ChecklistState
 
@@ -19,7 +19,7 @@ from ...core.models import ChecklistState
 class TDDWorkflowState(BaseModel):
     """TDD workflow state for job tracking."""
 
-    phase: str | None = None  # "red", "green", "refactor", "complete"
+    phase: str | None = None
     checklist: ChecklistState = Field(default_factory=ChecklistState)
     baseline_tests_run: bool = False
     compliance_tests_run: bool = False
@@ -42,62 +42,53 @@ class DeepUnderstandingState(BaseModel):
 class JobState(BaseModel):
     """Represents the current state of a background job."""
 
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     job_id: str
-    status: str = "pending"  # pending, running, pending_hitl, completed, failed
+    status: str = "pending"
     hitl_type: str | None = None
     hitl_data: dict[str, Any] | None = None
     hitl_response: dict[str, Any] | None = None
     result: Any | None = None
     error: str | None = None
 
-    # Event for atomic HITL response signaling (not serialized)
-    # Initialized in __pydantic_init__ to avoid serialization issues
     hitl_event: asyncio.Event | None = None
-
-    # Lock for atomic HITL operations (not serialized)
     hitl_lock: asyncio.Lock | None = None
 
-    # Progress tracking for CLI display
-    current_phase: str | None = None  # "understanding", "generation", "validation"
-    progress_message: str | None = None  # Detailed progress message for CLI
+    current_phase: str | None = None
+    progress_message: str | None = None
 
-    # Draft-first lifecycle
     intended_taxonomy_path: str | None = None
     draft_path: str | None = None
     final_path: str | None = None
     promoted: bool = False
 
-    # Validation summary (derived from result.validation_report when available)
     validation_passed: bool | None = None
     validation_status: str | None = None
     validation_score: float | None = None
 
-    # Backward compatibility
-    saved_path: str | None = None  # Alias of final_path after promotion
+    saved_path: str | None = None
 
-    # Enhanced features from ConversationalSkillAgent
     tdd_workflow: TDDWorkflowState = Field(default_factory=TDDWorkflowState)
     deep_understanding: DeepUnderstandingState = Field(default_factory=DeepUnderstandingState)
     multi_skill_queue: list[str] = Field(default_factory=list)
     current_skill_index: int = 0
     task_description_refined: str = ""
 
-    # Session persistence
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
-    # User context
     user_id: str = "default"
     user_context: dict[str, Any] = Field(default_factory=dict)
 
+    @field_serializer("hitl_event", "hitl_lock", when_used="json")
+    def serialize_sync_objects(self, value: Any) -> None:
+        """Exclude asyncio sync objects from JSON serialization."""
+        return None
+
     @model_validator(mode="after")
     def initialize_hitl_sync_objects(self) -> JobState:
-        """Initialize asyncio.Event and asyncio.Lock for HITL synchronization.
-
-        This is done in a model validator to ensure that sync objects are created
-        when a JobState instance is instantiated, but excluded from serialization
-        since asyncio.Event and asyncio.Lock are not JSON-serializable.
-        """
+        """Initialize asyncio sync objects for HITL synchronization."""
         if self.hitl_event is None:
             object.__setattr__(self, "hitl_event", asyncio.Event())
         if self.hitl_lock is None:

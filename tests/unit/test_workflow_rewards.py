@@ -1,4 +1,4 @@
-from types import SimpleNamespace
+import dspy
 
 from skill_fleet.core.optimization.rewards import (
     capabilities_reward,
@@ -15,27 +15,27 @@ from skill_fleet.core.optimization.rewards import (
 
 
 def test_taxonomy_path_reward_valid_path_scores_high() -> None:
-    pred = SimpleNamespace(
+    pred = dspy.Prediction(
         taxonomy_path="technical_skills/programming/languages/python",
         confidence_score=0.85,
     )
-    score = taxonomy_path_reward(None, pred)
+    score = taxonomy_path_reward(None, pred)  # type: ignore[arg-type]
     assert 0.9 <= score <= 1.0
 
 
 def test_taxonomy_path_reward_invalid_path_with_low_confidence_scores_low() -> None:
     pred = SimpleNamespace(taxonomy_path="Bad Path", confidence_score=0.0)
-    assert taxonomy_path_reward(None, pred) <= 0.2
+    assert taxonomy_path_reward(None, pred) <= 0.2  # type: ignore[arg-type]
 
 
 def test_taxonomy_path_reward_depth_one_gets_partial_credit() -> None:
     pred = SimpleNamespace(taxonomy_path="general", confidence_score=0.6)
-    score = taxonomy_path_reward(None, pred)
+    score = taxonomy_path_reward(None, pred)  # type: ignore[arg-type]
     assert score > 0.0
 
 
 def test_metadata_completeness_reward_valid_metadata_scores_higher() -> None:
-    good = SimpleNamespace(
+    good = dspy.Prediction(
         skill_metadata={
             "skill_id": "general/testing",
             "name": "workflow-testing",
@@ -45,13 +45,13 @@ def test_metadata_completeness_reward_valid_metadata_scores_higher() -> None:
             "weight": "lightweight",
         }
     )
-    bad = SimpleNamespace(skill_metadata={"name": "Not Kebab"})
+    bad = dspy.Prediction(skill_metadata={"name": "Not Kebab"})
 
-    assert metadata_completeness_reward(None, good) > metadata_completeness_reward(None, bad)
+    assert metadata_completeness_reward(None, good) > metadata_completeness_reward(None, bad)  # type: ignore[arg-type]
 
 
 def test_capabilities_reward_prefers_snake_case_with_descriptions() -> None:
-    pred = SimpleNamespace(
+    pred = dspy.Prediction(
         capabilities=[
             {"name": "one_capability", "description": "description long enough"},
             {"name": "two_capability", "description": "description long enough"},
@@ -59,7 +59,7 @@ def test_capabilities_reward_prefers_snake_case_with_descriptions() -> None:
         ]
     )
 
-    score = capabilities_reward(None, pred)
+    score = capabilities_reward(None, pred)  # type: ignore[arg-type]
     assert score > 0.7
 
 
@@ -89,31 +89,31 @@ echo hi
 ```
 """
     pred = SimpleNamespace(skill_content=content)
-    score = skill_content_reward(None, pred)
+    score = skill_content_reward(None, pred)  # type: ignore[arg-type]
     assert score > 0.5
 
 
 def test_usage_examples_reward_scores_structure() -> None:
-    pred = SimpleNamespace(
+    pred = dspy.Prediction(
         usage_examples=[
             {"code": "print('a' * 25)", "description": "demonstrates printing a"},
             {"code": "print('b' * 25)", "description": "demonstrates printing b"},
         ]
     )
-    assert usage_examples_reward(None, pred) > 0.6
+    assert usage_examples_reward(None, pred) > 0.6  # type: ignore[arg-type]
 
 
 def test_validation_report_reward_and_quality_score_reward() -> None:
-    pred = SimpleNamespace(
+    pred = dspy.Prediction(
         validation_report={"status": "passed", "passed": True, "errors": [], "warnings": []},
         quality_score=0.75,
     )
-    assert validation_report_reward(None, pred) >= 0.7
-    assert quality_score_reward(None, pred) == 1.0
+    assert validation_report_reward(None, pred) >= 0.7  # type: ignore[arg-type]
+    assert quality_score_reward(None, pred) == 1.0  # type: ignore[arg-type]
 
 
 def test_composite_rewards_return_in_unit_interval() -> None:
-    plan_pred = SimpleNamespace(
+    plan_pred = dspy.Prediction(
         skill_metadata={
             "skill_id": "general/testing",
             "name": "workflow-testing",
@@ -127,11 +127,11 @@ def test_composite_rewards_return_in_unit_interval() -> None:
             {"name": "cap_two", "description": "desc"},
         ],
     )
-    edit_pred = SimpleNamespace(
+    edit_pred = dspy.Prediction(
         skill_content="# Title\n\n## Overview\n\n## Capabilities\n\n## Dependencies\n\n## Usage Examples\n\n```python\npass\n```\n",
         usage_examples=[{"code": "print('x')", "description": "desc"}],
     )
-    package_pred = SimpleNamespace(
+    package_pred = dspy.Prediction(
         validation_report={"status": "passed", "passed": True, "errors": [], "warnings": []},
         quality_score=0.9,
     )
@@ -141,5 +141,5 @@ def test_composite_rewards_return_in_unit_interval() -> None:
         (combined_edit_reward, edit_pred),
         (combined_package_reward, package_pred),
     ]:
-        score = fn(None, pred)
+        score = fn(None, pred)  # type: ignore[arg-type]
         assert 0.0 <= score <= 1.0

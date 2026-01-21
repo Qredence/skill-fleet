@@ -92,7 +92,14 @@ Each skill typically includes:
 
 - `metadata.json` — required metadata (type, weight, dependencies, etc.)
 - `SKILL.md` — full documentation with agentskills.io-compliant YAML frontmatter
-- `capabilities/`, `examples/`, `tests/`, `resources/`
+- `references/` (v2 standard) — reference documentation, replacing `capabilities/`
+- `guides/` (v2 standard) — how-to guides, replacing `resources/`
+- `templates/` (v2 standard) — boilerplate code
+- `scripts/` — utility scripts
+- `examples/` — usage examples
+- `tests/` — integration tests
+
+**Legacy directories** (`capabilities/`, `resources/`) are supported for backward compatibility.
 
 Some always‑loaded skills are single JSON files under:
 
@@ -214,10 +221,16 @@ Directory skills must include:
 
 - `metadata.json`
 - `SKILL.md`
-- `capabilities/`
-- `examples/`
-- `tests/`
-- `resources/`
+
+**Optional subdirectories** (v2 Golden Standard):
+- `references/` — reference documentation (replaces `capabilities/`)
+- `guides/` — how-to guides (replaces `resources/`)
+- `templates/` — boilerplate code
+- `scripts/` — utility scripts
+- `examples/` — usage examples
+- `tests/` — integration tests
+
+**Legacy support:** `capabilities/` and `resources/` are still supported for backward compatibility.
 
 Single‑file skills include metadata only (no `SKILL.md`), optimized for always‑loaded runtime features.
 
@@ -283,7 +296,7 @@ The taxonomy is designed to evolve:
 - Validation enforces structural consistency.
 - Evolution metadata records approvals and changes.
 
-### Example: Skill Node Layout
+### Example: Skill Node Layout (v2 Golden Standard)
 
 ```
 skills/
@@ -293,10 +306,12 @@ skills/
         python/
           metadata.json
           SKILL.md
-          capabilities/
+          references/          # v2 standard (replaces capabilities/)
+          guides/              # v2 standard (replaces resources/)
+          templates/           # v2 standard
+          scripts/
           examples/
           tests/
-          resources/
 ```
 
 ### Example: Always‑Loaded Skill

@@ -60,6 +60,13 @@ repos:
         pass_filenames: false
         always_run: true
 
+      # Type check with ty
+      - id: ty
+        name: ty type checker
+        entry: uv run ty check
+        language: system
+        types_or: [python, pyi]
+
       # Validate skills
       - id: skill-validation
         name: skill validation

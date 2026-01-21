@@ -15,20 +15,27 @@ Programs are the "glue code" of the workflow. They handle orchestration logic li
 
 | Program | Purpose | File |
 |---------|---------|------|
-| `SkillCreationProgram` | Main 3-phase skill creation workflow | `skill_creator.py` |
+| `SkillCreationProgram` | New 3-phase orchestrator (current default) | `skill_creator.py` |
+| `LegacySkillCreationProgram` | Legacy 4-phase skill creation workflow | `programs.py` |
 | `GuidedCreatorProgram` | Chat-based guided skill creation | `conversational.py` |
 
 ## SkillCreationProgram
 
-**File**: `src/skill_fleet/core/programs/skill_creator.py`
+**File**: `src/skill_fleet/core/dspy/skill_creator.py`
 
-The main orchestrator for the complete 3-phase skill creation workflow with integrated HITL.
+The modern, unified orchestrator for the 3-phase skill creation workflow.
+
+## LegacySkillCreationProgram
+
+**File**: `src/skill_fleet/core/dspy/programs.py`
+
+The original orchestrator for the complete 4-phase skill creation workflow with integrated HITL. Renamed from `SkillCreationProgram` to avoid naming conflicts with the new unified architecture.
 
 ### Class Definition
 
 ```python
 class SkillCreationProgram(dspy.Module):
-    """Complete 3-phase skill creation orchestrator with integrated HITL."""
+    """Complete 4-phase skill creation orchestrator with integrated HITL."""
 ```
 
 ### Constructor
@@ -45,6 +52,7 @@ def __init__(self, quality_assured: bool = True, hitl_enabled: bool = True):
 
 **Initialized Modules:**
 ```python
+self.phase0 = GatherExamplesModule()  # Example gathering (Step 0)
 self.phase1 = Phase1UnderstandingModule()
 self.phase2 = Phase2GenerationModule(quality_assured=quality_assured)
 self.phase3 = Phase3ValidationModule()
@@ -99,7 +107,19 @@ SkillCreationResult(
 
 ```mermaid
 flowchart TD
-    Start([Start]) --> P1[Phase 1: Understanding & Planning]
+    Start([Start]) --> P0[Phase 0: Example Gathering]
+
+    subgraph P0
+        P0A[Ask Clarifying Questions]
+        P0A --> P0B{Ready?}
+        P0B -->|No| P0C[Collect User Examples]
+        P0C --> P0D[Build Terminology]
+        P0D --> P0E[Score Readiness]
+        P0E --> P0B
+        P0B -->|Yes| P0F[Generate Refined Task]
+    end
+
+    P0 --> P1[Phase 1: Understanding & Planning]
 
     subgraph P1
         P1A[Gather Requirements]
@@ -135,6 +155,65 @@ flowchart TD
 
     P3 --> End([Return Result])
 ```
+
+### Phase 0: Example Gathering
+
+**Goal**: Collect concrete usage examples and domain terminology before skill creation.
+
+**Steps:**
+
+1. **Generate Clarifying Questions**
+   ```python
+   result = await self.phase0.aforward(
+       task_description=task_description,
+       user_responses=user_responses,
+       collected_examples=collected_examples,
+       config={
+           "min_examples": 3,
+           "readiness_threshold": 0.8,
+           "max_questions": 10,
+           "max_rounds": 3
+       }
+   )
+   ```
+
+2. **Iterative Questioning Loop**
+   ```python
+   while not result["proceed"]:
+       # Present clarifying questions to user
+       questions = result["questions"]
+       user_responses = await hitl_callback("clarify", {
+           "questions": [q.dict() for q in questions],
+           "readiness_score": result["session"]["readiness_score"]
+       })
+
+       # Extract examples from responses
+       result = await self.phase0.aforward(
+           task_description=task_description,
+           user_responses=user_responses,
+           collected_examples=result["session"]["collected_examples"],
+           config=config
+       )
+   ```
+
+3. **Generate Refined Task**
+   ```python
+   refined_task = result["session"]["refined_task"]
+   terminology = result["session"]["terminology"]
+
+   # Pass refined task to Phase 1
+   ```
+
+**Configuration Options:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `min_examples` | `int` | `3` | Minimum examples before proceeding |
+| `readiness_threshold` | `float` | `0.8` | Score threshold to advance (0.0-1.0) |
+| `max_questions` | `int` | `10` | Maximum clarifying questions |
+| `max_rounds` | `int` | `3` | Maximum feedback rounds |
+
+**Output**: `ExampleGatheringResult` with session state, refined task, and terminology
 
 ### Phase 1: Understanding & Planning
 
@@ -276,6 +355,7 @@ async def hitl_callback(
 
 | Checkpoint | Payload | Expected Response |
 |------------|--------|-------------------|
+| `example_gathering` | `{questions, readiness_score}` | `{responses: [...]} or {proceed: true}` |
 | `clarify` | `{questions, rationale}` | `{response: "..."} or {answers: {...}}` |
 | `confirm` | `{summary, path}` | `{action: "proceed"|"revise", feedback: "..."}` |
 | `preview` | `{content, highlights}` | `{action: "proceed"|"refine", feedback: "..."}` |
@@ -291,7 +371,7 @@ async def hitl_callback(
 
 ```python
 from skill_fleet.llm.dspy_config import configure_dspy
-from skill_fleet.core.programs.skill_creator import SkillCreationProgram
+from skill_fleet.core.dspy.programs import SkillCreationProgram
 
 # Configure DSPy once
 configure_dspy()

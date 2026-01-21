@@ -13,17 +13,20 @@ Thank you for your interest in contributing to Skills Fleet! This document provi
 ### Setup Steps
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/Qredence/skill-fleet.git
 cd skill-fleet
 ```
 
 2. Install dependencies using uv:
+
 ```bash
 uv sync
 ```
 
 3. Verify your installation:
+
 ```bash
 uv run pytest tests/
 ```
@@ -44,6 +47,25 @@ uv run ruff check --fix .
 # Format code
 uv run ruff format .
 ```
+
+### Type Checking
+
+We use [ty](https://docs.astral.sh/ty/) for fast static type checking:
+
+```bash
+# Check types
+uv run ty check src/ tests/
+
+# Watch mode
+uv run ty check --watch
+
+# Specific files
+uv run ty check src/skill_fleet/llm/fleet_config.py
+```
+
+### Type Suppression
+
+When needed, use ty-specific suppression comments:
 
 ### Type Hints
 
@@ -131,18 +153,24 @@ def test_safe_json_loads_with_invalid_json():
 
 1. Fork the repository
 2. Create a feature branch:
+
 ```bash
 git checkout -b feature/your-feature-name
 ```
+
 3. Make your changes and commit:
+
 ```bash
 git add .
 git commit -m "feat: add new feature description"
 ```
+
 4. Push to your fork:
+
 ```bash
 git push origin feature/your-feature-name
 ```
+
 5. Open a pull request against the main branch
 
 ### Commit Message Conventions
@@ -158,6 +186,7 @@ We follow semantic commit messages:
 - `chore:` Maintenance tasks
 
 Examples:
+
 ```
 feat: add revision feedback support to skill editing
 fix: handle None values in safe_json_loads
@@ -171,6 +200,7 @@ Before submitting your PR, ensure:
 
 - [ ] All tests pass locally
 - [ ] Code passes `uv run ruff check .`
+- [ ] Code passes `uv run ty check src/ tests/`
 - [ ] Documentation updated for new features
 - [ ] CHANGELOG.md updated (if applicable)
 - [ ] Commit messages follow conventions
@@ -179,9 +209,11 @@ Before submitting your PR, ensure:
 ### Branch Protection & Required Checks
 
 The `main` branch is protected with the following requirements:
+
 - At least 1 approving review required
 - All CI status checks must pass:
   - Linting (ruff check and format)
+  - Type checking (ty)
   - Tests (Python 3.12 and 3.13)
   - Build verification
   - Security checks

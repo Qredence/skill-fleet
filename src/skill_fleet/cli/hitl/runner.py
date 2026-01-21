@@ -12,7 +12,7 @@ commands stay consistent.
 from __future__ import annotations
 
 import asyncio
-from typing import Any
+from typing import Any, cast
 
 from rich.console import Console
 from rich.markdown import Markdown
@@ -43,7 +43,8 @@ def _render_questions(questions: object) -> str:
         for idx, q in enumerate(questions, 1):
             if isinstance(q, dict):
                 # Server returns StructuredQuestion with 'text' field
-                text = q.get("text") or q.get("question") or str(q)
+                q_dict = cast(dict[str, Any], q)
+                text = q_dict.get("text") or q_dict.get("question") or str(q)
             else:
                 text = str(q)
             lines.append(f"{idx}. {text}")
@@ -64,7 +65,8 @@ def _normalize_questions(questions: object) -> list[object]:
     if questions is None:
         return []
     if isinstance(questions, list):
-        return questions
+        # Type check after isinstance check
+        return list(questions)
     # Fallback for unexpected formats (shouldn't happen with new API)
     return [questions]
 
@@ -78,7 +80,8 @@ def _question_text(question: object) -> str:
         return question
     if isinstance(question, dict):
         # StructuredQuestion uses 'text' as primary field
-        return str(question.get("text") or question.get("question") or question)
+        q_dict = cast(dict[str, Any], question)
+        return str(q_dict.get("text") or q_dict.get("question") or question)
     return str(question)
 
 
@@ -91,7 +94,8 @@ def _question_options(question: object) -> tuple[list[tuple[str, str]], bool]:
     if not isinstance(question, dict):
         return ([], False)
 
-    raw_options = question.get("options")
+    q_dict = cast(dict[str, Any], question)
+    raw_options = q_dict.get("options")
     if not isinstance(raw_options, list) or not raw_options:
         return ([], False)
 
@@ -99,9 +103,10 @@ def _question_options(question: object) -> tuple[list[tuple[str, str]], bool]:
     for opt in raw_options:
         if isinstance(opt, dict):
             # QuestionOption has 'id', 'label', 'description' fields
-            opt_id = str(opt.get("id") or opt.get("value") or "")
-            label = str(opt.get("label") or opt.get("text") or opt_id)
-            desc = opt.get("description")
+            opt_dict = cast(dict[str, Any], opt)
+            opt_id = str(opt_dict.get("id") or opt_dict.get("value") or "")
+            label = str(opt_dict.get("label") or opt_dict.get("text") or opt_id)
+            desc = opt_dict.get("description")
             if desc:
                 label = f"{label} — {desc}"
             if opt_id:
@@ -109,7 +114,7 @@ def _question_options(question: object) -> tuple[list[tuple[str, str]], bool]:
         else:
             choices.append((str(opt), str(opt)))
 
-    allows_multiple = bool(question.get("allows_multiple", False))
+    allows_multiple = bool(q_dict.get("allows_multiple", False))
     return (choices, allows_multiple)
 
 

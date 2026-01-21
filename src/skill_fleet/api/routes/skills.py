@@ -8,14 +8,19 @@ import re
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks
 from pydantic import BaseModel, Field
 
 from ...common.security import sanitize_taxonomy_path
 from ...core.dspy import SkillCreationProgram
 from ...core.models import SkillCreationResult
 from ...taxonomy.manager import TaxonomyManager
-from ..dependencies import TaxonomyManagerDep, get_drafts_root, get_skills_root
+from ..dependencies import (
+    DraftsRoot,
+    SkillsRoot,
+    TaxonomyManagerDep,
+)
+from ..exceptions import BadRequestException, NotFoundException
 from ..jobs import JOBS, create_job, save_job_session, wait_for_hitl_response
 
 logger = logging.getLogger(__name__)
@@ -25,7 +30,9 @@ router = APIRouter()
 class CreateSkillRequest(BaseModel):
     """Request body for creating a new skill."""
 
-    task_description: str = Field(..., description="Description of the skill to create")
+    task_description: str = Field(
+        ..., description="Description of the skill to create", min_length=10
+    )
     user_id: str = Field(default="default", description="User ID for context")
 
 
@@ -55,14 +62,14 @@ async def get_skill(path: str, manager: TaxonomyManagerDep) -> SkillDetailRespon
     try:
         canonical_path = manager.resolve_skill_location(path)
     except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=f"Skill '{path}' not found") from e
+        raise NotFoundException("Skill", path) from e
 
     # 2. Load Metadata
     meta = manager.get_skill_metadata(canonical_path) or manager._try_load_skill_by_id(
         canonical_path
     )
     if not meta:
-        raise HTTPException(status_code=404, detail="Skill metadata not found")
+        raise NotFoundException("Skill metadata")
 
     # 3. Load Content
     content = None
@@ -271,6 +278,8 @@ def _save_skill_to_draft(
 ) -> str | None:
     """Save a completed skill to the draft area.
 
+    v2 Golden Standard: Also writes subdirectory files if provided in edit_result.
+
     Args:
         drafts_root: Base directory for drafts
         job_id: Unique job identifier
@@ -364,6 +373,36 @@ def _save_skill_to_draft(
                 logger.warning(
                     "Failed to extract skill artifacts (assets/examples) for %s", full_path
                 )
+
+            # v2 Golden Standard: Write subdirectory files if provided in edit_result
+            # Subdirectory files come from the DSPy generation phase
+            try:
+                if result.edit_result and hasattr(result.edit_result, "subdirectory_files"):
+                    subdir_files = result.edit_result.subdirectory_files
+                    if subdir_files and isinstance(subdir_files, dict):
+                        # Valid subdirectories per v2 standard
+                        valid_subdirs = {"references", "guides", "templates", "scripts", "examples"}
+                        for subdir_name, files in subdir_files.items():
+                            if subdir_name not in valid_subdirs:
+                                logger.warning("Skipping invalid subdirectory: %s", subdir_name)
+                                continue
+                            if not isinstance(files, dict):
+                                continue
+                            subdir_path = full_path / subdir_name
+                            subdir_path.mkdir(parents=True, exist_ok=True)
+                            for filename, content in files.items():
+                                # Validate filename for safety
+                                safe_filename = _safe_single_filename(filename)
+                                if safe_filename:
+                                    file_path = subdir_path / safe_filename
+                                    file_path.write_text(str(content), encoding="utf-8")
+                                    logger.debug(
+                                        "Wrote subdirectory file: %s/%s",
+                                        subdir_name,
+                                        safe_filename,
+                                    )
+            except Exception as e:
+                logger.warning("Failed to write subdirectory files for %s: %s", full_path, e)
 
             logger.info("Draft saved successfully to: %s", full_path)
             return str(full_path)
@@ -492,6 +531,8 @@ async def run_skill_creation(
 async def create(
     request: CreateSkillRequest,
     background_tasks: BackgroundTasks,
+    skills_root: SkillsRoot,
+    drafts_root: DraftsRoot,
 ) -> CreateSkillResponse:
     """Initiate a new skill creation job.
 
@@ -504,11 +545,7 @@ async def create(
     via GET /api/v2/hitl/{job_id}/prompt.
     """
     if not request.task_description:
-        raise HTTPException(status_code=400, detail="task_description is required")
-
-    # Get paths from dependencies (called directly since we're in a background task context)
-    skills_root = get_skills_root()
-    drafts_root = get_drafts_root(skills_root)
+        raise BadRequestException("task_description is required")
 
     job_id = create_job()
     background_tasks.add_task(

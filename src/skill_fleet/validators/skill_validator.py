@@ -1,4 +1,11 @@
-"""Skill validation utilities for taxonomy and agentskills.io compliance."""
+"""Skill validation utilities for taxonomy and agentskills.io compliance.
+
+v2 Golden Standard (Jan 2026):
+- Only SKILL.md is required (no metadata.json)
+- Supports 3 skill styles: navigation_hub, comprehensive, minimal
+- New subdirectory structure: references/, guides/, templates/, scripts/, examples/
+- "When to Use" section required (replaces rigid Overview/Capabilities)
+"""
 
 from __future__ import annotations
 
@@ -23,8 +30,22 @@ class ValidationResult:
     warnings: list[str]
 
 
+# v2 Golden Standard: Valid subdirectory names
+VALID_SUBDIRECTORIES = frozenset({"references", "guides", "templates", "scripts", "examples"})
+# Legacy subdirectories (grandfathered but not recommended for new skills)
+LEGACY_SUBDIRECTORIES = frozenset({"capabilities", "resources", "tests"})
+
+
 class SkillValidator:
-    """Validates skill metadata, directory structure, and agentskills.io compliance."""
+    """Validates skill metadata, directory structure, and agentskills.io compliance.
+
+    v2 Golden Standard Changes:
+    - SKILL.md is the only required file (no metadata.json)
+    - "When to Use" section is required
+    - Quick Start section is recommended
+    - New subdirectory names: references/, guides/, templates/, scripts/, examples/
+    - Legacy skills with capabilities/, resources/, tests/ are grandfathered
+    """
 
     _TYPE_ENUM = {
         "cognitive",
@@ -64,7 +85,8 @@ class SkillValidator:
 
         self.skills_root = root_resolved
         self.taxonomy_manager = taxonomy_manager
-        self.required_files = ["metadata.json", "SKILL.md"]
+        # v2 Golden Standard: Only SKILL.md is required
+        self.required_files = ["SKILL.md"]
         self.required_dirs = []  # All directories are now optional (created lazily)
         self._load_template_overrides()
 
@@ -185,11 +207,13 @@ class SkillValidator:
         except json.JSONDecodeError:
             return
 
-        directory_structure = template.get("directory_structure")
-        if isinstance(directory_structure, list):
+        # v2 Golden Standard: directory_structure lists OPTIONAL directories
+        # Only 'required_directories' (if present) specifies truly required dirs
+        required_directories = template.get("required_directories")
+        if isinstance(required_directories, list):
             # Only keep safe, single-segment directory names
             safe_dirs: list[str] = []
-            for d in directory_structure:
+            for d in required_directories:
                 if not isinstance(d, str):
                     continue
                 # Normalize any trailing slash before validation
@@ -198,6 +222,8 @@ class SkillValidator:
                     safe_dirs.append(d_normalized)
             if safe_dirs:
                 self.required_dirs = safe_dirs
+        # Note: 'directory_structure' is intentionally not treated as required
+        # It lists directories that MAY be created, but are not mandatory
 
         required_files = template.get("required_files")
         if isinstance(required_files, list):
@@ -335,18 +361,25 @@ class SkillValidator:
         return ValidationResult(len(errors) == 0, errors, warnings)
 
     def validate_documentation(self, skill_md_path: Path) -> ValidationResult:
-        """Validate expected documentation sections and basic markdown structure."""
+        """Validate expected documentation sections and basic markdown structure.
+
+        v2 Golden Standard required sections:
+        - "When to Use" (required)
+        - "Quick Start" or "Quick Examples" (recommended)
+
+        Legacy sections are not required for new skills but won't fail validation
+        if present. This allows backward compatibility with existing skills.
+        """
         errors: list[str] = []
         warnings: list[str] = []
 
         skills_root_resolved = self.skills_root.resolve()
         try:
-            # Check containment without fully resolving symlinks first,
-            # to allow detection of symlink escapes by the helper.
+            # Resolve the path to handle macOS /var -> /private/var symlinks
             abs_path = (
-                skill_md_path
+                skill_md_path.resolve()
                 if skill_md_path.is_absolute()
-                else (skills_root_resolved / skill_md_path)
+                else (skills_root_resolved / skill_md_path).resolve()
             )
             rel = abs_path.relative_to(skills_root_resolved).as_posix()
         except (ValueError, RuntimeError):
@@ -372,21 +405,34 @@ class SkillValidator:
             if end_marker != -1:
                 body_content = content[end_marker + 3 :]
 
-        required_sections = [
-            "## Overview",
-            "## Capabilities",
-            "## Dependencies",
-            "## Usage Examples",
-        ]
+        # v2 Golden Standard: "When to Use" is required
+        # Support both "## When to Use This Skill" and "## When to Use"
+        has_when_to_use = (
+            "## When to Use This Skill" in body_content or "## When to Use" in body_content
+        )
+        if not has_when_to_use:
+            errors.append("Missing required section: ## When to Use (or ## When to Use This Skill)")
 
-        for section in required_sections:
-            if section not in body_content:
-                warnings.append(f"Missing section: {section}")
+        # v2 Golden Standard: Quick Start is recommended
+        has_quick_start = "## Quick Start" in body_content or "## Quick Examples" in body_content
+        if not has_quick_start:
+            warnings.append("Missing recommended section: ## Quick Start (or ## Quick Examples)")
+
+        # Legacy sections - warn if completely missing useful structure
+        # but don't require them for v2 skills
+        legacy_sections = ["## Overview", "## Capabilities", "## Dependencies", "## Usage Examples"]
+        has_some_structure = (
+            has_when_to_use
+            or has_quick_start
+            or any(section in body_content for section in legacy_sections)
+        )
+        if not has_some_structure:
+            warnings.append("No recognizable section structure found")
 
         if "```" not in body_content:
             warnings.append("No code blocks found")
 
-        if len(body_content.strip()) < 200:
+        if len(body_content.strip()) < 100:
             warnings.append("Documentation is very brief")
 
         return ValidationResult(len(errors) == 0, errors, warnings)
@@ -407,10 +453,11 @@ class SkillValidator:
 
         skills_root_resolved = self.skills_root.resolve()
         try:
+            # Resolve the path to handle macOS /var -> /private/var symlinks
             abs_path = (
-                skill_md_path
+                skill_md_path.resolve()
                 if skill_md_path.is_absolute()
-                else (skills_root_resolved / skill_md_path)
+                else (skills_root_resolved / skill_md_path).resolve()
             )
             rel = abs_path.relative_to(skills_root_resolved).as_posix()
         except (ValueError, RuntimeError):
@@ -494,6 +541,77 @@ class SkillValidator:
 
         return True, None
 
+    def validate_subdirectories(self, skill_path: Path) -> ValidationResult:
+        """Validate skill subdirectory structure follows v2 Golden Standard.
+
+        v2 Golden Standard subdirectories:
+        - references/: Deep technical documentation
+        - guides/: Step-by-step workflows
+        - templates/: Boilerplate code files
+        - scripts/: Runnable utility scripts
+        - examples/: Runnable demo projects
+
+        Legacy subdirectories (grandfathered but deprecated):
+        - capabilities/
+        - resources/
+        - tests/
+
+        Validates:
+        - Only allowed subdirectory names
+        - Maximum 1 level of subdirectory depth
+        - No empty directories
+        """
+        errors: list[str] = []
+        warnings: list[str] = []
+
+        skills_root_resolved = self.skills_root.resolve()
+        try:
+            skill_resolved = (
+                skill_path if skill_path.is_absolute() else (skills_root_resolved / skill_path)
+            ).resolve()
+            skill_resolved.relative_to(skills_root_resolved)
+        except (ValueError, RuntimeError, FileNotFoundError):
+            return ValidationResult(False, ["Skill path not allowed"], [])
+
+        if not skill_resolved.is_dir():
+            return ValidationResult(False, ["Skill path is not a directory"], [])
+
+        # Get all subdirectories in the skill directory
+        subdirs = [
+            d.name for d in skill_resolved.iterdir() if d.is_dir() and not d.name.startswith(".")
+        ]
+
+        for subdir in subdirs:
+            if subdir in VALID_SUBDIRECTORIES:
+                # Check for empty directories
+                subdir_path = skill_resolved / subdir
+                files = list(subdir_path.iterdir())
+                if len(files) == 0:
+                    warnings.append(f"Empty subdirectory: {subdir}/")
+                else:
+                    # Check depth - only 1 level allowed (e.g., references/file.md, not references/sub/file.md)
+                    for item in files:
+                        if item.is_dir() and not item.name.startswith("."):
+                            # examples/ is allowed to have subdirectories (demo projects)
+                            if subdir != "examples":
+                                warnings.append(
+                                    f"Nested subdirectory not recommended: {subdir}/{item.name}/ "
+                                    f"(use flat structure in {subdir}/)"
+                                )
+            elif subdir in LEGACY_SUBDIRECTORIES:
+                warnings.append(
+                    f"Legacy subdirectory '{subdir}/' is deprecated. "
+                    f"Consider migrating to: references/, guides/, templates/, scripts/, examples/"
+                )
+            else:
+                # Unknown subdirectory - might be intentional, just warn
+                warnings.append(
+                    f"unknown subdirectory '{subdir}/'. "
+                    f"Standard subdirs: references/, guides/, templates/, scripts/, examples/"
+                )
+
+        return ValidationResult(len(errors) == 0, errors, warnings)
+
     def validate_examples(self, examples_path: Path) -> ValidationResult:
         """Validate example markdown files under a skill's examples directory.
 
@@ -505,10 +623,11 @@ class SkillValidator:
 
         skills_root_resolved = self.skills_root.resolve()
         try:
+            # Resolve the path to handle macOS /var -> /private/var symlinks
             abs_path = (
-                examples_path
+                examples_path.resolve()
                 if examples_path.is_absolute()
-                else (skills_root_resolved / examples_path)
+                else (skills_root_resolved / examples_path).resolve()
             )
             rel = abs_path.relative_to(skills_root_resolved).as_posix()
         except (ValueError, RuntimeError):
@@ -633,32 +752,58 @@ class SkillValidator:
             results["errors"].append("Skill path not found")
             return results
 
-        metadata_resolved, err = self._resolve_existing_path_within_dir(
+        # v2 Golden Standard: metadata.json is optional
+        # Check if it exists and validate if present, but don't fail if missing
+        # However, if it's a symlink, that's a security error
+        metadata_resolved, metadata_err = self._resolve_existing_path_within_dir(
             base_dir=skill_path,
             relative_path="metadata.json",
             label="metadata.json",
         )
-        if err is not None or metadata_resolved is None:
+        has_metadata_json = metadata_resolved is not None
+
+        # Symlink security check: report error if metadata.json is a symlink
+        if metadata_err and "symlink" in metadata_err.lower():
             results["passed"] = False
-            results["errors"].append(err or "metadata.json not found")
+            results["errors"].append(metadata_err)
             return results
 
-        try:
-            metadata = json.loads(metadata_resolved.read_text(encoding="utf-8"))
-        except json.JSONDecodeError as exc:
-            results["passed"] = False
-            results["errors"].append(f"Invalid JSON in metadata.json: {exc}")
-            return results
-        meta_result = self.validate_metadata(metadata)
-        results["checks"].append(
-            {
-                "name": "metadata",
-                "status": "pass" if meta_result.passed else "fail",
-                "messages": meta_result.errors,
-            }
-        )
-        results["warnings"].extend(meta_result.warnings)
-        results["errors"].extend(meta_result.errors)
+        metadata: dict[str, Any] = {}
+        if has_metadata_json and metadata_resolved:
+            try:
+                metadata = json.loads(metadata_resolved.read_text(encoding="utf-8"))
+                meta_result = self.validate_metadata(metadata)
+                results["checks"].append(
+                    {
+                        "name": "metadata",
+                        "status": "pass" if meta_result.passed else "fail",
+                        "messages": meta_result.errors,
+                    }
+                )
+                results["warnings"].extend(meta_result.warnings)
+                results["errors"].extend(meta_result.errors)
+            except json.JSONDecodeError as exc:
+                results["warnings"].append(f"Invalid JSON in metadata.json: {exc}")
+                results["checks"].append(
+                    {
+                        "name": "metadata",
+                        "status": "warn",
+                        "messages": [f"Invalid JSON: {exc}"],
+                    }
+                )
+        else:
+            # v2 Golden Standard: metadata.json is optional - extract skill_id from path
+            # Resolve skill_path to handle macOS /var -> /private/var symlinks
+            skill_path_resolved = skill_path.resolve()
+            rel_path = str(skill_path_resolved.relative_to(self.skills_root))
+            metadata["skill_id"] = rel_path
+            results["checks"].append(
+                {
+                    "name": "metadata",
+                    "status": "pass",
+                    "messages": ["v2 skill: metadata.json not required"],
+                }
+            )
 
         structure_result = self.validate_structure(skill_path)
         results["checks"].append(
@@ -671,29 +816,49 @@ class SkillValidator:
         results["warnings"].extend(structure_result.warnings)
         results["errors"].extend(structure_result.errors)
 
-        doc_result = self.validate_documentation(skill_path / "SKILL.md")
+        # Security check: SKILL.md must not be a symlink (prevent reading outside skills_root)
+        skill_md_path = skill_path / "SKILL.md"
+        if skill_md_path.is_symlink():
+            results["passed"] = False
+            results["errors"].append("SKILL.md must not be a symlink")
+            return results
+
+        doc_result = self.validate_documentation(skill_md_path)
         results["checks"].append(
             {
                 "name": "documentation",
-                "status": "pass" if doc_result.passed else "warn",
+                "status": "pass" if doc_result.passed else "fail",
                 "messages": doc_result.errors,
             }
         )
+        # v2 Golden Standard: documentation errors are real errors (When to Use is required)
         results["warnings"].extend(doc_result.warnings)
         results["errors"].extend(doc_result.errors)
 
-        # agentskills.io frontmatter validation
-        frontmatter_result = self.validate_frontmatter(skill_path / "SKILL.md")
+        # agentskills.io frontmatter validation (skill_md_path already validated for symlink above)
+        frontmatter_result = self.validate_frontmatter(skill_md_path)
         results["checks"].append(
             {
                 "name": "frontmatter",
-                "status": "pass" if frontmatter_result.passed else "warn",
+                "status": "pass" if frontmatter_result.passed else "fail",
                 "messages": frontmatter_result.errors,
             }
         )
-        # Frontmatter issues are warnings (for backward compatibility with existing skills)
-        results["warnings"].extend(frontmatter_result.errors)
+        # v2 Golden Standard: frontmatter errors are real errors
+        results["errors"].extend(frontmatter_result.errors)
         results["warnings"].extend(frontmatter_result.warnings)
+
+        # Validate subdirectory structure
+        subdir_result = self.validate_subdirectories(skill_path)
+        results["checks"].append(
+            {
+                "name": "subdirectories",
+                "status": "pass" if subdir_result.passed else "warn",
+                "messages": subdir_result.errors,
+            }
+        )
+        results["warnings"].extend(subdir_result.warnings)
+        results["errors"].extend(subdir_result.errors)
 
         examples_result = self.validate_examples(skill_path / "examples")
         results["checks"].append(
@@ -706,7 +871,9 @@ class SkillValidator:
         results["warnings"].extend(examples_result.warnings)
         results["errors"].extend(examples_result.errors)
 
-        rel_path = str(skill_path.relative_to(self.skills_root))
+        # Resolve skill_path to handle macOS /var -> /private/var symlinks
+        skill_path_resolved = skill_path.resolve()
+        rel_path = str(skill_path_resolved.relative_to(self.skills_root))
         naming_result = self.validate_naming_conventions(metadata.get("skill_id", ""), rel_path)
         results["checks"].append(
             {

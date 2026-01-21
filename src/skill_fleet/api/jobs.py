@@ -10,10 +10,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-# Local imports
 from ..common.security import resolve_path_within_root
-
-# Import Pydantic models from schemas per FastAPI best practices
 from .schemas import DeepUnderstandingState, JobState, TDDWorkflowState
 
 logger = logging.getLogger(__name__)
@@ -48,8 +45,16 @@ JOBS: dict[str, JobState] = {}
 
 def create_job() -> str:
     """Create a new job and return its unique ID."""
+    from .job_manager import get_job_manager
+    
     job_id = str(uuid.uuid4())
-    JOBS[job_id] = JobState(job_id=job_id)
+    job_state = JobState(job_id=job_id)
+    
+    # Register in both JOBS dict (for backward compat) and JobManager
+    JOBS[job_id] = job_state
+    manager = get_job_manager()
+    manager.create_job(job_state)
+    
     return job_id
 
 
@@ -94,6 +99,7 @@ async def wait_for_hitl_response(job_id: str, timeout: float = 3600.0) -> dict[s
 
     # Atomic check and clear - response is guaranteed to be set after event fires
     response = job.hitl_response
+    assert response is not None, "Response should be set after event fires"  # noqa: S101
     job.hitl_response = None
     job.hitl_event.clear()  # Reset for next interaction
     job.updated_at = datetime.now(UTC)
@@ -106,7 +112,10 @@ def notify_hitl_response(job_id: str, response: dict[str, Any]) -> None:
     This is race-safe: the event is set before storing the response,
     ensuring that any waiters will see the new response.
     """
-    job = JOBS.get(job_id)
+    from .job_manager import get_job_manager
+    
+    manager = get_job_manager()
+    job = manager.get_job(job_id)
     if job is None:
         return
 
@@ -118,6 +127,9 @@ def notify_hitl_response(job_id: str, response: dict[str, Any]) -> None:
     job.hitl_response = response
     job.hitl_event.set()  # Notify any waiting coroutines
     job.updated_at = datetime.now(UTC)
+    
+    # Update both memory and database
+    manager.update_job(job_id, {"updated_at": job.updated_at, "hitl_response": response})
 
 
 # =============================================================================

@@ -14,6 +14,7 @@ The **one-size-fits-all** approach to LLM selection is inefficient. Understandin
 
 | Task | Phase | Purpose | Recommended Model | Temperature | Reasoning |
 |------|-------|---------|-------------------|-------------|-----------|
+| **skill_gather_examples** | Phase 0 | Example gathering | Conversational model | 0.4 | Focused questioning, conversational |
 | **skill_understand** | Phase 1 | Task analysis | High reasoning model | 0.7 | Complex analysis needs creativity |
 | **skill_plan** | Phase 1 | Structure planning | Medium reasoning model | 0.5 | Structured planning needs precision |
 | **skill_initialize** | Phase 2 | Directory setup | Fast model | 0.1 | Simple operation, deterministic |
@@ -22,6 +23,35 @@ The **one-size-fits-all** approach to LLM selection is inefficient. Understandin
 | **skill_validate** | Phase 3 | Compliance check | Precise model | 0.0 | Strict checking, no variance |
 
 ## Task Details
+
+### skill_gather_examples
+
+**Phase:** Phase 0 - Example Gathering
+**Purpose:** Collect concrete usage examples through focused questioning
+
+**Requirements:**
+- Conversational ability
+- Focused questioning
+- Example extraction
+
+**Model Characteristics:**
+- **Temperature:** 0.4 (conversational, focused)
+- **Max Tokens:** 2048
+- **Reasoning:** Low-Medium
+
+**Used by:**
+- `GatherExamplesModule`
+
+**Why Medium-Low Temperature:**
+Example gathering requires focused questioning without excessive randomness. Temperature 0.4 strikes a balance between generating diverse clarifying questions and maintaining focus on the task at hand.
+
+**How it works:**
+1. Generates 1-3 clarifying questions per round
+2. Extracts UserExample objects from responses
+3. Builds domain terminology dictionary
+4. Scores readiness based on diversity, clarity, and coverage
+
+---
 
 ### skill_understand
 
@@ -176,6 +206,7 @@ graph LR
 
     subgraph Balanced
         P[skill_plan<br/>0.5]
+        GE[skill_gather_examples<br/>0.4]
     end
 
     subgraph Deterministic
@@ -189,7 +220,7 @@ graph LR
 
 **Key Insight:**
 - **Creative tasks** (understanding, editing) → Higher temperature (0.6-0.7)
-- **Balanced tasks** (planning) → Medium temperature (0.5)
+- **Balanced tasks** (planning, example gathering) → Medium temperature (0.4-0.5)
 - **Deterministic tasks** (initialization, validation) → Low/zero temperature (0.0-0.1)
 
 ---
@@ -200,6 +231,12 @@ graph LR
 
 ```yaml
 tasks:
+  skill_gather_examples:
+    role: example_gathering
+    model: "gemini/gemini-2.0-flash-exp"
+    parameters:
+      temperature: 0.4
+
   skill_understand:
     role: understanding
     model: "gemini/gemini-2.0-flash-exp"

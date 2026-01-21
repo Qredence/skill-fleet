@@ -81,7 +81,7 @@ class TestPromoteDraftSecurity:
                 taxonomy_manager=mock_taxonomy_manager,
             )
 
-        assert exc_info.value.status_code == 400
+        assert exc_info.value.status_code == 422
         assert "Invalid draft path" in exc_info.value.detail
 
     @pytest.mark.asyncio
@@ -111,7 +111,7 @@ class TestPromoteDraftSecurity:
                 taxonomy_manager=mock_taxonomy_manager,
             )
 
-        assert exc_info.value.status_code == 400
+        assert exc_info.value.status_code == 422
         assert "Invalid draft path" in exc_info.value.detail
 
     @pytest.mark.asyncio
@@ -155,7 +155,7 @@ class TestPromoteDraftSecurity:
                 taxonomy_manager=mock_taxonomy_manager,
             )
 
-        assert exc_info.value.status_code == 400
+        assert exc_info.value.status_code == 422
         assert "Invalid draft path" in exc_info.value.detail
 
     @pytest.mark.asyncio
@@ -182,7 +182,7 @@ class TestPromoteDraftSecurity:
                 taxonomy_manager=mock_taxonomy_manager,
             )
 
-        assert exc_info.value.status_code == 400
+        assert exc_info.value.status_code == 422
         assert "Invalid target path" in exc_info.value.detail
 
     @pytest.mark.asyncio
@@ -279,5 +279,5 @@ class TestPromoteDraftSecurity:
                 taxonomy_manager=mock_taxonomy_manager,
             )
 
-        assert exc_info.value.status_code == 400
+        assert exc_info.value.status_code == 422
         assert "Invalid draft path" in exc_info.value.detail

@@ -25,12 +25,12 @@ def test_taxonomy_path_reward_valid_path_scores_high() -> None:
 
 def test_taxonomy_path_reward_invalid_path_with_low_confidence_scores_low() -> None:
     pred = SimpleNamespace(taxonomy_path="Bad Path", confidence_score=0.0)
-    assert taxonomy_path_reward(None, pred) <= 0.2
+    assert taxonomy_path_reward(None, pred) <= 0.2  # type: ignore[arg-type]
 
 
 def test_taxonomy_path_reward_depth_one_gets_partial_credit() -> None:
     pred = SimpleNamespace(taxonomy_path="general", confidence_score=0.6)
-    score = taxonomy_path_reward(None, pred)
+    score = taxonomy_path_reward(None, pred)  # type: ignore[arg-type]
     assert score > 0.0
 
 
@@ -89,7 +89,7 @@ echo hi
 ```
 """
     pred = SimpleNamespace(skill_content=content)
-    score = skill_content_reward(None, pred)
+    score = skill_content_reward(None, pred)  # type: ignore[arg-type]
     assert score > 0.5
 
 

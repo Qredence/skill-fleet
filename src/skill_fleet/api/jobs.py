@@ -99,6 +99,7 @@ async def wait_for_hitl_response(job_id: str, timeout: float = 3600.0) -> dict[s
 
     # Atomic check and clear - response is guaranteed to be set after event fires
     response = job.hitl_response
+    assert response is not None, "Response should be set after event fires"  # noqa: S101
     job.hitl_response = None
     job.hitl_event.clear()  # Reset for next interaction
     job.updated_at = datetime.now(UTC)

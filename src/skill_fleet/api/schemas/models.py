@@ -19,7 +19,7 @@ from ...core.models import ChecklistState
 class TDDWorkflowState(BaseModel):
     """TDD workflow state for job tracking."""
 
-    phase: str | None = None  # "red", "green", "refactor", "complete"
+    phase: str | None = None
     checklist: ChecklistState = Field(default_factory=ChecklistState)
     baseline_tests_run: bool = False
     compliance_tests_run: bool = False
@@ -45,7 +45,7 @@ class JobState(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     job_id: str
-    status: str = "pending"  # pending, running, pending_hitl, completed, failed
+    status: str = "pending"
     hitl_type: str | None = None
     hitl_data: dict[str, Any] | None = None
     hitl_response: dict[str, Any] | None = None

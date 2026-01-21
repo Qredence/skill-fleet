@@ -27,8 +27,7 @@ def create_skill(args: Any) -> int:
     - max_iterations, feedback_type, etc. are accepted but optional
     """
     # Load fleet config (tests patch this)
-    config_path = Path(args.config) if getattr(args, "config", None) else None
-    config = load_fleet_config(config_path) if config_path else {}
+    config_path_arg = Path(args.config) if getattr(args, "config", None) else None
 
     # Configure DSPy (tests patch configure_dspy)
     configure_dspy(config_path_arg)

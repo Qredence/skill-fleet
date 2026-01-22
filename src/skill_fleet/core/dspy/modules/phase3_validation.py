@@ -9,6 +9,8 @@ import dspy
 import yaml
 
 from ....common.async_utils import run_async
+from ....common.dspy_compat import coerce_reasoning_text
+from ....common.utils import safe_float, safe_json_loads
 from ..metrics import assess_skill_quality
 from ..signatures.phase3_validation import (
     AssessSkillQuality,
@@ -126,12 +128,26 @@ class SkillValidatorModule(dspy.Module):
             content_plan=content_plan,
             validation_rules=validation_rules,
         )
+        # Preserve typed ValidationReport, but harden list-ish outputs.
+        critical_issues = safe_json_loads(
+            getattr(result, "critical_issues", []),
+            default=[],
+            field_name="critical_issues",
+        )
+        warnings = safe_json_loads(
+            getattr(result, "warnings", []), default=[], field_name="warnings"
+        )
+        suggestions = safe_json_loads(
+            getattr(result, "suggestions", []),
+            default=[],
+            field_name="suggestions",
+        )
         return {
             "validation_report": result.validation_report,
-            "critical_issues": result.critical_issues,
-            "warnings": result.warnings,
-            "suggestions": result.suggestions,
-            "overall_score": result.overall_score,
+            "critical_issues": critical_issues if isinstance(critical_issues, list) else [],
+            "warnings": warnings if isinstance(warnings, list) else [],
+            "suggestions": suggestions if isinstance(suggestions, list) else [],
+            "overall_score": safe_float(getattr(result, "overall_score", 0.0), default=0.0),
         }
 
     async def aforward(
@@ -148,12 +164,25 @@ class SkillValidatorModule(dspy.Module):
             content_plan=content_plan,
             validation_rules=validation_rules,
         )
+        critical_issues = safe_json_loads(
+            getattr(result, "critical_issues", []),
+            default=[],
+            field_name="critical_issues",
+        )
+        warnings = safe_json_loads(
+            getattr(result, "warnings", []), default=[], field_name="warnings"
+        )
+        suggestions = safe_json_loads(
+            getattr(result, "suggestions", []),
+            default=[],
+            field_name="suggestions",
+        )
         return {
             "validation_report": result.validation_report,
-            "critical_issues": result.critical_issues,
-            "warnings": result.warnings,
-            "suggestions": result.suggestions,
-            "overall_score": result.overall_score,
+            "critical_issues": critical_issues if isinstance(critical_issues, list) else [],
+            "warnings": warnings if isinstance(warnings, list) else [],
+            "suggestions": suggestions if isinstance(suggestions, list) else [],
+            "overall_score": safe_float(getattr(result, "overall_score", 0.0), default=0.0),
         }
 
 
@@ -193,13 +222,25 @@ class SkillRefinerModule(dspy.Module):
             fix_strategies=fix_strategies,
             iteration_number=iteration_number,
         )
+        issues_resolved = safe_json_loads(
+            getattr(result, "issues_resolved", []),
+            default=[],
+            field_name="issues_resolved",
+        )
+        issues_remaining = safe_json_loads(
+            getattr(result, "issues_remaining", []),
+            default=[],
+            field_name="issues_remaining",
+        )
         return {
             "refined_content": result.refined_content,
-            "issues_resolved": result.issues_resolved,
-            "issues_remaining": result.issues_remaining,
+            "issues_resolved": issues_resolved if isinstance(issues_resolved, list) else [],
+            "issues_remaining": issues_remaining if isinstance(issues_remaining, list) else [],
             "changes_summary": result.changes_summary,
             "ready_for_acceptance": result.ready_for_acceptance,
-            "rationale": getattr(result, "rationale", ""),
+            "rationale": coerce_reasoning_text(
+                getattr(result, "reasoning", getattr(result, "rationale", ""))
+            ),
         }
 
     async def aforward(
@@ -218,13 +259,25 @@ class SkillRefinerModule(dspy.Module):
             fix_strategies=fix_strategies,
             iteration_number=iteration_number,
         )
+        issues_resolved = safe_json_loads(
+            getattr(result, "issues_resolved", []),
+            default=[],
+            field_name="issues_resolved",
+        )
+        issues_remaining = safe_json_loads(
+            getattr(result, "issues_remaining", []),
+            default=[],
+            field_name="issues_remaining",
+        )
         return {
             "refined_content": result.refined_content,
-            "issues_resolved": result.issues_resolved,
-            "issues_remaining": result.issues_remaining,
+            "issues_resolved": issues_resolved if isinstance(issues_resolved, list) else [],
+            "issues_remaining": issues_remaining if isinstance(issues_remaining, list) else [],
             "changes_summary": result.changes_summary,
             "ready_for_acceptance": result.ready_for_acceptance,
-            "rationale": getattr(result, "rationale", ""),
+            "rationale": coerce_reasoning_text(
+                getattr(result, "reasoning", getattr(result, "rationale", ""))
+            ),
         }
 
 
@@ -282,14 +335,27 @@ class QualityAssessorModule(dspy.Module):
             skill_metadata=skill_metadata,
             target_level=target_level,
         )
+        strengths = safe_json_loads(
+            getattr(result, "strengths", []), default=[], field_name="strengths"
+        )
+        weaknesses = safe_json_loads(
+            getattr(result, "weaknesses", []), default=[], field_name="weaknesses"
+        )
+        recommendations = safe_json_loads(
+            getattr(result, "recommendations", []),
+            default=[],
+            field_name="recommendations",
+        )
 
         assessment = {
-            "quality_score": result.quality_score,
-            "strengths": result.strengths,
-            "weaknesses": result.weaknesses,
-            "recommendations": result.recommendations,
+            "quality_score": safe_float(getattr(result, "quality_score", 0.0), default=0.0),
+            "strengths": strengths if isinstance(strengths, list) else [],
+            "weaknesses": weaknesses if isinstance(weaknesses, list) else [],
+            "recommendations": recommendations if isinstance(recommendations, list) else [],
             "audience_alignment": result.audience_alignment,
-            "rationale": getattr(result, "rationale", ""),
+            "rationale": coerce_reasoning_text(
+                getattr(result, "reasoning", getattr(result, "rationale", ""))
+            ),
         }
 
         # Add deterministic metrics if enabled
@@ -310,14 +376,27 @@ class QualityAssessorModule(dspy.Module):
             skill_metadata=skill_metadata,
             target_level=target_level,
         )
+        strengths = safe_json_loads(
+            getattr(result, "strengths", []), default=[], field_name="strengths"
+        )
+        weaknesses = safe_json_loads(
+            getattr(result, "weaknesses", []), default=[], field_name="weaknesses"
+        )
+        recommendations = safe_json_loads(
+            getattr(result, "recommendations", []),
+            default=[],
+            field_name="recommendations",
+        )
 
         assessment = {
-            "quality_score": result.quality_score,
-            "strengths": result.strengths,
-            "weaknesses": result.weaknesses,
-            "recommendations": result.recommendations,
+            "quality_score": safe_float(getattr(result, "quality_score", 0.0), default=0.0),
+            "strengths": strengths if isinstance(strengths, list) else [],
+            "weaknesses": weaknesses if isinstance(weaknesses, list) else [],
+            "recommendations": recommendations if isinstance(recommendations, list) else [],
             "audience_alignment": result.audience_alignment,
-            "rationale": getattr(result, "rationale", ""),
+            "rationale": coerce_reasoning_text(
+                getattr(result, "reasoning", getattr(result, "rationale", ""))
+            ),
         }
 
         # Add deterministic metrics if enabled

@@ -16,7 +16,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from ...core.dspy.streaming import stream_events_to_sse, StreamEvent
+from ...core.dspy.streaming import StreamEvent, stream_events_to_sse
 from ...core.services.conversation import ConversationService, ConversationSession
 from ..dependencies import TaxonomyManagerDep
 
@@ -121,7 +121,7 @@ async def chat_stream(request: ChatMessageRequest, taxonomy: TaxonomyManagerDep)
                         event = await asyncio.wait_for(queue.get(), timeout=0.1)
                         yield event
                         queue.task_done()
-                    except asyncio.TimeoutError:
+                    except TimeoutError:
                         continue
 
                 # Task is done, check for result or exception
@@ -192,6 +192,7 @@ async def chat_sync(request: ChatMessageRequest, taxonomy: TaxonomyManagerDep) -
 
     Returns:
         Complete response
+
     """
     try:
         # Check DSPy configuration

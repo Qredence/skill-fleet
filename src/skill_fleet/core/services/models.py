@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -18,7 +18,8 @@ from skill_fleet.core.models import ChecklistState
 
 
 class ConversationState(StrEnum):
-    """Conversation workflow states.
+    """
+    Conversation workflow states.
 
     Tracks the progression through the skill creation conversation,
     from initial exploration through TDD verification to completion.
@@ -73,7 +74,8 @@ class MessageRole(StrEnum):
 
 
 class ConversationMessage(BaseModel):
-    """A single message in conversation history.
+    """
+    A single message in conversation history.
 
     Represents a message exchanged between user and agent during
     the skill creation conversation.
@@ -97,7 +99,8 @@ class ConversationMessage(BaseModel):
 
 
 class ConversationSession(BaseModel):
-    """Manages conversation session state.
+    """
+    Manages conversation session state.
 
     Tracks the full state of a skill creation conversation, including
     message history, collected examples, workflow state, and TDD checklist.
@@ -178,7 +181,8 @@ class ConversationSession(BaseModel):
         content: str,
         metadata: dict[str, Any] | None = None,
     ) -> ConversationMessage:
-        """Add a message to the conversation history.
+        """
+        Add a message to the conversation history.
 
         Args:
             role: Who sent the message
@@ -187,6 +191,7 @@ class ConversationSession(BaseModel):
 
         Returns:
             The created message
+
         """
         message = ConversationMessage(
             role=role,
@@ -202,7 +207,8 @@ class ConversationSession(BaseModel):
         limit: int | None = None,
         roles: list[MessageRole] | None = None,
     ) -> list[ConversationMessage]:
-        """Get message history with optional filtering.
+        """
+        Get message history with optional filtering.
 
         Args:
             limit: Maximum number of messages to return (from end)
@@ -210,6 +216,7 @@ class ConversationSession(BaseModel):
 
         Returns:
             Filtered message list
+
         """
         messages = self.messages
         if roles:
@@ -219,10 +226,12 @@ class ConversationSession(BaseModel):
         return messages
 
     def to_legacy_dict(self) -> dict[str, Any]:
-        """Serialize to dict format compatible with legacy agent.py.
+        """
+        Serialize to dict format compatible with legacy agent.py.
 
         Returns:
             Dict matching the original dataclass format
+
         """
         return {
             "messages": [
@@ -247,13 +256,15 @@ class ConversationSession(BaseModel):
 
     @classmethod
     def from_legacy_dict(cls, data: dict[str, Any]) -> ConversationSession:
-        """Deserialize from legacy dict format.
+        """
+        Deserialize from legacy dict format.
 
         Args:
             data: Dict in legacy agent.py format
 
         Returns:
             ConversationSession instance
+
         """
         messages = []
         for msg in data.get("messages", []):
@@ -289,7 +300,8 @@ class ConversationSession(BaseModel):
 
 
 class AgentResponse(BaseModel):
-    """Response from conversational agent.
+    """
+    Response from conversational agent.
 
     Contains the agent's message, state updates, and metadata about
     the action taken and whether user input is required.
@@ -318,10 +330,12 @@ class AgentResponse(BaseModel):
     )
 
     def to_dict(self) -> dict[str, Any]:
-        """Serialize response to dict.
+        """
+        Serialize response to dict.
 
         Returns:
             Dict representation for API responses
+
         """
         return {
             "message": self.message,

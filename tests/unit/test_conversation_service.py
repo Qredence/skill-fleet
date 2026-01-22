@@ -1,10 +1,12 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from skill_fleet.core.services.conversation.engine import ConversationService
 from skill_fleet.core.services.conversation.models import (
+    AgentResponse,
     ConversationSession,
     ConversationState,
-    AgentResponse,
 )
 
 
@@ -102,3 +104,40 @@ async def test_respond_updates_session_state(service):
         await service.respond("continue", session, None)
 
     assert session.state == ConversationState.EXPLORING
+
+
+@pytest.mark.asyncio
+async def test_handle_exploring_skips_multi_skill_when_scoping_complete(service):
+    session = ConversationSession(
+        task_description="Modular Multi-Skill Breakdown",
+        deep_understanding={"complete": True, "scoping_complete": True},
+    )
+
+    async def side_effect(module, thinking_callback=None, **kwargs):
+        if module == service.interpret_intent:
+            return {
+                "intent_type": "create_skill",
+                "extracted_task": "Modular Multi-Skill Breakdown",
+                "confidence": 0.9,
+            }, ""
+        if module == service.detect_multi_skill:
+            raise AssertionError("detect_multi_skill should be skipped when scoping_complete")
+        if module == service.assess_readiness:
+            return {
+                "readiness_score": 0.6,
+                "should_proceed": False,
+                "readiness_reasoning": "Need more info",
+            }, ""
+        if module == service.generate_question:
+            return {
+                "question": "Which components matter most?",
+                "question_options": ["Discovery", "Retrieval", "Analysis"],
+                "reasoning": "Clarify scope",
+            }, ""
+        return {}, ""
+
+    with patch.object(service, "_execute_with_streaming", side_effect=side_effect):
+        response = await service.handle_exploring("Continue", session, None)
+
+    assert response.action == "ask_question"
+    assert response.data.get("readiness_score") == 0.6

@@ -22,6 +22,8 @@ plans/
 | `2026-01-09-fastapi-baseline-tests.md`             | FastAPI production patterns baseline test scenarios (RED phase)        | In Progress         |
 | `2026-01-09-fastapi-production-patterns-design.md` | FastAPI production patterns skill design                               | Active              |
 | `cleanup-and-optimization-plan.md`                 | Code deduplication, legacy removal, and optimization tasks             | Partially Complete  |
+| `2026-01-22-fix-scoping-loop.md`                   | Stop plan-selection loop in chat scoping                               | Draft               |
+| `2026-01-22-dspy-3.1x-signature-module-improvements.md` | Improve DSPy signature/module robustness for 3.1.x changes             | Draft               |
 
 ## Code Quality Progress (2026-01-15)
 

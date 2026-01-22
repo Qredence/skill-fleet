@@ -20,6 +20,8 @@ from typing import Any
 
 import dspy
 
+from ....common.dspy_compat import coerce_reasoning_text
+from ....common.utils import safe_float, safe_json_loads
 from ..signatures.hitl import (
     AnalyzeFeedback,
     AssessReadiness,
@@ -83,7 +85,9 @@ class ClarifyingQuestionsModule(dspy.Module):
         return {
             "questions": result.questions,
             "priority": result.priority,
-            "rationale": getattr(result, "rationale", ""),  # From ChainOfThought
+            "rationale": coerce_reasoning_text(
+                getattr(result, "reasoning", getattr(result, "rationale", ""))
+            ),
         }
 
     async def aforward(self, *args, **kwargs) -> dict[str, Any]:
@@ -100,7 +104,9 @@ class ClarifyingQuestionsModule(dspy.Module):
         return {
             "questions": result.questions,
             "priority": result.priority,
-            "rationale": getattr(result, "rationale", ""),
+            "rationale": coerce_reasoning_text(
+                getattr(result, "reasoning", getattr(result, "rationale", ""))
+            ),
         }
 
 
@@ -237,7 +243,9 @@ class FeedbackAnalyzerModule(dspy.Module):
             "change_requests": result.change_requests,
             "scope_change": result.scope_change,
             "estimated_effort": result.estimated_effort,
-            "reasoning": getattr(result, "rationale", ""),  # From ChainOfThought
+            "reasoning": coerce_reasoning_text(
+                getattr(result, "reasoning", getattr(result, "rationale", ""))
+            ),
         }
 
     async def aforward(self, *args, **kwargs) -> dict[str, Any]:
@@ -252,7 +260,9 @@ class FeedbackAnalyzerModule(dspy.Module):
             "change_requests": result.change_requests,
             "scope_change": result.scope_change,
             "estimated_effort": result.estimated_effort,
-            "reasoning": getattr(result, "rationale", ""),
+            "reasoning": coerce_reasoning_text(
+                getattr(result, "reasoning", getattr(result, "rationale", ""))
+            ),
         }
 
 
@@ -283,12 +293,25 @@ class ValidationFormatterModule(dspy.Module):
         result = self.format_results(
             validation_report=validation_report, skill_content=skill_content
         )
+        critical_issues = safe_json_loads(
+            getattr(result, "critical_issues", []),
+            default=[],
+            field_name="critical_issues",
+        )
+        warnings = safe_json_loads(
+            getattr(result, "warnings", []), default=[], field_name="warnings"
+        )
+        auto_fixable = safe_json_loads(
+            getattr(result, "auto_fixable", []),
+            default=[],
+            field_name="auto_fixable",
+        )
 
         return {
             "formatted_report": result.formatted_report,
-            "critical_issues": result.critical_issues,
-            "warnings": result.warnings,
-            "auto_fixable": result.auto_fixable,
+            "critical_issues": critical_issues if isinstance(critical_issues, list) else [],
+            "warnings": warnings if isinstance(warnings, list) else [],
+            "auto_fixable": auto_fixable if isinstance(auto_fixable, list) else [],
         }
 
     async def aforward(self, *args, **kwargs) -> dict[str, Any]:
@@ -300,11 +323,24 @@ class ValidationFormatterModule(dspy.Module):
             validation_report=validation_report,
             skill_content=skill_content,
         )
+        critical_issues = safe_json_loads(
+            getattr(result, "critical_issues", []),
+            default=[],
+            field_name="critical_issues",
+        )
+        warnings = safe_json_loads(
+            getattr(result, "warnings", []), default=[], field_name="warnings"
+        )
+        auto_fixable = safe_json_loads(
+            getattr(result, "auto_fixable", []),
+            default=[],
+            field_name="auto_fixable",
+        )
         return {
             "formatted_report": result.formatted_report,
-            "critical_issues": result.critical_issues,
-            "warnings": result.warnings,
-            "auto_fixable": result.auto_fixable,
+            "critical_issues": critical_issues if isinstance(critical_issues, list) else [],
+            "warnings": warnings if isinstance(warnings, list) else [],
+            "auto_fixable": auto_fixable if isinstance(auto_fixable, list) else [],
         }
 
 
@@ -334,12 +370,19 @@ class RefinementPlannerModule(dspy.Module):
             user_feedback=user_feedback,
             current_skill=current_skill,
         )
+        changes = safe_json_loads(
+            getattr(result, "changes", []),
+            default=[],
+            field_name="changes",
+        )
 
         return {
             "refinement_plan": result.refinement_plan,
-            "changes": result.changes,
-            "estimated_iterations": result.estimated_iterations,
-            "reasoning": getattr(result, "rationale", ""),  # From ChainOfThought
+            "changes": changes if isinstance(changes, list) else [],
+            "estimated_iterations": int(getattr(result, "estimated_iterations", 0) or 0),
+            "reasoning": coerce_reasoning_text(
+                getattr(result, "reasoning", getattr(result, "rationale", ""))
+            ),
         }
 
     async def aforward(self, *args, **kwargs) -> dict[str, Any]:
@@ -353,11 +396,18 @@ class RefinementPlannerModule(dspy.Module):
             user_feedback=user_feedback,
             current_skill=current_skill,
         )
+        changes = safe_json_loads(
+            getattr(result, "changes", []),
+            default=[],
+            field_name="changes",
+        )
         return {
             "refinement_plan": result.refinement_plan,
-            "changes": result.changes,
-            "estimated_iterations": result.estimated_iterations,
-            "reasoning": getattr(result, "rationale", ""),
+            "changes": changes if isinstance(changes, list) else [],
+            "estimated_iterations": int(getattr(result, "estimated_iterations", 0) or 0),
+            "reasoning": coerce_reasoning_text(
+                getattr(result, "reasoning", getattr(result, "rationale", ""))
+            ),
         }
 
 
@@ -388,12 +438,22 @@ class ReadinessAssessorModule(dspy.Module):
         result = self.assess(
             phase=phase, collected_info=collected_info, min_requirements=min_requirements
         )
+        missing_info = safe_json_loads(
+            getattr(result, "missing_info", []),
+            default=[],
+            field_name="missing_info",
+        )
+        next_questions = safe_json_loads(
+            getattr(result, "next_questions", []),
+            default=[],
+            field_name="next_questions",
+        )
 
         return {
             "ready": result.ready,
-            "readiness_score": result.readiness_score,
-            "missing_info": result.missing_info,
-            "next_questions": result.next_questions,
+            "readiness_score": safe_float(getattr(result, "readiness_score", 0.0), default=0.0),
+            "missing_info": missing_info if isinstance(missing_info, list) else [],
+            "next_questions": next_questions if isinstance(next_questions, list) else [],
         }
 
     async def aforward(self, *args, **kwargs) -> dict[str, Any]:
@@ -407,11 +467,21 @@ class ReadinessAssessorModule(dspy.Module):
             collected_info=collected_info,
             min_requirements=min_requirements,
         )
+        missing_info = safe_json_loads(
+            getattr(result, "missing_info", []),
+            default=[],
+            field_name="missing_info",
+        )
+        next_questions = safe_json_loads(
+            getattr(result, "next_questions", []),
+            default=[],
+            field_name="next_questions",
+        )
         return {
             "ready": result.ready,
-            "readiness_score": result.readiness_score,
-            "missing_info": result.missing_info,
-            "next_questions": result.next_questions,
+            "readiness_score": safe_float(getattr(result, "readiness_score", 0.0), default=0.0),
+            "missing_info": missing_info if isinstance(missing_info, list) else [],
+            "next_questions": next_questions if isinstance(next_questions, list) else [],
         }
 
 
@@ -441,11 +511,18 @@ class HITLStrategyModule(dspy.Module):
             task_complexity=task_complexity,
             user_preferences=user_preferences,
         )
+        checkpoints = safe_json_loads(
+            getattr(result, "checkpoints", []),
+            default=[],
+            field_name="checkpoints",
+        )
 
         return {
             "strategy": result.strategy,
-            "checkpoints": result.checkpoints,
-            "reasoning": getattr(result, "rationale", ""),  # From ChainOfThought
+            "checkpoints": checkpoints if isinstance(checkpoints, list) else [],
+            "reasoning": coerce_reasoning_text(
+                getattr(result, "reasoning", getattr(result, "rationale", ""))
+            ),
         }
 
     async def aforward(self, *args, **kwargs) -> dict[str, Any]:
@@ -459,8 +536,15 @@ class HITLStrategyModule(dspy.Module):
             task_complexity=task_complexity,
             user_preferences=user_preferences,
         )
+        checkpoints = safe_json_loads(
+            getattr(result, "checkpoints", []),
+            default=[],
+            field_name="checkpoints",
+        )
         return {
             "strategy": result.strategy,
-            "checkpoints": result.checkpoints,
-            "reasoning": getattr(result, "rationale", ""),
+            "checkpoints": checkpoints if isinstance(checkpoints, list) else [],
+            "reasoning": coerce_reasoning_text(
+                getattr(result, "reasoning", getattr(result, "rationale", ""))
+            ),
         }

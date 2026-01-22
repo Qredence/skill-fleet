@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import dspy
 
@@ -51,6 +52,7 @@ class ConversationService(ConversationHandlers):
         Args:
             taxonomy_manager: Taxonomy management instance
             skills_root: Skills root directory (optional)
+
         """
         self.taxonomy = taxonomy_manager
         self.skills_root = skills_root
@@ -89,6 +91,7 @@ class ConversationService(ConversationHandlers):
 
         Returns:
             Tuple of (prediction result, thinking content string)
+
         """
         # Create streaming wrapper in async mode
         streaming_module = create_streaming_module(
@@ -156,6 +159,7 @@ class ConversationService(ConversationHandlers):
 
         Returns:
             AgentResponse with message and state updates
+
         """
         try:
             # Handle empty/continue messages for automatic progression

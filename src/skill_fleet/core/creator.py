@@ -9,13 +9,15 @@ Re-implemented to wrap the new SkillCreationProgram.
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import dspy
 
 from ..common.async_utils import run_async
-from ..taxonomy.manager import TaxonomyManager
 from .dspy.skill_creator import SkillCreationProgram
+
+if TYPE_CHECKING:
+    from ..taxonomy.manager import TaxonomyManager
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +42,8 @@ class TaxonomySkillCreator(dspy.Module):
         Args:
             taxonomy_manager: Taxonomy management instance
             verbose: Whether to print progress
+            **kwargs: Additional keyword arguments
+
         """
         super().__init__()
         self.taxonomy = taxonomy_manager
@@ -60,15 +64,17 @@ class TaxonomySkillCreator(dspy.Module):
             task_description: User's task or capability requirement
             user_context: Dict with user_id and other context
             auto_approve: If True, skips interactive feedback loops (where possible)
+            **kwargs: Additional keyword arguments passed to acall
 
         Returns:
             Result dictionary with status and metadata
+
         """
         user_context = user_context or {"user_id": "default"}
 
         # Helper to run async program synchronously
         return run_async(
-            self.acall(
+            lambda: self.acall(
                 task_description=task_description,
                 user_context=user_context,
                 auto_approve=auto_approve,
@@ -84,7 +90,6 @@ class TaxonomySkillCreator(dspy.Module):
         **kwargs,
     ) -> dict[str, Any]:
         """Async execution of skill creation."""
-
         # Prepare context for the program
         # The new program expects JSON strings for complex inputs if not using typed signatures directly,
         # but SkillCreationProgram.aforward takes typed args.
@@ -104,9 +109,7 @@ class TaxonomySkillCreator(dspy.Module):
             logger.info(f"Auto-approving interaction: {interaction_type}")
             if interaction_type == "confirm":
                 return {"action": "confirm"}
-            elif interaction_type == "preview":
-                return {"action": "approve"}
-            elif interaction_type == "validate":
+            elif interaction_type == "preview" or interaction_type == "validate":
                 return {"action": "approve"}
             elif interaction_type == "clarify":
                 # For clarification, we can't really "approve", we might just return empty or best guess
@@ -135,27 +138,24 @@ class TaxonomySkillCreator(dspy.Module):
         )
 
         # Map SkillCreationResult to legacy dict format
-        if result.status == "completed":
-            # Register the skill using taxonomy manager
-            # The legacy creator did this. The new program returns the content but doesn't save.
+        if result.status == "completed" and result.metadata and result.skill_content:
+            path = result.metadata.taxonomy_path or result.metadata.skill_id
+            metadata_dict: dict[str, Any] = result.metadata.model_dump() if result.metadata else {}
+            success = self.taxonomy.register_skill(
+                path=path,
+                metadata=metadata_dict,
+                content=result.skill_content,
+                extra_files=result.extra_files or {},
+                evolution=result.metadata.version if result.metadata else "1.0.0",
+            )
 
-            # Save to taxonomy
-            if result.metadata and result.skill_content:
-                path = result.metadata.taxonomy_path or result.metadata.skill_id
-                success = self.taxonomy.register_skill(
-                    path=path,
-                    metadata=result.metadata.model_dump(),
-                    content=result.skill_content,
-                    extra_files=result.extra_files,
-                )
-
-                if success:
-                    return {
-                        "status": "approved",
-                        "skill_id": result.metadata.skill_id,
-                        "path": path,
-                        "version": result.metadata.version,
-                    }
+            if success:
+                return {
+                    "status": "approved",
+                    "skill_id": result.metadata.skill_id,
+                    "path": path,
+                    "version": result.metadata.version,
+                }
 
         return {
             "status": result.status,

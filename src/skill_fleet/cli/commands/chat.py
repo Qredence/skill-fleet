@@ -15,16 +15,16 @@ import logging
 from uuid import uuid4
 
 import httpx
-import typer
 import questionary
+import typer
 from rich.console import Console
-from rich.panel import Panel
-from rich.prompt import Prompt
-from rich.text import Text
 from rich.live import Live
 from rich.markdown import Markdown
-from rich.table import Table
+from rich.panel import Panel
 from rich.progress_bar import ProgressBar
+from rich.prompt import Prompt
+from rich.table import Table
+from rich.text import Text
 
 console = Console()
 logger = logging.getLogger(__name__)
@@ -46,7 +46,7 @@ PROGRESS_MAP = {
 }
 
 
-def _render_progress(state: str) -> None:
+def _render_progress(state: str, readiness_score: float | None = None) -> None:
     """Render a progress header based on current state."""
     label, percent = PROGRESS_MAP.get(state, ("Working", 0.5))
 
@@ -60,6 +60,9 @@ def _render_progress(state: str) -> None:
     grid.add_column(justify="left")
     grid.add_column(justify="right")
     grid.add_row(f"[bold cyan]Phase:[/bold cyan] {label}", bar)
+    if readiness_score is not None:
+        readiness_label = f"{readiness_score:.2f} (target 0.80)"
+        grid.add_row("[bold cyan]Readiness:[/bold cyan]", readiness_label)
 
     console.print(Panel(grid, border_style="dim", padding=(0, 1)))
 
@@ -84,9 +87,7 @@ def chat_command(
         help="Disable Ink TUI and use simple terminal chat",
     ),
 ):
-    """
-    Start an interactive guided session to build a skill.
-    """
+    """Start an interactive guided session to build a skill."""
     config = ctx.obj
 
     async def _run():
@@ -178,8 +179,18 @@ def chat_command(
 
                 # Display final response and handle interactions
                 if response_data:
+                    readiness_score = None
+                    response_payload = response_data.get("data", {})
+                    if isinstance(response_payload, dict):
+                        readiness_score = response_payload.get("readiness_score")
+                        if isinstance(readiness_score, str):
+                            try:
+                                readiness_score = float(readiness_score)
+                            except ValueError:
+                                readiness_score = None
+
                     # Render progress header
-                    _render_progress(current_state)
+                    _render_progress(current_state, readiness_score)
 
                     message = response_data.get("message", "")
 
@@ -205,7 +216,7 @@ def chat_command(
                         console.print("[dim]Proceeding automatically...[/dim]")
                         next_input = "continue"
 
-                    elif action in ["ask_question", "ask_understanding_question"]:
+                    elif action in ["ask_question", "ask_understanding_question", "choose_plan"]:
                         # Extract options
                         options = []
                         allow_multiple = False

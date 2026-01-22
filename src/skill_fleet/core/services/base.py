@@ -9,8 +9,9 @@ from __future__ import annotations
 
 import logging
 from abc import ABC
+from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, Iterator
+from typing import TYPE_CHECKING, Any
 
 import dspy
 
@@ -33,13 +34,15 @@ class ServiceError(Exception):
         operation: str | None = None,
         details: dict[str, Any] | None = None,
     ) -> None:
-        """Initialize service error.
+        """
+        Initialize service error.
 
         Args:
             message: Error message
             service_name: Name of the service that raised the error
             operation: Operation that failed
             details: Additional error details
+
         """
         super().__init__(message)
         self.message = message
@@ -70,7 +73,8 @@ class ValidationError(ServiceError):
 
 
 class BaseService(ABC):
-    """Base class for all skill-fleet services.
+    """
+    Base class for all skill-fleet services.
 
     Provides common dependencies and utilities:
     - Taxonomy manager access
@@ -86,12 +90,14 @@ class BaseService(ABC):
         task_lms: dict[str, dspy.LM] | None = None,
         skills_root: Path | None = None,
     ) -> None:
-        """Initialize base service.
+        """
+        Initialize base service.
 
         Args:
             taxonomy_manager: Taxonomy management instance
             task_lms: Dictionary of task-specific LMs
             skills_root: Skills root directory
+
         """
         self._taxonomy_manager = taxonomy_manager
         self._task_lms = task_lms or {}
@@ -109,24 +115,28 @@ class BaseService(ABC):
         return self._skills_root
 
     def get_task_lm(self, task: str) -> dspy.LM | None:
-        """Get LM for a specific task.
+        """
+        Get LM for a specific task.
 
         Args:
             task: Task name (e.g., 'skill_understand', 'skill_edit')
 
         Returns:
             Task-specific LM or None if not configured
+
         """
         return self._task_lms.get(task)
 
     def get_default_lm(self) -> dspy.LM:
-        """Get the default LM from DSPy settings.
+        """
+        Get the default LM from DSPy settings.
 
         Returns:
             Default LM configured in dspy.settings
 
         Raises:
             ConfigurationError: If no default LM is configured
+
         """
         lm = dspy.settings.lm
         if lm is None:
@@ -139,7 +149,8 @@ class BaseService(ABC):
 
     @contextmanager
     def with_lm(self, task: str | None = None) -> Iterator[dspy.LM]:
-        """Context manager to use a task-specific or default LM.
+        """
+        Context manager to use a task-specific or default LM.
 
         Args:
             task: Optional task name for task-specific LM
@@ -150,6 +161,7 @@ class BaseService(ABC):
         Example:
             with self.with_lm("skill_edit") as lm:
                 result = some_dspy_module()
+
         """
         if task and task in self._task_lms:
             lm = self._task_lms[task]
@@ -170,7 +182,8 @@ class BaseService(ABC):
         task: str | None = None,
         **kwargs: Any,
     ) -> Iterator[None]:
-        """Context manager for DSPy context with optional task LM.
+        """
+        Context manager for DSPy context with optional task LM.
 
         Args:
             task: Optional task name for task-specific LM
@@ -182,6 +195,7 @@ class BaseService(ABC):
         Example:
             with self.with_context("skill_edit", temperature=0.7):
                 result = some_dspy_module()
+
         """
         context_kwargs = dict(kwargs)
 
@@ -199,12 +213,14 @@ class BaseService(ABC):
         level: int = logging.INFO,
         **details: Any,
     ) -> None:
-        """Log a service operation with structured details.
+        """
+        Log a service operation with structured details.
 
         Args:
             operation: Name of the operation
             level: Logging level
             **details: Additional details to log
+
         """
         msg = f"{operation}"
         if details:
@@ -213,13 +229,15 @@ class BaseService(ABC):
         self._logger.log(level, msg)
 
     def validate_taxonomy_available(self) -> TaxonomyManager:
-        """Ensure taxonomy manager is available.
+        """
+        Ensure taxonomy manager is available.
 
         Returns:
             The taxonomy manager
 
         Raises:
             ConfigurationError: If taxonomy manager is not configured
+
         """
         if self._taxonomy_manager is None:
             raise ConfigurationError(

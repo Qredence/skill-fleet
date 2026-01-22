@@ -17,6 +17,8 @@ from typing import Any
 import dspy
 
 from ....common.async_utils import run_async
+from ....common.dspy_compat import coerce_reasoning_text
+from ....common.utils import safe_float
 from ....common.paths import find_repo_root
 from ....common.serialization import (
     merge_subdirectory_files as common_merge_subdirectory_files,
@@ -265,12 +267,16 @@ class ContentGeneratorModule(dspy.Module):
             "usage_examples": _serialize_pydantic_list(result.usage_examples),
             "best_practices": _serialize_pydantic_list(result.best_practices),
             "test_cases": _serialize_pydantic_list(result.test_cases),
-            "estimated_reading_time": result.estimated_reading_time,
+            "estimated_reading_time": safe_float(
+                getattr(result, "estimated_reading_time", 0.0), default=0.0
+            ),
             "skill_style": effective_style,
             "subdirectory_files": _merge_subdirectory_files(
                 reference_files, guide_files, template_files, script_files
             ),
-            "rationale": getattr(result, "rationale", ""),
+            "rationale": coerce_reasoning_text(
+                getattr(result, "reasoning", getattr(result, "rationale", ""))
+            ),
         }
 
     async def aforward(
@@ -310,12 +316,16 @@ class ContentGeneratorModule(dspy.Module):
             "usage_examples": _serialize_pydantic_list(result.usage_examples),
             "best_practices": _serialize_pydantic_list(result.best_practices),
             "test_cases": _serialize_pydantic_list(result.test_cases),
-            "estimated_reading_time": result.estimated_reading_time,
+            "estimated_reading_time": safe_float(
+                getattr(result, "estimated_reading_time", 0.0), default=0.0
+            ),
             "skill_style": effective_style,
             "subdirectory_files": _merge_subdirectory_files(
                 reference_files, guide_files, template_files, script_files
             ),
-            "rationale": getattr(result, "rationale", ""),
+            "rationale": coerce_reasoning_text(
+                getattr(result, "reasoning", getattr(result, "rationale", ""))
+            ),
         }
 
 
@@ -390,8 +400,10 @@ class FeedbackIncorporatorModule(dspy.Module):
             ),
             "changes_made": result.changes_made,
             "unaddressed_feedback": result.unaddressed_feedback,
-            "improvement_score": result.improvement_score,
-            "rationale": getattr(result, "rationale", ""),
+            "improvement_score": safe_float(getattr(result, "improvement_score", 0.0), default=0.0),
+            "rationale": coerce_reasoning_text(
+                getattr(result, "reasoning", getattr(result, "rationale", ""))
+            ),
         }
 
     async def aforward(
@@ -440,8 +452,10 @@ class FeedbackIncorporatorModule(dspy.Module):
             ),
             "changes_made": result.changes_made,
             "unaddressed_feedback": result.unaddressed_feedback,
-            "improvement_score": result.improvement_score,
-            "rationale": getattr(result, "rationale", ""),
+            "improvement_score": safe_float(getattr(result, "improvement_score", 0.0), default=0.0),
+            "rationale": coerce_reasoning_text(
+                getattr(result, "reasoning", getattr(result, "rationale", ""))
+            ),
         }
 
 

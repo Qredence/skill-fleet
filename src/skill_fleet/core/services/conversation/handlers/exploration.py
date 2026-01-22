@@ -37,7 +37,11 @@ class ExplorationHandlers:
             )
 
         if intent_result["intent_type"] == "create_skill":
+            previous_task = session.task_description
             session.task_description = intent_result["extracted_task"]
+            if previous_task and previous_task != session.task_description:
+                if session.deep_understanding:
+                    session.deep_understanding.pop("scoping_complete", None)
 
             # Deep Understanding
             if not session.deep_understanding or not session.deep_understanding.get("complete"):
@@ -47,50 +51,54 @@ class ExplorationHandlers:
                 )
 
             # Multi-skill check
-            existing_skills = self.taxonomy.get_mounted_skills("default")
-            multi_result, multi_thinking = await self._execute_with_streaming(
-                self.detect_multi_skill,
-                thinking_callback,
-                task_description=session.task_description,
-                collected_examples=session.collected_examples,
-                existing_skills=existing_skills,
+            scoping_complete = bool(
+                session.deep_understanding and session.deep_understanding.get("scoping_complete")
             )
-            thinking_content += multi_thinking
-
-            if multi_result.get("alternative_approaches"):
-                session.multi_skill_queue = multi_result.get("alternative_approaches", [])
-                session.state = ConversationState.MULTI_SKILL_DETECTED
-
-                return AgentResponse(
-                    message=f"I see different ways to approach this. Which plan do you prefer?\n\n**Reasoning:** {multi_result['reasoning']}",
-                    thinking_content=thinking_content,
-                    state=ConversationState.MULTI_SKILL_DETECTED,
-                    action="choose_plan",
-                    data={"question_options": multi_result["alternative_approaches"]},
-                    requires_user_input=True,
+            if not scoping_complete:
+                existing_skills = self.taxonomy.get_mounted_skills("default")
+                multi_result, multi_thinking = await self._execute_with_streaming(
+                    self.detect_multi_skill,
+                    thinking_callback,
+                    task_description=session.task_description,
+                    collected_examples=session.collected_examples,
+                    existing_skills=existing_skills,
                 )
+                thinking_content += multi_thinking
 
-            if multi_result["requires_multiple_skills"]:
-                session.multi_skill_queue = multi_result["suggested_order"]
-                session.current_skill_index = 0
-                session.state = ConversationState.MULTI_SKILL_DETECTED
+                if multi_result.get("alternative_approaches"):
+                    session.multi_skill_queue = multi_result.get("alternative_approaches", [])
+                    session.state = ConversationState.MULTI_SKILL_DETECTED
 
-                message = (
-                    f"I notice your task requires multiple skills: {', '.join(multi_result['skill_breakdown'])}.\n\n"
-                    f"**Reasoning:** {multi_result['reasoning']}\n\n"
-                    f"**Suggested order:** {', '.join(multi_result['suggested_order'])}\n\n"
-                    "I'll create them one at a time, completing the full TDD checklist for each.\n"
-                    f"Ready to start with **{multi_result['suggested_order'][0]}**? (yes/no)"
-                )
+                    return AgentResponse(
+                        message=f"I see different ways to approach this. Which plan do you prefer?\n\n**Reasoning:** {multi_result['reasoning']}",
+                        thinking_content=thinking_content,
+                        state=ConversationState.MULTI_SKILL_DETECTED,
+                        action="choose_plan",
+                        data={"question_options": multi_result["alternative_approaches"]},
+                        requires_user_input=True,
+                    )
 
-                return AgentResponse(
-                    message=message,
-                    thinking_content=thinking_content,
-                    state=ConversationState.MULTI_SKILL_DETECTED,
-                    action="multi_skill_detected",
-                    data={"skill_breakdown": multi_result["skill_breakdown"]},
-                    requires_user_input=True,
-                )
+                if multi_result["requires_multiple_skills"]:
+                    session.multi_skill_queue = multi_result["suggested_order"]
+                    session.current_skill_index = 0
+                    session.state = ConversationState.MULTI_SKILL_DETECTED
+
+                    message = (
+                        f"I notice your task requires multiple skills: {', '.join(multi_result['skill_breakdown'])}.\n\n"
+                        f"**Reasoning:** {multi_result['reasoning']}\n\n"
+                        f"**Suggested order:** {', '.join(multi_result['suggested_order'])}\n\n"
+                        "I'll create them one at a time, completing the full TDD checklist for each.\n"
+                        f"Ready to start with **{multi_result['suggested_order'][0]}**? (yes/no)"
+                    )
+
+                    return AgentResponse(
+                        message=message,
+                        thinking_content=thinking_content,
+                        state=ConversationState.MULTI_SKILL_DETECTED,
+                        action="multi_skill_detected",
+                        data={"skill_breakdown": multi_result["skill_breakdown"]},
+                        requires_user_input=True,
+                    )
 
             # Assess readiness
             readiness, ready_thinking = await self._execute_with_streaming(
@@ -101,6 +109,10 @@ class ExplorationHandlers:
                 questions_asked=len([m for m in session.messages if m.get("role") == "assistant"]),
             )
             thinking_content += ready_thinking
+            readiness_score = readiness.get("readiness_score")
+            if readiness_score is not None:
+                session.deep_understanding = session.deep_understanding or {}
+                session.deep_understanding["readiness_score"] = readiness_score
 
             if readiness["should_proceed"]:
                 session.state = ConversationState.CONFIRMING
@@ -129,7 +141,7 @@ class ExplorationHandlers:
                     thinking_content=thinking_content,
                     state=ConversationState.EXPLORING,
                     action="ask_question",
-                    data=question_result,
+                    data={**question_result, "readiness_score": readiness_score},
                     requires_user_input=True,
                 )
 
@@ -147,6 +159,10 @@ class ExplorationHandlers:
                 questions_asked=len([m for m in session.messages if m.get("role") == "assistant"]),
             )
             thinking_content += ready_thinking
+            readiness_score = readiness.get("readiness_score")
+            if readiness_score is not None:
+                session.deep_understanding = session.deep_understanding or {}
+                session.deep_understanding["readiness_score"] = readiness_score
 
             if readiness["should_proceed"]:
                 session.state = ConversationState.CONFIRMING
@@ -175,6 +191,7 @@ class ExplorationHandlers:
                     thinking_content=thinking_content,
                     state=ConversationState.EXPLORING,
                     action="ask_question",
+                    data={**question_result, "readiness_score": readiness_score},
                     requires_user_input=True,
                 )
 
@@ -191,6 +208,8 @@ class ExplorationHandlers:
         if session.multi_skill_queue and user_message in session.multi_skill_queue:
             session.task_description = user_message
             session.multi_skill_queue = []  # Clear the plans queue (alternatives)
+            session.deep_understanding = session.deep_understanding or {}
+            session.deep_understanding["scoping_complete"] = True
             session.state = ConversationState.DEEP_UNDERSTANDING
             return AgentResponse(
                 message=f"Proceeding with plan: **{user_message}**.\nLet's understand the requirements.",
@@ -230,6 +249,8 @@ class ExplorationHandlers:
             return await self.create_skill(session, thinking_callback)
         elif user_message_lower in ("no", "n", "cancel", "revise"):
             session.pending_confirmation = None
+            if session.deep_understanding:
+                session.deep_understanding.pop("scoping_complete", None)
             session.state = ConversationState.EXPLORING
             return AgentResponse(
                 message="What would you like to change? Please describe what should be different.",
@@ -296,11 +317,14 @@ class ExplorationHandlers:
             questions_asked_count=len(asked),
         )
 
-        if result.get("readiness_score", 0.0) >= 0.8:
+        if result.get("readiness_score", 0.0) >= 0.8 or len(asked) >= 3:
             session.deep_understanding["complete"] = True
             session.deep_understanding["understanding_summary"] = result.get(
                 "understanding_summary", ""
             )
+            readiness_score = result.get("readiness_score")
+            if readiness_score is not None:
+                session.deep_understanding["readiness_score"] = readiness_score
             session.user_problem = result.get("user_problem")
             session.user_goals = result.get("user_goals")
             if result.get("refined_task_description"):
@@ -312,18 +336,26 @@ class ExplorationHandlers:
                 thinking_content=thinking,
                 state=ConversationState.EXPLORING,
                 action="deep_understanding_complete",
+                data={"readiness_score": readiness_score} if readiness_score is not None else {},
                 requires_user_input=False,
             )
         else:
             next_q = result.get("next_question")
             if next_q:
+                readiness_score = result.get("readiness_score")
+                if readiness_score is not None:
+                    session.deep_understanding["readiness_score"] = readiness_score
                 session.deep_understanding["current_question"] = next_q
                 return AgentResponse(
                     message="",  # Question in data
                     thinking_content=thinking,
                     state=ConversationState.DEEP_UNDERSTANDING,
                     action="ask_understanding_question",
-                    data={"question": next_q, "reasoning": thinking},
+                    data={
+                        "question": next_q,
+                        "reasoning": thinking,
+                        "readiness_score": readiness_score,
+                    },
                     requires_user_input=True,
                 )
             else:
@@ -375,18 +407,26 @@ class ExplorationHandlers:
         thinking_content = thinking_content + s_thinking + c_thinking
         session.state = ConversationState.CONFIRMING
 
+        readiness_score = None
+        if session.deep_understanding:
+            readiness_score = session.deep_understanding.get("readiness_score")
+
         message = f"**Summary:** {summary.get('alignment_summary', '')}\n\n"
         message += summary.get("what_was_understood", "") + "\n"
         message += summary.get("what_will_be_created", "") + "\n"
         message += summary.get("how_it_addresses_task", "") + "\n\n"
         message += confirm.get("confirmation_question", "Ready to create?")
 
+        response_data = {**summary, **confirm}
+        if readiness_score is not None:
+            response_data["readiness_score"] = readiness_score
+
         return AgentResponse(
             message=message,
             thinking_content=thinking_content,
             state=ConversationState.CONFIRMING,
             action="confirm_understanding",
-            data={**summary, **confirm},
+            data=response_data,
             requires_user_input=True,
         )
 

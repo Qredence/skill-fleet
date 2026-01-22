@@ -101,8 +101,6 @@ class OptimizationWrapper(dspy.Module):
                 skeleton, content, and package predictions
 
         """
-        import json
-
         # Create minimal/dummy context for optimization
         # The new program expects JSON strings for some inputs
         result = self.program(

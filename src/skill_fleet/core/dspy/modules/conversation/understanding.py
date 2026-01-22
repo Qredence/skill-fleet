@@ -10,7 +10,6 @@ import dspy
 from .....common.dspy_compat import coerce_reasoning_text
 from .....common.utils import safe_float, safe_json_loads
 from ....models import ClarifyingQuestion, QuestionOption
-from ...utils.question_options import generate_smart_options
 from ...signatures.chat import (
     AssessReadiness,
     ConfirmUnderstandingBeforeCreation,
@@ -18,6 +17,7 @@ from ...signatures.chat import (
     GenerateClarifyingQuestion,
     UnderstandingSummary,
 )
+from ...utils.question_options import generate_smart_options
 
 logger = logging.getLogger(__name__)
 

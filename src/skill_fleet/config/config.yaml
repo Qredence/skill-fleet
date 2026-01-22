@@ -11,6 +11,9 @@
 #
 # LiteLLM v1.80.8-stable.1+ required for Gemini 3 Flash features
 
+dspy:
+  adapter: chat
+
 models:
   default: gemini/gemini-3-flash-preview
 

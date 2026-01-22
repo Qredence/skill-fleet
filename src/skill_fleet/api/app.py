@@ -10,10 +10,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from ..core.dspy import modules, programs
 from ..llm.dspy_config import configure_dspy
 from .config import get_settings
-from .discovery import discover_and_expose
 from .exceptions import (
     SkillFleetAPIException,
 )
@@ -137,10 +135,6 @@ def create_app() -> FastAPI:
     app.include_router(optimization.router, prefix="/api/v2/optimization", tags=["optimization"])
     app.include_router(training.router, prefix="/api/v2/training", tags=["training"])
     app.include_router(chat_streaming.router, tags=["chat"])
-
-    # Auto-discovery of DSPy modules
-    discover_and_expose(app, programs, prefix="/api/v2/programs")
-    discover_and_expose(app, modules, prefix="/api/v2/modules")
 
     @app.get("/health")
     async def health():

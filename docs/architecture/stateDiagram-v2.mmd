@@ -1,0 +1,15 @@
+stateDiagram-v2
+    [*] --> EXPLORING
+    EXPLORING --> DEEP_UNDERSTANDING: Intent = create_skill
+    DEEP_UNDERSTANDING --> EXPLORING: Clarification needed
+    DEEP_UNDERSTANDING --> MULTI_SKILL_DETECTED: Multiple skills found
+    DEEP_UNDERSTANDING --> CONFIRMING: Readiness >= 0.8
+    MULTI_SKILL_DETECTED --> DEEP_UNDERSTANDING: User selects single
+    CONFIRMING --> CREATING: User confirms
+    CONFIRMING --> EXPLORING: User revises
+    CREATING --> TDD_RED_PHASE: Draft generated
+    TDD_RED_PHASE --> TDD_GREEN_PHASE: Baseline tests run
+    TDD_GREEN_PHASE --> TDD_REFACTOR_PHASE: Compliance verified
+    TDD_REFACTOR_PHASE --> CHECKLIST_COMPLETE: All checks passed
+    CHECKLIST_COMPLETE --> COMPLETE: Skill saved
+    COMPLETE --> [*]

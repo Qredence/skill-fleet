@@ -19,6 +19,8 @@ from typing import TYPE_CHECKING, Any
 import dspy
 from dspy.streaming import StatusMessageProvider, StreamListener
 
+from .dspy_compat import coerce_reasoning_text
+
 if TYPE_CHECKING:
     from collections.abc import Generator
 
@@ -132,6 +134,45 @@ def create_async_module(module: dspy.Module, max_workers: int = 4) -> Any:
     return dspy.asyncify(module)
 
 
+def _coerce_json_value(value: Any, seen: set[int] | None = None) -> Any:
+    if seen is None:
+        seen = set()
+
+    if isinstance(value, dspy.Reasoning):
+        return coerce_reasoning_text(value)
+
+    if isinstance(value, dict):
+        value_id = id(value)
+        if value_id in seen:
+            return "<cycle>"
+        seen.add(value_id)
+        return {key: _coerce_json_value(item, seen) for key, item in value.items()}
+
+    if isinstance(value, list):
+        value_id = id(value)
+        if value_id in seen:
+            return "<cycle>"
+        seen.add(value_id)
+        return [_coerce_json_value(item, seen) for item in value]
+
+    if isinstance(value, tuple):
+        value_id = id(value)
+        if value_id in seen:
+            return "<cycle>"
+        seen.add(value_id)
+        return [_coerce_json_value(item, seen) for item in value]
+
+    model_dump = getattr(value, "model_dump", None)
+    if callable(model_dump):
+        value_id = id(value)
+        if value_id in seen:
+            return "<cycle>"
+        seen.add(value_id)
+        return _coerce_json_value(model_dump(mode="json"), seen)
+
+    return value
+
+
 async def stream_dspy_response(streaming_program: Any, **kwargs: Any) -> AsyncIterator[str]:
     """
     Convert DSPy streaming program to FastAPI Server-Sent Events format.
@@ -162,7 +203,8 @@ async def stream_dspy_response(streaming_program: Any, **kwargs: Any) -> AsyncIt
     """
     async for chunk in streaming_program(**kwargs):
         if isinstance(chunk, dspy.Prediction):
-            yield f"data: {json.dumps({'type': 'prediction', 'data': chunk.labels()})}\n\n"
+            labels = _coerce_json_value(chunk.labels())
+            yield f"data: {json.dumps({'type': 'prediction', 'data': labels})}\n\n"
         elif isinstance(chunk, dspy.streaming.StreamResponse):
             yield f"data: {json.dumps({'type': 'reasoning', 'chunk': chunk.chunk})}\n\n"
         elif isinstance(chunk, dspy.streaming.StatusMessage):

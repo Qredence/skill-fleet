@@ -41,6 +41,8 @@ from typing import Any
 
 import dspy
 
+from ...common.dspy_compat import coerce_reasoning_text
+
 logger = logging.getLogger(__name__)
 
 
@@ -237,9 +239,9 @@ class ReasoningTracer:
         # Extract reasoning from DSPy Prediction
         reasoning = ""
         if hasattr(result, "reasoning"):
-            reasoning = result.reasoning
+            reasoning = coerce_reasoning_text(getattr(result, "reasoning", ""))
         elif hasattr(result, "rationale"):
-            reasoning = result.rationale
+            reasoning = coerce_reasoning_text(getattr(result, "rationale", ""))
 
         # Convert outputs to dict (handle Pydantic models)
         outputs = {}

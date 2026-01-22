@@ -18,11 +18,34 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import Any, Callable
 
 import dspy
 
 from ..common.paths import default_config_path
 from .fleet_config import build_lm_for_task, load_fleet_config
+
+
+def _resolve_adapter(config: dict[str, Any], lm: dspy.LM) -> dspy.Adapter | None:
+    adapter_value = os.environ.get("DSPY_ADAPTER")
+    if not adapter_value:
+        adapter_config = config.get("dspy", {})
+        if isinstance(adapter_config, dict):
+            adapter_value = adapter_config.get("adapter")
+
+    if not adapter_value:
+        return None
+
+    adapter_key = str(adapter_value).lower()
+    adapters: dict[str, Callable[[], dspy.Adapter]] = {
+        "chat": dspy.ChatAdapter,
+        "json": dspy.JSONAdapter,
+        "two_step": lambda: dspy.TwoStepAdapter(extraction_model=lm),
+    }
+    adapter_cls = adapters.get(adapter_key)
+    if not adapter_cls:
+        return None
+    return adapter_cls()
 
 
 def configure_dspy(
@@ -55,9 +78,10 @@ def configure_dspy(
 
     config = load_fleet_config(config_path)
     lm = build_lm_for_task(config, default_task)
+    adapter = _resolve_adapter(config, lm)
 
     # Set DSPy global settings
-    dspy.configure(lm=lm)
+    dspy.configure(lm=lm, adapter=adapter)
 
     # Optional: Set cache directory from environment if specified
     if cache_dir := os.environ.get("DSPY_CACHEDIR"):

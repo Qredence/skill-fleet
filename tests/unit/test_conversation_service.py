@@ -84,3 +84,21 @@ async def test_handle_exploring_create_skill(service):
         assert response.state == ConversationState.DEEP_UNDERSTANDING
         assert response.action == "ask_understanding_question"
         assert session.task_description == "Create python skill"
+
+
+@pytest.mark.asyncio
+async def test_respond_updates_session_state(service):
+    session = ConversationSession()
+    session.state = ConversationState.DEEP_UNDERSTANDING
+
+    response = AgentResponse(
+        message="Done",
+        state=ConversationState.EXPLORING,
+        action="deep_understanding_complete",
+        requires_user_input=False,
+    )
+
+    with patch.object(service, "handle_deep_understanding", AsyncMock(return_value=response)):
+        await service.respond("continue", session, None)
+
+    assert session.state == ConversationState.EXPLORING

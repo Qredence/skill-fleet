@@ -11,7 +11,7 @@ dependencies = [
   "asyncpg>=0.31.0",
   "click>=8.3.1",
   "datasets>=4.4.2",
-  "dspy>=3.0.4",
+  "dspy>=3.1.2,<4",
   "fastapi[standard]>=0.128.0",
   "google-genai>=1.56.0",
   "httpx>=0.28.1",
@@ -30,6 +30,8 @@ dependencies = [
   "uvicorn[standard]>=0.31.1",
   "prompt-toolkit>=3.0.52",
   "ty>=0.0.12",
+  "gepa>=0.0.24",
+  "questionary>=2.0.0",
 ]
 classifiers = [
   "Development Status :: 3 - Alpha",

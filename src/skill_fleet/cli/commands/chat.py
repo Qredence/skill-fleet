@@ -2,29 +2,66 @@
 CLI command for interactive chat sessions.
 
 Features:
-- Try to launch interactive Ink TUI with streaming support
-- Fallback to simple terminal chat if TUI unavailable
-- Support for agentic intent detection and command execution
+- Connects to the streaming chat API
+- Displays real-time thinking and reasoning
+- Manages persistent session via API
+- Rich interactive prompts using questionary for navigation and selection
 """
 
 from __future__ import annotations
 
 import asyncio
 import logging
-from pathlib import Path
+from uuid import uuid4
 
 import httpx
 import typer
+import questionary
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.text import Text
-
-from ..hitl.runner import run_hitl_job
-from ..tui_spawner import spawn_tui
+from rich.live import Live
+from rich.markdown import Markdown
+from rich.table import Table
+from rich.progress_bar import ProgressBar
 
 console = Console()
 logger = logging.getLogger(__name__)
+
+# Map conversation states to progress (0.0 to 1.0) and label
+PROGRESS_MAP = {
+    "EXPLORING": ("Understanding", 0.1),
+    "DEEP_UNDERSTANDING": ("Deep Dive", 0.2),
+    "MULTI_SKILL_DETECTED": ("Scoping", 0.25),
+    "CONFIRMING": ("Confirmation", 0.3),
+    "CREATING": ("Generating", 0.4),
+    "TDD_RED_PHASE": ("TDD (Red)", 0.5),
+    "TDD_GREEN_PHASE": ("TDD (Green)", 0.65),
+    "TDD_REFACTOR_PHASE": ("TDD (Refactor)", 0.8),
+    "REVIEWING": ("Review", 0.9),
+    "REVISING": ("Revising", 0.95),
+    "CHECKLIST_COMPLETE": ("Finalizing", 0.98),
+    "COMPLETE": ("Done", 1.0),
+}
+
+
+def _render_progress(state: str) -> None:
+    """Render a progress header based on current state."""
+    label, percent = PROGRESS_MAP.get(state, ("Working", 0.5))
+
+    # Create a compact progress bar
+    bar = ProgressBar(
+        total=100, completed=percent * 100, width=30, complete_style="green", finished_style="green"
+    )
+
+    # Create a grid or table for the header
+    grid = Table.grid(expand=True)
+    grid.add_column(justify="left")
+    grid.add_column(justify="right")
+    grid.add_row(f"[bold cyan]Phase:[/bold cyan] {label}", bar)
+
+    console.print(Panel(grid, border_style="dim", padding=(0, 1)))
 
 
 def chat_command(
@@ -48,170 +85,254 @@ def chat_command(
     ),
 ):
     """
-    Start an interactive guided session to build a skill (job + HITL).
-
-    Try to launch interactive Ink TUI with real-time streaming responses,
-    thinking/reasoning display, and agentic suggestions. Falls back to
-    simple terminal chat if TUI is unavailable.
+    Start an interactive guided session to build a skill.
     """
     config = ctx.obj
-
-    # Try to spawn TUI first (if available and not disabled)
-    if not no_tui and not force_plain_text:
-        try:
-            exit_code = spawn_tui(
-                api_url=config.api_url, user_id=config.user_id, force_no_tui=False
-            )
-            if exit_code == 0:
-                # TUI not available, continue with fallback
-                console.print("[dim]TUI not available, using terminal chat...[/dim]")
-            elif exit_code > 0:
-                # TUI exited successfully
-                return
-            else:
-                # TUI error, continue with fallback
-                console.print("[yellow]TUI error, falling back to terminal chat[/yellow]")
-        except Exception as e:
-            logger.debug(f"TUI spawn failed: {e}, using fallback")
-            pass
 
     async def _run():
         try:
             console.print(
                 Panel.fit(
                     "[bold cyan]Skill Fleet — Guided Creator[/bold cyan]\n"
-                    "This command uses the FastAPI job + HITL workflow.\n"
-                    "Commands: /help, /exit",
+                    "This command uses the streaming API.\n"
+                    "Commands: /exit, /quit",
                     border_style="cyan",
                 )
             )
 
-            def _print_help() -> None:
-                console.print(
-                    Panel.fit(
-                        "[bold]Commands[/bold]\n"
-                        "- /help: show this message\n"
-                        "- /exit: quit\n\n"
-                        "[bold]Tips[/bold]\n"
-                        '- Use [dim]create[/dim] for one-shot runs: `uv run skill-fleet create "..."`\n'
-                        "- Run the server first: `uv run skill-fleet serve`",
-                        title="Help",
-                        border_style="cyan",
-                    )
-                )
+            # Create a session ID for this CLI run
+            session_id = f"cli_{uuid4().hex[:8]}"
+            next_input: str | None = task
+            current_state: str = "EXPLORING"
 
-            pending_task: str | None = task
+            # Main conversation loop
             while True:
-                if pending_task is not None:
-                    task_description = pending_task
-                    pending_task = None
+                # 1. Determine input (User prompt or auto-advance)
+                if next_input is not None:
+                    user_input = next_input
+                    next_input = None
+                    # Only print if it's a user task, not an internal "continue" signal
+                    if user_input != "continue":
+                        console.print(f"\n[bold green]Task:[/bold green] {user_input}")
                 else:
-                    task_description = Prompt.ask(
-                        "\n[bold green]What capability would you like to build?[/bold green]"
-                    )
-                if task_description.lower() in {"/exit", "/quit"}:
+                    user_input = Prompt.ask("\n[bold green]You[/bold green]")
+
+                if user_input.lower() in {"/exit", "/quit"}:
                     return
-                if task_description.lower() in {"/help"}:
-                    _print_help()
-                    continue
-                if not task_description.strip():
+
+                if not user_input.strip():
                     continue
 
-                console.print("[dim]Creating job...[/dim]")
-                try:
-                    result = await config.client.create_skill(task_description, config.user_id)
-                except Exception as conn_err:
-                    console.print(f"[red]Could not connect to API server at {config.api_url}[/red]")
-                    console.print("[yellow]Make sure the server is running:[/yellow]")
-                    console.print("  uv run skill-fleet serve")
-                    raise conn_err
+                console.print()
 
-                job_id = result.get("job_id")
-                if not job_id:
-                    console.print(f"[red]Unexpected response: {result}[/red]")
-                    continue
+                # State for streaming display
+                thinking_text = Text()
+                response_data = None
 
-                console.print(f"[bold green]🚀 Skill creation job started: {job_id}[/bold green]")
-
-                prompt_data = await run_hitl_job(
+                # Live display for thinking
+                with Live(
+                    Panel(thinking_text, title="[dim]Thinking...[/dim]", border_style="dim"),
                     console=console,
-                    client=config.client,
-                    job_id=job_id,
-                    auto_approve=auto_approve,
-                    show_thinking=show_thinking,
-                    force_plain_text=force_plain_text,
-                )
+                    refresh_per_second=10,
+                    transient=True,  # Disappear after done
+                ) as live:
+                    try:
+                        async for event in config.client.stream_chat(user_input, session_id):
+                            event_type = event.get("type")
+                            data = event.get("data")
 
-                status = prompt_data.get("status")
-                if status == "completed":
-                    validation_passed = prompt_data.get("validation_passed")
-                    if validation_passed is False:
+                            if event_type == "thinking":
+                                content = data.get("content", "")
+                                thinking_text.append(content, style="dim italic")
+                                live.update(
+                                    Panel(
+                                        thinking_text,
+                                        title="[dim]Thinking...[/dim]",
+                                        border_style="dim",
+                                    )
+                                )
+
+                            elif event_type == "response":
+                                response_data = data
+                                if response_data.get("state"):
+                                    current_state = response_data.get("state")
+
+                            elif event_type == "error":
+                                console.print(f"[red]Server Error: {data.get('error')}[/red]")
+                                break
+
+                            elif event_type == "complete":
+                                break
+
+                    except httpx.HTTPStatusError as e:
                         console.print(
-                            "\n[bold yellow]✨ Skill Creation Completed (validation failed)[/bold yellow]"
+                            f"[red]API Error: {e.response.status_code} - {e.response.text}[/red]"
                         )
-                    else:
-                        console.print("\n[bold green]✨ Skill Creation Completed![/bold green]")
-
-                    intended = prompt_data.get("intended_taxonomy_path") or prompt_data.get("path")
-                    if intended:
-                        console.print(f"[dim]Intended path:[/dim] {intended}")
-
-                    final_path = prompt_data.get("final_path") or prompt_data.get("saved_path")
-                    draft_path = prompt_data.get("draft_path")
-
-                    if final_path:
-                        console.print(f"[bold cyan]📁 Skill saved to:[/bold cyan] {final_path}")
-                    elif draft_path:
-                        console.print(f"[bold cyan]📝 Draft saved to:[/bold cyan] {draft_path}")
                         console.print(
-                            f"[dim]Promote when ready:[/dim] `uv run skill-fleet promote {job_id}`"
+                            "[yellow]Make sure 'uv run skill-fleet serve' is running.[/yellow]"
                         )
+                        return
+                    except Exception as e:
+                        console.print(f"[red]Connection Error: {e}[/red]")
+                        return
 
-                    validation_score = prompt_data.get("validation_score")
-                    if validation_passed is not None:
-                        status_label = "PASS" if validation_passed else "FAIL"
-                        score_suffix = (
-                            f" (score: {validation_score})" if validation_score is not None else ""
-                        )
-                        style = "green" if validation_passed else "yellow"
-                        console.print(
-                            f"[{style}]Validation: {status_label}{score_suffix}[/{style}]"
-                        )
+                # Display final response and handle interactions
+                if response_data:
+                    # Render progress header
+                    _render_progress(current_state)
 
-                    # Display the on-disk artifact when possible (draft or final).
-                    content: str | None = None
-                    for base in (final_path, draft_path):
-                        if not base:
-                            continue
-                        skill_md = Path(str(base)) / "SKILL.md"
-                        if skill_md.exists():
-                            content = skill_md.read_text(encoding="utf-8")
-                            break
-                    if content is None:
-                        content = prompt_data.get("skill_content") or "No content generated."
+                    message = response_data.get("message", "")
 
-                    console.print(Panel(Text(content), title="Final Skill Content"))
-                elif status == "failed":
-                    console.print(Text(f"❌ Job failed: {prompt_data.get('error')}", style="red"))
-                elif status == "cancelled":
-                    console.print(Text("Job cancelled.", style="yellow"))
-                else:
-                    console.print(Text(f"Job ended with status: {status}", style="yellow"))
+                    # Show thinking summary if requested (optional persistent log)
+                    if show_thinking and thinking_text and not message:
+                        pass
 
-                # Offer to continue in the same session.
-                again = Prompt.ask("Create another skill? (y/n)", choices=["y", "n"], default="n")
-                if again == "y":
-                    continue
-                return
+                    # Format message
+                    console.print("[cyan]Agent:[/cyan]")
+                    if message:
+                        console.print(Markdown(message))
 
-        except httpx.HTTPStatusError as e:
-            console.print(
-                Text(f"HTTP Error: {e.response.status_code} - {e.response.text}", style="red")
-            )
-        except ValueError as e:
-            console.print(Text(f"Error: {e}", style="red"))
+                    # ---------------------------------------------------------
+                    # Interactive Options Handling
+                    # ---------------------------------------------------------
+                    action = response_data.get("action")
+                    data = response_data.get("data", {})
+                    requires_input = response_data.get("requires_user_input", True)
+
+                    # Determine next step
+                    if not requires_input:
+                        # Auto-advance
+                        console.print("[dim]Proceeding automatically...[/dim]")
+                        next_input = "continue"
+
+                    elif action in ["ask_question", "ask_understanding_question"]:
+                        # Extract options
+                        options = []
+                        allow_multiple = False
+
+                        # Structure A: Flat (ask_question)
+                        if "question_options" in data:
+                            raw_opts = data["question_options"]
+                            # Convert string list to objects if needed
+                            options = [
+                                {"id": str(i), "label": opt, "description": ""}
+                                if isinstance(opt, str)
+                                else opt
+                                for i, opt in enumerate(raw_opts, 1)
+                            ]
+
+                        # Structure B: Nested (ask_understanding_question)
+                        elif "question" in data and isinstance(data["question"], dict):
+                            q_obj = data["question"]
+                            if "options" in q_obj:
+                                options = q_obj["options"]
+                                allow_multiple = q_obj.get("allows_multiple", True)
+
+                        # Render options if found
+                        if options:
+                            # 1. Show Detailed Table (because questionary cuts off long text)
+                            table = Table(show_header=True, header_style="bold magenta", box=None)
+                            table.add_column("Option", style="bold")
+                            table.add_column("Description", style="dim")
+
+                            choices = []
+                            for opt in options:
+                                label = opt.get("label", opt.get("text", str(opt)))
+                                desc = opt.get("description", "")
+                                table.add_row(label, desc)
+                                # Use label as the value to send back to LLM
+                                choices.append(questionary.Choice(title=label, value=label))
+
+                            console.print(table)
+                            console.print()  # Spacer
+
+                            # Add "Custom" option
+                            choices.append(
+                                questionary.Choice(
+                                    title="Type custom answer...", value="__custom__"
+                                )
+                            )
+
+                            # 2. Interactive Selection using Questionary
+                            current_selection = []
+                            while True:
+                                if allow_multiple:
+                                    answer = await questionary.checkbox(
+                                        "Select option(s):",
+                                        choices=choices,
+                                        default=current_selection if current_selection else None,  # type: ignore
+                                        instruction="(Space to toggle, Enter to submit)",
+                                        style=questionary.Style(
+                                            [
+                                                ("qmark", "fg:#00ffff bold"),
+                                                ("question", "bold"),
+                                                ("answer", "fg:#00ff00 bold"),
+                                                ("pointer", "fg:#00ffff bold"),
+                                                ("highlighted", "fg:#00ffff bold"),
+                                                ("selected", "fg:#00ff00"),
+                                                ("separator", "fg:#cc5454"),
+                                                ("instruction", "fg:#858585 italic"),
+                                                ("text", ""),
+                                                ("disabled", "fg:#858585 italic"),
+                                            ]
+                                        ),
+                                    ).ask_async()
+                                else:
+                                    answer = await questionary.select(
+                                        "Select option:",
+                                        choices=choices,
+                                        style=questionary.Style(
+                                            [
+                                                ("qmark", "fg:#00ffff bold"),
+                                                ("question", "bold"),
+                                                ("answer", "fg:#00ff00 bold"),
+                                                ("pointer", "fg:#00ffff bold"),
+                                                ("highlighted", "fg:#00ffff bold"),
+                                                ("selected", "fg:#00ff00"),
+                                            ]
+                                        ),
+                                    ).ask_async()
+
+                                # Handle selection
+                                if answer is None:
+                                    return  # User cancelled
+
+                                if answer == "__custom__":
+                                    # Fall through to Prompt.ask
+                                    break
+
+                                if isinstance(answer, list):
+                                    if "__custom__" in answer:
+                                        # Mixed custom + selection -> break to prompt
+                                        break
+
+                                    if not answer:
+                                        console.print(
+                                            "[yellow]Please select at least one option (press Space) or type a custom answer.[/yellow]"
+                                        )
+                                        current_selection = []
+                                        continue
+
+                                    next_input = ", ".join(answer)
+                                    break
+
+                                # Single selection string
+                                next_input = answer
+                                break
+
+                    # Check for completion
+                    if action == "complete":
+                        console.print("\n[bold green]✨ Session Complete[/bold green]")
+                        if Prompt.ask("Start another skill? (y/n)", default="n") == "y":
+                            session_id = f"cli_{uuid4().hex[:8]}"
+                            console.print("[dim]Started new session[/dim]")
+                            next_input = None
+                            current_state = "EXPLORING"
+                        else:
+                            return
+
         except Exception as e:
-            console.print(Text(f"Unexpected error: {type(e).__name__}: {e}", style="red"))
+            console.print(f"[red]Unexpected error: {type(e).__name__}: {e}[/red]")
         finally:
             await config.client.close()
 

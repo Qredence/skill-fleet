@@ -3,7 +3,7 @@
 import dspy
 import pytest
 
-from skill_fleet.core.dspy.programs import LegacySkillCreationProgram
+from skill_fleet.core.dspy.skill_creator import SkillCreationProgram
 
 
 @pytest.fixture(autouse=True)
@@ -21,8 +21,8 @@ async def test_workflow_with_real_llm():
     lm = dspy.LM("gemini/gemini-3-flash-preview", cache=False)
     dspy.settings.configure(lm=lm)
 
-    # Create program without quality assurance for faster testing
-    program = LegacySkillCreationProgram(quality_assured=False)
+    # Create program
+    program = SkillCreationProgram()
 
     # Use a simple task that should succeed quickly
     task = "Create a skill that teaches how to use Python list comprehensions"
@@ -34,12 +34,14 @@ async def test_workflow_with_real_llm():
     def mock_parent_skills_getter(path):
         return []
 
+    import json
+
     # This should not raise a JSON serialization error anymore
     result = await program.aforward(
         task_description=task,
-        existing_skills=existing_skills,
-        taxonomy_structure=taxonomy_structure,
-        parent_skills_getter=mock_parent_skills_getter,
+        existing_skills=json.dumps(existing_skills),
+        taxonomy_structure=json.dumps(taxonomy_structure),
+        user_context={"user_id": "test"},
     )
 
     # Basic validation

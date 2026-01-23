@@ -100,14 +100,45 @@ def create_streaming_module(
         ...     # Handle async streaming
 
     """
+    stream_listeners: list[StreamListener] = []
+    if reasoning_field and _program_has_output_field(module, reasoning_field):
+        stream_listeners.append(StreamListener(signature_field_name=reasoning_field))
+    else:
+        logger.debug(
+            "Skipping streaming listener: field '%s' not found in program outputs",
+            reasoning_field,
+        )
+
     return dspy.streamify(
         module,
-        stream_listeners=[
-            StreamListener(signature_field_name=reasoning_field),
-        ],
+        stream_listeners=stream_listeners,
         status_message_provider=SkillFleetStatusProvider(),
         async_streaming=async_mode,
     )
+
+
+def _program_has_output_field(program: Any, field_name: str) -> bool:
+    """
+    Check whether a program has a predictor output field for streaming.
+
+    If we cannot reliably inspect predictors, default to True to preserve
+    streaming behavior.
+    """
+    try:
+        predictors = list(program.named_predictors())
+    except Exception:
+        return True
+
+    if not predictors:
+        return True
+
+    for _name, predictor in predictors:
+        signature = getattr(predictor, "signature", None)
+        output_fields = getattr(signature, "output_fields", None)
+        if isinstance(output_fields, dict) and field_name in output_fields:
+            return True
+
+    return False
 
 
 def create_async_module(module: dspy.Module, max_workers: int = 4) -> Any:

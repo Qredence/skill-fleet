@@ -102,7 +102,7 @@ class AnalyticsEngine:
         for skills in task_skills.values():
             if len(skills) > 1:
                 # Store sorted tuple to ensure order doesn't matter
-                sorted_skills = tuple(sorted(list(skills)))
+                sorted_skills = tuple(sorted(skills))
                 combinations[sorted_skills] += 1
 
         return {
@@ -152,6 +152,24 @@ class RecommendationEngine:
                         )
 
         # 2. Recommend based on common combinations (if user uses A but not B, and A+B is common)
-        # TODO: Implement more complex pattern matching
+        common_combos = stats.get("common_combinations", [])
+        user_skills = set(most_used)
+
+        for combo_entry in common_combos:
+            combo_skills = set(combo_entry["skills"])
+            # Check if user has some skills from combo but not all
+            overlap = user_skills & combo_skills
+            missing = combo_skills - user_skills
+
+            if overlap and missing:
+                for missing_skill in missing:
+                    recommendations.append(
+                        {
+                            "skill_id": missing_skill,
+                            "reason": f"Often used with {', '.join(overlap)}",
+                            "priority": "medium",
+                            "combo_count": combo_entry["count"],
+                        }
+                    )
 
         return recommendations

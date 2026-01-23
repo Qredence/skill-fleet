@@ -26,7 +26,10 @@ def temp_taxonomy(tmp_path: Path) -> Path:
 
 
 def test_bundled_resources_registration(temp_taxonomy: Path) -> None:
-    """Verify that bundled resources (scripts, assets, resources) are saved correctly."""
+    """Verify that bundled resources (scripts, assets, resources) are saved correctly.
+
+    Note: v2 standard maps legacy `resources/` payloads to `guides/`.
+    """
     manager = TaxonomyManager(temp_taxonomy)
 
     skill_path = "test/bundled_resource_skill"
@@ -79,9 +82,9 @@ def test_bundled_resources_registration(temp_taxonomy: Path) -> None:
     assert (skill_dir / "assets" / "data" / "config.json").exists()
     assert (skill_dir / "assets" / "data" / "config.json").read_text() == '{"key": "value"}'
 
-    # Check resources
-    assert (skill_dir / "resources" / "dataset.csv").exists()
-    assert (skill_dir / "resources" / "dataset.csv").read_text() == "col1,col2\n1,2"
+    # Check resources (mapped to guides/)
+    assert (skill_dir / "guides" / "dataset.csv").exists()
+    assert (skill_dir / "guides" / "dataset.csv").read_text() == "col1,col2\n1,2"
 
 
 def test_bundled_resources_binary_assets(temp_taxonomy: Path) -> None:

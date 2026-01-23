@@ -194,6 +194,23 @@ class SkillBootstrapper:
         return f"Create a {last_part} skill in the {category} category"
 
     def _save_user_profile(self, profile: dict):
-        """Persist user profile to storage."""
-        # TODO: Implement user profile storage
-        pass
+        """
+        Persist user profile to storage.
+
+        Saves user profiles to JSON files in the _analytics directory
+        for tracking onboarding progress and mounted skills.
+
+        Args:
+            profile: User profile dictionary containing user_id, profile data,
+                    mounted skills, and onboarding metadata.
+
+        """
+        user_id = profile["user_id"]
+        profiles_dir = self.taxonomy.skills_root / "_analytics" / "user_profiles"
+        profiles_dir.mkdir(parents=True, exist_ok=True)
+
+        profile_path = profiles_dir / f"{user_id}.json"
+        profile_path.write_text(
+            json.dumps(profile, indent=2, separators=(",", ": ")) + "\n", encoding="utf-8"
+        )
+        logger.info(f"Saved user profile for {user_id} to {profile_path}")

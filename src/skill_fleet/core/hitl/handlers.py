@@ -204,7 +204,7 @@ class InteractiveHITLHandler(FeedbackHandler):
         self.skill_content = ""
 
         # Initialize dynamic question generator
-        from ..dspy.modules import DynamicQuestionGeneratorModule
+        from ..dspy.modules import DynamicQuestionGeneratorModule  # type: ignore[attr-defined]
 
         self.question_generator = DynamicQuestionGeneratorModule()
 

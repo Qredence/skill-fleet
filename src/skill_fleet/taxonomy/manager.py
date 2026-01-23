@@ -876,7 +876,9 @@ If you encounter issues not covered here:
 
         Only creates directories when there is actual content to write.
         """
-        # Handle capability implementations
+        # Handle capability implementations.
+        #
+        # v2 standard: write under references/ instead of creating legacy capabilities/.
         if "capability_implementations" in extra_files:
             caps = extra_files["capability_implementations"]
             if isinstance(caps, str) and caps.strip().startswith(("{", "[")):
@@ -886,16 +888,16 @@ If you encounter issues not covered here:
                     pass
 
             if isinstance(caps, dict):
-                caps_dir = skill_dir / "capabilities"
-                caps_dir.mkdir(exist_ok=True)
+                caps_dir = skill_dir / "references" / "capability-implementations"
+                caps_dir.mkdir(parents=True, exist_ok=True)
                 for cap_id, cap_content in caps.items():
                     raw_name = f"{str(cap_id).replace('/', '_')}.md"
                     filename = raw_name if is_safe_path_component(raw_name) else "implementation.md"
                     (caps_dir / filename).write_text(str(cap_content), encoding="utf-8")
             else:
-                caps_dir = skill_dir / "capabilities"
-                caps_dir.mkdir(exist_ok=True)
-                (caps_dir / "implementations.md").write_text(str(caps), encoding="utf-8")
+                refs_dir = skill_dir / "references"
+                refs_dir.mkdir(exist_ok=True)
+                (refs_dir / "capability-implementations.md").write_text(str(caps), encoding="utf-8")
 
         # Handle usage examples
         if "usage_examples" in extra_files:
@@ -999,25 +1001,29 @@ If you encounter issues not covered here:
             guide = extra_files["integration_guide"]
             (skill_dir / "integration.md").write_text(str(guide), encoding="utf-8")
 
-        # Handle resources
+        # Handle resource requirements.
+        #
+        # v2 standard: write under guides/ instead of creating legacy resources/.
         if "resource_requirements" in extra_files and extra_files["resource_requirements"]:
             res = extra_files["resource_requirements"]
-            resources_dir = skill_dir / "resources"
-            resources_dir.mkdir(exist_ok=True)
+            guides_dir = skill_dir / "guides"
+            guides_dir.mkdir(exist_ok=True)
             filename = (
                 "requirements.json"
                 if isinstance(res, (dict, list))
                 or (isinstance(res, str) and res.strip().startswith(("{", "[")))
                 else "requirements.md"
             )
-            (resources_dir / filename).write_text(str(res), encoding="utf-8")
+            (guides_dir / filename).write_text(str(res), encoding="utf-8")
 
-        # Handle bundled resources (scripts, assets, resources)
+        # Handle bundled resources.
+        #
+        # v2 standard: map legacy `resources` payloads into guides/.
         for category in ["scripts", "assets", "resources"]:
             if category in extra_files:
                 items = extra_files[category]
                 if isinstance(items, dict):
-                    target_dir = skill_dir / category
+                    target_dir = skill_dir / ("guides" if category == "resources" else category)
                     target_dir.mkdir(parents=True, exist_ok=True)
                     for filename, content in items.items():
                         # Allow subdirectories, but sanitize and enforce containment.

@@ -40,7 +40,7 @@
     "examples": "Complete runnable demo projects with READMEs"
   },
   "deprecated": {
-    "directories": ["capabilities/", "resources/", "tests/"],
+    "directories": ["capabilities/", "resources/"],
     "files": ["metadata.json"],
     "note": "Existing skills with these structures are grandfathered; new skills should use v2 structure"
   }

@@ -80,3 +80,43 @@ class SkillFleetClient:
         )
         response.raise_for_status()
         return response.json()
+
+    async def stream_chat(
+        self, message: str, session_id: str | None = None, context: dict[str, Any] | None = None
+    ):
+        """
+        Stream chat events from the API.
+
+        Yields:
+            Dict containing event 'type' and 'data' (parsed JSON).
+        """
+        import json
+
+        async with self.client.stream(
+            "POST",
+            "/api/v1/chat/stream",
+            json={"message": message, "session_id": session_id, "context": context},
+            timeout=None,
+        ) as response:
+            response.raise_for_status()
+
+            # Simple SSE parser
+            current_event_type = "message"
+
+            async for line in response.aiter_lines():
+                line = line.strip()
+                if not line:
+                    continue
+
+                if line.startswith("event: "):
+                    current_event_type = line[7:].strip()
+                elif line.startswith("data: "):
+                    data_str = line[6:].strip()
+                    if data_str == "[DONE]":
+                        break
+
+                    try:
+                        data = json.loads(data_str)
+                        yield {"type": current_event_type, "data": data}
+                    except json.JSONDecodeError:
+                        logger.warning(f"Failed to parse SSE data: {data_str}")

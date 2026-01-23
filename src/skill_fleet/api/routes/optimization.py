@@ -20,6 +20,7 @@ from typing import Any
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel, Field, field_validator
 
+from ...common.dspy_compat import coerce_reasoning_text
 from ...common.paths import find_repo_root
 from ...common.security import (
     resolve_path_within_root,
@@ -258,7 +259,7 @@ async def recommend_optimizer(request: RecommendRequest) -> RecommendResponse:
         estimated_cost=result.estimated_cost,
         estimated_time_minutes=result.estimated_time_minutes,
         confidence=result.confidence,
-        reasoning=result.reasoning,
+        reasoning=coerce_reasoning_text(getattr(result, "reasoning", "")),
         alternatives=result.alternatives,
     )
 
@@ -866,7 +867,13 @@ async def get_optimization_config() -> dict[str, Any]:
 
     try:
         with open(config_path) as f:
-            config: object = yaml.safe_load(f)
+            config = yaml.safe_load(f)
+
+        if not isinstance(config, dict):
+            raise HTTPException(
+                status_code=500,
+                detail="Configuration file is not a mapping",
+            )
 
         return {
             "optimization": config.get("optimization", {}),

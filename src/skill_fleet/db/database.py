@@ -1,5 +1,5 @@
 """
-Skills-Fleet Database Connection
+Skills-Fleet Database Connection.
 
 Database connection and session management for the skills fleet database.
 """
@@ -19,16 +19,34 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from skill_fleet.db.models import Base
 
+
+def _with_postgres_driver(url: str, driver: str, *, override: bool = False) -> str:
+    """Ensure Postgres URLs include a DBAPI driver when appropriate."""
+    if url.startswith("postgresql+"):
+        if not override:
+            return url
+        _, rest = url.split("://", 1)
+        return f"postgresql+{driver}://{rest}"
+    if url.startswith("postgresql://"):
+        return f"postgresql+{driver}://{url[len('postgresql://') :]}"
+    if url.startswith("postgres://"):
+        return f"postgresql+{driver}://{url[len('postgres://') :]}"
+    return url
+
+
 # Database URL from environment or default
-DATABASE_URL = os.getenv(
+RAW_DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "postgresql://neondb_owner:your_password@ep-something.aws.us-east-1.aws.neon.tech/neondb?sslmode=require",
 )
 
-# Async database URL (convert postgresql:// to postgresql+asyncpg://)
-ASYNC_DATABASE_URL = os.getenv(
-    "ASYNC_DATABASE_URL", DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
-)
+# Use psycopg (v3) for sync engine when driver isn't specified.
+DATABASE_URL = _with_postgres_driver(RAW_DATABASE_URL, "psycopg")
+
+# Async database URL (derive from DATABASE_URL unless explicitly set).
+ASYNC_DATABASE_URL = os.getenv("ASYNC_DATABASE_URL")
+if not ASYNC_DATABASE_URL:
+    ASYNC_DATABASE_URL = _with_postgres_driver(RAW_DATABASE_URL, "asyncpg", override=True)
 
 # Synchronous engine
 engine = create_engine(

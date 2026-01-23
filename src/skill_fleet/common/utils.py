@@ -15,6 +15,58 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
+def _extract_json_candidate(text: str) -> str | None:
+    """
+    Best-effort extraction of a JSON object/array from an LLM string.
+
+    DSPy and upstream adapters can change how strictly they enforce structured
+    outputs. This helper keeps our parsing resilient when the model wraps JSON
+    in code fences or light prose.
+    """
+    if not isinstance(text, str):
+        return None
+
+    s = text.strip()
+    if not s:
+        return None
+
+    # Strip ```json ... ``` or ``` ... ``` fences if present.
+    if s.startswith("```"):
+        first_newline = s.find("\n")
+        if first_newline != -1:
+            inner = s[first_newline + 1 :]
+            fence_end = inner.rfind("```")
+            if fence_end != -1:
+                inner = inner[:fence_end]
+            s = inner.strip()
+
+    if not s:
+        return None
+
+    if s[0] in "[{":
+        return s
+
+    # Try to extract the first {...} or [...] region.
+    first_obj = s.find("{")
+    first_arr = s.find("[")
+    if first_obj == -1 and first_arr == -1:
+        return None
+
+    if first_obj == -1:
+        start = first_arr
+        end = s.rfind("]")
+    elif first_arr == -1:
+        start = first_obj
+        end = s.rfind("}")
+    else:
+        start = min(first_obj, first_arr)
+        end = s.rfind("}" if start == first_obj else "]")
+
+    if end == -1 or end <= start:
+        return None
+    return s[start : end + 1].strip()
+
+
 def safe_json_loads(
     value: str | Any,
     default: dict | list | None = None,
@@ -63,8 +115,9 @@ def safe_json_loads(
 
     # Try to parse JSON string
     if isinstance(value, str):
+        candidate = _extract_json_candidate(value) or value.strip()
         try:
-            return json.loads(value)
+            return json.loads(candidate)
         except json.JSONDecodeError as e:
             logger.warning(
                 f"Failed to parse JSON for field '{field_name}': {e}. "

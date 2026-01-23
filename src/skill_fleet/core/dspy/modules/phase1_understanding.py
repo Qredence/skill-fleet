@@ -9,7 +9,8 @@ from typing import Any
 import dspy
 
 from ....common.async_utils import run_async
-from ....common.utils import safe_json_loads
+from ....common.dspy_compat import coerce_reasoning_text
+from ....common.utils import safe_float, safe_json_loads
 from ..signatures.phase1_understanding import (
     AnalyzeDependencies,
     AnalyzeIntent,
@@ -31,27 +32,45 @@ class RequirementsGathererModule(dspy.Module):
     def forward(self, task_description: str) -> dict[str, Any]:
         """Gather requirements."""
         result = self.gather(task_description=task_description)
+        topics = safe_json_loads(getattr(result, "topics", []), default=[], field_name="topics")
+        constraints = safe_json_loads(
+            getattr(result, "constraints", []), default=[], field_name="constraints"
+        )
+        ambiguities = safe_json_loads(
+            getattr(result, "ambiguities", []), default=[], field_name="ambiguities"
+        )
         return {
             "domain": result.domain,
             "category": result.category,
             "target_level": result.target_level,
-            "topics": result.topics,
-            "constraints": result.constraints,
-            "ambiguities": result.ambiguities,
-            "rationale": getattr(result, "rationale", ""),
+            "topics": topics if isinstance(topics, list) else [],
+            "constraints": constraints if isinstance(constraints, list) else [],
+            "ambiguities": ambiguities if isinstance(ambiguities, list) else [],
+            "rationale": coerce_reasoning_text(
+                getattr(result, "reasoning", getattr(result, "rationale", ""))
+            ),
         }
 
     async def aforward(self, task_description: str) -> dict[str, Any]:
         """Asynchronous forward pass (preferred)."""
         result = await self.gather.acall(task_description=task_description)
+        topics = safe_json_loads(getattr(result, "topics", []), default=[], field_name="topics")
+        constraints = safe_json_loads(
+            getattr(result, "constraints", []), default=[], field_name="constraints"
+        )
+        ambiguities = safe_json_loads(
+            getattr(result, "ambiguities", []), default=[], field_name="ambiguities"
+        )
         return {
             "domain": result.domain,
             "category": result.category,
             "target_level": result.target_level,
-            "topics": result.topics,
-            "constraints": result.constraints,
-            "ambiguities": result.ambiguities,
-            "rationale": getattr(result, "rationale", ""),
+            "topics": topics if isinstance(topics, list) else [],
+            "constraints": constraints if isinstance(constraints, list) else [],
+            "ambiguities": ambiguities if isinstance(ambiguities, list) else [],
+            "rationale": coerce_reasoning_text(
+                getattr(result, "reasoning", getattr(result, "rationale", ""))
+            ),
         }
 
 
@@ -65,12 +84,19 @@ class IntentAnalyzerModule(dspy.Module):
     def forward(self, task_description: str, user_context: str) -> dict[str, Any]:
         """Analyze intent."""
         result = self.analyze(task_description=task_description, user_context=user_context)
+        success_criteria = safe_json_loads(
+            getattr(result, "success_criteria", []),
+            default=[],
+            field_name="success_criteria",
+        )
         return {
             "task_intent": result.task_intent,
             "skill_type": result.skill_type,
             "scope": result.scope,
-            "success_criteria": result.success_criteria,
-            "rationale": getattr(result, "rationale", ""),
+            "success_criteria": success_criteria if isinstance(success_criteria, list) else [],
+            "rationale": coerce_reasoning_text(
+                getattr(result, "reasoning", getattr(result, "rationale", ""))
+            ),
         }
 
     async def aforward(self, task_description: str, user_context: str) -> dict[str, Any]:
@@ -78,12 +104,19 @@ class IntentAnalyzerModule(dspy.Module):
         result = await self.analyze.acall(
             task_description=task_description, user_context=user_context
         )
+        success_criteria = safe_json_loads(
+            getattr(result, "success_criteria", []),
+            default=[],
+            field_name="success_criteria",
+        )
         return {
             "task_intent": result.task_intent,
             "skill_type": result.skill_type,
             "scope": result.scope,
-            "success_criteria": result.success_criteria,
-            "rationale": getattr(result, "rationale", ""),
+            "success_criteria": success_criteria if isinstance(success_criteria, list) else [],
+            "rationale": coerce_reasoning_text(
+                getattr(result, "reasoning", getattr(result, "rationale", ""))
+            ),
         }
 
 
@@ -103,13 +136,26 @@ class TaxonomyPathFinderModule(dspy.Module):
             taxonomy_structure=taxonomy_structure,
             existing_skills=existing_skills,
         )
+        alternative_paths = safe_json_loads(
+            getattr(result, "alternative_paths", []),
+            default=[],
+            field_name="alternative_paths",
+        )
+        new_directories = safe_json_loads(
+            getattr(result, "new_directories", []),
+            default=[],
+            field_name="new_directories",
+        )
+        confidence = safe_float(getattr(result, "confidence", 0.0), default=0.0)
         return {
             "recommended_path": result.recommended_path,
-            "alternative_paths": result.alternative_paths,
+            "alternative_paths": alternative_paths if isinstance(alternative_paths, list) else [],
             "path_rationale": result.path_rationale,
-            "new_directories": result.new_directories,
-            "confidence": result.confidence,
-            "rationale": getattr(result, "rationale", ""),
+            "new_directories": new_directories if isinstance(new_directories, list) else [],
+            "confidence": confidence,
+            "rationale": coerce_reasoning_text(
+                getattr(result, "reasoning", getattr(result, "rationale", ""))
+            ),
         }
 
     async def aforward(
@@ -121,13 +167,26 @@ class TaxonomyPathFinderModule(dspy.Module):
             taxonomy_structure=taxonomy_structure,
             existing_skills=existing_skills,
         )
+        alternative_paths = safe_json_loads(
+            getattr(result, "alternative_paths", []),
+            default=[],
+            field_name="alternative_paths",
+        )
+        new_directories = safe_json_loads(
+            getattr(result, "new_directories", []),
+            default=[],
+            field_name="new_directories",
+        )
+        confidence = safe_float(getattr(result, "confidence", 0.0), default=0.0)
         return {
             "recommended_path": result.recommended_path,
-            "alternative_paths": result.alternative_paths,
+            "alternative_paths": alternative_paths if isinstance(alternative_paths, list) else [],
             "path_rationale": result.path_rationale,
-            "new_directories": result.new_directories,
-            "confidence": result.confidence,
-            "rationale": getattr(result, "rationale", ""),
+            "new_directories": new_directories if isinstance(new_directories, list) else [],
+            "confidence": confidence,
+            "rationale": coerce_reasoning_text(
+                getattr(result, "reasoning", getattr(result, "rationale", ""))
+            ),
         }
 
 
@@ -148,11 +207,36 @@ class DependencyAnalyzerModule(dspy.Module):
             taxonomy_path=taxonomy_path,
             existing_skills=existing_skills,
         )
+        prerequisite_skills = safe_json_loads(
+            getattr(result, "prerequisite_skills", []),
+            default=[],
+            field_name="prerequisite_skills",
+        )
+        complementary_skills = safe_json_loads(
+            getattr(result, "complementary_skills", []),
+            default=[],
+            field_name="complementary_skills",
+        )
+        missing_prerequisites = safe_json_loads(
+            getattr(result, "missing_prerequisites", []),
+            default=[],
+            field_name="missing_prerequisites",
+        )
         return {
-            "dependency_analysis": result.dependency_analysis,
-            "prerequisite_skills": result.prerequisite_skills,
-            "complementary_skills": result.complementary_skills,
-            "missing_prerequisites": result.missing_prerequisites,
+            "dependency_analysis": (
+                result.dependency_analysis.model_dump()
+                if hasattr(result.dependency_analysis, "model_dump")
+                else result.dependency_analysis
+            ),
+            "prerequisite_skills": prerequisite_skills
+            if isinstance(prerequisite_skills, list)
+            else [],
+            "complementary_skills": complementary_skills
+            if isinstance(complementary_skills, list)
+            else [],
+            "missing_prerequisites": missing_prerequisites
+            if isinstance(missing_prerequisites, list)
+            else [],
         }
 
     async def aforward(
@@ -165,11 +249,36 @@ class DependencyAnalyzerModule(dspy.Module):
             taxonomy_path=taxonomy_path,
             existing_skills=existing_skills,
         )
+        prerequisite_skills = safe_json_loads(
+            getattr(result, "prerequisite_skills", []),
+            default=[],
+            field_name="prerequisite_skills",
+        )
+        complementary_skills = safe_json_loads(
+            getattr(result, "complementary_skills", []),
+            default=[],
+            field_name="complementary_skills",
+        )
+        missing_prerequisites = safe_json_loads(
+            getattr(result, "missing_prerequisites", []),
+            default=[],
+            field_name="missing_prerequisites",
+        )
         return {
-            "dependency_analysis": result.dependency_analysis,
-            "prerequisite_skills": result.prerequisite_skills,
-            "complementary_skills": result.complementary_skills,
-            "missing_prerequisites": result.missing_prerequisites,
+            "dependency_analysis": (
+                result.dependency_analysis.model_dump()
+                if hasattr(result.dependency_analysis, "model_dump")
+                else result.dependency_analysis
+            ),
+            "prerequisite_skills": prerequisite_skills
+            if isinstance(prerequisite_skills, list)
+            else [],
+            "complementary_skills": complementary_skills
+            if isinstance(complementary_skills, list)
+            else [],
+            "missing_prerequisites": missing_prerequisites
+            if isinstance(missing_prerequisites, list)
+            else [],
         }
 
 
@@ -195,13 +304,20 @@ class PlanSynthesizerModule(dspy.Module):
             dependency_analysis=dependency_analysis,
             user_confirmation=user_confirmation,
         )
+        success_criteria = safe_json_loads(
+            getattr(result, "success_criteria", []),
+            default=[],
+            field_name="success_criteria",
+        )
         return {
             "skill_metadata": result.skill_metadata,
             "content_plan": result.content_plan,
             "generation_instructions": result.generation_instructions,
-            "success_criteria": result.success_criteria,
+            "success_criteria": success_criteria if isinstance(success_criteria, list) else [],
             "estimated_length": result.estimated_length,
-            "rationale": getattr(result, "rationale", ""),
+            "rationale": coerce_reasoning_text(
+                getattr(result, "reasoning", getattr(result, "rationale", ""))
+            ),
         }
 
     async def aforward(
@@ -218,13 +334,20 @@ class PlanSynthesizerModule(dspy.Module):
             dependency_analysis=dependency_analysis,
             user_confirmation=user_confirmation,
         )
+        success_criteria = safe_json_loads(
+            getattr(result, "success_criteria", []),
+            default=[],
+            field_name="success_criteria",
+        )
         return {
             "skill_metadata": result.skill_metadata,
             "content_plan": result.content_plan,
             "generation_instructions": result.generation_instructions,
-            "success_criteria": result.success_criteria,
+            "success_criteria": success_criteria if isinstance(success_criteria, list) else [],
             "estimated_length": result.estimated_length,
-            "rationale": getattr(result, "rationale", ""),
+            "rationale": coerce_reasoning_text(
+                getattr(result, "reasoning", getattr(result, "rationale", ""))
+            ),
         }
 
 

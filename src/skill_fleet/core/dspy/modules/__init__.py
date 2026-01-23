@@ -1,7 +1,6 @@
 """DSPy modules for skill creation workflow."""
 
 from .base import (
-    DynamicQuestionGeneratorModule,
     EditModule,
     EditModuleQA,
     GatherExamplesModule,
@@ -33,7 +32,6 @@ from .hitl import (
     RefinementPlannerModule,
     ValidationFormatterModule,
 )
-from .phase0_research import GatherExamplesModule as GatherExamplesModuleReAct
 from .phase1_understanding import (
     DependencyAnalyzerModule,
     IntentAnalyzerModule,
@@ -67,7 +65,6 @@ __all__ = [
     "PlanModuleQA",
     "EditModuleQA",
     "PackageModuleQA",
-    "DynamicQuestionGeneratorModule",
     # Ensemble methods
     "EnsembleModule",
     "BestOfN",
@@ -84,8 +81,6 @@ __all__ = [
     "RefinementPlannerModule",
     "ReadinessAssessorModule",
     "HITLStrategyModule",
-    # Phase 0 (Research)
-    "GatherExamplesModuleReAct",
     # Phase 1 modules
     "RequirementsGathererModule",
     "IntentAnalyzerModule",

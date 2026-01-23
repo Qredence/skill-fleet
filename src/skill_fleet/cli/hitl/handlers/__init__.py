@@ -83,6 +83,7 @@ class DeepUnderstandingHandler(InteractionHandler):
         question = prompt_data.get("question", "")
         research = prompt_data.get("research_performed", [])
         current = prompt_data.get("current_understanding", "")
+        readiness_score = prompt_data.get("readiness_score")
 
         # Show current understanding
         if current:
@@ -99,6 +100,9 @@ class DeepUnderstandingHandler(InteractionHandler):
             self.console.print("[dim]Research performed:[/dim]")
             for r in research:
                 self.console.print(f"  • {r}")
+
+        if readiness_score is not None:
+            self.console.print(f"[dim]Readiness score:[/dim] {readiness_score:.2f} (target 0.80)")
 
         # Ask the question
         if question:

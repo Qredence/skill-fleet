@@ -132,10 +132,15 @@ def _parse_search_response(response, max_results: int) -> list[dict[str, Any]]:
                     results.append(result)
 
         # Also parse from response text if available
-        if hasattr(response, "text") and response.text:
-            # Response text may contain URLs and summaries
-            # This is a fallback if grounding_metadata parsing doesn't work
-            text = response.text
+        text = None
+        if hasattr(response, "text"):
+            try:
+                text = response.text
+            except Exception:
+                # If accessing .text fails (e.g., streaming response), skip
+                pass
+
+        if text:
             # Extract URLs and content (basic parsing)
             # More sophisticated parsing can be added based on actual API response format
             if not results:

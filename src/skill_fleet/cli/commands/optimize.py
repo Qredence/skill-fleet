@@ -10,8 +10,9 @@ from typing import Literal, cast
 import click
 import typer
 
+from ...common.dspy_compat import coerce_reasoning_text
 from ...core.dspy.optimization.selector import OptimizerContext, OptimizerSelector
-from ...core.dspy.programs import LegacySkillCreationProgram
+from ...core.dspy.skill_creator import SkillCreationProgram
 from ...core.optimization.optimizer import (
     APPROVED_MODELS,
     optimize_with_gepa,
@@ -121,7 +122,7 @@ def optimize_command(
 
     if evaluate_only:
         print("\n[EVALUATE ONLY MODE]\n")
-        program = LegacySkillCreationProgram()
+        program = SkillCreationProgram()
         quick_evaluate(program, trainset, model, n_examples=n_examples)
         return
 
@@ -131,7 +132,7 @@ def optimize_command(
     print(f"{'=' * 60}\n")
 
     # Create program
-    program = LegacySkillCreationProgram()
+    program = SkillCreationProgram()
 
     # Run optimization
     try:
@@ -245,7 +246,7 @@ def _handle_auto_selection(
     print(f"   Estimated cost: ${recommendation.estimated_cost:.2f}")
     print(f"   Estimated time: {recommendation.estimated_time_minutes} minutes")
     print(f"   Confidence: {recommendation.confidence:.0%}")
-    print(f"\n📝 Reasoning: {recommendation.reasoning}")
+    print(f"\n📝 Reasoning: {coerce_reasoning_text(recommendation.reasoning)}")
 
     if recommendation.alternatives:
         print("\n🔄 Alternatives:")

@@ -19,7 +19,7 @@ from ...common.async_utils import run_async
 
 if TYPE_CHECKING:
     import dspy
-from ...core.dspy.modules.phase2_generation import (
+from ...core.dspy.modules.generation import (
     DEFAULT_SKILL_STYLE,
     Phase2GenerationModule,
 )

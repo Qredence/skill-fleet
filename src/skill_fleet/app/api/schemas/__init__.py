@@ -1,26 +1,87 @@
-"""
-Pydantic schemas for API request/response models.
+"""Pydantic schemas for API v1 endpoints.
 
-Re-exports from existing api.schemas during migration period.
+This module contains request/response models for all v1 API endpoints.
+These schemas provide type safety and automatic validation for API operations.
+
+Schema modules:
+    skills: Skill creation, validation, and refinement schemas
+    conversational: Chat interface schemas
+    taxonomy: Taxonomy management schemas
+    quality: Quality assurance schemas
+    optimization: Signature optimization schemas
 """
 
 from __future__ import annotations
 
-# Re-export from existing api.schemas during migration
-from skill_fleet.api.schemas import (
-    DeepUnderstandingState,
-    JobState,
-    QuestionOption,
-    StructuredQuestion,
-    TDDWorkflowState,
-    normalize_questions,
+from .conversational import (
+    SendMessageRequest,
+    SendMessageResponse,
+    SessionHistoryResponse,
+)
+from .optimization import (
+    AnalyzeFailuresRequest,
+    AnalyzeFailuresResponse,
+    CompareRequest,
+    CompareResponse,
+    ImproveRequest,
+    ImproveResponse,
+)
+from .quality import (
+    AssessQualityRequest,
+    AssessQualityResponse,
+    AutoFixRequest,
+    AutoFixResponse,
+    ValidateRequest,
+    ValidateResponse,
+)
+from .skills import (
+    CreateSkillRequest,
+    CreateSkillResponse,
+    RefineSkillRequest,
+    RefineSkillResponse,
+    SkillDetailResponse,
+    ValidateSkillRequest,
+    ValidateSkillResponse,
+)
+from .taxonomy import (
+    AdaptTaxonomyRequest,
+    AdaptTaxonomyResponse,
+    TaxonomyResponse,
+    UpdateTaxonomyRequest,
+    UserTaxonomyResponse,
 )
 
 __all__ = [
-    "DeepUnderstandingState",
-    "JobState",
-    "QuestionOption",
-    "StructuredQuestion",
-    "TDDWorkflowState",
-    "normalize_questions",
+    # Skills schemas
+    "CreateSkillRequest",
+    "CreateSkillResponse",
+    "SkillDetailResponse",
+    "ValidateSkillRequest",
+    "ValidateSkillResponse",
+    "RefineSkillRequest",
+    "RefineSkillResponse",
+    # Conversational schemas
+    "SendMessageRequest",
+    "SendMessageResponse",
+    "SessionHistoryResponse",
+    # Taxonomy schemas
+    "TaxonomyResponse",
+    "UpdateTaxonomyRequest",
+    "UserTaxonomyResponse",
+    "AdaptTaxonomyRequest",
+    "AdaptTaxonomyResponse",
+    # Quality schemas
+    "ValidateRequest",
+    "ValidateResponse",
+    "AssessQualityRequest",
+    "AssessQualityResponse",
+    "AutoFixRequest",
+    "AutoFixResponse",
+    # Optimization schemas
+    "AnalyzeFailuresRequest",
+    "AnalyzeFailuresResponse",
+    "ImproveRequest",
+    "ImproveResponse",
+    "CompareRequest",
+    "CompareResponse",
 ]

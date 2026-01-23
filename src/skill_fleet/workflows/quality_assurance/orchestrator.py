@@ -17,7 +17,7 @@ from typing import Any
 import dspy
 
 from ...common.async_utils import run_async
-from ...core.dspy.modules.phase3_validation import Phase3ValidationModule
+from ...core.dspy.modules.validation import Phase3ValidationModule
 from ...core.tracing.mlflow import (
     end_mlflow_run,
     log_parameter,

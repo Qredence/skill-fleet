@@ -20,7 +20,7 @@ from typing import Any
 import dspy
 
 from ...common.async_utils import run_async
-from ...core.dspy.modules.phase1_understanding import Phase1UnderstandingModule
+from ...core.dspy.modules.understanding import Phase1UnderstandingModule
 from ...core.tracing.mlflow import (
     end_mlflow_run,
     log_parameter,
@@ -208,7 +208,7 @@ class TaskAnalysisOrchestrator:
 
         """
         # Use only the gather requirements step
-        from ...core.dspy.modules.phase1_understanding import RequirementsGathererModule
+        from ...core.dspy.modules.understanding import RequirementsGathererModule
 
         gatherer = RequirementsGathererModule()
 
@@ -245,7 +245,7 @@ class TaskAnalysisOrchestrator:
             Dictionary with recommended taxonomy path
 
         """
-        from ...core.dspy.modules.phase1_understanding import TaxonomyPathFinderModule
+        from ...core.dspy.modules.understanding import TaxonomyPathFinderModule
 
         finder = TaxonomyPathFinderModule()
         existing_skills_json = str(existing_skills or [])

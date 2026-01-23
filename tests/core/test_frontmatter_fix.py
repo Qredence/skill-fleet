@@ -3,7 +3,7 @@
 import pytest
 import yaml
 
-from skill_fleet.core.dspy.modules.phase3_validation import _canonicalize_skill_md_frontmatter
+from skill_fleet.core.dspy.modules.validation import _canonicalize_skill_md_frontmatter
 
 
 class TestFrontmatterCanonicalization:

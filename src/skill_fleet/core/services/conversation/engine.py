@@ -25,9 +25,9 @@ from ...dspy.modules.conversation import (
     UnderstandingSummaryModule,
     VerifyTDDModule,
 )
-from ...dspy.modules.phase1_understanding import Phase1UnderstandingModule
-from ...dspy.modules.phase2_generation import Phase2GenerationModule
-from ...dspy.modules.phase3_validation import Phase3ValidationModule
+from ...dspy.modules.understanding import Phase1UnderstandingModule
+from ...dspy.modules.generation import Phase2GenerationModule
+from ...dspy.modules.validation import Phase3ValidationModule
 from .handlers import ConversationHandlers
 from .models import AgentResponse, ConversationSession, ConversationState
 

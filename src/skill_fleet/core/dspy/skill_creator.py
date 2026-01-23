@@ -32,9 +32,9 @@ from .modules.hitl import (
     RefinementPlannerModule,
     ValidationFormatterModule,
 )
-from .modules.phase1_understanding import Phase1UnderstandingModule
-from .modules.phase2_generation import Phase2GenerationModule
-from .modules.phase3_validation import Phase3ValidationModule
+from .modules.understanding import Phase1UnderstandingModule
+from .modules.generation import Phase2GenerationModule
+from .modules.validation import Phase3ValidationModule
 from .signatures.human_in_the_loop import GenerateHITLQuestions
 
 logger = logging.getLogger(__name__)

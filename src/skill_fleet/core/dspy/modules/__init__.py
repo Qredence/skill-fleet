@@ -32,7 +32,7 @@ from .hitl import (
     RefinementPlannerModule,
     ValidationFormatterModule,
 )
-from .phase1_understanding import (
+from .understanding import (
     DependencyAnalyzerModule,
     IntentAnalyzerModule,
     Phase1UnderstandingModule,
@@ -40,12 +40,12 @@ from .phase1_understanding import (
     RequirementsGathererModule,
     TaxonomyPathFinderModule,
 )
-from .phase2_generation import (
+from .generation import (
     ContentGeneratorModule,
     FeedbackIncorporatorModule,
     Phase2GenerationModule,
 )
-from .phase3_validation import (
+from .validation import (
     Phase3ValidationModule,
     QualityAssessorModule,
     SkillRefinerModule,

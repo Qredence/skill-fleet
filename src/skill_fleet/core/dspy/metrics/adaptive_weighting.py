@@ -11,8 +11,6 @@ from typing import Literal
 
 import dspy
 
-from ....common.dspy_compat import coerce_reasoning_text
-
 
 class SkillStyle(StrEnum):
     """Skill creation styles with different priorities."""
@@ -188,7 +186,7 @@ class AdaptiveMetricWeighting:
             style = SkillStyle(result.style)
             confidence = min(1.0, max(0.0, float(result.confidence)))
 
-            return style, confidence, coerce_reasoning_text(getattr(result, "reasoning", ""))
+            return style, confidence, result.reasoning
         except Exception as e:
             # Fall back to comprehensive if detection fails
             return SkillStyle.COMPREHENSIVE, 0.5, str(e)
@@ -273,11 +271,7 @@ class AdaptiveMetricWeighting:
 
                 weights = json.loads(weights)
 
-            return (
-                weights,
-                coerce_reasoning_text(getattr(result, "reasoning", "")),
-                result.expected_improvement,
-            )
+            return weights, result.reasoning, result.expected_improvement
         except Exception:
             # Fall back to default weights for style
             style = SkillStyle(skill_style)

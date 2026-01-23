@@ -33,8 +33,6 @@ from typing import Any, Literal
 import dspy
 
 from ....common.async_utils import run_async
-from ....common.dspy_compat import coerce_reasoning_text
-from ....common.utils import safe_float, safe_json_loads
 from ..metrics import assess_skill_quality
 from ..signatures.signature_tuning import (
     AnalyzeSignatureFailures,
@@ -228,44 +226,13 @@ class FailureAnalyzerModule(dspy.Module):
             target_score=target_score,
             quality_issues=json.dumps(quality_issues),
         )
-        failure_categories = safe_json_loads(
-            getattr(result, "failure_categories", []),
-            default=[],
-            field_name="failure_categories",
-        )
-        root_causes = safe_json_loads(
-            getattr(result, "root_causes", []), default=[], field_name="root_causes"
-        )
-        missing_indicators = safe_json_loads(
-            getattr(result, "missing_quality_indicators", []),
-            default=[],
-            field_name="missing_quality_indicators",
-        )
-        improvement_directions = safe_json_loads(
-            getattr(result, "improvement_directions", []),
-            default=[],
-            field_name="improvement_directions",
-        )
-        priority_fixes = safe_json_loads(
-            getattr(result, "priority_fixes", []),
-            default=[],
-            field_name="priority_fixes",
-        )
         return {
-            "failure_categories": failure_categories
-            if isinstance(failure_categories, list)
-            else [],
-            "root_causes": root_causes if isinstance(root_causes, list) else [],
-            "missing_quality_indicators": missing_indicators
-            if isinstance(missing_indicators, list)
-            else [],
-            "improvement_directions": improvement_directions
-            if isinstance(improvement_directions, list)
-            else [],
-            "priority_fixes": priority_fixes if isinstance(priority_fixes, list) else [],
-            "rationale": coerce_reasoning_text(
-                getattr(result, "reasoning", getattr(result, "rationale", ""))
-            ),
+            "failure_categories": result.failure_categories,
+            "root_causes": result.root_causes,
+            "missing_quality_indicators": result.missing_quality_indicators,
+            "improvement_directions": result.improvement_directions,
+            "priority_fixes": result.priority_fixes,
+            "rationale": getattr(result, "rationale", ""),
         }
 
 
@@ -302,18 +269,13 @@ class SignatureProposerModule(dspy.Module):
             target_score=target_score,
             skill_type=skill_type,
         )
-        changes_made = safe_json_loads(
-            getattr(result, "changes_made", []), default=[], field_name="changes_made"
-        )
         return {
             "improved_signature": result.improved_signature,
             "improvement_reasoning": result.improvement_reasoning,
             "expected_impact": result.expected_impact,
-            "changes_made": changes_made if isinstance(changes_made, list) else [],
-            "confidence": safe_float(getattr(result, "confidence", 0.0), default=0.0),
-            "rationale": coerce_reasoning_text(
-                getattr(result, "reasoning", getattr(result, "rationale", ""))
-            ),
+            "changes_made": result.changes_made,
+            "confidence": result.confidence,
+            "rationale": getattr(result, "rationale", ""),
         }
 
 

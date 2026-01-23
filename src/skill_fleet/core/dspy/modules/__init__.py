@@ -1,5 +1,18 @@
 """DSPy modules for skill creation workflow."""
 
+from .base import (
+    EditModule,
+    EditModuleQA,
+    GatherExamplesModule,
+    InitializeModule,
+    IterateModule,
+    PackageModule,
+    PackageModuleQA,
+    PlanModule,
+    PlanModuleQA,
+    UnderstandModule,
+    UnderstandModuleQA,
+)
 from .ensemble import (
     BestOfN,
     EnsembleModule,
@@ -40,6 +53,18 @@ from .phase3_validation import (
 )
 
 __all__ = [
+    # Base modules (legacy workflow)
+    "GatherExamplesModule",
+    "UnderstandModule",
+    "PlanModule",
+    "InitializeModule",
+    "EditModule",
+    "PackageModule",
+    "IterateModule",
+    "UnderstandModuleQA",
+    "PlanModuleQA",
+    "EditModuleQA",
+    "PackageModuleQA",
     # Ensemble methods
     "EnsembleModule",
     "BestOfN",

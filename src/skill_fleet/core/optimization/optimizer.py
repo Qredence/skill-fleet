@@ -18,11 +18,12 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 import dspy
 
-from ..dspy.skill_creator import SkillCreationProgram
+if TYPE_CHECKING:
+    from ..dspy.skill_creator import SkillCreationProgram
 
 logger = logging.getLogger(__name__)
 
@@ -161,7 +162,7 @@ def optimize_with_miprov2(
             (for example, search budget and sampling options).
 
     Returns:
-        Optimized LegacySkillCreationProgram
+        Optimized SkillCreationProgram
 
     """
     from dspy.teleprompt import MIPROv2
@@ -260,7 +261,7 @@ def optimize_with_gepa(
         track_stats: Whether to track detailed statistics
 
     Returns:
-        Optimized LegacySkillCreationProgram
+        Optimized SkillCreationProgram
 
     """
     from .evaluation import load_trainset, skill_creation_metric, split_dataset

@@ -16,6 +16,7 @@ from ...dspy.modules.conversation import (
     ConfirmUnderstandingModule,
     DeepUnderstandingModule,
     DetectMultiSkillModule,
+    EnhanceSkillModule,
     GenerateQuestionModule,
     InterpretIntentModule,
     PresentSkillModule,
@@ -69,6 +70,7 @@ class ConversationService(ConversationHandlers):
         self.process_feedback = ProcessFeedbackModule()
         self.suggest_tests = SuggestTestsModule()
         self.verify_tdd = VerifyTDDModule()
+        self.enhance_skill = EnhanceSkillModule()
 
         # Initialize Phase modules for creation workflow
         self.phase1 = Phase1UnderstandingModule()
@@ -162,6 +164,8 @@ class ConversationService(ConversationHandlers):
 
         """
         try:
+            prior_state = session.state
+
             # Handle empty/continue messages for automatic progression
             user_message_trimmed = user_message.strip().lower() if user_message else ""
             is_continue = user_message_trimmed in ("", "continue", "proceed", "next")
@@ -210,6 +214,9 @@ class ConversationService(ConversationHandlers):
                     action="greet",
                 )
 
+            # Attach compact progress + readiness information to the user-visible message.
+            response = self._decorate_with_progress(response, session, prior_state)
+
             # Add agent response to history
             if response.state is not None:
                 session.state = response.state
@@ -230,3 +237,58 @@ class ConversationService(ConversationHandlers):
                 action="error",
                 requires_user_input=True,
             )
+
+    def _decorate_with_progress(
+        self,
+        response: AgentResponse,
+        session: ConversationSession,
+        prior_state: ConversationState,
+    ) -> AgentResponse:
+        """
+        Add compact, consistent progress + readiness info to messages/data.
+
+        This helps prevent "silent loops" and makes it obvious whether the agent is
+        moving forward, stuck, or missing info.
+        """
+        next_state = response.state or session.state
+
+        readiness_score = None
+        if isinstance(response.data, dict):
+            readiness_score = response.data.get("readiness_score")
+        if readiness_score is None and session.deep_understanding:
+            readiness_score = session.deep_understanding.get("readiness_score")
+
+        # Only include if parseable; keep user-facing formatting stable.
+        readiness_str = ""
+        if isinstance(readiness_score, (int, float)):
+            readiness_str = f"{float(readiness_score):.2f}"
+
+        # Multi-skill progress, if relevant.
+        multi_str = ""
+        if session.multi_skill_queue:
+            total = len(session.multi_skill_queue)
+            idx = max(0, min(session.current_skill_index, max(0, total - 1))) + 1
+            multi_str = f" | Skill {idx}/{total}"
+
+        progress_line = f"Progress: {prior_state.value} -> {next_state.value}{multi_str}"
+        if readiness_str:
+            progress_line += f" | Readiness: {readiness_str} (target >= 0.80)"
+
+        # Expose in machine-readable payload as well.
+        response.data = dict(response.data or {})
+        response.data.setdefault("readiness_score", readiness_score)
+        response.data["progress"] = {
+            "prior_state": prior_state.value,
+            "state": next_state.value,
+            "readiness_score": readiness_score,
+            "multi_skill_index": session.current_skill_index,
+            "multi_skill_total": len(session.multi_skill_queue),
+        }
+
+        # Add as a footer so it doesn't break any existing parsing of message bodies.
+        if response.message:
+            response.message = f"{response.message}\n\n---\n{progress_line}"
+        else:
+            response.message = f"---\n{progress_line}"
+
+        return response

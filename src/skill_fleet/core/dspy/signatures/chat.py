@@ -433,3 +433,37 @@ class VerifyTDDPassed(dspy.Signature):
     ready_to_save: bool = dspy.OutputField(
         desc="Whether skill can be saved. True only if all_passed is True and no critical issues remain."
     )
+
+
+class EnhanceSkillContent(dspy.Signature):
+    """
+    Enhance skill content by adding missing sections required by the TDD checklist.
+
+    Analyzes the current skill content and adds missing sections while preserving
+    existing content. Focuses on adding Quick Reference tables, Common Mistakes sections,
+    flowcharts (when appropriate), and other quality-required elements.
+    """
+
+    # Inputs
+    skill_content: str = dspy.InputField(desc="Current skill content (SKILL.md)")
+    missing_sections: list[str] = dspy.InputField(
+        desc="List of missing section identifiers: 'quick_reference_included', 'common_mistakes_included', 'flowchart_present'"
+    )
+    skill_metadata: str = dspy.InputField(
+        desc="JSON skill metadata for context (name, type, description)"
+    )
+
+    # Outputs
+    enhanced_content: str = dspy.OutputField(
+        desc="Enhanced SKILL.md with missing sections added. MUST include: "
+        "(1) ## Quick Reference table with | Problem | Solution | Keywords | format if quick_reference was missing, "
+        "(2) ## Common Mistakes table with | Mistake | Why It's Wrong | Fix | format if common_mistakes was missing, "
+        "(3) Decision flowchart in dot/mermaid format if flowchart was missing AND skill has non-obvious decision points. "
+        "Preserve all existing content. Insert new sections in appropriate positions per template order."
+    )
+    sections_added: list[str] = dspy.OutputField(
+        desc="List of section names that were added (e.g., ['Quick Reference', 'Common Mistakes'])"
+    )
+    enhancement_notes: str = dspy.OutputField(
+        desc="Brief notes on what was added and why. Max 100 words."
+    )

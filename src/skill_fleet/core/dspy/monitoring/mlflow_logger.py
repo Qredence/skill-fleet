@@ -55,9 +55,9 @@ def configure_mlflow(
             logger.info(f"MLflow tracking: local at {mlruns_path}")
 
         # Create or get experiment
-        experiment = mlflow.get_experiment_by_name(experiment_name)
+        experiment = mlflow.get_experiment_by_name(experiment_name)  # type: ignore[attr-defined]
         if experiment is None:
-            experiment_id = mlflow.create_experiment(
+            experiment_id = mlflow.create_experiment(  # type: ignore[attr-defined]
                 experiment_name,
                 artifact_location=artifact_location,
             )
@@ -122,14 +122,14 @@ class MLflowLogger:
     def __enter__(self) -> MLflowLogger:
         """Start MLflow run."""
         if self.enabled:
-            self.run = mlflow.start_run(run_name=self.run_name, nested=self.nested)
+            self.run = mlflow.start_run(run_name=self.run_name, nested=self.nested)  # type: ignore[attr-defined]
             logger.info(f"Started MLflow run: {self.run_name or 'unnamed'}")
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         """End MLflow run."""
         if self.enabled and self.run:
-            mlflow.end_run()
+            mlflow.end_run()  # type: ignore[attr-defined]
             logger.info(f"Ended MLflow run: {self.run_name or 'unnamed'}")
 
     def log_params(self, params: dict[str, Any]) -> None:
@@ -149,7 +149,7 @@ class MLflowLogger:
                 k: v if isinstance(v, (str, int, float, bool)) else str(v)
                 for k, v in params.items()
             }
-            mlflow.log_params(clean_params)
+            mlflow.log_params(clean_params)  # type: ignore[attr-defined]
             logger.debug(f"Logged {len(clean_params)} params to MLflow")
         except Exception as e:
             logger.warning(f"Failed to log params to MLflow: {e}")
@@ -167,7 +167,7 @@ class MLflowLogger:
             return
 
         try:
-            mlflow.log_metrics(metrics, step=step)
+            mlflow.log_metrics(metrics, step=step)  # type: ignore[attr-defined]
             logger.debug(f"Logged {len(metrics)} metrics to MLflow")
         except Exception as e:
             logger.warning(f"Failed to log metrics to MLflow: {e}")
@@ -185,7 +185,7 @@ class MLflowLogger:
             return
 
         try:
-            mlflow.log_artifact(str(local_path), artifact_path=artifact_path)
+            mlflow.log_artifact(str(local_path), artifact_path=artifact_path)  # type: ignore[attr-defined]
             logger.debug(f"Logged artifact: {local_path}")
         except Exception as e:
             logger.warning(f"Failed to log artifact to MLflow: {e}")
@@ -214,7 +214,7 @@ class MLflowLogger:
                 json.dump(dictionary, f, indent=2)
                 temp_path = f.name
 
-            mlflow.log_artifact(temp_path, artifact_path=filename)
+            mlflow.log_artifact(temp_path, artifact_path=filename)  # type: ignore[attr-defined]
             Path(temp_path).unlink()  # Clean up temp file
             logger.debug(f"Logged dict as artifact: {filename}")
         except Exception as e:
@@ -243,7 +243,7 @@ class MLflowLogger:
                 f.write(text)
                 temp_path = f.name
 
-            mlflow.log_artifact(temp_path, artifact_path=filename)
+            mlflow.log_artifact(temp_path, artifact_path=filename)  # type: ignore[attr-defined]
             Path(temp_path).unlink()  # Clean up temp file
             logger.debug(f"Logged text as artifact: {filename}")
         except Exception as e:
@@ -263,7 +263,7 @@ class MLflowLogger:
         try:
             # Convert all values to strings
             clean_tags = {k: str(v) for k, v in tags.items()}
-            mlflow.set_tags(clean_tags)
+            mlflow.set_tags(clean_tags)  # type: ignore[attr-defined]
             logger.debug(f"Set {len(clean_tags)} tags on MLflow run")
         except Exception as e:
             logger.warning(f"Failed to set tags on MLflow: {e}")

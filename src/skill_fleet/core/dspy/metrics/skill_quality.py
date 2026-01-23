@@ -722,7 +722,12 @@ def compute_overall_score(
     )
 
     # v2: Also penalize missing "When to Use" section (required in v2)
-    if not scores.has_when_to_use_section and not scores.has_when_to_use:
+    # Check both boolean flag and section presence to be robust
+    has_when_to_use_any = getattr(scores, "has_when_to_use_section", False) or getattr(
+        scores, "has_when_to_use", False
+    )
+
+    if not has_when_to_use_any:
         # Apply small penalty if neither form exists
         critical_count = max(0, critical_count - 1)
 

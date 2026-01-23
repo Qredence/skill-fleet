@@ -59,9 +59,6 @@ def _load_gold_standard_examples(max_examples: int = 2) -> str:
         ".skills/dspy-basics/SKILL.md",  # Navigation hub example
         ".skills/vibe-coding/SKILL.md",  # Comprehensive example
         ".skills/neon-db/neon-drizzle/SKILL.md",  # Navigation hub with guides/
-        # Fallback to legacy paths if .skills/ doesn't exist
-        "skills/python/fastapi-production/SKILL.md",
-        "skills/python/decorators/SKILL.md",
     ]
 
     examples = []

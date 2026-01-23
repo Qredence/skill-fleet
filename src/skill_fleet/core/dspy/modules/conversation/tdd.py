@@ -9,6 +9,7 @@ import dspy
 
 from .....common.utils import safe_json_loads
 from ...signatures.chat import (
+    EnhanceSkillContent,
     SuggestTestScenarios,
     VerifyTDDPassed,
 )
@@ -17,9 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class SuggestTestsModule(dspy.Module):
-    """
-    Module for suggesting test scenarios using MultiChainComparison.
-    """
+    """Module for suggesting test scenarios using MultiChainComparison."""
 
     def __init__(self, n_candidates: int = 3):
         super().__init__()
@@ -113,4 +112,44 @@ class VerifyTDDModule(dspy.Module):
             all_passed=bool(getattr(result, "all_passed", False)),
             missing_items=missing,
             ready_to_save=bool(getattr(result, "ready_to_save", False)),
+        )
+
+
+class EnhanceSkillModule(dspy.Module):
+    """Module for adding missing sections to skill content."""
+
+    def __init__(self):
+        super().__init__()
+        self.enhance = dspy.ChainOfThought(EnhanceSkillContent)
+
+    def forward(
+        self,
+        skill_content: str,
+        missing_sections: list[str],
+        skill_metadata: dict | str,
+    ) -> dspy.Prediction:
+        metadata_str = (
+            json.dumps(skill_metadata, indent=2)
+            if isinstance(skill_metadata, dict)
+            else skill_metadata
+        )
+
+        result = self.enhance(
+            skill_content=skill_content,
+            missing_sections=missing_sections,
+            skill_metadata=metadata_str,
+        )
+
+        sections_added = safe_json_loads(
+            getattr(result, "sections_added", []), default=[], field_name="sections_added"
+        )
+        if isinstance(sections_added, dict):
+            sections_added = []
+        if not isinstance(sections_added, list):
+            sections_added = [str(sections_added)] if sections_added else []
+
+        return dspy.Prediction(
+            enhanced_content=getattr(result, "enhanced_content", skill_content),
+            sections_added=sections_added,
+            enhancement_notes=getattr(result, "enhancement_notes", ""),
         )

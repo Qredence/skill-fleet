@@ -19,7 +19,6 @@ from .hitl import (
     RefinementPlannerModule,
     ValidationFormatterModule,
 )
-from .phase0_research import GatherExamplesModule as GatherExamplesModuleReAct
 from .phase1_understanding import (
     DependencyAnalyzerModule,
     IntentAnalyzerModule,
@@ -57,8 +56,6 @@ __all__ = [
     "RefinementPlannerModule",
     "ReadinessAssessorModule",
     "HITLStrategyModule",
-    # Phase 0 (Research)
-    "GatherExamplesModuleReAct",
     # Phase 1 modules
     "RequirementsGathererModule",
     "IntentAnalyzerModule",

@@ -13,6 +13,7 @@ from .intent import (
     InterpretIntentModule,
 )
 from .tdd import (
+    EnhanceSkillModule,
     SuggestTestsModule,
     VerifyTDDModule,
 )
@@ -37,6 +38,7 @@ __all__ = [
     # TDD
     "SuggestTestsModule",
     "VerifyTDDModule",
+    "EnhanceSkillModule",
     # Feedback
     "PresentSkillModule",
     "ProcessFeedbackModule",

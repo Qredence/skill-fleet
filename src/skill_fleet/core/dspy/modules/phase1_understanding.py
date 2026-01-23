@@ -223,7 +223,11 @@ class DependencyAnalyzerModule(dspy.Module):
             field_name="missing_prerequisites",
         )
         return {
-            "dependency_analysis": result.dependency_analysis,
+            "dependency_analysis": (
+                result.dependency_analysis.model_dump()
+                if hasattr(result.dependency_analysis, "model_dump")
+                else result.dependency_analysis
+            ),
             "prerequisite_skills": prerequisite_skills
             if isinstance(prerequisite_skills, list)
             else [],
@@ -261,7 +265,11 @@ class DependencyAnalyzerModule(dspy.Module):
             field_name="missing_prerequisites",
         )
         return {
-            "dependency_analysis": result.dependency_analysis,
+            "dependency_analysis": (
+                result.dependency_analysis.model_dump()
+                if hasattr(result.dependency_analysis, "model_dump")
+                else result.dependency_analysis
+            ),
             "prerequisite_skills": prerequisite_skills
             if isinstance(prerequisite_skills, list)
             else [],

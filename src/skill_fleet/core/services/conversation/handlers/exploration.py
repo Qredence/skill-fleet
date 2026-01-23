@@ -3,13 +3,47 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, Callable
 
 from ..models import AgentResponse, ConversationSession, ConversationState
 
 
 class ExplorationHandlers:
-    """Handlers for Exploration and Understanding phases."""
+    """Handlers for Exploration and Understanding phases.
+
+    This class is designed as a mixin - the following attributes/methods
+    are expected to be provided by the consuming class:
+    - taxonomy: TaxonomyManager instance
+    - interpret_intent: Intent interpretation module
+    - detect_multi_skill: Multi-skill detection module
+    - assess_readiness: Readiness assessment module
+    - generate_question: Question generation module
+    - generate_confirmation: Confirmation generation module
+    - handle_deep_understanding: Deep understanding handler
+    - create_skill: Skill creation module
+    - deep_understanding_module: Deep understanding module
+    - phase1: Phase1 module
+    - understanding_summary: Understanding summary module
+    - confirm_understanding: Confirmation understanding module
+    - _execute_with_streaming: Helper method for streaming execution
+    - _summarize_conversation: Helper method for conversation summarization
+    """
+
+    # Type stubs for attributes provided by consuming class
+    taxonomy: Any
+    interpret_intent: Any
+    detect_multi_skill: Any
+    assess_readiness: Any
+    generate_question: Any
+    generate_confirmation: Any
+    handle_deep_understanding: Callable
+    create_skill: Any
+    deep_understanding_module: Any
+    phase1: Any
+    understanding_summary: Any
+    confirm_understanding: Any
+    _execute_with_streaming: Callable
+    _summarize_conversation: Callable
 
     async def handle_exploring(
         self, user_message: str, session: ConversationSession, thinking_callback
@@ -38,7 +72,11 @@ class ExplorationHandlers:
 
         if intent_result["intent_type"] == "create_skill":
             previous_task = session.task_description
-            session.task_description = intent_result["extracted_task"]
+            extracted_task = intent_result["extracted_task"]
+            if isinstance(extracted_task, str):
+                session.task_description = extracted_task
+            else:
+                session.task_description = str(extracted_task)
             if previous_task and previous_task != session.task_description:
                 if session.deep_understanding:
                     session.deep_understanding.pop("scoping_complete", None)
@@ -146,7 +184,8 @@ class ExplorationHandlers:
                 )
 
         elif intent_result["intent_type"] == "clarify":
-            if intent_result["confidence"] > 0.7:
+            confidence = intent_result["confidence"]
+            if isinstance(confidence, (int, float)) and confidence > 0.7:
                 session.collected_examples.append(
                     {"input_description": user_message, "expected_output": ""}
                 )

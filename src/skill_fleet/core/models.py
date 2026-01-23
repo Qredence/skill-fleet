@@ -339,6 +339,13 @@ class SkillMetadata(BaseModel):
         "comprehensive (long self-contained), or minimal (focused single-purpose)",
     )
 
+    # Allow dict-like access for deprecated code using .get()
+    def get(self, key: str, default: Any = None) -> Any:
+        return getattr(self, key, default)
+
+    def __getitem__(self, key: str) -> Any:
+        return getattr(self, key)
+
 
 class Capability(BaseModel):
     """A discrete, testable capability within a skill."""
@@ -545,6 +552,13 @@ class ValidationReport(BaseModel):
     )
     checks: list[ValidationCheckItem] = Field(default_factory=list, description="Detailed checks")
     feedback: str = Field(default="", description="Consolidated feedback for refinement")
+
+    # Allow dict-like access for deprecated code using .get()
+    def get(self, key: str, default: Any = None) -> Any:
+        return getattr(self, key, default)
+
+    def __getitem__(self, key: str) -> Any:
+        return getattr(self, key)
 
 
 class TestCase(BaseModel):

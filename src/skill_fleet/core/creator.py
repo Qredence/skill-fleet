@@ -34,7 +34,6 @@ class TaxonomySkillCreator(dspy.Module):
         self,
         taxonomy_manager: TaxonomyManager,
         verbose: bool = True,
-        **kwargs,
     ):
         """
         Initialize skill creator.
@@ -42,8 +41,6 @@ class TaxonomySkillCreator(dspy.Module):
         Args:
             taxonomy_manager: Taxonomy management instance
             verbose: Whether to print progress
-            **kwargs: Additional keyword arguments
-
         """
         super().__init__()
         self.taxonomy = taxonomy_manager
@@ -137,7 +134,7 @@ class TaxonomySkillCreator(dspy.Module):
             hitl_callback=callback,
         )
 
-        # Map SkillCreationResult to legacy dict format
+        # Map SkillCreationResult to a small CLI-friendly dict.
         if result.status == "completed" and result.metadata and result.skill_content:
             path = result.metadata.taxonomy_path or result.metadata.skill_id
             metadata_dict: dict[str, Any] = result.metadata.model_dump() if result.metadata else {}
@@ -146,7 +143,7 @@ class TaxonomySkillCreator(dspy.Module):
                 metadata=metadata_dict,
                 content=result.skill_content,
                 extra_files=result.extra_files or {},
-                evolution=result.metadata.version if result.metadata else "1.0.0",
+                evolution={"version": result.metadata.version} if result.metadata else {"version": "1.0.0"},
             )
 
             if success:
@@ -156,6 +153,11 @@ class TaxonomySkillCreator(dspy.Module):
                     "path": path,
                     "version": result.metadata.version,
                 }
+            return {
+                "status": "failed",
+                "error": "Skill creation completed, but taxonomy registration failed",
+                "message": "Creation completed, but saving the skill to the taxonomy failed",
+            }
 
         return {
             "status": result.status,

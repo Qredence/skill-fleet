@@ -12,7 +12,7 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from skill_fleet.core.models import ChecklistState
 
@@ -92,10 +92,8 @@ class ConversationMessage(BaseModel):
         description="Optional metadata (e.g., thinking content, action taken)",
     )
 
-    class Config:
-        """Pydantic config."""
-
-        json_encoders = {datetime: lambda v: v.isoformat()}
+    # Pydantic v2: avoid deprecated class-based Config + json_encoders.
+    model_config = ConfigDict()
 
 
 class ConversationSession(BaseModel):
@@ -224,79 +222,6 @@ class ConversationSession(BaseModel):
         if limit:
             messages = messages[-limit:]
         return messages
-
-    def to_legacy_dict(self) -> dict[str, Any]:
-        """
-        Serialize to dict format compatible with legacy agent.py.
-
-        Returns:
-            Dict matching the original dataclass format
-
-        """
-        return {
-            "messages": [
-                {"role": m.role.value, "content": m.content, **m.metadata}
-                for m in self.messages
-            ],
-            "collected_examples": self.collected_examples,
-            "state": self.state.value,
-            "task_description": self.task_description,
-            "multi_skill_queue": self.multi_skill_queue,
-            "current_skill_index": self.current_skill_index,
-            "skill_draft": self.skill_draft,
-            "checklist_state": self.checklist_state.model_dump(),
-            "pending_confirmation": self.pending_confirmation,
-            "taxonomy_path": self.taxonomy_path,
-            "skill_metadata_draft": self.skill_metadata_draft,
-            "deep_understanding": self.deep_understanding,
-            "user_problem": self.user_problem,
-            "user_goals": self.user_goals,
-            "research_context": self.research_context,
-        }
-
-    @classmethod
-    def from_legacy_dict(cls, data: dict[str, Any]) -> ConversationSession:
-        """
-        Deserialize from legacy dict format.
-
-        Args:
-            data: Dict in legacy agent.py format
-
-        Returns:
-            ConversationSession instance
-
-        """
-        messages = []
-        for msg in data.get("messages", []):
-            role = MessageRole(msg.get("role", "user"))
-            content = msg.get("content", "")
-            metadata = {k: v for k, v in msg.items() if k not in ("role", "content")}
-            messages.append(
-                ConversationMessage(role=role, content=content, metadata=metadata)
-            )
-
-        checklist_data = data.get("checklist_state", {})
-        checklist = (
-            ChecklistState(**checklist_data) if checklist_data else ChecklistState()
-        )
-
-        return cls(
-            messages=messages,
-            collected_examples=data.get("collected_examples", []),
-            state=ConversationState(data.get("state", "EXPLORING")),
-            task_description=data.get("task_description", ""),
-            multi_skill_queue=data.get("multi_skill_queue", []),
-            current_skill_index=data.get("current_skill_index", 0),
-            skill_draft=data.get("skill_draft"),
-            checklist_state=checklist,
-            pending_confirmation=data.get("pending_confirmation"),
-            taxonomy_path=data.get("taxonomy_path", ""),
-            skill_metadata_draft=data.get("skill_metadata_draft"),
-            deep_understanding=data.get("deep_understanding"),
-            user_problem=data.get("user_problem"),
-            user_goals=data.get("user_goals"),
-            research_context=data.get("research_context"),
-        )
 
 
 class AgentResponse(BaseModel):

@@ -9,26 +9,5 @@ This module provides DSPy signature definitions for:
 - Chat: Conversational signatures
 """
 
-# Import from base (legacy workflow signatures)
-from skill_fleet.core.dspy.signatures.base import (
-    EditSkillContent,
-    GatherExamplesForSkill,
-    GenerateDynamicFeedbackQuestions,
-    InitializeSkillSkeleton,
-    IterateSkillWithFeedback,
-    PackageSkillForApproval,
-    PlanSkillStructure,
-    UnderstandTaskForSkill,
-)
-
-__all__ = [
-    # Legacy signatures
-    "GatherExamplesForSkill",
-    "UnderstandTaskForSkill",
-    "PlanSkillStructure",
-    "InitializeSkillSkeleton",
-    "EditSkillContent",
-    "PackageSkillForApproval",
-    "IterateSkillWithFeedback",
-    "GenerateDynamicFeedbackQuestions",
-]
+# Intentionally empty: signatures are imported directly from their
+# phase-specific modules (e.g. `phase1_understanding`, `chat`).

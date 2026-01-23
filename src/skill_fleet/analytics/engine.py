@@ -102,7 +102,7 @@ class AnalyticsEngine:
         for skills in task_skills.values():
             if len(skills) > 1:
                 # Store sorted tuple to ensure order doesn't matter
-                sorted_skills = tuple(sorted(list(skills)))
+                sorted_skills = tuple(sorted(skills))
                 combinations[sorted_skills] += 1
 
         return {

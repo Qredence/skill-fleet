@@ -18,7 +18,6 @@ import dspy
 
 from ....common.async_utils import run_async
 from ....common.dspy_compat import coerce_reasoning_text
-from ....common.utils import safe_float
 from ....common.paths import find_repo_root
 from ....common.serialization import (
     merge_subdirectory_files as common_merge_subdirectory_files,
@@ -26,6 +25,7 @@ from ....common.serialization import (
 from ....common.serialization import (
     serialize_pydantic_objects as common_serialize_pydantic_objects,
 )
+from ....common.utils import safe_float
 from ..signatures.phase2_generation import (
     GenerateSkillContent,
     IncorporateFeedback,

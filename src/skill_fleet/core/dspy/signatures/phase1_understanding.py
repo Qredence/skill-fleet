@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Literal
 
 import dspy
 
-from ...models import TaskIntent, DependencyAnalysis, DependencyRef, SkillMetadata
+from ...models import DependencyAnalysis, DependencyRef, SkillMetadata, TaskIntent
 
 if TYPE_CHECKING:
     pass

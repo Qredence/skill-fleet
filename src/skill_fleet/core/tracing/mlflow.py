@@ -218,29 +218,47 @@ def log_phase_artifact(
 
 
 def log_parameter(
-    phase: str,
-    name: str,
-    value: Any,
+    phase_or_name: str,
+    name_or_value: str | Any = None,
+    value: Any = None,
 ) -> None:
     """
-    Log a parameter for a phase.
+    Log a parameter.
+
+    This function supports two calling conventions:
+    1. Two-argument form: log_parameter(name, value) - uses implicit phase
+    2. Three-argument form: log_parameter(phase, name, value) - explicit phase
 
     Args:
-        phase: Phase identifier (e.g., "phase1", "phase2")
-        name: Parameter name
-        value: Parameter value
+        phase_or_name: Phase identifier (3-arg form) or parameter name (2-arg form)
+        name_or_value: Parameter name (3-arg form) or parameter value (2-arg form)
+        value: Parameter value (3-arg form only, omitted in 2-arg form)
 
     Examples:
+        >>> # Two-argument form (convenience for workflow-level logging)
+        >>> log_parameter("skill_style", "comprehensive")
+        >>> # Three-argument form (explicit phase for granular tracking)
         >>> log_parameter("phase1", "temperature", 0.8)
-        >>> log_parameter("phase2", "max_iterations", 3)
 
     """
     try:
         import mlflow
 
-        param_key = f"{phase}_{name}"
-        mlflow.log_param(param_key, str(value))  # type: ignore[attr-defined]
-        logger.debug(f"Logged parameter: {param_key}={value}")
+        # Detect which form is being used based on argument types
+        if value is None:
+            # Two-argument form: log_parameter(name, value)
+            # Use empty phase for workflow-level parameters
+            param_name = str(phase_or_name)
+            param_value = str(name_or_value)
+            mlflow.log_param(param_name, param_value)  # type: ignore[attr-defined]
+            logger.debug(f"Logged parameter: {param_name}={param_value}")
+        else:
+            # Three-argument form: log_parameter(phase, name, value)
+            phase = str(phase_or_name)
+            name = str(name_or_value)
+            param_key = f"{phase}_{name}"
+            mlflow.log_param(param_key, str(value))  # type: ignore[attr-defined]
+            logger.debug(f"Logged parameter: {param_key}={value}")
     except Exception as e:
         logger.warning(f"Failed to log parameter: {e}")
 

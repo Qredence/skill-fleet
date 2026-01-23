@@ -2,120 +2,90 @@
 
 This directory contains planning documents for the Skills Fleet project.
 
+**Note:** This directory is excluded from git (see .gitignore) to keep planning documentation local-only.
+
 ## Directory Structure
 
 ```
 plans/
-├── README.md                 # This file
-├── archive/                  # Completed/legacy plans
-└── [active plans]            # Current work-in-progress plans
+├── README.md                           # This file
+├── archive/                            # Completed/legacy plans
+├── future/                             # Future exploration plans
+└── [active plans]                      # Current work-in-progress plans
 ```
 
 ## Active Plans
 
-| File                                               | Description                                                            | Status              |
-|----------------------------------------------------|------------------------------------------------------------------------|---------------------|
-| `2026-01-15-api-first-evolution-plan.md`           | API-First architecture evolution (6 phases)                            | Phase 2 In Progress |
-| `2026-01-15-skill-creation-improvement-plan.md`    | DSPy optimization and skill quality improvements                       | Draft               |
-| `2026-01-15-skill-creation-hardening.md`           | Fix HITL duplication, validation staleness, and draft artifact quality | Mostly Complete     |
-| `2026-01-12-cli-chat-ux.md`                        | Improve API-backed CLI chat interactive experience                     | Active              |
-| `2026-01-09-fastapi-baseline-tests.md`             | FastAPI production patterns baseline test scenarios (RED phase)        | In Progress         |
-| `2026-01-09-fastapi-production-patterns-design.md` | FastAPI production patterns skill design                               | Active              |
-| `cleanup-and-optimization-plan.md`                 | Code deduplication, legacy removal, and optimization tasks             | Partially Complete  |
-| `2026-01-22-fix-scoping-loop.md`                   | Stop plan-selection loop in chat scoping                               | Draft               |
-| `2026-01-22-dspy-3.1x-signature-module-improvements.md` | Improve DSPy signature/module robustness for 3.1.x changes             | Draft               |
+| File                                          | Description                                           | Status              |
+|-----------------------------------------------|-------------------------------------------------------|---------------------|
+| `plan-main-restructure-latest.md`             | Main restructure plan (task-based DSPy organization)  | Active ✅           |
+| `EXEC-0.2-optimizer-auto-selection.md`        | DSPy optimizer auto-selection strategy                 | Reference           |
+| `technical-debt-audit.md`                     | Technical debt inventory and prioritization            | Reference           |
+| `cleanup-and-optimization-plan.md`            | Code deduplication and optimization                    | Partially Complete  |
 
-## Code Quality Progress (2026-01-15)
+## Recent Progress (2026-01-23)
 
-The following phases from the Code Quality & Testing Improvement initiative have been completed:
+### Completed Tasks ✅
 
-| Phase   | Description                               | Status                       |
-|---------|-------------------------------------------|------------------------------|
-| Phase 1 | Linting & Code Style Cleanup              | ✅ Complete                   |
-| Phase 2 | Test Coverage Improvement (+53 tests)     | ✅ Complete                   |
-| Phase 3 | God Object Decomposition (agent/agent.py) | ⏳ Not Started                |
-| Phase 4 | DSPy Best Practices Alignment             | ✅ Complete (already aligned) |
-| Phase 5 | API Route Cleanup                         | ✅ Complete                   |
-| Phase 6 | Documentation & Cleanup                   | ⏳ Not Started                |
+**Phase 1: Restructure DSPy Signatures by Task**
+- ✅ Renamed signature directories from phase-based to task-based
+- ✅ Created task-based subdirectories:
+  - `task_analysis_planning/` (Phase 1)
+  - `content_generation/` (Phase 2)
+  - `quality_assurance/` (Phase 3)
+  - `signature_optimization/` (Signature tuning)
+- ✅ Renamed signature files:
+  - `chat.py` → `conversational_interface.py`
+  - `hitl.py` → `human_in_the_loop.py`
 
-**Key Accomplishments:**
-- Fixed six ruff linting issues, formatted 13 files
-- Added 53 new tests (+20% coverage)
-- Created `common/security.py` for centralized path sanitization
-- Created `api/dependencies.py` for FastAPI dependency injection
-- Added `response_model` annotations to all API endpoints
-- Verified DSPy implementation follows best practices (242 typed fields, async/sync consistency)
+**Phase 2: Create Workflows Layer**
+- ✅ Created `src/skill_fleet/workflows/` package
+- ✅ Built 6 workflow orchestrators:
+  - `TaskAnalysisOrchestrator` - Phase 1 understanding & planning
+  - `ContentGenerationOrchestrator` - Phase 2 skill content creation
+  - `QualityAssuranceOrchestrator` - Phase 3 validation & refinement
+  - `HITLCheckpointManager` - HITL checkpoint management
+  - `ConversationalOrchestrator` - Multi-turn conversation workflow
+  - `SignatureTuningOrchestrator` - Signature optimization workflow
 
-## API-First Evolution Progress (2026-01-15)
+**Cleanup: Remove Duplicate Facade Layer**
+- ✅ Removed `src/skill_fleet/dspy/` facade directory
+- ✅ Removed `src/skill_fleet/compat/` compatibility layer
+- ✅ Updated test imports to use new paths
+- ✅ Fixed `test_core_rework.py` and `test_signature_reasoning_types.py`
 
-Progress on the API-First architecture evolution plan:
+### In Progress 🔄
 
-| Phase   | Description                               | Status         |
-|---------|-------------------------------------------|----------------|
-| Phase 1 | Schema Unification & Dependency Injection | ✅ Complete     |
-| Phase 2 | Thin Client Refactoring                   | 🔄 In Progress |
-| Phase 3 | Real-Time Communication (SSE)             | ⏳ Not Started  |
-| Phase 4 | Persistent Job State                      | ⏳ Not Started  |
-| Phase 5 | Automated SDK Generation                  | ⏳ Not Started  |
-| Phase 6 | Cleanup & Consistency                     | ⏳ Not Started  |
+- **Task #15**: Verify MLflow integration across DSPy modules
+- **Task #17**: Revamp and reorganize documentation
+- **Task #12**: Review and clean configuration files
 
-**Phase 2 Progress (Thin Client Refactoring):**
-- ✅ Created `api/schemas/hitl.py` with `StructuredQuestion`, `QuestionOption` models
-- ✅ Added `normalize_questions()` server-side normalization function
-- ✅ Updated `HITLPromptResponse.questions` to use typed `list[StructuredQuestion]`
-- ✅ Simplified CLI's `runner.py` to pass through pre-structured data
-- ⏳ CLI Pydantic validation for API responses (optional enhancement)
-- ⏳ UI refactoring to call API directly (cliBridge.ts → apiClient.ts)
+### Pending ⏳
 
-## Skill Creation Hardening Progress (2026-01-15)
-
-Progress on the Skill Creation Hardening plan (`2026-01-15-skill-creation-hardening.md`):
-
-**Completed:**
-- ✅ Server HITL is event-driven (no polling race) - `wait_for_hitl_response()` uses Future + `notify_hitl_response()`
-- ✅ DSPy `.forward()` warnings removed by switching to `.acall()` in Phase 1/2/3 modules
-- ✅ Phase 3 re-validates after refinement so `validation_report` matches `refined_content`
-- ✅ Draft saves preserve workflow metadata (capabilities, load_priority, keywords/scope/see_also)
-- ✅ Authoring template updated with validator-required sections (`## Capabilities`, `## Dependencies`, `## Usage Examples`)
-- ✅ `SkillValidator.validate_examples()` skips `examples/README.md`
-- ✅ Phase 3 HITL validate/refine loops with bounded iterations
-- ✅ Phase 3 canonicalizes YAML frontmatter from `SkillMetadata`
-- ✅ Draft saves extract embedded artifacts (headings → `assets/`, code blocks → `examples/`)
-
-**Remaining:**
-- ⏳ Pydantic serializer warnings (Message/Choices/StreamingChoices) - needs stack trace and targeted fix
-- ⏳ Optional: `prompt_id` versioning for full client idempotency
+See task list for full pending items:
+- Phase 3: Separate Domain Logic (depends on workflows)
+- Phase 4: Implement DSPy 3.1.2 Best Practices
+- Phase 5: Wire FastAPI to Workflows
+- Phase 6: Restructure CLI
+- Update tests for new structure
+- MLflow integration for skill creation
 
 ## Archived Plans
 
-Plans in `./archive/` represent completed phases or legacy documentation that informed the current implementation:
+Plans in `./archive/` represent completed phases or legacy documentation:
 
-| File                                                 | Description                                              | Archive Reason                              |
-|------------------------------------------------------|----------------------------------------------------------|---------------------------------------------|
-| `implementation-phase-1.md`                          | Foundation phase (Week 1-2)                              | Completed ✅                                 |
-| `implementation-phase-2.md`                          | Core Workflow phase (Week 3-4)                           | Completed ✅                                 |
-| `implementation-phase-final.md`                      | Final implementation summary                             | Phases 1-2 completed                        |
-| `overview.md`                                        | High-level project overview and vision                   | Foundational planning complete              |
-| `skill-creator-plan.md`                              | Detailed skill creator implementation                    | Largely implemented                         |
-| `skills-creation-workflow.md`                        | Workflow design document                                 | Implemented                                 |
-| `skills-taxonomy-implementation-strategy.md`         | Taxonomy implementation strategy                         | All phases completed ✅                      |
-| `taxonomy-system.md`                                 | Taxonomy system design                                   | Implemented                                 |
-| `nimble-serene-ember.md`                             | Enhanced transparency & interactivity for Guided Creator | Superseded by CLI Chat UX & API-First plans |
-| `skills-fleet_codebase_restructure_4833ae18.plan.md` | Codebase restructuring and organization                  | Restructuring completed ✅                   |
+| Category                | Examples                                      |
+|-------------------------|-----------------------------------------------|
+| Implementation phases  | `implementation-phase-*.md` (completed)      |
+| CLI reviews            | `cli-*.md` (merged to codebase)               |
+| Feature plans           | `skills-taxonomy-*.md` (implemented)          |
+| Old restructure plans   | `plan-main-restructure.md` (superseded)       |
 
 ## Plan Naming Convention
 
-- **Date-prefixed**: `YYYY-MM-DD-description.md` for time-sensitive or feature-specific plans
-- **Feature-based**: `feature-name-plan.md` for ongoing feature development
-- **Generated**: `name_hash.plan.md` for auto-generated planning documents
-
-## Archiving Guidelines
-
-Move plans to `./archive/` when:
-- All tasks/phases are marked as completed (✅)
-- The plan has been superseded by a newer version
-- The feature/phase described has been fully implemented
-- The plan is no longer actively referenced for current work
+- **Date-prefixed**: `YYYY-MM-DD-description.md` for time-sensitive plans
+- **Feature-based**: `feature-name-plan.md` for ongoing features
+- **Versioned**: `plan-name-version.md` for evolving plans (e.g., `latest`)
 
 ---
-*Last updated: 2026-01-15 14:27*
+*Last updated: 2026-01-23*

@@ -126,11 +126,114 @@ ignore = [
   "D212", # Alternative to D213 (multi-line docstring style)
   "D203", # Alternative to D211 (blank line before class)
 ]
+# Enable comprehensive rule set for 2026 best practices
+select = [
+  "E",     # pycodestyle errors
+  "F",     # pyflakes
+  "I",     # isort (import sorting)
+  "UP",    # pyupgrade (modernize Python syntax)
+  "B",     # flake8-bugbear (detect common bugs)
+  "D",     # pydocstyle (docstring conventions)
+  "N",     # pep8-naming (naming conventions)
+  "C4",    # flake8-comprehensions (optimize comprehensions)
+  "SIM",   # flake8-simplify (simplify code)
+  "TC001", # Type checking - typing imports in runtime code
+  "TC002", # Type checking - immutable default in mutable context
+  "TC003", # Type checking - import from typing instead of collections.abc
+  "D100",  # Missing module docstring
+  "D101",  # Missing class docstring
+  "D102",  # Missing method docstring
+  "D103",  # Missing function docstring
+  "D104",  # Missing package docstring
+]
+ignore = [
+  "E501", # Line length handled by formatter
+  "D212", # Alternative to D213 (multi-line docstring style)
+  "D203", # Alternative to D211 (blank line before class)
+]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["D"] # Disable docstring checks for tests
+"tests/*" = ["D"] # Disable docstring checks for tests
 # B008: Do not perform function call in default arguments
 # Standard pattern for CLI libraries (typer, click)
+"src/skill_fleet/cli/*.py" = [
+  "B008",
+  "D413",
+  "D401",
+  "SIM102",
+] # Allow flexible docstring formatting and nested ifs in CLI
+"src/skill_fleet/cli/**/*.py" = [
+  "D413",
+  "D401",
+  "TC002",
+  "TC003",
+  "SIM102",
+] # Relax docstring, type-checking, and simplification rules in CLI submodules
+"src/skill_fleet/cli/interactive_cli.py" = [
+  "TC001",
+] # Allow runtime imports for type hints
+"src/skill_fleet/cli/commands/db_sync.py" = [
+  "D400",
+  "D415",
+] # Relax docstring ending rules for module docstrings
+"src/skill_fleet/cli/exceptions.py" = ["N818"] # Allow CLIExit exception name
+
+# API and core modules - relax type-checking rules for runtime imports
+"src/skill_fleet/api/*.py" = [
+  "TC001",
+  "TC002",
+  "TC003",
+  "SIM105",
+  "D401",
+  "D107",
+  "N818",
+  "SIM110",
+]
+"src/skill_fleet/api/**/*.py" = ["TC001", "TC002", "TC003", "D417", "SIM110"]
+"src/skill_fleet/api/exceptions.py" = ["N818"] # Allow APIException naming
+"src/skill_fleet/analytics/*.py" = ["D107", "N803", "N806"]
+"src/skill_fleet/core/**/*.py" = [
+  "TC003",
+  "SIM105",
+  "D401",
+  "D107",
+  "D301",
+  "SIM108",
+]
+"src/skill_fleet/common/*.py" = ["TC003", "D107", "D301"]
+"src/skill_fleet/taxonomy/*.py" = [
+  "SIM105",
+  "SIM108",
+  "SIM110",
+  "SIM222",
+  "D301",
+]
+"src/skill_fleet/validators/*.py" = ["D107", "D301"]
+
+# Scripts - relaxed rules for utility scripts
+"scripts/**/*.py" = [
+  "D",
+  "TC001",
+  "TC002",
+  "TC003",
+  "SIM105",
+  "SIM108",
+  "SIM110",
+  "SIM222",
+  "D401",
+  "E402",
+]
+
+# Tests - relaxed rules
+"tests/**/*.py" = ["D", "TC001", "TC003", "SIM114", "SIM117", "SIM222", "N806"]
+
+[tool.ruff.format]
+# Explicit formatting configuration
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+skip-magic-trailing-comma = false
 "src/skill_fleet/cli/*.py" = [
   "B008",
   "D413",

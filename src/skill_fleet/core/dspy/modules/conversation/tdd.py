@@ -8,7 +8,7 @@ import logging
 import dspy
 
 from .....common.utils import safe_json_loads
-from ...signatures.chat import (
+from ...signatures.conversational_interface import (
     EnhanceSkillContent,
     SuggestTestScenarios,
     VerifyTDDPassed,

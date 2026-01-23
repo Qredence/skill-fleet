@@ -11,7 +11,7 @@ import dspy
 from ....common.async_utils import run_async
 from ....common.dspy_compat import coerce_reasoning_text
 from ....common.utils import safe_float, safe_json_loads
-from ..signatures.phase1_understanding import (
+from ..signatures.task_analysis_planning import (
     AnalyzeDependencies,
     AnalyzeIntent,
     FindTaxonomyPath,

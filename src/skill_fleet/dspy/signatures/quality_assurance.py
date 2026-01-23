@@ -15,7 +15,7 @@ Signatures:
 from __future__ import annotations
 
 # Re-export from existing location during migration
-from skill_fleet.core.dspy.signatures.phase3_validation import (
+from skill_fleet.core.dspy.signatures.quality_assurance import (
     AnalyzeValidationIssues,
     AssessSkillQuality,
     GenerateAutoFix,

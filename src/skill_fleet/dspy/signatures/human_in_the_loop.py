@@ -19,7 +19,7 @@ Signatures:
 from __future__ import annotations
 
 # Re-export from existing location during migration
-from skill_fleet.core.dspy.signatures.hitl import (
+from skill_fleet.core.dspy.signatures.human_in_the_loop import (
     AnalyzeFeedback,
     AssessReadiness,
     DetermineHITLStrategy,

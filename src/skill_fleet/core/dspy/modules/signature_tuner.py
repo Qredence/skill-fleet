@@ -34,7 +34,7 @@ import dspy
 
 from ....common.async_utils import run_async
 from ..metrics import assess_skill_quality
-from ..signatures.signature_tuning import (
+from ..signatures.signature_optimization import (
     AnalyzeSignatureFailures,
     ProposeSignatureImprovement,
     ValidateSignatureImprovement,

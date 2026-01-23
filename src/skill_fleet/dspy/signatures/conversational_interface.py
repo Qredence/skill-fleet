@@ -22,7 +22,7 @@ Signatures:
 from __future__ import annotations
 
 # Re-export from existing location during migration
-from skill_fleet.core.dspy.signatures.chat import (
+from skill_fleet.core.dspy.signatures.conversational_interface import (
     AssessReadiness,
     ConfirmUnderstandingBeforeCreation,
     DeepUnderstandingSignature,

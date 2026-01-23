@@ -14,7 +14,7 @@ Signatures:
 from __future__ import annotations
 
 # Re-export from existing location during migration
-from skill_fleet.core.dspy.signatures.phase2_generation import (
+from skill_fleet.core.dspy.signatures.content_generation import (
     GenerateCapabilityImplementation,
     GenerateSkillContent,
     GenerateSkillSection,

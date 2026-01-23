@@ -495,7 +495,7 @@ def _reflection_metrics_optimize(
     import dspy
 
     from skill_fleet.core.dspy.metrics.gepa_reflection import gepa_composite_metric
-    from skill_fleet.core.dspy.signatures.phase1_understanding import GatherRequirements
+    from skill_fleet.core.dspy.signatures.task_analysis_planning import GatherRequirements
     from skill_fleet.core.optimization.optimizer import get_lm
 
     start_time = time.time()

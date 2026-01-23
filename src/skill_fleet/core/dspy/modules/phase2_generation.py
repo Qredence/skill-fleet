@@ -26,7 +26,7 @@ from ....common.serialization import (
     serialize_pydantic_objects as common_serialize_pydantic_objects,
 )
 from ....common.utils import safe_float
-from ..signatures.phase2_generation import (
+from ..signatures.content_generation import (
     GenerateSkillContent,
     IncorporateFeedback,
     SkillStyle,

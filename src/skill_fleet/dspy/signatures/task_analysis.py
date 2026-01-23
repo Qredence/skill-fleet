@@ -15,7 +15,7 @@ Signatures:
 from __future__ import annotations
 
 # Re-export from existing location during migration
-from skill_fleet.core.dspy.signatures.phase1_understanding import (
+from skill_fleet.core.dspy.signatures.task_analysis_planning import (
     AnalyzeDependencies,
     AnalyzeIntent,
     Domain,

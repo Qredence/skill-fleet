@@ -12,7 +12,7 @@ from ....common.async_utils import run_async
 from ....common.dspy_compat import coerce_reasoning_text
 from ....common.utils import safe_float, safe_json_loads
 from ..metrics import assess_skill_quality
-from ..signatures.phase3_validation import (
+from ..signatures.quality_assurance import (
     AssessSkillQuality,
     RefineSkillFromFeedback,
     ValidateSkill,

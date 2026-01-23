@@ -23,7 +23,7 @@ from typing import Literal
 
 import dspy
 
-from ...models import (
+from ....models import (
     BestPractice,
     Capability,
     SkillMetadata,

@@ -22,7 +22,7 @@ import dspy
 
 from ....common.dspy_compat import coerce_reasoning_text
 from ....common.utils import safe_float, safe_json_loads
-from ..signatures.hitl import (
+from ..signatures.human_in_the_loop import (
     AnalyzeFeedback,
     AssessReadiness,
     DetermineHITLStrategy,

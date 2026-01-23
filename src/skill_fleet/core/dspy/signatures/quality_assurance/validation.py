@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import dspy
 
-from ...models import (
+from ....models import (
     SkillMetadata,
     ValidationCheckItem,
     ValidationReport,

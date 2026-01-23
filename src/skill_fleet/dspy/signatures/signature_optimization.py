@@ -17,7 +17,7 @@ Signatures:
 from __future__ import annotations
 
 # Re-export from existing location during migration
-from skill_fleet.core.dspy.signatures.signature_tuning import (
+from skill_fleet.core.dspy.signatures.signature_optimization import (
     AnalyzeSignatureFailures,
     CompareSignatureVersions,
     ProposeSignatureImprovement,

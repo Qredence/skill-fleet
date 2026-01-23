@@ -1,0 +1,162 @@
+"""
+Migration progress tracker for Skills Fleet restructure.
+
+Tracks files moved, modified, and deleted during the restructuring process,
+and generates migration reports.
+"""
+
+import json
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from pathlib import Path
+
+
+@dataclass
+class MigrationAction:
+    """Represents a single migration action."""
+
+    action_type: str  # 'moved', 'modified', 'deleted', 'created'
+    source: str
+    destination: str | None = None
+    timestamp: str = ""
+    phase: str = ""
+    notes: str = ""
+
+    def __post_init__(self):
+        if not self.timestamp:
+            self.timestamp = datetime.now().isoformat()
+
+
+class MigrationTracker:
+    """Tracks migration progress and generates reports."""
+
+    def __init__(self, report_file: str = ".migration_report.json"):
+        self.report_file = Path(report_file)
+        self.actions: list[MigrationAction] = []
+        self.load()
+
+    def load(self) -> None:
+        """Load existing migration report if it exists."""
+        if self.report_file.exists():
+            data = json.loads(self.report_file.read_text())
+            self.actions = [MigrationAction(**action) for action in data.get("actions", [])]
+
+    def save(self) -> None:
+        """Save migration report to disk."""
+        report = {
+            "generated_at": datetime.now().isoformat(),
+            "total_actions": len(self.actions),
+            "actions": [asdict(action) for action in self.actions],
+            "summary": self._generate_summary(),
+        }
+        self.report_file.write_text(json.dumps(report, indent=2))
+
+    def track(
+        self,
+        action_type: str,
+        source: str,
+        destination: str | None = None,
+        phase: str = "",
+        notes: str = "",
+    ) -> None:
+        """
+        Track a migration action.
+
+        Args:
+            action_type: Type of action
+            source: Source file path
+            destination: Destination path for moves
+            phase: Migration phase
+            notes: Additional notes about the action
+        """
+        action = MigrationAction(
+            action_type=action_type,
+            source=source,
+            destination=destination,
+            phase=phase,
+            notes=notes,
+        )
+        self.actions.append(action)
+        self.save()
+
+    def _generate_summary(self) -> dict:
+        """Generate summary statistics."""
+        summary = {
+            "by_type": {},
+            "by_phase": {},
+            "total_by_type": {},
+        }
+
+        for action in self.actions:
+            # Count by type
+            summary["by_type"].setdefault(action.action_type, [])
+            summary["by_type"][action.action_type].append(action.source)
+
+            # Count by phase
+            if action.phase:
+                summary["by_phase"].setdefault(action.phase, 0)
+                summary["by_phase"][action.phase] += 1
+
+            # Total counts
+            summary["total_by_type"][action.action_type] = (
+                summary["total_by_type"].get(action.action_type, 0) + 1
+            )
+
+        return summary
+
+    def print_report(self) -> None:
+        """Print migration report to stdout."""
+        summary = self._generate_summary()
+
+        print("\n" + "=" * 60)
+        print("MIGRATION PROGRESS REPORT")
+        print("=" * 60)
+        print(f"\nTotal Actions: {len(self.actions)}")
+        print("\nActions by Type:")
+        for action_type, count in summary["total_by_type"].items():
+            print(f"  {action_type}: {count}")
+
+        if summary["by_phase"]:
+            print("\nActions by Phase:")
+            for phase, count in summary["by_phase"].items():
+                print(f"  {phase}: {count}")
+
+        print("\n" + "=" * 60 + "\n")
+
+    def get_actions_by_phase(self, phase: str) -> list[MigrationAction]:
+        """Get all actions for a specific phase."""
+        return [a for a in self.actions if a.phase == phase]
+
+    def get_actions_by_type(self, action_type: str) -> list[MigrationAction]:
+        """Get all actions of a specific type."""
+        return [a for a in self.actions if a.action_type == action_type]
+
+
+# CLI interface
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Track and report migration progress")
+    parser.add_argument("--report", action="store_true", help="Print migration report")
+    parser.add_argument(
+        "--action", nargs=3, metavar=("TYPE", "SOURCE", "DEST"), help="Track an action"
+    )
+    parser.add_argument("--phase", default="", help="Migration phase")
+    parser.add_argument("--notes", default="", help="Additional notes")
+
+    args = parser.parse_args()
+    tracker = MigrationTracker()
+
+    if args.report:
+        tracker.print_report()
+    elif args.action:
+        tracker.track(
+            action_type=args.action[0],
+            source=args.action[1],
+            destination=args.action[2] if len(args.action) > 2 else None,
+            phase=args.phase,
+            notes=args.notes,
+        )
+        print(f"✓ Tracked {args.action[0]}: {args.action[1]}")
+    else:
+        parser.print_help()

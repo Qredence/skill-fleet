@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 import dspy
 
 from skill_fleet.core.dspy.modules import RequirementsGathererModule
-from skill_fleet.core.dspy.signatures.phase1_understanding import GatherRequirements
+from skill_fleet.core.dspy.signatures.task_analysis_planning import GatherRequirements
 from skill_fleet.core.models import SkillCreationResult, SkillMetadata
 
 

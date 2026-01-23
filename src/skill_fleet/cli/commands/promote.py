@@ -52,9 +52,7 @@ def promote_command(
                 error_text = e.response.text
             except Exception:
                 error_text = "(unable to read response)"
-            console.print(
-                Text(f"HTTP Error: {e.response.status_code} - {error_text}", style="red")
-            )
+            console.print(Text(f"HTTP Error: {e.response.status_code} - {error_text}", style="red"))
         except ValueError as e:
             console.print(Text(f"Error: {e}", style="red"))
         except Exception as e:

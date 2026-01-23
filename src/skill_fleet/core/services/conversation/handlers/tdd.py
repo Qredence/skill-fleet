@@ -36,9 +36,7 @@ class TDDHandlers:
         if not session.skill_draft:
             return "technique"
         return (
-            session.skill_draft.get("plan", {})
-            .get("skill_metadata", {})
-            .get("type", "technique")
+            session.skill_draft.get("plan", {}).get("skill_metadata", {}).get("type", "technique")
         )
 
     def _section_present(self, content: str, section: str) -> bool:
@@ -53,12 +51,13 @@ class TDDHandlers:
         if not content:
             return
 
-        session.checklist_state.quick_reference_included = self._section_present(
-            content, "quick reference"
-        ) or "| problem | solution" in content.lower()
-        session.checklist_state.common_mistakes_included = self._section_present(
-            content, "common mistakes"
-        ) or "| mistake |" in content.lower()
+        session.checklist_state.quick_reference_included = (
+            self._section_present(content, "quick reference")
+            or "| problem | solution" in content.lower()
+        )
+        session.checklist_state.common_mistakes_included = (
+            self._section_present(content, "common mistakes") or "| mistake |" in content.lower()
+        )
 
         narrative_markers = ("once upon", "in session", "case study", "story time")
         session.checklist_state.no_narrative_storytelling = not any(
@@ -235,12 +234,8 @@ class TDDHandlers:
         )
 
         test_scenarios = res.get("test_scenarios", []) if isinstance(res, dict) else []
-        baseline_predictions = (
-            res.get("baseline_predictions", []) if isinstance(res, dict) else []
-        )
-        rationalizations = (
-            res.get("expected_rationalizations", []) if isinstance(res, dict) else []
-        )
+        baseline_predictions = res.get("baseline_predictions", []) if isinstance(res, dict) else []
+        rationalizations = res.get("expected_rationalizations", []) if isinstance(res, dict) else []
 
         session.checklist_state.red_scenarios_created = bool(test_scenarios)
         session.checklist_state.baseline_tests_run = True

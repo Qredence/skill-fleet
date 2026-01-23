@@ -154,13 +154,13 @@ class RecommendationEngine:
         # 2. Recommend based on common combinations (if user uses A but not B, and A+B is common)
         common_combos = stats.get("common_combinations", [])
         user_skills = set(most_used)
-        
+
         for combo_entry in common_combos:
             combo_skills = set(combo_entry["skills"])
             # Check if user has some skills from combo but not all
             overlap = user_skills & combo_skills
             missing = combo_skills - user_skills
-            
+
             if overlap and missing:
                 for missing_skill in missing:
                     recommendations.append(

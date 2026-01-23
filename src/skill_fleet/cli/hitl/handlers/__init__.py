@@ -102,9 +102,7 @@ class DeepUnderstandingHandler(InteractionHandler):
                 self.console.print(f"  • {r}")
 
         if readiness_score is not None:
-            self.console.print(
-                f"[dim]Readiness score:[/dim] {readiness_score:.2f} (target 0.80)"
-            )
+            self.console.print(f"[dim]Readiness score:[/dim] {readiness_score:.2f} (target 0.80)")
 
         # Ask the question
         if question:

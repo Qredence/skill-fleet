@@ -28,10 +28,11 @@ def _with_postgres_driver(url: str, driver: str, *, override: bool = False) -> s
         _, rest = url.split("://", 1)
         return f"postgresql+{driver}://{rest}"
     if url.startswith("postgresql://"):
-        return f"postgresql+{driver}://{url[len('postgresql://'):]}"
+        return f"postgresql+{driver}://{url[len('postgresql://') :]}"
     if url.startswith("postgres://"):
-        return f"postgresql+{driver}://{url[len('postgres://'):]}"
+        return f"postgresql+{driver}://{url[len('postgres://') :]}"
     return url
+
 
 # Database URL from environment or default
 RAW_DATABASE_URL = os.getenv(

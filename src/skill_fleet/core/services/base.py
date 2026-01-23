@@ -169,9 +169,7 @@ class BaseService(ABC):
         else:
             lm = self.get_default_lm()
             if task:
-                self._logger.debug(
-                    "No task-specific LM for %s, using default", task
-                )
+                self._logger.debug("No task-specific LM for %s, using default", task)
 
         with dspy.context(lm=lm):
             yield lm

@@ -252,7 +252,9 @@ class FailureAnalyzerModule(dspy.Module):
             field_name="priority_fixes",
         )
         return {
-            "failure_categories": failure_categories if isinstance(failure_categories, list) else [],
+            "failure_categories": failure_categories
+            if isinstance(failure_categories, list)
+            else [],
             "root_causes": root_causes if isinstance(root_causes, list) else [],
             "missing_quality_indicators": missing_indicators
             if isinstance(missing_indicators, list)

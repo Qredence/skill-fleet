@@ -143,7 +143,9 @@ class TaxonomySkillCreator(dspy.Module):
                 metadata=metadata_dict,
                 content=result.skill_content,
                 extra_files=result.extra_files or {},
-                evolution={"version": result.metadata.version} if result.metadata else {"version": "1.0.0"},
+                evolution={"version": result.metadata.version}
+                if result.metadata
+                else {"version": "1.0.0"},
             )
 
             if success:

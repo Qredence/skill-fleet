@@ -47,6 +47,7 @@ def _sanitize_for_log(value: str) -> str:
     # Replace CR and LF characters with spaces to preserve readability
     return value.replace("\r", " ").replace("\n", " ")
 
+
 logger = logging.getLogger(__name__)
 
 # Valid job status values for validation
@@ -244,9 +245,7 @@ class JobManager:
             except ValueError as e:
                 logger.warning(f"Invalid UUID for job {safe_job_id}: {e}")
             except Exception as e:
-                logger.error(
-                    f"Unexpected error loading job {safe_job_id} from database: {e}"
-                )
+                logger.error(f"Unexpected error loading job {safe_job_id} from database: {e}")
 
         logger.warning(f"Job {safe_job_id} not found in memory or database")
         return None

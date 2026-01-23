@@ -120,4 +120,3 @@ async def test_taxonomy_skill_creator_propagates_program_failure():
 
     assert result["status"] == "failed"
     assert result["error"] == "boom"
-

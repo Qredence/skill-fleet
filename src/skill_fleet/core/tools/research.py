@@ -139,7 +139,7 @@ def _parse_search_response(response, max_results: int) -> list[dict[str, Any]]:
             except Exception:
                 # If accessing .text fails (e.g., streaming response), skip
                 pass
-        
+
         if text:
             # Extract URLs and content (basic parsing)
             # More sophisticated parsing can be added based on actual API response format

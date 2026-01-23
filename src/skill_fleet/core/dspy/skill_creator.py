@@ -323,11 +323,20 @@ class SkillCreationProgram(dspy.Module):
                 progress_callback(
                     "generation", "Generating SKILL.md content, examples, and best practices..."
                 )
+            
+            # TODO: Fetch parent content if needed for composition
+            # To implement:
+            # 1. Extract parent path from p1_result["taxonomy"]["recommended_path"]
+            # 2. Load parent SKILL.md content from taxonomy
+            # 3. Extract relevant sections (overview, patterns) for context
+            # For now, Phase 2 generates content without explicit parent context
+            parent_skills_content = ""
+            
             p2_result = await self.phase2.aforward(
                 skill_metadata=p1_result["plan"]["skill_metadata"],
                 content_plan=p1_result["plan"]["content_plan"],
                 generation_instructions=generation_instructions,
-                parent_skills_content="",  # TODO: Fetch parent content if needed
+                parent_skills_content=parent_skills_content,
                 dependency_summaries=str(p1_result["dependencies"]),
             )
             if progress_callback:

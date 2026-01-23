@@ -141,3 +141,52 @@ async def test_handle_exploring_skips_multi_skill_when_scoping_complete(service)
 
     assert response.action == "ask_question"
     assert response.data.get("readiness_score") == 0.6
+
+
+@pytest.mark.asyncio
+async def test_plan_selection_locks_scoping_and_prevents_reprompt(service):
+    """
+    Regression test for the "scoping loop":
+
+    - agent proposes alternative approaches (MULTI_SKILL_DETECTED)
+    - user selects a plan
+    - agent must not re-run DetectMultiSkill and re-prompt for a plan again
+    """
+    session = ConversationSession(
+        state=ConversationState.MULTI_SKILL_DETECTED,
+        multi_skill_queue=["Plan A", "Plan B"],
+        task_description="Original task",
+    )
+
+    # User selects a plan from the alternatives list.
+    resp = service.handle_multi_skill("Plan A", session)
+    assert resp.action == "plan_selected"
+    assert session.task_description == "Plan A"
+    assert session.deep_understanding and session.deep_understanding.get("scoping_complete") is True
+
+    # Simulate deep-understanding completion and returning to exploring.
+    session.state = ConversationState.EXPLORING
+    session.deep_understanding["complete"] = True
+
+    async def side_effect(module, thinking_callback=None, **kwargs):
+        if module == service.detect_multi_skill:
+            raise AssertionError("detect_multi_skill should be skipped after plan selection")
+        if module == service.assess_readiness:
+            return {
+                "readiness_score": 0.6,
+                "should_proceed": False,
+                "readiness_reasoning": "Need more info",
+            }, ""
+        if module == service.generate_question:
+            return {
+                "question": "Clarify details?",
+                "question_options": [],
+                "reasoning": "Missing info",
+            }, ""
+        return {}, ""
+
+    with patch.object(service, "_execute_with_streaming", side_effect=side_effect):
+        response = await service.handle_exploring("continue", session, None)
+
+    assert response.action == "ask_question"
+    assert response.data.get("readiness_score") == 0.6

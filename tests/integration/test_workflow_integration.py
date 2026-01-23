@@ -49,14 +49,14 @@ async def test_workflow_with_real_llm():
     assert "package" in result
 
     # If we got here without a JSON serialization error, the bug is fixed!
-    print(f"✓ Integration test passed! Result: {result.keys()}")
+    print(f"✓ Integration test passed! Result: {result.model_dump().keys()}")
 
 
 @pytest.mark.integration
 @pytest.mark.anyio
 async def test_capability_serialization():
     """Specifically test that Capability objects are properly serialized."""
-    from skill_fleet.core.dspy.modules import InitializeModule
+    from skill_fleet.core.dspy.modules import InitializeModule  # type: ignore[attr-defined]
     from skill_fleet.core.models import Capability
 
     # Create module

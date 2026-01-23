@@ -163,6 +163,27 @@ class TestCreateStreamingModule:
         assert call_args[1]["async_streaming"] is False  # Default to sync
         assert call_args[1]["stream_listeners"][0].signature_field_name == "reasoning"
 
+    @patch("skill_fleet.common.streaming.dspy.streamify")
+    def test_create_streaming_module_no_reasoning_field(self, mock_streamify):
+        """Skip listeners if reasoning field is not present in predictors."""
+        class DummyPredictor:
+            def __init__(self):
+                self.signature = MagicMock()
+                self.signature.output_fields = {"answer": None}
+
+        class DummyProgram:
+            def named_predictors(self):
+                return [("predict", DummyPredictor())]
+
+        mock_result = MagicMock()
+        mock_streamify.return_value = mock_result
+
+        result = create_streaming_module(DummyProgram())  # type: ignore[arg-type]
+
+        assert result == mock_result
+        call_args = mock_streamify.call_args
+        assert call_args[1]["stream_listeners"] == []
+
 
 # ============================================================================
 # Test create_async_module

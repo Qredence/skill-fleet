@@ -6,8 +6,6 @@ and task context to ensure multi-select behavior with sensible defaults.
 """
 
 
-
-
 def generate_smart_options(
     question_text: str, task_context: str = ""
 ) -> tuple[list[str], str | None]:

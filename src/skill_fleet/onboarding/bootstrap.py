@@ -203,6 +203,7 @@ class SkillBootstrapper:
         Args:
             profile: User profile dictionary containing user_id, profile data,
                     mounted skills, and onboarding metadata.
+
         """
         user_id = profile["user_id"]
         profiles_dir = self.taxonomy.skills_root / "_analytics" / "user_profiles"

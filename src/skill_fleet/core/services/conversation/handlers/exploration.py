@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from ..models import AgentResponse, ConversationSession, ConversationState
 
 
 class ExplorationHandlers:
-    """Handlers for Exploration and Understanding phases.
+    """
+    Handlers for Exploration and Understanding phases.
 
     This class is designed as a mixin - the following attributes/methods
     are expected to be provided by the consuming class:

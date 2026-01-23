@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from datetime import UTC, datetime
-from typing import Any, Callable
+from typing import Any
 
 from ..models import AgentResponse, ConversationSession, ConversationState
 
 
 class TDDHandlers:
-    """Handlers for Creation, TDD, and Checklist phases.
+    """
+    Handlers for Creation, TDD, and Checklist phases.
 
     This class is designed as a mixin - the following attributes/methods
     are expected to be provided by the consuming class:

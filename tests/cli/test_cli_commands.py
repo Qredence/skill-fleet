@@ -124,4 +124,4 @@ class TestTyperApp:
         """Test Typer app is properly initialized."""
         # Act & Assert
         assert app is not None
-        assert app.info.help == "Skills Fleet - Interactive mode"
+        assert app.info.help == "Skills Fleet - Hierarchical skills taxonomy + DSPy workflow CLI"

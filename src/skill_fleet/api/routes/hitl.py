@@ -27,20 +27,22 @@ class HITLConfigResponse(BaseModel):
     action_keywords: dict[str, list[str]] = Field(
         ...,
         description="Keywords for detecting user intent (proceed, revise, cancel)",
-        example={
-            "proceed": [
-                "proceed",
-                "yes",
-                "ok",
-                "okay",
-                "continue",
-                "approve",
-                "accept",
-                "save",
-                "y",
-            ],
-            "revise": ["revise", "change", "edit", "modify", "fix", "update"],
-            "cancel": ["cancel", "abort", "stop", "quit", "no", "n"],
+        json_schema_extra={
+            "example": {
+                "proceed": [
+                    "proceed",
+                    "yes",
+                    "ok",
+                    "okay",
+                    "continue",
+                    "approve",
+                    "accept",
+                    "save",
+                    "y",
+                ],
+                "revise": ["revise", "change", "edit", "modify", "fix", "update"],
+                "cancel": ["cancel", "abort", "stop", "quit", "no", "n"],
+            }
         },
     )
 

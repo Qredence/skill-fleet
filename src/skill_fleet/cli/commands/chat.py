@@ -166,8 +166,13 @@ def chat_command(
                                 break
 
                     except httpx.HTTPStatusError as e:
+                        error_text = ""
+                        try:
+                            error_text = e.response.text
+                        except Exception:
+                            error_text = "(unable to read response)"
                         console.print(
-                            f"[red]API Error: {e.response.status_code} - {e.response.text}[/red]"
+                            f"[red]API Error: {e.response.status_code} - {error_text}[/red]"
                         )
                         console.print(
                             "[yellow]Make sure 'uv run skill-fleet serve' is running.[/yellow]"

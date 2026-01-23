@@ -47,8 +47,13 @@ def promote_command(
             else:
                 console.print(f"[yellow]Promotion completed:[/yellow] {result}")
         except httpx.HTTPStatusError as e:
+            error_text = ""
+            try:
+                error_text = e.response.text
+            except Exception:
+                error_text = "(unable to read response)"
             console.print(
-                Text(f"HTTP Error: {e.response.status_code} - {e.response.text}", style="red")
+                Text(f"HTTP Error: {e.response.status_code} - {error_text}", style="red")
             )
         except ValueError as e:
             console.print(Text(f"Error: {e}", style="red"))

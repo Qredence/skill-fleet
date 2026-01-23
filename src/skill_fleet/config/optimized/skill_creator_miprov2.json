@@ -505,19 +505,17 @@
               "content_type": "markdown",
               "description": "Instructions for validating workflow syntax and execution logic using action-lint or dry-runs."
             }
-          ],
-          "directories": [
-            "references",  # v2 standard (replaces capabilities/)
-            "guides",  # v2 standard (replaces resources/)
-            "templates",  # v2 standard
-            "scripts",
-            "examples",
-            "tests",
-            "assets",
-            "capabilities",  # legacy
-            "resources"  # legacy
-          ]
-        },
+	          ],
+	          "directories": [
+	            "references",
+	            "guides",
+	            "templates",
+	            "scripts",
+	            "examples",
+	            "tests",
+	            "assets"
+	          ]
+	        },
         "validation_checklist": [
           {
             "id": "tax_001",
@@ -646,19 +644,17 @@
               "content_type": "markdown",
               "description": "Common issues like VPC networking delays and permission errors."
             }
-          ],
-          "directories": [
-            "references",  # v2 standard (replaces capabilities/)
-            "guides",  # v2 standard (replaces resources/)
-            "templates",  # v2 standard
-            "scripts",
-            "examples",
-            "tests",
-            "assets",
-            "capabilities",  # legacy
-            "resources"  # legacy
-          ]
-        },
+	          ],
+	          "directories": [
+	            "references",
+	            "guides",
+	            "templates",
+	            "scripts",
+	            "examples",
+	            "tests",
+	            "assets"
+	          ]
+	        },
         "validation_checklist": [
           {
             "id": "tax-001",
@@ -794,19 +790,17 @@
               "content_type": "json",
               "description": "Recommended labeling schema for Kubernetes resources."
             }
-          ],
-          "directories": [
-            "references",  # v2 standard (replaces capabilities/)
-            "guides",  # v2 standard (replaces resources/)
-            "templates",  # v2 standard
-            "scripts",
-            "examples",
-            "tests",
-            "assets",
-            "capabilities",  # legacy
-            "resources"  # legacy
-          ]
-        },
+	          ],
+	          "directories": [
+	            "references",
+	            "guides",
+	            "templates",
+	            "scripts",
+	            "examples",
+	            "tests",
+	            "assets"
+	          ]
+	        },
         "validation_checklist": [
           {
             "id": "val_001",

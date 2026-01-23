@@ -12,7 +12,7 @@ Frontmatter: ~100 tokens (name + description injected into XML prompt)
 Body by skill type: - Getting-started/frequent: <150 words - Standard skills: <500 words  
  - Complex technical: <5000 tokens (~500 lines max)
 
-Use capabilities/ for deep dives that load on demand.
+Use references/ and guides/ for deep dives that load on demand.
 
 ═══════════════════════════════════════════════════════════════════
 DIRECTORY STRUCTURE (skill-fleet convention)
@@ -21,18 +21,19 @@ DIRECTORY STRUCTURE (skill-fleet convention)
 skill-name/
 ├── SKILL.md # Required - main skill document
 ├── metadata.json # Optional - tooling metadata (see metadata*template.json)
-├── best_practices.md # Optional - supporting guidelines
-├── integration.md # Optional - integration patterns
-├── capabilities/ # Optional - deep-dive pattern docs (progressive disclosure)
-│ ├── pattern-one.md
-│ └── pattern-two.md
+├── references/ # Optional - deep-dive pattern docs, API refs (progressive disclosure)
+│ ├── quick-start.md
+│ ├── common-patterns.md
+│ └── capability-implementations/ # Optional - per-capability implementation notes
+├── guides/ # Optional - step-by-step workflows, troubleshooting
+│ ├── troubleshooting.md
+│ └── how-to-*.md
+├── templates/ # Optional - boilerplate for reuse
+├── scripts/ # Optional - runnable automation helpers
 ├── examples/ # Optional - runnable demos
 │ └── example-name/
 │ ├── README.md
 │ └── implementation files
-├── resources/ # Optional - reference materials
-│ ├── quick-reference.md
-│ └── troubleshooting.md
 └── tests/ # Optional - test scenarios for skill validation
 └── test*\*.json
 
@@ -195,13 +196,13 @@ digraph when_to_use {
 
 **Key insight:** {{key_insight}}
 
-{{!-- For complex skills with multiple patterns, link to capabilities/ --}}
+{{!-- For complex skills with multiple patterns, link to references/ --}}
 {{#if capabilities}}
 
-> **Deep dives:** See `capabilities/` for detailed pattern documentation:
+> **Deep dives:** See `references/` for detailed pattern documentation:
 > {{#each capabilities}}
 >
-> - [{{this}}](capabilities/{{this}}.md)
+> - [{{this}}](references/{{this}}.md)
 >   {{/each}}
 >   {{/if}}
 

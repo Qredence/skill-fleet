@@ -8,17 +8,31 @@
 # Option 1: Simple start (default)
 ./scripts/start-mlflow.sh
 
-# Option 2: Custom configuration
+# Option 2: External access (port 5001, recommended)
+./scripts/start-mlflow-public.sh
+
+# Option 3: Custom configuration
 uv run mlflow ui \
     --host localhost \
-    --port 5000 \
+    --port 5001 \
     --backend-store-uri sqlite:///mlflow.db \
     --default-artifact-root ./mlartifacts
 ```
 
+**Note:** Port 5000 is often used by macOS AirPlay/ControlCenter. Use port 5001 if needed.
+
 ### 2. Open MLflow UI
 
-Navigate to: **http://localhost:5000**
+Navigate to: **http://localhost:5001**
+
+**Note:** If port 5001 doesn't work, check:
+```bash
+# See what's using port 5001
+lsof -i :5001
+
+# Try alternative ports
+uv run mlflow ui --port 5002
+```
 
 ### 3. Test DSPy Autologging
 

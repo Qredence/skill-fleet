@@ -13,16 +13,16 @@ if [ ! -d "mlruns" ]; then
 fi
 
 # Start MLflow UI with external access
-echo "✅ MLflow UI starting on http://0.0.0.0:5000"
-echo "🌐 Access from other machines via: http://$(hostname -f).local:5000 or http://$(ipconfig getifaddr en0 2>/dev/null | grep inet | awk '{print $2}'):5000"
+echo "✅ MLflow UI starting on http://0.0.0.0:5001 (port 5000 is used by AirPlay)"
+echo "🌐 Access from other machines via: http://$(hostname -f).local:5001 or http://$(ipconfig getifaddr en0 2>/dev/null | grep inet | awk '{print $2}'):5001"
 echo ""
-echo "⚠️  WARNING: Server is accessible from other devices on your network!"
+echo "⚠️  NOTE: Using port 5001 instead of 5000 (AirPlay uses 5000)"
 echo "Press Ctrl+C to stop the server"
 echo ""
 
 uv run mlflow ui \
     --host 0.0.0.0 \
-    --port 5000 \
+    --port 5001 \
     --backend-store-uri sqlite:///mlflow.db \
     --default-artifact-root ./mlartifacts \
     --allowed-hosts "*" \

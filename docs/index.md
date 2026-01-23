@@ -33,6 +33,11 @@ Skills Fleet's core workflow engine
 - **[DSPy Evaluation](dspy/evaluation.md)** - Quality metrics
 - **[DSPy Optimization](dspy/optimization.md)** - MIPROv2, GEPA, caching
 
+### Monitoring & Observability
+Tracking and debugging DSPy workflows
+
+- **[MLflow Setup Guide](MLFLOW_SETUP.md)** - DSPy autologging with MLflow 3.8.1+
+
 ### API
 Programmatic access to Skills Fleet
 
@@ -100,7 +105,8 @@ Project evolution and transition notes
 1. [System Overview](overview.md) - Architecture foundation
 2. [DSPy Overview](dspy/index.md) - Core framework
 3. [API Overview](api/index.md) - REST API
-4. [Contributing Guide](development/CONTRIBUTING.md) - Development workflow
+4. [MLflow Setup Guide](MLFLOW_SETUP.md) - DSPy tracking and observability
+5. [Contributing Guide](development/CONTRIBUTING.md) - Development workflow
 
 ### For AI Agents
 1. [AGENTS.md](../AGENTS.md) - Complete working guide
@@ -116,13 +122,14 @@ Project evolution and transition notes
 |---------|--------|--------------|
 | Getting Started | ✅ Complete | 2026-01-21 |
 | System Overview | ✅ Complete | 2026-01-21 |
-| DSPy Framework | ✅ Complete | 2026-01-21 |
+| DSPy Framework | ✅ Complete | 2026-01-23 |
+| Monitoring & Observability | ✅ Complete | 2026-01-23 |
 | API Documentation | ✅ Complete | 2026-01-12 |
 | CLI Documentation | ✅ Complete | 2026-01-14 |
 | LLM Configuration | ✅ Complete | 2026-01-15 |
 | HITL System | ✅ Complete | 2026-01-12 |
 | Concept Guides | ✅ Complete | 2026-01-21 |
-| Development | ✅ Complete | 2026-01-21 |
+| Development | ✅ Complete | 2026-01-23 |
 
 ---
 

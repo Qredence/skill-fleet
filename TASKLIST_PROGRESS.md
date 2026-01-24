@@ -3,7 +3,7 @@
 **Branch**: `feature/fastapi-centric-restructure`
 **Started**: January 23, 2026
 **Last Updated**: January 24, 2026
-**Status**: In Progress (3 of 11 tasks complete)
+**Status**: In Progress (4 of 11 tasks complete)
 
 ---
 
@@ -24,7 +24,7 @@ This restructure transitions the codebase from a legacy DSPy program-based archi
 
 ## Task Progress
 
-### ✅ COMPLETED (3/11 tasks)
+### ✅ COMPLETED (4/11 tasks)
 
 #### Task #1: Phase 1 - Restructure DSPy Signatures by Task
 **Status**: ✅ Complete
@@ -112,19 +112,58 @@ phase3_result = await qa_orchestrator.validate_and_refine(...)
 
 **Test results:** 491 passing (was 442, +49 new)
 
+#### Task #3/#6: Phase 3 - Separate Domain Logic
+**Status**: ✅ Complete
+**Commit**: `feat: Implement domain layer with DDD patterns and specifications`
+**Date**: January 24, 2026
+**Effort**: ~1 day
+
+**Created complete domain layer following Domain-Driven Design principles:**
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| Domain Models | `domain/models/__init__.py` | Enums, value objects, entities, events |
+| Repository Interfaces | `domain/repositories/__init__.py` | Data access abstractions |
+| Domain Services | `domain/services/__init__.py` | Business logic services |
+| Domain Specifications | `domain/specifications/__init__.py` | Composable business rules |
+
+**Domain Models:**
+- Enums: `SkillType`, `SkillWeight`, `LoadPriority`, `JobStatus`
+- Value Objects: `TaxonomyPath` (with validation and security)
+- Entities: `SkillMetadata`, `Skill`, `Job`
+- Domain Events: `DomainEvent`, `SkillCreatedEvent`, `JobCompletedEvent`
+
+**Repository Interfaces:**
+- `SkillRepository`: find_by_id, find_by_taxonomy_path, save
+- `JobRepository`: find_by_id, find_pending_jobs, save
+- `TaxonomyRepository`: resolve_path, validate_dependencies
+
+**Domain Services:**
+- `SkillDomainService`: validate_skill_metadata, extract_artifacts_from_content
+- `JobDomainService`: can_transition_to, calculate_progress_percentage
+- `TaxonomyDomainService`: resolve_skill_location, build_tree
+
+**Domain Specifications (Specification Pattern):**
+- Base `Specification` class with AND, OR, NOT composition
+- Skill specs: `SkillHasValidName`, `SkillHasValidType`, `SkillHasValidTaxonomyPath`,
+  `SkillIsComplete`, `SkillIsReadyForPublication`
+- Job specs: `JobHasValidDescription`, `JobIsPending`, `JobIsRunning`, `JobIsTerminal`,
+  `JobCanBeStarted`, `JobCanBeRetried`, `JobRequiresHITL`, `JobIsStale`
+
+**Test Coverage:**
+- 19 tests for domain models (TaxonomyPath, SkillMetadata, Job, Skill, events)
+- 20 tests for specifications (individual and compositional)
+
+**Test results:** 530 passing (was 491, +39 new domain tests)
+
+**Documentation:**
+- Added `TASKLIST_PROGRESS.md` with comprehensive progress tracking
+- Replaced `TRACKLIST.md` with `TASKLIST_PROGRESS.md`
+- Updated `.gitignore` for better repository hygiene
+
 ---
 
-### 🟡 PENDING (8/11 tasks)
-
-#### Task #3/#6: Phase 3 - Separate Domain Logic
-**Status**: Pending
-**Dependencies**: FastAPI wiring ✅
-**Effort Estimate**: 2-3 days
-
-- Separate business logic from API layer
-- Create domain services
-- Implement repository pattern
-- Add domain models
+### 🟡 PENDING (7/11 tasks)
 
 #### Task #9: Phase 6 - Restructure CLI as Alternative Interface
 **Status**: Pending
@@ -173,9 +212,10 @@ phase3_result = await qa_orchestrator.validate_and_refine(...)
 
 | Metric | Before | After | Change |
 |--------|--------|-------|--------|
-| Total Tests | 442 | 491 | +49 |
+| Total Tests | 442 | 530 | +88 |
 | Workflows Tests | 0 | 49 | +49 |
-| Passing | 442 | 491 | +49 |
+| Domain Tests | 0 | 39 | +39 |
+| Passing | 442 | 530 | +88 |
 | Failing | 0 | 0 | — |
 
 ---
@@ -183,26 +223,24 @@ phase3_result = await qa_orchestrator.validate_and_refine(...)
 ## Recent Commits
 
 ```
+b1b2324 feat: Implement domain layer with DDD patterns and specifications
 7040e59 test: Add comprehensive test coverage for workflows layer orchestrators
 b30f313 feat: Wire FastAPI V1 routes to workflows layer
 a19382e fix: Fix type issues in TaskAnalysisOrchestrator MLflow integration
 7b5864a test: Fix integration test assertion for Pydantic model field check
 5299660 docs: Complete documentation reorganization and add workflows layer docs
-a623e0e fix: Support both 2-arg and 3-arg forms for log_parameter
-0a8384d refactor: Implement FastAPI-centric app structure and task-based DSPy organization
 ```
 
 ---
 
 ## Next Steps
 
-**Recommended next task:** Task #3/#6 - Phase 3: Separate Domain Logic
+**Recommended next task:** Task #9 - Phase 6: Restructure CLI as Alternative Interface
 
-This task depends on the completed FastAPI wiring and will create a clean separation between:
-- **Presentation layer** (FastAPI routes)
-- **Service layer** (orchestration)
-- **Domain layer** (business logic)
-- **Data layer** (repositories)
+This task will make the CLI use the same orchestrators as the API, removing duplicated logic:
+- **CLI as thin wrapper** around workflows layer
+- **Shared service layer** between API and CLI
+- **Removed duplicated** workflow logic
 
 ---
 

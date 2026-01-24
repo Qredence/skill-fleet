@@ -51,17 +51,29 @@ def get_taxonomy_manager(
     return _get_taxonomy_manager(skills_root)
 
 
+def get_skill_service(
+    skills_root: Annotated[Path, Depends(get_skills_root)],
+    drafts_root: Annotated[Path, Depends(get_drafts_root)],
+):
+    """Get a SkillService instance."""
+    from .services.skill_service import SkillService
+    return SkillService(skills_root=skills_root, drafts_root=drafts_root)
+
+
 # Type aliases for use with Depends
 DraftsRoot = Annotated[Path, Depends(get_drafts_root)]
 SkillsRoot = Annotated[Path, Depends(get_skills_root)]
 TaxonomyManagerDep = Annotated[Path, Depends(get_taxonomy_manager)]
+SkillServiceDep = Annotated[object, Depends(get_skill_service)]
 
 __all__ = [
     "get_settings",
     "get_skills_root",
     "get_drafts_root",
     "get_taxonomy_manager",
+    "get_skill_service",
     "DraftsRoot",
     "SkillsRoot",
     "TaxonomyManagerDep",
+    "SkillServiceDep",
 ]

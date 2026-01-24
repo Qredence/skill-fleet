@@ -6,39 +6,37 @@ Welcome to the Skills Fleet documentation hub. This index provides quick access 
 
 - **[Project README](../README.md)** - High-level overview and quick start
 - **[AGENTS.md](../AGENTS.md)** - Comprehensive working guide for AI agents
-- **[Introduction](intro/introduction.md)** - System introduction and navigation
 
 ## Documentation by Category
 
-### Getting Started
+### 🚀 Getting Started
 For new users setting up and using Skills Fleet
 
-- **[Getting Started Guide](getting-started/index.md)** - Installation, quick start, templates, and validation
-- **[CLI Quick Reference](cli/commands.md)** - Command cheat sheet and basic usage
+- **[Getting Started Guide](getting-started/index.md)** - Installation, quick start, templates
+- **[MLflow Setup Guide](getting-started/MLFLOW_SETUP.md)** - DSPy autologging with MLflow
+- **[Streaming Quickstart](getting-started/STREAMING_QUICKSTART.md)** - Real-time skill creation
 
-### Core Architecture
+### 🏗️ Architecture
 Understanding how Skills Fleet works
 
-- **[System Overview](overview.md)** - Architecture, taxonomy model, and concepts
-- **[Introduction](intro/introduction.md)** - System introduction and documentation map
-- **[Developer Reference](concepts/developer-reference.md)** - Development workflows and patterns
+- **[Workflow Layer](workflows/)** - New orchestrators for DSPy workflows
+- **[Skill Creation Workflow](architecture/skill-creation-workflow.md)** - 3-phase workflow details
+- **[Background Jobs](architecture/BACKGROUND_JOBS.md)** - Async job processing
+- **[Database Sync](architecture/DATABASE_SYNC.md)** - Data synchronization
+- **[Job Persistence](architecture/JOB_PERSISTENCE.md)** - Job state management
+- **[Streaming Architecture](architecture/STREAMING_ARCHITECTURE.md)** - Real-time updates
 
-### DSPy Framework
+### 🔧 DSPy Framework
 Skills Fleet's core workflow engine
 
-- **[DSPy Overview](dspy/index.md)** - DSPy integration in Skills Fleet
-- **[DSPy Signatures](dspy/signatures.md)** - Input/output contracts
+- **[DSPy Overview](dspy/index.md)** - DSPy 3.1.2+ integration
+- **[DSPy Signatures](dspy/signatures.md)** - Task-based signature organization
 - **[DSPy Modules](dspy/modules.md)** - Execution strategies
-- **[DSPy Programs](dspy/programs.md)** - Orchestrators
-- **[DSPy Evaluation](dspy/evaluation.md)** - Quality metrics
-- **[DSPy Optimization](dspy/optimization.md)** - MIPROv2, GEPA, caching
+- **[DSPy Programs](dspy/programs.md)** - High-level orchestrators
+- **[DSPy Optimization](dspy/optimization.md)** - MIPROv2, GEPA, auto-selection
+- **[Adaptive Metric Weighting](dspy/ADAPTIVE_METRIC_WEIGHTING.md)** - Dynamic metrics
 
-### Monitoring & Observability
-Tracking and debugging DSPy workflows
-
-- **[MLflow Setup Guide](MLFLOW_SETUP.md)** - DSPy autologging with MLflow 3.8.1+
-
-### API
+### 📡 API
 Programmatic access to Skills Fleet
 
 - **[API Overview](api/index.md)** - REST API introduction
@@ -47,15 +45,17 @@ Programmatic access to Skills Fleet
 - **[API Middleware](api/middleware.md)** - CORS and error handling
 - **[Background Jobs](api/jobs.md)** - Job system documentation
 
-### CLI
+### 💻 CLI
 Command-line interface for skill creation
 
 - **[CLI Overview](cli/index.md)** - CLI introduction
 - **[Command Reference](cli/commands.md)** - All commands detailed
 - **[Interactive Chat](cli/interactive-chat.md)** - Chat mode guide
 - **[CLI Architecture](cli/architecture.md)** - Internal structure
+- **[CLI Sync Commands](cli/CLI_SYNC_COMMANDS.md)** - Synchronous operations
+- **[Dev Command](cli/dev-command.md)** - Development utilities
 
-### LLM Configuration
+### ⚙️ LLM Configuration
 Language model setup and DSPy configuration
 
 - **[LLM Overview](llm/index.md)** - Configuration introduction
@@ -63,7 +63,7 @@ Language model setup and DSPy configuration
 - **[DSPy Configuration](llm/dspy-config.md)** - Centralized config system
 - **[Task-Specific Models](llm/task-models.md)** - Task model mapping
 
-### Human-in-the-Loop (HITL)
+### 🤝 Human-in-the-Loop (HITL)
 Interactive skill creation workflow
 
 - **[HITL Overview](hitl/index.md)** - HITL system introduction
@@ -71,24 +71,24 @@ Interactive skill creation workflow
 - **[HITL Interactions](hitl/interactions.md)** - Interaction types
 - **[HITL Runner](hitl/runner.md)** - Implementation details
 
-### Concept Guides
+### 📚 Concept Guides
 Deep dives into specific concepts
 
 - **[Concept Guide](concepts/concept-guide.md)** - Core concepts overview
-- **[agentskills.io Compliance](concepts/agentskills-compliance.md)** - Schema and validation rules
+- **[agentskills.io Compliance](concepts/agentskills-compliance.md)** - Schema and validation
 - **[Developer Reference](concepts/developer-reference.md)** - Development patterns
 
-### Development
+### 🛠️ Development
 Contributing and extending Skills Fleet
 
 - **[Contributing Guide](development/CONTRIBUTING.md)** - Development setup and workflows
-- **[Architecture Decisions](development/ARCHITECTURE_DECISIONS.md)** - Design decisions and rationale
-- **[Skill Creation Workflow](architecture/skill-creation-workflow.md)** - 3-phase workflow details
+- **[Architecture Decisions](development/ARCHITECTURE_DECISIONS.md)** - Design decisions
+- **[Restructuring Status](architecture/restructuring-status.md)** - Current restructure progress
 
-### Migration & Notes
+### 📋 Migration & Notes
 Project evolution and transition notes
 
-- **[Migration Guide](migration/skill-format-v2-updated.md)** - Format migration documentation
+- **[Migration Guide](migration/skill-format-v2-updated.md)** - Format migration
 - **[Project Notes](notes/)** - Implementation notes and summaries
 
 ---
@@ -97,22 +97,21 @@ Project evolution and transition notes
 
 ### For New Users
 1. [Getting Started Guide](getting-started/index.md) - Set up your environment
-2. [System Overview](overview.md) - Understand the architecture
-3. [CLI Overview](cli/index.md) - Learn command usage
+2. [Workflow Layer](workflows/) - Learn the orchestrator pattern
+3. [CLI Overview](cli/index.md) - Command usage
 4. [Create Your First Skill](getting-started/index.md#core-user-workflows) - Hands-on practice
 
 ### For Developers
-1. [System Overview](overview.md) - Architecture foundation
+1. [Workflow Layer](workflows/) - New architecture
 2. [DSPy Overview](dspy/index.md) - Core framework
 3. [API Overview](api/index.md) - REST API
-4. [MLflow Setup Guide](MLFLOW_SETUP.md) - DSPy tracking and observability
-5. [Contributing Guide](development/CONTRIBUTING.md) - Development workflow
+4. [Contributing Guide](development/CONTRIBUTING.md) - Development workflow
 
 ### For AI Agents
 1. [AGENTS.md](../AGENTS.md) - Complete working guide
-2. [System Overview](overview.md) - Architecture and taxonomy
+2. [Workflow Layer](workflows/) - Orchestrator usage
 3. [DSPy Overview](dspy/index.md) - 3-phase workflow
-4. [Developer Reference](concepts/developer-reference.md) - Development patterns
+4. [agentskills.io Compliance](concepts/agentskills-compliance.md) - Skill schema
 
 ---
 
@@ -120,10 +119,9 @@ Project evolution and transition notes
 
 | Section | Status | Last Updated |
 |---------|--------|--------------|
-| Getting Started | ✅ Complete | 2026-01-21 |
-| System Overview | ✅ Complete | 2026-01-21 |
+| Getting Started | ✅ Complete | 2026-01-23 |
+| Architecture | ✅ Complete | 2026-01-23 |
 | DSPy Framework | ✅ Complete | 2026-01-23 |
-| Monitoring & Observability | ✅ Complete | 2026-01-23 |
 | API Documentation | ✅ Complete | 2026-01-12 |
 | CLI Documentation | ✅ Complete | 2026-01-14 |
 | LLM Configuration | ✅ Complete | 2026-01-15 |
@@ -133,13 +131,11 @@ Project evolution and transition notes
 
 ---
 
-## Need Help?
+**Last Updated**: 2026-01-23
+**Version**: Current (Post-Restructure)
 
-- **[GitHub Issues](https://github.com/Qredence/skill-fleet/issues)** - Bug reports and feature requests
-- **[AGENTS.md](../AGENTS.md)** - Working guide for AI agents and developers
-- **[System Overview](overview.md)** - Architecture and concepts
-
----
-
-**Last Updated**: 2026-01-21
-**Version**: Current
+**Recent Changes:**
+- ✅ Phase 1 & 2 restructure complete (task-based signatures + workflows layer)
+- ✅ MLflow integration fixed and verified
+- ✅ Documentation reorganized for clarity
+- ✅ Legacy facade and compat layers removed

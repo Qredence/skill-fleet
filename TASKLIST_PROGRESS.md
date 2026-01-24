@@ -3,7 +3,7 @@
 **Branch**: `feature/fastapi-centric-restructure`
 **Started**: January 23, 2026
 **Last Updated**: January 24, 2026
-**Status**: In Progress (4 of 11 tasks complete)
+**Status**: In Progress (6 of 11 main tasks complete)
 
 ---
 
@@ -24,7 +24,7 @@ This restructure transitions the codebase from a legacy DSPy program-based archi
 
 ## Task Progress
 
-### ✅ COMPLETED (4/11 tasks)
+### ✅ COMPLETED (5/11 tasks)
 
 #### Task #1: Phase 1 - Restructure DSPy Signatures by Task
 **Status**: ✅ Complete
@@ -161,19 +161,39 @@ phase3_result = await qa_orchestrator.validate_and_refine(...)
 - Replaced `TRACKLIST.md` with `TASKLIST_PROGRESS.md`
 - Updated `.gitignore` for better repository hygiene
 
+#### Task #9: Phase 6 - Restructure CLI as Alternative Interface
+**Status**: ✅ Complete
+**Commit**: `feat: Add v1 API endpoints and update CLI to use v1`
+**Date**: January 24, 2026
+**Effort**: ~0.5 days
+
+**Added v1 API endpoints for CLI operations:**
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| HITL Router | `app/api/v1/hitl/router.py` | Human-in-the-loop interactions |
+| Jobs Router | `app/api/v1/jobs/router.py` | Job status and management |
+| Drafts Router | `app/api/v1/drafts/router.py` | Draft promotion |
+
+**CLI Client Update:**
+- Updated `cli/client.py` to use v1 endpoints instead of v2:
+  - `/api/v2/skills/create` → `/api/v1/skills/`
+  - `/api/v2/hitl/{job_id}/prompt` → `/api/v1/hitl/{job_id}/prompt`
+  - `/api/v2/hitl/{job_id}/response` → `/api/v1/hitl/{job_id}/response`
+  - `/api/v2/jobs/{job_id}` → `/api/v1/jobs/{job_id}`
+  - `/api/v2/drafts/{job_id}/promote` → `/api/v1/drafts/{job_id}/promote`
+
+**Key Design Decisions:**
+- v1 endpoints reuse the same jobs/HITL infrastructure as v2 (shared across API versions)
+- CLI remains a thin wrapper around the API - no workflow logic duplicated
+- The jobs module and job manager are API-version agnostic
+- v1 endpoints are organized by domain (hitl, jobs, drafts) for better separation
+
+**Test results:** 530 passing (all 47 CLI tests continue to pass with v1 endpoints)
+
 ---
 
-### 🟡 PENDING (7/11 tasks)
-
-#### Task #9: Phase 6 - Restructure CLI as Alternative Interface
-**Status**: Pending
-**Dependencies**: FastAPI ✅, Workflows ✅
-**Effort Estimate**: 2-3 days
-
-- CLI should use same orchestrators as API
-- Remove duplicated logic
-- Share service layer
-- CLI as thin wrapper around workflows
+### 🟡 PENDING (6/11 tasks)
 
 #### Task #10: Phase 7 - Update Import Paths Throughout Codebase
 **Status**: Pending
@@ -223,24 +243,24 @@ phase3_result = await qa_orchestrator.validate_and_refine(...)
 ## Recent Commits
 
 ```
+7753f1a feat: Add v1 API endpoints and update CLI to use v1
 b1b2324 feat: Implement domain layer with DDD patterns and specifications
+0b1dbc1 docs: Update progress with domain layer completion (4/11 tasks)
 7040e59 test: Add comprehensive test coverage for workflows layer orchestrators
 b30f313 feat: Wire FastAPI V1 routes to workflows layer
-a19382e fix: Fix type issues in TaskAnalysisOrchestrator MLflow integration
-7b5864a test: Fix integration test assertion for Pydantic model field check
-5299660 docs: Complete documentation reorganization and add workflows layer docs
 ```
 
 ---
 
 ## Next Steps
 
-**Recommended next task:** Task #9 - Phase 6: Restructure CLI as Alternative Interface
+**Recommended next task:** Task #10 - Phase 7: Update Import Paths Throughout Codebase
 
-This task will make the CLI use the same orchestrators as the API, removing duplicated logic:
-- **CLI as thin wrapper** around workflows layer
-- **Shared service layer** between API and CLI
-- **Removed duplicated** workflow logic
+This task will update imports across the codebase to use the new structure:
+- **Update imports** to new v1 API paths
+- **Fix circular** dependencies
+- **Update TYPE_CHECKING** blocks
+- **Verify all imports** resolve correctly
 
 ---
 

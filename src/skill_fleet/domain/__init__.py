@@ -1,22 +1,109 @@
 """
-Domain logic for Skills Fleet (non-DSPy business logic).
+Domain layer for skill-fleet.
 
-This package contains business logic independent of DSPy:
+This package contains the core business domain logic, separated from
+API and infrastructure concerns.
 
-- skill/: Skill domain logic
-  - creator.py: Skill creation orchestration
-  - models.py: Domain models (SkillMetadata, etc.)
-  - repository/: Skill storage/retrieval
-
-- taxonomy/: Taxonomy management
-  - manager.py: Adaptive taxonomy logic
-  - adaptive.py: User-specific taxonomy adaptation
-
-- quality/: Quality evaluation logic
-  - evaluators.py: Quality evaluators
-  - metrics.py: Quality metrics
+Architecture:
+- models: Domain entities and value objects
+- repositories: Data access abstractions
+- services: Domain business logic
+- specifications: Business rules and validations
 """
 
 from __future__ import annotations
 
-__all__: list[str] = []
+# Models
+from .models import (
+    DomainEvent,
+    Job,
+    JobCompletedEvent,
+    JobStatus,
+    Skill,
+    SkillCreatedEvent,
+    SkillMetadata,
+    SkillType,
+    SkillWeight,
+    LoadPriority,
+    TaxonomyPath,
+)
+
+# Repositories
+from .repositories import (
+    JobRepository,
+    SkillRepository,
+    TaxonomyRepository,
+)
+
+# Services
+from .services import (
+    JobDomainService,
+    SkillDomainService,
+    TaxonomyDomainService,
+)
+
+# Specifications
+from .specifications import (
+    Specification,
+    AndSpecification,
+    OrSpecification,
+    NotSpecification,
+    SkillSpecification,
+    SkillHasValidName,
+    SkillHasValidType,
+    SkillHasValidTaxonomyPath,
+    SkillIsComplete,
+    SkillIsReadyForPublication,
+    JobSpecification,
+    JobHasValidDescription,
+    JobIsPending,
+    JobIsRunning,
+    JobIsTerminal,
+    JobCanBeStarted,
+    JobCanBeRetried,
+    JobRequiresHITL,
+    JobIsStale,
+)
+
+__all__ = [
+    # Models
+    "DomainEvent",
+    "Job",
+    "JobCompletedEvent",
+    "JobStatus",
+    "Skill",
+    "SkillCreatedEvent",
+    "SkillMetadata",
+    "SkillType",
+    "SkillWeight",
+    "LoadPriority",
+    "TaxonomyPath",
+    # Repositories
+    "JobRepository",
+    "SkillRepository",
+    "TaxonomyRepository",
+    # Services
+    "JobDomainService",
+    "SkillDomainService",
+    "TaxonomyDomainService",
+    # Specifications
+    "Specification",
+    "AndSpecification",
+    "OrSpecification",
+    "NotSpecification",
+    "SkillSpecification",
+    "SkillHasValidName",
+    "SkillHasValidType",
+    "SkillHasValidTaxonomyPath",
+    "SkillIsComplete",
+    "SkillIsReadyForPublication",
+    "JobSpecification",
+    "JobHasValidDescription",
+    "JobIsPending",
+    "JobIsRunning",
+    "JobIsTerminal",
+    "JobCanBeStarted",
+    "JobCanBeRetried",
+    "JobRequiresHITL",
+    "JobIsStale",
+]

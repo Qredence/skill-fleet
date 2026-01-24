@@ -22,6 +22,11 @@ from .error_handling import (
     RobustModule,
     ValidatedModule,
 )
+from .generation import (
+    ContentGeneratorModule,
+    FeedbackIncorporatorModule,
+    Phase2GenerationModule,
+)
 from .hitl import (
     ClarifyingQuestionsModule,
     ConfirmUnderstandingModule,
@@ -39,11 +44,6 @@ from .understanding import (
     PlanSynthesizerModule,
     RequirementsGathererModule,
     TaxonomyPathFinderModule,
-)
-from .generation import (
-    ContentGeneratorModule,
-    FeedbackIncorporatorModule,
-    Phase2GenerationModule,
 )
 from .validation import (
     Phase3ValidationModule,

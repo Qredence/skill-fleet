@@ -1,4 +1,5 @@
-"""Conversational interface routes for v1 API.
+"""
+Conversational interface routes for v1 API.
 
 This module provides endpoints for chat and conversational interactions.
 These routes use the conversational workflow orchestrator.
@@ -38,6 +39,7 @@ async def send_message(request: SendMessageRequest) -> SendMessageResponse:
         - Use the conversational workflow orchestrator
         - Support session management
         - Return LLM responses
+
     """
     # TODO: Implement using workflows/conversational_interface/orchestrator.py
     return SendMessageResponse(
@@ -63,6 +65,7 @@ async def create_session(session_id: str) -> dict[str, str]:
         This is a placeholder. The full implementation should:
         - Create or retrieve session state
         - Initialize conversation context
+
     """
     # TODO: Implement session management
     return {"session_id": session_id, "status": "active"}
@@ -83,6 +86,7 @@ async def get_session_history(session_id: str) -> SessionHistoryResponse:
         This is a placeholder. The full implementation should:
         - Retrieve message history from session store
         - Return metadata about the session
+
     """
     # TODO: Implement session history retrieval
     return SessionHistoryResponse(

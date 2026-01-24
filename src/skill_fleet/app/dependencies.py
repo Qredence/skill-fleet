@@ -1,4 +1,5 @@
-"""FastAPI app dependencies.
+"""
+FastAPI app dependencies.
 
 This module provides dependency injection for the app layer.
 It delegates to the existing API dependencies in skill_fleet.api.dependencies.
@@ -9,7 +10,6 @@ application entry point (app/) and internal API implementation (api/).
 
 from __future__ import annotations
 
-from functools import lru_cache
 from pathlib import Path
 from typing import Annotated
 
@@ -17,7 +17,11 @@ from fastapi import Depends
 
 from ..api.dependencies import (
     get_drafts_root as _get_drafts_root,
+)
+from ..api.dependencies import (
     get_skills_root as _get_skills_root,
+)
+from ..api.dependencies import (
     get_taxonomy_manager as _get_taxonomy_manager,
 )
 

@@ -1,4 +1,5 @@
-"""FastAPI service layer.
+"""
+FastAPI service layer.
 
 This module contains service classes that bridge FastAPI routes to workflow orchestrators.
 Each service handles a specific domain of operations.

@@ -1,4 +1,5 @@
-"""Quality assurance routes for v1 API.
+"""
+Quality assurance routes for v1 API.
 
 This module provides endpoints for quality operations.
 These routes use quality workflow orchestrators.
@@ -40,6 +41,7 @@ async def validate(request: ValidateRequest) -> ValidateResponse:
         This is a placeholder. The full implementation should:
         - Use quality workflow for validation
         - Return detailed validation report
+
     """
     # TODO: Implement using quality workflow
     return ValidateResponse(
@@ -66,6 +68,7 @@ async def assess_quality(request: AssessQualityRequest) -> AssessQualityResponse
         This is a placeholder. The full implementation should:
         - Use quality workflow for assessment
         - Return multi-dimensional quality analysis
+
     """
     # TODO: Implement using quality workflow
     return AssessQualityResponse(
@@ -96,6 +99,7 @@ async def auto_fix(request: AutoFixRequest) -> AutoFixResponse:
         This is a placeholder. The full implementation should:
         - Use quality workflow for auto-fixing
         - Return fixed content with changelog
+
     """
     # TODO: Implement using quality workflow
     return AutoFixResponse(

@@ -1,4 +1,5 @@
-"""Signature optimization routes for v1 API.
+"""
+Signature optimization routes for v1 API.
 
 This module provides endpoints for signature optimization operations.
 These routes use signature optimization workflow orchestrators.
@@ -41,6 +42,7 @@ async def analyze_failures(request: AnalyzeFailuresRequest) -> AnalyzeFailuresRe
         - Use signature optimization workflow
         - Analyze failure patterns
         - Identify root causes
+
     """
     # TODO: Implement using signature optimization workflow
     return AnalyzeFailuresResponse(
@@ -70,6 +72,7 @@ async def improve_signature(request: ImproveRequest) -> ImproveResponse:
         - Use signature optimization workflow
         - Generate improvement proposals
         - Provide confidence scores
+
     """
     # TODO: Implement using signature optimization workflow
     return ImproveResponse(
@@ -97,6 +100,7 @@ async def compare_signatures(request: CompareRequest) -> CompareResponse:
         - Use signature optimization workflow
         - Run A/B tests
         - Return comparison metrics
+
     """
     # TODO: Implement using signature optimization workflow
     return CompareResponse(

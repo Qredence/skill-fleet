@@ -23,13 +23,13 @@ from ...core.dspy.modules.generation import (
     DEFAULT_SKILL_STYLE,
     Phase2GenerationModule,
 )
+from ...core.dspy.signatures.content_generation import SkillStyle
 from ...core.tracing.mlflow import (
     end_mlflow_run,
     log_parameter,
     log_phase_metrics,
     setup_mlflow_experiment,
 )
-from ...core.dspy.signatures.content_generation import SkillStyle
 
 logger = logging.getLogger(__name__)
 

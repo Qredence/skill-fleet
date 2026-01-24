@@ -1,4 +1,5 @@
-"""FastAPI service layer for skill creation operations.
+"""
+FastAPI service layer for skill creation operations.
 
 This service bridges FastAPI routes to the skill creation workflow orchestrators.
 It provides a clean API for skill creation, validation, and refinement operations.
@@ -18,13 +19,10 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, Field
-
 from ...core.dspy import SkillCreationProgram
 from ...core.models import SkillCreationResult
 from ...taxonomy.manager import TaxonomyManager
-from ...common.security import sanitize_taxonomy_path
-from ..schemas.skills import CreateSkillRequest, CreateSkillResponse
+from ..schemas.skills import CreateSkillRequest
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +41,7 @@ class SkillService:
         Args:
             skills_root: Root directory for skills taxonomy
             drafts_root: Root directory for draft skills
+
         """
         self.skills_root = skills_root
         self.drafts_root = drafts_root
@@ -64,6 +63,7 @@ class SkillService:
 
         Returns:
             SkillCreationResult: Result of the skill creation workflow
+
         """
         logger.info("Creating skill for user %s: %s", request.user_id, request.task_description[:100])
 
@@ -97,6 +97,7 @@ class SkillService:
 
         Returns:
             Path where draft skill was saved, or None if save failed
+
         """
         from ...api.routes.skills import _save_skill_to_draft
 
@@ -118,6 +119,7 @@ class SkillService:
 
         Raises:
             FileNotFoundError: If skill not found
+
         """
         # Resolve location (handles aliases + legacy paths via manager)
         canonical_path = self.taxonomy_manager.resolve_skill_location(path)

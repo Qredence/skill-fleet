@@ -1,4 +1,5 @@
-"""FastAPI app middleware.
+"""
+FastAPI app middleware.
 
 This module provides custom middleware for the app layer.
 It delegates to existing middleware in skill_fleet.api.middleware.

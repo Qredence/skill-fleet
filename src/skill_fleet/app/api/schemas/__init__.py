@@ -1,4 +1,5 @@
-"""Pydantic schemas for API v1 endpoints.
+"""
+Pydantic schemas for API v1 endpoints.
 
 This module contains request/response models for all v1 API endpoints.
 These schemas provide type safety and automatic validation for API operations.

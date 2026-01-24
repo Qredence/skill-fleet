@@ -123,12 +123,12 @@ class TaskAnalysisOrchestrator:
 
             # Log phase metrics if MLflow is enabled
             if enable_mlflow:
-                log_phase_metrics("task_analysis", {
-                    "requirements_gathered": bool(result.get("requirements")),
-                    "intent_analyzed": bool(result.get("intent")),
-                    "taxonomy_found": bool(result.get("taxonomy")),
-                    "dependencies_analyzed": bool(result.get("dependencies")),
-                    "plan_synthesized": bool(result.get("plan")),
+                log_phase_metrics("task_analysis", "complete", {
+                    "requirements_gathered": float(bool(result.get("requirements"))),
+                    "intent_analyzed": float(bool(result.get("intent"))),
+                    "taxonomy_found": float(bool(result.get("taxonomy"))),
+                    "dependencies_analyzed": float(bool(result.get("dependencies"))),
+                    "plan_synthesized": float(bool(result.get("plan"))),
                 })
 
                 # Log the plan as an artifact for review
@@ -137,6 +137,7 @@ class TaskAnalysisOrchestrator:
                     skill_metadata = plan.get("skill_metadata")
                     if skill_metadata:
                         log_phase_artifact(
+                            "task_analysis",
                             "skill_metadata",
                             f"Skill: {skill_metadata.get('name', 'N/A')}\n"
                             f"Type: {skill_metadata.get('type', 'N/A')}\n"
@@ -248,8 +249,6 @@ class TaskAnalysisOrchestrator:
         from ...core.dspy.modules.understanding import TaxonomyPathFinderModule
 
         finder = TaxonomyPathFinderModule()
-        existing_skills_json = str(existing_skills or [])
-        existing_skill_paths = [str(s) for s in existing_skills_json]
 
         if enable_mlflow:
             setup_mlflow_experiment("task-analysis-workflow")
@@ -258,7 +257,7 @@ class TaskAnalysisOrchestrator:
             result = finder.forward(
                 task_description=task_description,
                 taxonomy_structure=taxonomy_structure,
-                existing_skills=str(existing_skill_paths),
+                existing_skills=existing_skills or [],
             )
             return result
         finally:

@@ -1,4 +1,5 @@
-"""V1 API router.
+"""
+V1 API router.
 
 This module aggregates all v1 API routes into a single router.
 The v1 API follows the structure outlined in the main restructure plan.

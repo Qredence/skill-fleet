@@ -1,4 +1,5 @@
-"""Taxonomy management routes for v1 API.
+"""
+Taxonomy management routes for v1 API.
 
 This module provides endpoints for taxonomy operations.
 These routes use taxonomy service for managing skills taxonomy.
@@ -37,6 +38,7 @@ async def get_taxonomy() -> TaxonomyResponse:
         This is a placeholder. The full implementation should:
         - Use taxonomy service to retrieve taxonomy
         - Return hierarchical structure
+
     """
     # TODO: Implement using taxonomy service
     return TaxonomyResponse(
@@ -62,6 +64,7 @@ async def update_taxonomy(request: UpdateTaxonomyRequest) -> dict[str, str]:
         - Use taxonomy service to apply updates
         - Validate taxonomy structure
         - Return confirmation
+
     """
     # TODO: Implement using taxonomy service
     return {"status": "updated"}
@@ -84,6 +87,7 @@ async def get_user_taxonomy(
         This is a placeholder. The full implementation should:
         - Use adaptive taxonomy logic
         - Return user's personalized view
+
     """
     # TODO: Implement using taxonomy service
     return UserTaxonomyResponse(
@@ -114,6 +118,7 @@ async def adapt_taxonomy(
         - Use adaptive taxonomy logic
         - Analyze user patterns
         - Generate personalized suggestions
+
     """
     # TODO: Implement using adaptive taxonomy service
     return AdaptTaxonomyResponse(

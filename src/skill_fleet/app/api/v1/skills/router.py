@@ -1,4 +1,5 @@
-"""Skill creation and management routes for v1 API.
+"""
+Skill creation and management routes for v1 API.
 
 This module provides endpoints for skill operations.
 These routes use skill workflow orchestrators via the service layer.
@@ -53,6 +54,7 @@ async def create_skill(
         - Create a job in the job manager
         - Execute skill creation workflow via skill service
         - Return job_id for polling status
+
     """
     # TODO: Implement using skill service and workflows
     # For now, return a placeholder job_id
@@ -80,6 +82,7 @@ async def get_skill(skill_id: str) -> SkillDetailResponse:
         This is a placeholder. The full implementation should:
         - Use skill service to retrieve skill
         - Return skill metadata and content
+
     """
     # TODO: Implement using skill service
     raise HTTPException(status_code=404, detail=f"Skill not found: {skill_id}")
@@ -101,6 +104,7 @@ async def update_skill(skill_id: str) -> dict[str, str]:
         - Validate skill exists
         - Update skill metadata/content
         - Return updated skill info
+
     """
     # TODO: Implement using skill service
     return {"skill_id": skill_id, "status": "updated"}
@@ -125,6 +129,7 @@ async def validate_skill(
         This is a placeholder. The full implementation should:
         - Use quality workflow for validation
         - Return validation report
+
     """
     # TODO: Implement using quality workflow
     return ValidateSkillResponse(
@@ -155,6 +160,7 @@ async def refine_skill(
         - Create refinement job
         - Apply feedback via refinement workflow
         - Return job_id for tracking
+
     """
     # TODO: Implement using refinement workflow
     import uuid

@@ -23,6 +23,7 @@ import dspy
 from ...common.async_utils import run_async
 from ...common.paths import default_config_root
 from ..models import SkillCreationResult
+from .modules.generation import Phase2GenerationModule
 from .modules.hitl import (
     ConfirmUnderstandingModule,
     FeedbackAnalyzerModule,
@@ -33,7 +34,6 @@ from .modules.hitl import (
     ValidationFormatterModule,
 )
 from .modules.understanding import Phase1UnderstandingModule
-from .modules.generation import Phase2GenerationModule
 from .modules.validation import Phase3ValidationModule
 from .signatures.human_in_the_loop import GenerateHITLQuestions
 

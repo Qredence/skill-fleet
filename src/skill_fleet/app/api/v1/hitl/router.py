@@ -17,100 +17,70 @@ import asyncio
 from typing import Any
 
 from fastapi import APIRouter
+from pydantic import BaseModel, Field
 
-from ....api.job_manager import get_job_manager
-from ....api.jobs import notify_hitl_response
-from ....api.schemas import StructuredQuestion, normalize_questions
-from ....api.exceptions import NotFoundException
+from .....api.job_manager import get_job_manager
+from .....api.jobs import notify_hitl_response
+from .....api.schemas import StructuredQuestion, normalize_questions
+from .....api.exceptions import NotFoundException
 
 router = APIRouter()
 
 
-class HITLConfigResponse:
+class HITLConfigResponse(BaseModel):
     """
     Response model for HITL configuration endpoint.
 
     Contains the accepted keywords and patterns for intent detection.
     Enables UI clients to stay in sync with backend HITL configuration.
     """
-    def __init__(self, action_keywords: dict[str, list[str]]):
-        self.action_keywords = action_keywords
+    action_keywords: dict[str, list[str]] = Field(
+        ...,
+        description="Keywords for detecting user intent (proceed, revise, cancel)",
+    )
 
 
-class HITLPromptResponse:
+class HITLPromptResponse(BaseModel):
     """
     Response model for HITL prompt endpoint.
 
     This model contains all possible fields across different interaction types.
     Fields are optional since different interaction types use different subsets.
     """
-    def __init__(
-        self,
-        status: str,
-        type: str | None = None,
-        current_phase: str | None = None,
-        progress_message: str | None = None,
-        questions: list[StructuredQuestion] | None = None,
-        rationale: str | None = None,
-        summary: str | None = None,
-        path: str | None = None,
-        key_assumptions: list[str] | None = None,
-        content: str | None = None,
-        highlights: list[str] | None = None,
-        report: str | None = None,
-        passed: bool | None = None,
-        skill_content: str | None = None,
-        intended_taxonomy_path: str | None = None,
-        draft_path: str | None = None,
-        final_path: str | None = None,
-        promoted: bool | None = None,
-        saved_path: str | None = None,
-        validation_passed: bool | None = None,
-        validation_status: str | None = None,
-        validation_score: float | None = None,
-        error: str | None = None,
-        # Deep understanding fields
-        question: str | None = None,
-        research_performed: list[Any] | None = None,
-        current_understanding: str | None = None,
-        readiness_score: float | None = None,
-        questions_asked: list[Any] | None = None,
-    ):
-        self.status = status
-        self.type = type
-        self.current_phase = current_phase
-        self.progress_message = progress_message
-        self.questions = questions
-        self.rationale = rationale
-        self.summary = summary
-        self.path = path
-        self.key_assumptions = key_assumptions
-        self.content = content
-        self.highlights = highlights
-        self.report = report
-        self.passed = passed
-        self.skill_content = skill_content
-        self.intended_taxonomy_path = intended_taxonomy_path
-        self.draft_path = draft_path
-        self.final_path = final_path
-        self.promoted = promoted
-        self.saved_path = saved_path
-        self.validation_passed = validation_passed
-        self.validation_status = validation_status
-        self.validation_score = validation_score
-        self.error = error
-        self.question = question
-        self.research_performed = research_performed
-        self.current_understanding = current_understanding
-        self.readiness_score = readiness_score
-        self.questions_asked = questions_asked
+    status: str = Field(..., description="Job status")
+    type: str | None = Field(None, description="HITL interaction type")
+    current_phase: str | None = Field(None, description="Current workflow phase")
+    progress_message: str | None = Field(None, description="Progress message")
+    questions: list[StructuredQuestion] | None = Field(None, description="Clarifying questions")
+    rationale: str | None = Field(None, description="Rationale for questions")
+    summary: str | None = Field(None, description="Understanding summary")
+    path: str | None = Field(None, description="Proposed taxonomy path")
+    key_assumptions: list[str] | None = Field(None, description="Key assumptions")
+    content: str | None = Field(None, description="Preview content")
+    highlights: list[str] | None = Field(None, description="Content highlights")
+    report: str | None = Field(None, description="Validation report")
+    passed: bool | None = Field(None, description="Validation passed")
+    skill_content: str | None = Field(None, description="Generated skill content")
+    intended_taxonomy_path: str | None = Field(None, description="Intended path")
+    draft_path: str | None = Field(None, description="Draft path")
+    final_path: str | None = Field(None, description="Final path")
+    promoted: bool | None = Field(None, description="Whether promoted")
+    saved_path: str | None = Field(None, description="Saved path")
+    validation_passed: bool | None = Field(None, description="Validation passed")
+    validation_status: str | None = Field(None, description="Validation status")
+    validation_score: float | None = Field(None, description="Validation score")
+    error: str | None = Field(None, description="Error message")
+    question: str | None = Field(None, description="Deep understanding question")
+    research_performed: list[Any] | None = Field(None, description="Research performed")
+    current_understanding: str | None = Field(None, description="Current understanding")
+    readiness_score: float | None = Field(None, description="Readiness score")
+    questions_asked: list[Any] | None = Field(None, description="Questions asked")
 
 
-class HITLResponseResult:
+class HITLResponseResult(BaseModel):
     """Response model for HITL response submission."""
-    def __init__(self, status: str, detail: str | None = None):
-        self.status = status
-        self.detail = detail
+    status: str = Field(..., description="Response status (accepted, ignored)")
+    detail: str | None = Field(None, description="Additional details")
 
 
 @router.get("/config")
@@ -160,7 +130,7 @@ async def get_prompt(job_id: str) -> HITLPromptResponse:
     raw_questions = hitl_data.get("questions")
     normalized_questions = normalize_questions(raw_questions) if raw_questions else None
 
-    response = HITLPromptResponse(
+    return HITLPromptResponse(
         status=job.status,
         type=job.hitl_type,
         # Progress tracking for CLI display
@@ -193,8 +163,6 @@ async def get_prompt(job_id: str) -> HITLPromptResponse:
         validation_score=job.validation_score,
         error=job.error,
     )
-
-    return response
 
 
 @router.post("/{job_id}/response")
@@ -245,7 +213,7 @@ async def post_response(job_id: str, response: dict) -> HITLResponseResult:
         job.status = "running"
 
     # Auto-save session on each HITL response
-    from ....api.jobs import save_job_session
+    from .....api.jobs import save_job_session
 
     save_job_session(job_id)
 

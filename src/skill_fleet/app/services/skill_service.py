@@ -24,18 +24,9 @@ from typing import TYPE_CHECKING, Any
 from ...core.models import SkillCreationResult
 from ...taxonomy.manager import TaxonomyManager
 
-if TYPE_CHECKING:
-    from ...workflows import (
-        ContentGenerationOrchestrator,
-        QualityAssuranceOrchestrator,
-        TaskAnalysisOrchestrator,
-    )
-    from ..schemas.skills import CreateSkillRequest
-
 logger = logging.getLogger(__name__)
 
-else:
-    # Runtime imports to avoid circular dependency
+if TYPE_CHECKING:
     from ...workflows import (
         ContentGenerationOrchestrator,
         QualityAssuranceOrchestrator,

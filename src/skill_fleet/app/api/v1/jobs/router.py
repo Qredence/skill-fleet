@@ -11,51 +11,35 @@ Endpoints:
 from __future__ import annotations
 
 from fastapi import APIRouter
+from pydantic import BaseModel, Field
 
-from ....api.exceptions import NotFoundException
-from ....api.jobs import get_job
+from .....api.exceptions import NotFoundException
+from .....api.jobs import get_job
 
 router = APIRouter()
 
 
-class JobDetailResponse:
+class JobDetailResponse(BaseModel):
     """
     Response model for job details.
 
     Contains all job status information including progress, results,
     and HITL interaction data.
     """
-    def __init__(
-        self,
-        job_id: str,
-        status: str,
-        task_description: str,
-        user_id: str,
-        current_phase: str | None = None,
-        progress_message: str | None = None,
-        error: str | None = None,
-        result: dict | None = None,
-        draft_path: str | None = None,
-        intended_taxonomy_path: str | None = None,
-        validation_passed: bool | None = None,
-        validation_status: str | None = None,
-        validation_score: float | None = None,
-        hitl_type: str | None = None,
-    ):
-        self.job_id = job_id
-        self.status = status
-        self.task_description = task_description
-        self.user_id = user_id
-        self.current_phase = current_phase
-        self.progress_message = progress_message
-        self.error = error
-        self.result = result
-        self.draft_path = draft_path
-        self.intended_taxonomy_path = intended_taxonomy_path
-        self.validation_passed = validation_passed
-        self.validation_status = validation_status
-        self.validation_score = validation_score
-        self.hitl_type = hitl_type
+    job_id: str = Field(..., description="Job ID")
+    status: str = Field(..., description="Job status")
+    task_description: str = Field(..., description="Task description")
+    user_id: str = Field(..., description="User ID")
+    current_phase: str | None = Field(None, description="Current phase")
+    progress_message: str | None = Field(None, description="Progress message")
+    error: str | None = Field(None, description="Error message")
+    result: dict | None = Field(None, description="Job result")
+    draft_path: str | None = Field(None, description="Draft path")
+    intended_taxonomy_path: str | None = Field(None, description="Intended taxonomy path")
+    validation_passed: bool | None = Field(None, description="Validation passed")
+    validation_status: str | None = Field(None, description="Validation status")
+    validation_score: float | None = Field(None, description="Validation score")
+    hitl_type: str | None = Field(None, description="HITL interaction type")
 
 
 @router.get("/{job_id}")

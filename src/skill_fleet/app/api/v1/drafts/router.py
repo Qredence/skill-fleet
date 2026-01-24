@@ -17,39 +17,30 @@ import tempfile
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
 
-from ....common.path_validation import resolve_path_within_root
+from .....common.path_validation import resolve_path_within_root
 from .....common.security import sanitize_taxonomy_path
-from ....api.dependencies import SkillsRoot, TaxonomyManagerDep
-from ....api.jobs import delete_job_session, get_job, save_job_session
+from .....api.dependencies import SkillsRoot, TaxonomyManagerDep
+from .....api.jobs import delete_job_session, get_job, save_job_session
 
 router = APIRouter()
 
 
-class PromoteDraftRequest:
+class PromoteDraftRequest(BaseModel):
     """Request model for promoting a draft."""
-    def __init__(
-        self,
-        overwrite: bool = True,
-        delete_draft: bool = False,
-        force: bool = False,
-    ):
-        self.overwrite = overwrite
-        self.delete_draft = delete_draft
-        self.force = force
+
+    overwrite: bool = Field(default=True, description="Overwrite existing skill if present")
+    delete_draft: bool = Field(default=False, description="Delete draft after promotion")
+    force: bool = Field(default=False, description="Force promotion even if validation failed")
 
 
-class PromoteDraftResponse:
+class PromoteDraftResponse(BaseModel):
     """Response model for draft promotion."""
-    def __init__(
-        self,
-        job_id: str,
-        status: str = "promoted",
-        final_path: str | None = None,
-    ):
-        self.job_id = job_id
-        self.status = status
-        self.final_path = final_path
+
+    job_id: str = Field(..., description="The job ID that was promoted")
+    status: str = Field(default="promoted", description="Promotion status")
+    final_path: str = Field(..., description="Final path where the skill was saved")
 
 
 def _safe_rmtree(path: Path) -> None:

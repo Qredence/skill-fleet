@@ -27,7 +27,7 @@ from ...schemas.skills import (
     ValidateSkillRequest,
     ValidateSkillResponse,
 )
-from ..dependencies import SkillServiceDep
+from .....app.dependencies import SkillServiceDep
 
 logger = logging.getLogger(__name__)
 

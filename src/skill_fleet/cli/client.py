@@ -25,14 +25,14 @@ class SkillFleetClient:
     async def create_skill(self, task: str, user_id: str = "default") -> dict[str, Any]:
         """Call the skill creation endpoint."""
         response = await self.client.post(
-            "/api/v2/skills/create", json={"task_description": task, "user_id": user_id}
+            "/api/v1/skills/", json={"task_description": task, "user_id": user_id}
         )
         response.raise_for_status()
         return response.json()
 
     async def get_hitl_prompt(self, job_id: str) -> dict[str, Any]:
         """Poll for a pending HITL prompt."""
-        response = await self.client.get(f"/api/v2/hitl/{job_id}/prompt")
+        response = await self.client.get(f"/api/v1/hitl/{job_id}/prompt")
         if response.status_code == 404:
             raise ValueError(
                 f"Job {job_id} not found. The server may have restarted and lost the job state."
@@ -44,13 +44,13 @@ class SkillFleetClient:
         self, job_id: str, response_data: dict[str, Any]
     ) -> dict[str, Any]:
         """Send a response to a HITL prompt."""
-        response = await self.client.post(f"/api/v2/hitl/{job_id}/response", json=response_data)
+        response = await self.client.post(f"/api/v1/hitl/{job_id}/response", json=response_data)
         response.raise_for_status()
         return response.json()
 
     async def list_skills(self) -> list[dict[str, Any]]:
         """List all skills from the taxonomy."""
-        response = await self.client.get("/api/v2/taxonomy/")
+        response = await self.client.get("/api/v1/taxonomy/")
         response.raise_for_status()
         payload = response.json()
         if isinstance(payload, dict) and isinstance(payload.get("skills"), list):
@@ -59,7 +59,7 @@ class SkillFleetClient:
 
     async def get_job(self, job_id: str) -> dict[str, Any]:
         """Fetch job status and any persisted artifacts/results."""
-        response = await self.client.get(f"/api/v2/jobs/{job_id}")
+        response = await self.client.get(f"/api/v1/jobs/{job_id}")
         if response.status_code == 404:
             raise ValueError(f"Job {job_id} not found.")
         response.raise_for_status()
@@ -75,7 +75,7 @@ class SkillFleetClient:
     ) -> dict[str, Any]:
         """Promote a draft created by a job into the real taxonomy."""
         response = await self.client.post(
-            f"/api/v2/drafts/{job_id}/promote",
+            f"/api/v1/drafts/{job_id}/promote",
             json={"overwrite": overwrite, "delete_draft": delete_draft, "force": force},
         )
         response.raise_for_status()

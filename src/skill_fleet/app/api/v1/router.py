@@ -10,6 +10,9 @@ Routes are organized by domain:
 - /api/v1/taxonomy - Taxonomy management
 - /api/v1/quality - Quality assurance
 - /api/v1/optimization - Signature optimization
+- /api/v1/hitl - Human-in-the-loop interactions
+- /api/v1/jobs - Job status and management
+- /api/v1/drafts - Draft promotion
 """
 
 from __future__ import annotations
@@ -17,6 +20,9 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from .conversational.router import router as conversational_router
+from .drafts.router import router as drafts_router
+from .hitl.router import router as hitl_router
+from .jobs.router import router as jobs_router
 from .optimization.router import router as optimization_router
 from .quality.router import router as quality_router
 from .skills.router import router as skills_router
@@ -30,3 +36,6 @@ router.include_router(skills_router, prefix="/skills", tags=["skills"])
 router.include_router(taxonomy_router, prefix="/taxonomy", tags=["taxonomy"])
 router.include_router(quality_router, prefix="/quality", tags=["quality"])
 router.include_router(optimization_router, prefix="/optimization", tags=["optimization"])
+router.include_router(hitl_router, prefix="/hitl", tags=["hitl"])
+router.include_router(jobs_router, prefix="/jobs", tags=["jobs"])
+router.include_router(drafts_router, prefix="/drafts", tags=["drafts"])

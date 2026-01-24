@@ -3,7 +3,7 @@
 **Branch**: `feature/fastapi-centric-restructure`
 **Started**: January 23, 2026
 **Last Updated**: January 24, 2026
-**Status**: In Progress (6 of 11 main tasks complete)
+**Status**: In Progress (7 of 11 main tasks complete)
 
 ---
 
@@ -24,7 +24,7 @@ This restructure transitions the codebase from a legacy DSPy program-based archi
 
 ## Task Progress
 
-### ✅ COMPLETED (5/11 tasks)
+### ✅ COMPLETED (7/11 main tasks)
 
 #### Task #1: Phase 1 - Restructure DSPy Signatures by Task
 **Status**: ✅ Complete
@@ -191,11 +191,36 @@ phase3_result = await qa_orchestrator.validate_and_refine(...)
 
 **Test results:** 530 passing (all 47 CLI tests continue to pass with v1 endpoints)
 
+#### Task #10: Phase 7 - Update Import Paths Throughout Codebase
+**Status**: ✅ Complete
+**Commit**: `fix: Fix import paths in v1 API routes and service layer`
+**Date**: January 24, 2026
+**Effort**: ~0.5 days
+
+**Fixed Issues:**
+1. Fixed invalid `else` block in `skill_service.py` (syntax error)
+2. Fixed import paths in v1 API routers (incorrect relative imports)
+3. Fixed Pydantic model usage in v1 routers (plain classes → BaseModel)
+
+**Import Path Fixes:**
+- From `app/api/v1/`, corrected paths to reach `skill_fleet/`: `....` → `.....` (5 dots)
+- From `app/api/v1/`, corrected paths to reach `app/`: `..` → `....` (4 dots)
+- Fixed `skills/router.py` dependencies import: `..dependencies` → `...app.dependencies`
+
+**Files Modified:**
+- `app/services/skill_service.py`: Removed invalid `else` block, moved logger
+- `app/api/v1/drafts/router.py`: Fixed imports + Pydantic models
+- `app/api/v1/hitl/router.py`: Fixed imports + Pydantic models
+- `app/api/v1/jobs/router.py`: Fixed imports + Pydantic models
+- `app/api/v1/skills/router.py`: Fixed dependencies import
+
+**Test Results:** 530 passing, all imports verified
+
 ---
 
-### 🟡 PENDING (6/11 tasks)
+### 🟡 PENDING (5/11 tasks)
 
-#### Task #10: Phase 7 - Update Import Paths Throughout Codebase
+#### Task #11: Phase 8 - MLflow Integration for Skill Creation
 **Status**: Pending
 **Dependencies**: FastAPI wiring ✅
 **Effort Estimate**: 1-2 days
@@ -243,24 +268,26 @@ phase3_result = await qa_orchestrator.validate_and_refine(...)
 ## Recent Commits
 
 ```
+d8cb8bb fix: Fix import paths in v1 API routes and service layer
 7753f1a feat: Add v1 API endpoints and update CLI to use v1
 b1b2324 feat: Implement domain layer with DDD patterns and specifications
 0b1dbc1 docs: Update progress with domain layer completion (4/11 tasks)
+485e978 docs: Update progress with CLI restructure completion (6/11 tasks)
 7040e59 test: Add comprehensive test coverage for workflows layer orchestrators
-b30f313 feat: Wire FastAPI V1 routes to workflows layer
 ```
 
 ---
 
 ## Next Steps
 
-**Recommended next task:** Task #10 - Phase 7: Update Import Paths Throughout Codebase
+**Recommended next task:** Task #11 - Phase 8: MLflow Integration for Skill Creation
 
-This task will update imports across the codebase to use the new structure:
-- **Update imports** to new v1 API paths
-- **Fix circular** dependencies
-- **Update TYPE_CHECKING** blocks
-- **Verify all imports** resolve correctly
+This task will enhance MLflow tracking for the skill creation workflow:
+- **Structured MLflow tracking** for 3-phase workflow
+- **Experiment organization** by phase and task type
+- **Run metadata** with context and parameters
+- **Artifact logging** for generated skills
+- **Metrics visualization** for quality scores
 
 ---
 

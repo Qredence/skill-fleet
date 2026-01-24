@@ -361,8 +361,8 @@ def main():
     # Step 1: Configure DSPy
     logger.info("\n📋 Step 1: Configure DSPy")
     lm = get_lm("gemini-3-flash-preview", temperature=1.0)
-    dspy.configure(lm=lm)
-    logger.info("✅ DSPy configured with Gemini 3 Flash")
+    dspy.configure(lm=lm, track_usage=True)
+    logger.info("✅ DSPy configured with Gemini 3 Flash (track_usage enabled)")
 
     # Step 2: Load data
     logger.info("\n📋 Step 2: Load Training Data")

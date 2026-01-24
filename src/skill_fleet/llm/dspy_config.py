@@ -81,8 +81,8 @@ def configure_dspy(
     lm = build_lm_for_task(config, default_task)
     adapter = _resolve_adapter(config, lm)
 
-    # Set DSPy global settings
-    dspy.configure(lm=lm, adapter=adapter)
+    # Set DSPy global settings with LM usage tracking (DSPy 3.1.2+)
+    dspy.configure(lm=lm, adapter=adapter, track_usage=True)
 
     # Optional: Set cache directory from environment if specified
     if cache_dir := os.environ.get("DSPY_CACHEDIR"):

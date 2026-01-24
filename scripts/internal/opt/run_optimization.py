@@ -269,7 +269,7 @@ def main():
     # 1. Configure DSPy with Gemini
     logger.info("Configuring DSPy with Gemini 3 Flash...")
     lm = get_lm("gemini-3-flash-preview", temperature=1.0)  # Gemini 3 requires temp=1.0
-    dspy.configure(lm=lm)
+    dspy.configure(lm=lm, track_usage=True)
 
     # 2. Load training data
     trainset = load_training_data("config/training/trainset_v4.json")

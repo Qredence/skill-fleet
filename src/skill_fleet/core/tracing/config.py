@@ -250,7 +250,7 @@ def get_phase1_lm() -> dspy.LM:
 
     Examples:
         >>> lm = get_phase1_lm()
-        >>> dspy.configure(lm=lm)
+        >>> dspy.configure(lm=lm, track_usage=True)
 
     """
     return get_reasoning_lm("skill_understand")
@@ -270,7 +270,7 @@ def get_phase2_lm() -> dspy.LM:
 
     Examples:
         >>> lm = get_phase2_lm()
-        >>> dspy.configure(lm=lm)
+        >>> dspy.configure(lm=lm, track_usage=True)
 
     """
     return get_reasoning_lm("skill_plan")

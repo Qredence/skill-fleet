@@ -237,9 +237,9 @@ def benchmark_miprov2(
 
     start_time = time.time()
 
-    # Configure LM
+    # Configure LM with usage tracking
     lm = get_lm("gemini-3-flash-preview", temperature=1.0)
-    dspy.configure(lm=lm)
+    dspy.configure(lm=lm, track_usage=True)
 
     # Create program
     program = SimpleSkillProgram()

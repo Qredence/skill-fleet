@@ -8,9 +8,9 @@ import dspy
 
 from skill_fleet.services.monitoring import MLflowContext, setup_dspy_autologging
 
-# Configure a simple LM
+# Configure a simple LM with usage tracking
 lm = dspy.LM("gemini/gemini-3-flash-preview", cache=False)
-dspy.configure(lm=lm)
+dspy.configure(lm=lm, track_usage=True)
 
 # Setup MLflow autologging (no tracking_uri needed for local backend)
 setup_dspy_autologging(

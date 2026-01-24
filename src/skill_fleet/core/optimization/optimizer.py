@@ -181,10 +181,10 @@ def optimize_with_miprov2(
 
     from .evaluation import load_trainset, skill_creation_metric, split_dataset
 
-    # Configure with approved model
+    # Configure with approved model and LM usage tracking
     lm = get_lm(model)
-    dspy.configure(lm=lm)
-    logger.info(f"Configured DSPy with model: {model}")
+    dspy.configure(lm=lm, track_usage=True)
+    logger.info(f"Configured DSPy with model: {model} (track_usage enabled)")
 
     # Use TrainingDataManager if available
     trainset_manager = TrainingDataManager(Path(trainset_path).parent)
@@ -278,10 +278,10 @@ def optimize_with_gepa(
     """
     from .evaluation import load_trainset, skill_creation_metric, split_dataset
 
-    # Configure with approved model
+    # Configure with approved model and LM usage tracking
     lm = get_lm(model)
-    dspy.configure(lm=lm)
-    logger.info(f"Configured DSPy with model: {model}")
+    dspy.configure(lm=lm, track_usage=True)
+    logger.info(f"Configured DSPy with model: {model} (track_usage enabled)")
 
     # Get reflection LM (stronger model for analysis)
     reflection_lm = get_lm(reflection_model, temperature=1.0)

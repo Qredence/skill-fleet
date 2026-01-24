@@ -260,9 +260,9 @@ def main():
     print("Testing DSPy configuration with sample run...")
 
     try:
-        # Configure LM
+        # Configure LM with usage tracking
         lm = get_lm("gemini-3-flash-preview", temperature=1.0)
-        dspy.configure(lm=lm)
+        dspy.configure(lm=lm, track_usage=True)
 
         # Create simple program
         class TestProgram(dspy.Module):

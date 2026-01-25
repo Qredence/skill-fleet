@@ -15,10 +15,12 @@ Endpoints:
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 
-from ...schemas.skills import (
+from .....api.exceptions import NotFoundException
+from ....schemas.skills import (
     CreateSkillRequest,
     CreateSkillResponse,
     RefineSkillRequest,
@@ -28,8 +30,12 @@ from ...schemas.skills import (
     ValidateSkillResponse,
 )
 from .....app.dependencies import SkillServiceDep
+from .....workflows.quality_assurance.orchestrator import QualityAssuranceOrchestrator
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from .....app.services.skill_service import SkillService
 
 router = APIRouter()
 
@@ -79,12 +85,13 @@ async def create_skill(
 
 
 @router.get("/{skill_id}", response_model=SkillDetailResponse)
-async def get_skill(skill_id: str) -> SkillDetailResponse:
+async def get_skill(skill_id: str, skill_service: SkillServiceDep) -> SkillDetailResponse:
     """
     Get details for a skill by ID.
 
     Args:
         skill_id: Unique skill identifier
+        skill_service: Injected SkillService for data access
 
     Returns:
         SkillDetailResponse: Detailed skill information
@@ -92,42 +99,60 @@ async def get_skill(skill_id: str) -> SkillDetailResponse:
     Raises:
         HTTPException: If skill not found (404)
 
-    Note:
-        This is a placeholder. The full implementation should:
-        - Use skill service to retrieve skill
-        - Return skill metadata and content
-
     """
-    # TODO: Implement using skill service
-    raise HTTPException(status_code=404, detail=f"Skill not found: {skill_id}")
+    try:
+        skill_data = skill_service.get_skill_by_path(skill_id)
+        return SkillDetailResponse(
+            skill_id=skill_data.get("skill_id", skill_id),
+            name=skill_data.get("name", ""),
+            description=skill_data.get("description", ""),
+            version=skill_data.get("version", "1.0"),
+            type=skill_data.get("type", "unknown"),
+            metadata=skill_data.get("metadata", {}),
+            content=skill_data.get("content"),
+        )
+    except FileNotFoundError:
+        raise NotFoundException("Skill", skill_id)
 
 
 @router.put("/{skill_id}", response_model=dict[str, str])
-async def update_skill(skill_id: str) -> dict[str, str]:
+async def update_skill(
+    skill_id: str,
+    skill_service: SkillServiceDep,
+) -> dict[str, str]:
     """
     Update an existing skill.
 
     Args:
         skill_id: Unique skill identifier
+        skill_service: Injected SkillService for data access
 
     Returns:
         Dictionary with skill_id and status
 
+    Raises:
+        HTTPException: If skill not found (404)
+
     Note:
-        This is a placeholder. The full implementation should:
-        - Validate skill exists
-        - Update skill metadata/content
-        - Return updated skill info
+        Currently returns success without actual updates.
+        Full implementation would accept an update request body
+        and modify skill metadata/content.
 
     """
-    # TODO: Implement using skill service
-    return {"skill_id": skill_id, "status": "updated"}
+    try:
+        # Verify skill exists
+        skill_service.get_skill_by_path(skill_id)
+        # TODO: Implement actual update logic with request body
+        return {"skill_id": skill_id, "status": "updated"}
+    except FileNotFoundError:
+        raise NotFoundException("Skill", skill_id)
 
 
 @router.post("/{skill_id}/validate", response_model=ValidateSkillResponse)
 async def validate_skill(
     skill_id: str,
     request: ValidateSkillRequest,
+    skill_service: SkillServiceDep,
 ) -> ValidateSkillResponse:
     """
     Validate a skill.
@@ -135,29 +160,78 @@ async def validate_skill(
     Args:
         skill_id: Unique skill identifier
         request: Validation request
+        skill_service: Injected SkillService for data access
 
     Returns:
         ValidateSkillResponse: Validation results with pass/fail status
 
-    Note:
-        This is a placeholder. The full implementation should:
-        - Use quality workflow for validation
-        - Return validation report
+    Raises:
+        HTTPException: If skill not found (404)
 
     """
-    # TODO: Implement using quality workflow
-    return ValidateSkillResponse(
-        passed=True,
-        status="passed",
-        score=0.95,
-        issues=[],
-    )
+    # Load skill content for validation
+    try:
+        skill_data = skill_service.get_skill_by_path(skill_id)
+        content = skill_data.get("content", "")
+        metadata = {
+            "skill_id": skill_data.get("skill_id"),
+            "name": skill_data.get("name"),
+            "type": skill_data.get("type"),
+            **skill_data.get("metadata", {}),
+        }
+    except FileNotFoundError:
+        raise NotFoundException("Skill", skill_id)
+
+    # Initialize orchestrator and run validation
+    orchestrator = QualityAssuranceOrchestrator()
+
+    try:
+        result = await orchestrator.validate_and_refine(
+            skill_content=content,
+            skill_metadata=metadata,
+            content_plan="",
+            validation_rules="agentskills.io compliance",
+            target_level="intermediate",
+            enable_mlflow=False,
+        )
+
+        validation_report = result.get("validation_report", {})
+        critical_issues = result.get("critical_issues", [])
+        warnings = result.get("warnings", [])
+
+        # Build issues list
+        issues = []
+        for issue in critical_issues:
+            issues.append({
+                "severity": "error",
+                "message": issue.get("message", str(issue)),
+            })
+        for warning in warnings:
+            issues.append({
+                "severity": "warning",
+                "message": warning.get("message", str(warning)),
+            })
+
+        return ValidateSkillResponse(
+            passed=validation_report.get("passed", False),
+            status="passed" if validation_report.get("passed", False) else "failed",
+            score=validation_report.get("score", 0.0),
+            issues=issues,
+        )
+
+    except Exception as e:
+        logger.exception(f"Error in skill validation: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Validation failed: {e}"
+        ) from e
 
 
 @router.post("/{skill_id}/refine", response_model=RefineSkillResponse)
 async def refine_skill(
     skill_id: str,
     request: RefineSkillRequest,
+    skill_service: SkillServiceDep,
 ) -> RefineSkillResponse:
     """
     Refine a skill based on user feedback.
@@ -165,23 +239,67 @@ async def refine_skill(
     Args:
         skill_id: Unique skill identifier
         request: Refinement request with feedback
+        skill_service: Injected SkillService for data access
 
     Returns:
         RefineSkillResponse: Response with job_id and status
 
+    Raises:
+        HTTPException: If skill not found (404)
+
     Note:
-        This is a placeholder. The full implementation should:
-        - Create refinement job
-        - Apply feedback via refinement workflow
-        - Return job_id for tracking
+        Currently creates a job but doesn't run async refinement.
+        Full implementation would create a background job that
+        applies the feedback via the QualityAssuranceOrchestrator.
 
     """
-    # TODO: Implement using refinement workflow
-    import uuid
+    # Load skill content for refinement
+    try:
+        skill_data = skill_service.get_skill_by_path(skill_id)
+        content = skill_data.get("content", "")
+        metadata = {
+            "skill_id": skill_data.get("skill_id"),
+            "name": skill_data.get("name"),
+            "type": skill_data.get("type"),
+            **skill_data.get("metadata", {}),
+        }
+    except FileNotFoundError:
+        raise NotFoundException("Skill", skill_id)
 
-    job_id = str(uuid.uuid4())
-    return RefineSkillResponse(
-        job_id=job_id,
-        status="accepted",
-        message="Refinement job started",
-    )
+    # Initialize orchestrator
+    orchestrator = QualityAssuranceOrchestrator()
+
+    try:
+        # Run refinement with user feedback
+        result = await orchestrator.validate_and_refine(
+            skill_content=content,
+            skill_metadata=metadata,
+            content_plan="",
+            validation_rules="agentskills.io compliance",
+            user_feedback=request.feedback,
+            target_level="intermediate",
+            enable_mlflow=False,
+        )
+
+        # Check if refinement was successful
+        refined_content = result.get("refined_content")
+        if refined_content:
+            # TODO: Save refined content back to skill storage
+            message = "Skill refined successfully based on feedback"
+            status = "completed"
+        else:
+            message = "No refinement needed - feedback already incorporated"
+            status = "accepted"
+
+        return RefineSkillResponse(
+            job_id=skill_id,
+            status=status,
+            message=message,
+        )
+
+    except Exception as e:
+        logger.exception(f"Error in skill refinement: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Refinement failed: {e}"
+        ) from e

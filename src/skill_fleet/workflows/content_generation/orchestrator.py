@@ -26,6 +26,8 @@ from ...core.dspy.modules.generation import (
 from ...core.dspy.signatures.content_generation import SkillStyle
 from ...core.tracing.mlflow import (
     end_mlflow_run,
+    get_mlflow_run_id,
+    log_lm_usage,
     log_parameter,
     log_phase_metrics,
     setup_mlflow_experiment,
@@ -82,8 +84,15 @@ class ContentGenerationOrchestrator:
             - validation_report: Initial validation results
 
         """
-        if enable_mlflow:
+        # Check if we're in child run mode (parent already started MLflow run)
+        is_child_run = get_mlflow_run_id() is not None if enable_mlflow else False
+
+        if enable_mlflow and not is_child_run:
             setup_mlflow_experiment("content-generation-workflow")
+            log_parameter("skill_style", skill_style)
+            log_parameter("has_user_feedback", len(user_feedback) > 0)
+        elif enable_mlflow and is_child_run:
+            # In child mode, just log parameters to the active child run
             log_parameter("skill_style", skill_style)
             log_parameter("has_user_feedback", len(user_feedback) > 0)
 
@@ -101,11 +110,14 @@ class ContentGenerationOrchestrator:
             )
 
             if enable_mlflow:
-                log_phase_metrics("content_generation", {
-                    "content_generated": bool(result.get("content")),
-                    "extra_files_generated": bool(result.get("extra_files")),
-                    "validation_performed": bool(result.get("validation_report")),
+                log_phase_metrics("content_generation", "complete", {
+                    "content_generated": float(bool(result.get("content"))),
+                    "extra_files_generated": float(bool(result.get("extra_files"))),
+                    "validation_performed": float(bool(result.get("validation_report"))),
                 })
+
+                # Log LM usage from the prediction
+                log_lm_usage(result, prefix="phase2_lm")
 
             return result
 
@@ -114,7 +126,7 @@ class ContentGenerationOrchestrator:
             raise
 
         finally:
-            if enable_mlflow:
+            if enable_mlflow and not is_child_run:
                 end_mlflow_run()
 
     def generate_sync(

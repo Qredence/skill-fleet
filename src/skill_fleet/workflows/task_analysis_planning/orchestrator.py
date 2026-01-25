@@ -23,6 +23,8 @@ from ...common.async_utils import run_async
 from ...core.dspy.modules.understanding import Phase1UnderstandingModule
 from ...core.tracing.mlflow import (
     end_mlflow_run,
+    get_mlflow_run_id,
+    log_lm_usage,
     log_parameter,
     log_phase_artifact,
     log_phase_metrics,
@@ -101,10 +103,18 @@ class TaskAnalysisOrchestrator:
                 - plan: Synthesized skill creation plan with metadata
 
         """
-        # Start MLflow run if enabled
-        if enable_mlflow:
+        # Check if we're in child run mode (parent already started MLflow run)
+        is_child_run = get_mlflow_run_id() is not None if enable_mlflow else False
+
+        # Start MLflow run if enabled and not in child mode
+        if enable_mlflow and not is_child_run:
             setup_mlflow_experiment("task-analysis-workflow")
             log_parameter("task_description", task_description[:500])  # Truncate for logging
+            log_parameter("user_context_length", len(user_context))
+            log_parameter("existing_skills_count", len(existing_skills or []))
+        elif enable_mlflow and is_child_run:
+            # In child mode, just log parameters to the active child run
+            log_parameter("task_description", task_description[:500])
             log_parameter("user_context_length", len(user_context))
             log_parameter("existing_skills_count", len(existing_skills or []))
 
@@ -131,6 +141,9 @@ class TaskAnalysisOrchestrator:
                     "plan_synthesized": float(bool(result.get("plan"))),
                 })
 
+                # Log LM usage from the prediction
+                log_lm_usage(result, prefix="phase1_lm")
+
                 # Log the plan as an artifact for review
                 plan = result.get("plan", {})
                 if plan:
@@ -151,8 +164,8 @@ class TaskAnalysisOrchestrator:
             raise
 
         finally:
-            # End MLflow run
-            if enable_mlflow:
+            # End MLflow run only if we started it (not in child mode)
+            if enable_mlflow and not is_child_run:
                 end_mlflow_run()
 
     def analyze_sync(

@@ -20,6 +20,8 @@ from ...common.async_utils import run_async
 from ...core.dspy.modules.validation import Phase3ValidationModule
 from ...core.tracing.mlflow import (
     end_mlflow_run,
+    get_mlflow_run_id,
+    log_lm_usage,
     log_parameter,
     log_phase_metrics,
     setup_mlflow_experiment,
@@ -83,8 +85,15 @@ class QualityAssuranceOrchestrator:
             - quality_assessment: Quality assessment results
 
         """
-        if enable_mlflow:
+        # Check if we're in child run mode (parent already started MLflow run)
+        is_child_run = get_mlflow_run_id() is not None if enable_mlflow else False
+
+        if enable_mlflow and not is_child_run:
             setup_mlflow_experiment("quality-assurance-workflow")
+            log_parameter("target_level", target_level)
+            log_parameter("has_user_feedback", len(user_feedback) > 0)
+        elif enable_mlflow and is_child_run:
+            # In child mode, just log parameters to the active child run
             log_parameter("target_level", target_level)
             log_parameter("has_user_feedback", len(user_feedback) > 0)
 
@@ -101,12 +110,15 @@ class QualityAssuranceOrchestrator:
             if enable_mlflow:
                 validation_passed = result.get("validation_report", {}).get("passed", False)
                 quality_score = result.get("quality_assessment", {}).get("calibrated_score", 0.0)
-                log_phase_metrics("quality_assurance", {
-                    "validation_passed": validation_passed,
+                log_phase_metrics("quality_assurance", "complete", {
+                    "validation_passed": float(validation_passed),
                     "quality_score": quality_score,
-                    "issues_count": len(result.get("critical_issues", [])),
-                    "refinement_performed": "refined_content" in result,
+                    "issues_count": float(len(result.get("critical_issues", []))),
+                    "refinement_performed": float("refined_content" in result),
                 })
+
+                # Log LM usage from the prediction
+                log_lm_usage(result, prefix="phase3_lm")
 
             return result
 
@@ -115,7 +127,7 @@ class QualityAssuranceOrchestrator:
             raise
 
         finally:
-            if enable_mlflow:
+            if enable_mlflow and not is_child_run:
                 end_mlflow_run()
 
     def validate_and_refine_sync(

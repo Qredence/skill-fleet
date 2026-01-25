@@ -49,6 +49,8 @@ uv run skill-fleet serve --reload    # dev mode with autoreload
 
 The FastAPI server is the single source of truth: all CLI interactions (`create`, `chat`, `list`) call it. It configures DSPy on startup and exposes the job + HITL workflow at `/api/v2/skills/create` and `/api/v2/hitl/{job_id}`.
 
+**API Versioning Note**: The main API is v2 (`/api/v2/*`), which is production-ready. An experimental v1 API exists for chat streaming (`/api/v1/chat/*`). See [API Versioning Guide](../api/MIGRATION_V1_TO_V2.md) for details.
+
 ### 4.2 Create a Skill (CLI)
 
 ```bash
@@ -56,9 +58,9 @@ uv run skill-fleet create "Describe the capability"
 uv run skill-fleet create "..." --auto-approve
 ```
 
-- Starts a background job that runs `src/skill_fleet/core/programs/skill_creator.py`.
+- Starts a background job that runs the SkillCreationProgram workflow orchestrator.
 - Respond to HITL prompts (`clarify`, `confirm`, `preview`, `validate`) in the terminal.
-- Job auto-saves to `skills/` and writes `metadata.json` + `SKILL.md` (frontmatter + template guidance).
+- Job auto-saves to `skills/_drafts/<job_id>/` and writes `metadata.json` + `SKILL.md` (frontmatter + template guidance).
 
 ### 4.3 Interactive Chat Experience
 

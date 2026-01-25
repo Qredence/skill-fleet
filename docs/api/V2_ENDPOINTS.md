@@ -1,37 +1,28 @@
-# API Endpoints Reference (v2)
+# v2 API Endpoints Reference
 
 **Last Updated**: 2026-01-25
 **Base URL**: `http://localhost:8000/api/v2`
-**API Status**: v2 is the current, stable API. See [Migration Guide](MIGRATION_V1_TO_V2.md) for version details.
+**Status**: Current, Stable API
 
 ## Overview
 
-This document provides detailed reference for all v2 API endpoints, including request/response formats, status codes, and usage examples.
+This document provides a complete reference for all v2 API endpoints. The v2 API is the current, production-ready API for skill creation, taxonomy management, validation, and HITL workflows.
 
 `★ Insight ─────────────────────────────────────`
-Skill creation is asynchronous because it involves multiple LLM calls and HITL checkpoints. The job-based pattern allows the API to return immediately while the skill is created in the background. Clients poll for status and respond to HITL prompts as needed.
+The v2 API uses a job-based pattern for long-running operations. When you create a skill, you receive a job_id immediately and can poll for status or respond to HITL checkpoints. This pattern prevents HTTP timeouts and enables interactive workflows.
 `─────────────────────────────────────────────────`
 
-**Note**: For the experimental v1 chat API (streaming endpoints), see [Migration Guide](MIGRATION_V1_TO_V2.md#v1-api-experimental).
+## Table of Contents
 
-## Health Check
-
-### GET /health
-
-Check API availability and version.
-
-**Request:**
-```http
-GET /health
-```
-
-**Response (200 OK):**
-```json
-{
-    "status": "ok",
-    "version": "2.0.0"
-}
-```
+- [Skills Endpoints](#skills-endpoints)
+- [HITL Endpoints](#hitl-endpoints)
+- [Taxonomy Endpoints](#taxonomy-endpoints)
+- [Validation Endpoints](#validation-endpoints)
+- [Quality Endpoints](#quality-endpoints)
+- [Optimization Endpoints](#optimization-endpoints)
+- [Jobs Endpoints](#jobs-endpoints)
+- [Drafts Endpoints](#drafts-endpoints)
+- [Training Endpoints](#training-endpoints)
 
 ---
 
@@ -39,9 +30,9 @@ GET /health
 
 ### POST /api/v2/skills/create
 
-Initiate a new skill creation job. The skill is created asynchronously in the background.
+Create a new skill asynchronously.
 
-**Request:**
+**Request**:
 ```http
 POST /api/v2/skills/create
 Content-Type: application/json
@@ -52,13 +43,13 @@ Content-Type: application/json
 }
 ```
 
-**Parameters:**
+**Parameters**:
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `task_description` | `string` | Yes | Description of the skill to create |
+| `task_description` | `string` | Yes | Description of the skill to create (min 10 chars) |
 | `user_id` | `string` | No | User identifier (default: "default") |
 
-**Response (202 Accepted):**
+**Response (202 Accepted)**:
 ```json
 {
     "job_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
@@ -66,14 +57,14 @@ Content-Type: application/json
 }
 ```
 
-**Error Response (400 Bad Request):**
+**Error Response (400 Bad Request)**:
 ```json
 {
     "detail": "task_description is required"
 }
 ```
 
-**Job Lifecycle:**
+**Job Lifecycle**:
 ```
 pending → running → pending_hitl → running → completed
                         ↓
@@ -82,20 +73,60 @@ pending → running → pending_hitl → running → completed
 
 ---
 
-## HITL Endpoints
+### GET /api/v2/skills/{path}
 
-Human-in-the-Loop (HITL) endpoints allow clients to interact with skill creation jobs at key checkpoints.
+Get a skill by path or ID (supports aliases).
+
+**Request**:
+```http
+GET /api/v2/skills/python/async-await
+```
+
+**Path Parameters**:
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `path` | `string` | Skill path, ID, or alias |
+
+**Response (200 OK)**:
+```json
+{
+    "skill_id": "python-async-await",
+    "name": "python-async-await",
+    "description": "Proficiency with Python's async/await syntax",
+    "version": "1.0.0",
+    "type": "guide",
+    "metadata": {
+        "weight": "medium",
+        "load_priority": "on_demand",
+        "dependencies": [],
+        "capabilities": ["code-generation"]
+    },
+    "content": "# Python Async/Await\n\n..."
+}
+```
+
+**Error Response (404 Not Found)**:
+```json
+{
+    "error": "Skill not found",
+    "request_id": "req-123"
+}
+```
+
+---
+
+## HITL Endpoints
 
 ### GET /api/v2/hitl/{job_id}/prompt
 
-Retrieve the current HITL prompt for a job. Poll this endpoint to check if the job needs human input.
+Get the current HITL prompt for a job.
 
-**Request:**
+**Request**:
 ```http
 GET /api/v2/hitl/f47ac10b-58cc-4372-a567-0e02b2c3d479/prompt
 ```
 
-**Response (200 OK):**
+**Response (200 OK)**:
 ```json
 {
     "status": "pending_hitl",
@@ -110,23 +141,13 @@ GET /api/v2/hitl/f47ac10b-58cc-4372-a567-0e02b2c3d479/prompt
 }
 ```
 
-**HITL Types and Response Fields:**
-
+**HITL Types**:
 | Type | Description | Response Fields |
 |------|-------------|-----------------|
-| **`clarify`** | Clarifying questions | `questions`, `rationale` |
-| **`confirm`** | Confirm understanding | `summary`, `path` |
-| **`preview`** | Preview content | `content`, `highlights` |
-| **`validate`** | Validation results | `report`, `passed`, `skill_content` |
-
-**Job Status Values:**
-| Status | Description |
-|--------|-------------|
-| `pending` | Job queued, not yet started |
-| `running` | Job in progress |
-| `pending_hitl` | Awaiting human input |
-| `completed` | Job finished successfully |
-| `failed` | Job failed (check `error` field) |
+| `clarify` | Clarifying questions | `questions`, `rationale` |
+| `confirm` | Confirm understanding | `summary`, `path` |
+| `preview` | Preview content | `content`, `highlights` |
+| `validate` | Validation results | `report`, `passed`, `skill_content` |
 
 ---
 
@@ -134,7 +155,7 @@ GET /api/v2/hitl/f47ac10b-58cc-4372-a567-0e02b2c3d479/prompt
 
 Submit a response to an HITL prompt.
 
-**Request:**
+**Request**:
 ```http
 POST /api/v2/hitl/f47ac10b-58cc-4372-a567-0e02b2c3d479/response
 Content-Type: application/json
@@ -145,8 +166,7 @@ Content-Type: application/json
 }
 ```
 
-**Response Actions:**
-
+**Response Actions**:
 | Action | Description |
 |--------|-------------|
 | `proceed` | Continue to next phase |
@@ -154,20 +174,18 @@ Content-Type: application/json
 | `refine` | Run refinement with feedback |
 | `cancel` | Cancel skill creation |
 
-**Response (202 Accepted):**
+**Response (202 Accepted)**:
 ```json
 {
     "status": "accepted"
 }
 ```
 
-**Example Workflow:**
-
+**Example Workflow**:
 ```python
 import requests
 import time
 
-JOB_ID = "f47ac10b-58cc-4372-a567-0e02b2c3d479"
 BASE_URL = "http://localhost:8000/api/v2"
 
 # Create skill
@@ -184,23 +202,17 @@ while True:
 
     if status == "pending_hitl":
         print(f"HITL Type: {prompt['type']}")
-        print(f"Data: {prompt}")
-
-        # Get user input
-        action = input("Action (proceed/revise/refine/cancel): ")
-        user_response = input("Response: ")
 
         # Submit response
         requests.post(f"{BASE_URL}/hitl/{job_id}/response", json={
-            "action": action,
-            "response": user_response
+            "action": "proceed",
+            "response": "intermediate"
         })
     elif status == "completed":
         print("Skill completed!")
-        print(prompt["skill_content"])
         break
     elif status == "failed":
-        print(f"Job failed: {prompt['error']}")
+        print(f"Job failed: {prompt.get('error')}")
         break
 
     time.sleep(2)
@@ -214,27 +226,33 @@ while True:
 
 Get the full taxonomy structure.
 
-**Request:**
+**Request**:
 ```http
 GET /api/v2/taxonomy
 ```
 
-**Response (200 OK):**
+**Response (200 OK)**:
 ```json
 {
     "taxonomy": {
-        "technical_skills": {
-            "programming": {
-                "languages": {
-                    "python": {
-                        "async": { ... },
-                        "decorators": { ... }
-                    }
-                }
+        "python": {
+            "async-await": {
+                "name": "python-async-await",
+                "description": "Proficiency with Python's async/await syntax"
+            },
+            "decorators": {
+                "name": "python-decorators",
+                "description": "Ability to design and implement Python decorators"
+            }
+        },
+        "testing": {
+            "pytest": {
+                "name": "testing-pytest",
+                "description": "Testing with pytest framework"
             }
         }
     },
-    "total_skills": 42
+    "total_skills": 3
 }
 ```
 
@@ -242,14 +260,14 @@ GET /api/v2/taxonomy
 
 ### GET /api/v2/taxonomy/xml
 
-Generate `<available_skills>` XML for agent context injection following agentskills.io standard.
+Generate `<available_skills>` XML for agent context injection (agentskills.io standard).
 
-**Request:**
+**Request**:
 ```http
 GET /api/v2/taxonomy/xml
 ```
 
-**Response (200 OK):**
+**Response (200 OK)**:
 ```xml
 Content-Type: application/xml
 
@@ -257,12 +275,12 @@ Content-Type: application/xml
   <skill>
     <name>python-decorators</name>
     <description>Ability to design, implement, and apply Python decorators...</description>
-    <location>/path/to/skills/technical_skills/programming/languages/python/decorators/SKILL.md</location>
+    <location>/path/to/skills/python/decorators/SKILL.md</location>
   </skill>
   <skill>
     <name>python-async</name>
     <description>Proficiency with Python's async/await syntax...</description>
-    <location>/path/to/skills/technical_skills/programming/languages/python/async/SKILL.md</location>
+    <location>/path/to/skills/python/async/SKILL.md</location>
   </skill>
 </available_skills>
 ```
@@ -275,23 +293,23 @@ Content-Type: application/xml
 
 Validate a skill directory against taxonomy standards and agentskills.io compliance.
 
-**Request:**
+**Request**:
 ```http
 POST /api/v2/validation/skill
 Content-Type: application/json
 
 {
-    "skill_path": "skills/technical_skills/programming/python/decorators"
+    "skill_path": "python/decorators"
 }
 ```
 
-**Parameters:**
+**Parameters**:
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `skill_path` | `string` | Yes | Path to the skill directory |
 | `strict` | `boolean` | No | Treat warnings as errors (default: false) |
 
-**Response (200 OK):**
+**Response (200 OK)**:
 ```json
 {
     "status": "pass",
@@ -312,14 +330,6 @@ Content-Type: application/json
             "status": "pass"
         },
         {
-            "name": "yaml_frontmatter",
-            "status": "pass"
-        },
-        {
-            "name": "documentation_complete",
-            "status": "pass"
-        },
-        {
             "name": "examples_present",
             "status": "warning"
         }
@@ -333,7 +343,7 @@ Content-Type: application/json
 
 Validate SKILL.md YAML frontmatter for agentskills.io compliance.
 
-**Request:**
+**Request**:
 ```http
 POST /api/v2/validation/frontmatter
 Content-Type: application/json
@@ -343,12 +353,7 @@ Content-Type: application/json
 }
 ```
 
-**Parameters:**
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `content` | `string` | Yes | Full SKILL.md content including frontmatter |
-
-**Response (200 OK):**
+**Response (200 OK)**:
 ```json
 {
     "valid": true,
@@ -361,41 +366,32 @@ Content-Type: application/json
 }
 ```
 
-**Validation Checks:**
-- Frontmatter exists (starts with `---`)
-- Valid YAML syntax
-- Required fields present (`name`, `description`)
-- Name format: 1-64 chars, kebab-case
-- Description length: 1-1024 chars
-
 ---
 
-## Evaluation Endpoints
-
-Quality assessment endpoints using DSPy metrics calibrated against [Obra/superpowers](https://github.com/obra/superpowers) golden skills.
+## Quality Endpoints
 
 ### POST /api/v2/evaluation/evaluate
 
-Evaluate a skill's quality at the specified path.
+Evaluate a skill's quality using DSPy metrics calibrated against Obra/superpowers golden skills.
 
-**Request:**
+**Request**:
 ```http
 POST /api/v2/evaluation/evaluate
 Content-Type: application/json
 
 {
-    "path": "technical_skills/programming/web_frameworks/python/fastapi",
+    "path": "python/async-await",
     "weights": null
 }
 ```
 
-**Parameters:**
+**Parameters**:
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `path` | `string` | Yes | Taxonomy-relative path to the skill |
 | `weights` | `object` | No | Custom metric weights for scoring |
 
-**Response (200 OK):**
+**Response (200 OK)**:
 ```json
 {
     "overall_score": 0.855,
@@ -419,7 +415,7 @@ Content-Type: application/json
         "description_quality": 0.85
     },
     "issues": ["Missing strong guidance (imperative rules)"],
-    "strengths": ["Excellent pattern coverage (9 patterns)", "..."]
+    "strengths": ["Excellent pattern coverage (9 patterns)"]
 }
 ```
 
@@ -429,7 +425,7 @@ Content-Type: application/json
 
 Evaluate raw SKILL.md content directly (useful for testing before saving).
 
-**Request:**
+**Request**:
 ```http
 POST /api/v2/evaluation/evaluate-content
 Content-Type: application/json
@@ -440,7 +436,7 @@ Content-Type: application/json
 }
 ```
 
-**Response:** Same format as `/evaluate`.
+**Response**: Same format as `/evaluate`.
 
 ---
 
@@ -448,26 +444,26 @@ Content-Type: application/json
 
 Evaluate multiple skills in batch.
 
-**Request:**
+**Request**:
 ```http
 POST /api/v2/evaluation/evaluate-batch
 Content-Type: application/json
 
 {
     "paths": [
-        "technical_skills/programming/web_frameworks/python/fastapi",
-        "technical_skills/programming/languages/python/async"
+        "python/async-await",
+        "python/decorators"
     ],
     "weights": null
 }
 ```
 
-**Response (200 OK):**
+**Response (200 OK)**:
 ```json
 {
     "results": [
         {
-            "path": "technical_skills/.../fastapi",
+            "path": "python/async-await",
             "overall_score": 0.855,
             "issues_count": 1,
             "strengths_count": 16,
@@ -482,41 +478,13 @@ Content-Type: application/json
 
 ---
 
-### GET /api/v2/evaluation/metrics-info
-
-Get information about evaluation metrics and default weights.
-
-**Response (200 OK):**
-```json
-{
-    "description": "Skill quality metrics calibrated against Obra/superpowers golden skills",
-    "reference": "https://github.com/obra/superpowers/tree/main/skills",
-    "default_weights": {
-        "pattern_count": {"weight": 0.10, "description": "Number of patterns (target: 5+)"},
-        "has_core_principle": {"weight": 0.10, "description": "Has 'Core principle:' statement"},
-        "has_strong_guidance": {"weight": 0.08, "description": "Has Iron Law / imperative rules"}
-    },
-    "penalty_multipliers": {
-        "0_critical": 0.70,
-        "1_critical": 0.85,
-        "2_critical": 0.95,
-        "3_critical": 1.00
-    },
-    "critical_elements": ["has_core_principle", "has_strong_guidance", "has_good_bad_contrast"]
-}
-```
-
----
-
 ## Optimization Endpoints
-
-DSPy program optimization using MIPROv2 and BootstrapFewShot optimizers.
 
 ### POST /api/v2/optimization/start
 
-Start an optimization job (runs in background).
+Start a DSPy optimization job (MIPROv2 or BootstrapFewShot).
 
-**Request:**
+**Request**:
 ```http
 POST /api/v2/optimization/start
 Content-Type: application/json
@@ -524,7 +492,7 @@ Content-Type: application/json
 {
     "optimizer": "miprov2",
     "training_paths": [
-        "technical_skills/programming/web_frameworks/python/fastapi"
+        "python/async-await"
     ],
     "auto": "medium",
     "max_bootstrapped_demos": 4,
@@ -533,22 +501,22 @@ Content-Type: application/json
 }
 ```
 
-**Parameters:**
+**Parameters**:
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `optimizer` | `string` | No | `miprov2` or `bootstrap_fewshot` (default: `miprov2`) |
-| `training_paths` | `array` | No | Paths to gold-standard skills for training |
-| `auto` | `string` | No | MIPROv2 setting: `light`, `medium`, `heavy` (default: `medium`) |
-| `max_bootstrapped_demos` | `int` | No | Max auto-generated demos (default: 4) |
-| `max_labeled_demos` | `int` | No | Max human-curated demos (default: 4) |
+| `training_paths` | `array` | No | Paths to gold-standard skills |
+| `auto` | `string` | No | MIPROv2: `light`, `medium`, `heavy` |
+| `max_bootstrapped_demos` | `int` | No | Max auto-generated demos |
+| `max_labeled_demos` | `int` | No | Max human-curated demos |
 | `save_path` | `string` | No | Path to save optimized program |
 
-**Response (202 Accepted):**
+**Response (202 Accepted)**:
 ```json
 {
     "job_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
     "status": "pending",
-    "message": "Optimization job started. Check status with GET /optimization/status/{job_id}"
+    "message": "Optimization job started"
 }
 ```
 
@@ -558,7 +526,7 @@ Content-Type: application/json
 
 Get the status of an optimization job.
 
-**Response (200 OK):**
+**Response (200 OK)**:
 ```json
 {
     "job_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
@@ -570,100 +538,107 @@ Get the status of an optimization job.
 }
 ```
 
-**Status Values:**
-| Status | Description |
-|--------|-------------|
-| `pending` | Job queued, not yet started |
-| `running` | Optimization in progress |
-| `completed` | Optimization finished successfully |
-| `failed` | Optimization failed (check `error` field) |
-
 ---
 
 ### GET /api/v2/optimization/optimizers
 
 List available optimizers and their parameters.
 
-**Response (200 OK):**
+**Response (200 OK)**:
 ```json
 [
     {
         "name": "miprov2",
         "description": "MIPROv2 optimizer - Multi-stage Instruction Proposal and Optimization",
         "parameters": {
-            "auto": {"type": "string", "options": ["light", "medium", "heavy"], "default": "medium"},
+            "auto": {"type": "string", "options": ["light", "medium", "heavy"]},
             "max_bootstrapped_demos": {"type": "integer", "default": 4},
             "max_labeled_demos": {"type": "integer", "default": 4}
         }
-    },
-    {
-        "name": "bootstrap_fewshot",
-        "description": "BootstrapFewShot optimizer - Simple few-shot learning with bootstrapping",
-        "parameters": {...}
     }
 ]
 ```
 
 ---
 
-### GET /api/v2/optimization/config
+## Jobs Endpoints
 
-Get current optimization configuration from `config.yaml`.
+### GET /api/v2/jobs/{job_id}
 
-**Response (200 OK):**
-```json
-{
-    "optimization": {
-        "default_optimizer": "miprov2",
-        "miprov2": {"auto": "medium", "num_threads": 4}
-    },
-    "evaluation": {
-        "num_threads": 8,
-        "thresholds": {"minimum_quality": 0.6, "target_quality": 0.8}
-    }
-}
+Get the status and details of a job.
+
+**Request**:
+```http
+GET /api/v2/jobs/f47ac10b-58cc-4372-a567-0e02b2c3d479
 ```
 
----
-
-### DELETE /api/v2/optimization/jobs/{job_id}
-
-Cancel or remove an optimization job.
-
-**Response (200 OK):**
+**Response (200 OK)**:
 ```json
 {
     "job_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-    "previous_status": "running",
-    "message": "Job removed from tracking"
+    "status": "completed",
+    "task_description": "Create a Python async skill",
+    "user_id": "user_123",
+    "created_at": "2026-01-25T10:00:00Z",
+    "updated_at": "2026-01-25T10:05:00Z",
+    "current_phase": "completed",
+    "progress_message": "Skill created successfully",
+    "draft_path": "/path/to/skills/_drafts/job-id",
+    "intended_taxonomy_path": "python/async-await",
+    "validation_passed": true,
+    "validation_score": 0.85
+}
+```
+
+**Status Values**:
+| Status | Description |
+|--------|-------------|
+| `pending` | Job queued |
+| `running` | Job in progress |
+| `pending_hitl` | Awaiting human input |
+| `completed` | Finished successfully |
+| `failed` | Failed (check `error` field) |
+
+---
+
+## Drafts Endpoints
+
+### POST /api/v2/drafts/{job_id}/promote
+
+Promote a draft skill to the permanent taxonomy.
+
+**Request**:
+```http
+POST /api/v2/drafts/f47ac10b-58cc-4372-a567-0e02b2c3d479/promote
+```
+
+**Response (200 OK)**:
+```json
+{
+    "job_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+    "draft_path": "/path/to/_drafts/job-id",
+    "target_path": "python/async-await",
+    "status": "promoted"
 }
 ```
 
 ---
 
-## Auto-Discovered Endpoints
+## Training Endpoints
 
-DSPy modules and programs are automatically exposed as API endpoints:
+### POST /api/v2/training/train
 
-```
-/api/v2/programs/{module_name}
-/api/v2/modules/{module_name}
-```
+Train DSPy programs on provided data.
 
-Available modules depend on what's registered in:
-- `skill_fleet.core.programs`
-- `skill_fleet.core.modules`
-
-**Example:**
+**Request**:
 ```http
-POST /api/v2/programs/SkillCreationProgram
+POST /api/v2/training/train
 Content-Type: application/json
 
 {
-    "task_description": "...",
-    "user_context": {...},
-    "taxonomy_structure": "{}",
-    "existing_skills": "[]"
+    "program": "SkillCreationProgram",
+    "training_data": [...],
+    "optimizer": "miprov2"
 }
 ```
 
@@ -671,7 +646,7 @@ Content-Type: application/json
 
 ## Error Handling
 
-The API uses standard HTTP status codes:
+### HTTP Status Codes
 
 | Code | Description | Example |
 |------|-------------|---------|
@@ -682,60 +657,17 @@ The API uses standard HTTP status codes:
 | **422** | Validation Error | Invalid data format |
 | **500** | Internal Server Error | Unexpected error |
 
-**Error Response Format:**
+### Error Response Format
+
 ```json
 {
-    "detail": "Human-readable error message"
+    "detail": "Human-readable error message",
+    "request_id": "req-123"
 }
 ```
-
----
-
-## Rate Limiting
-
-Currently, no rate limiting is enforced. For production use, consider:
-
-```python
-from slowapi import Limiter
-from slowapi.util import get_remote_address
-
-limiter = Limiter(key_func=get_remote_address)
-
-@app.post("/api/v2/skills/create")
-@limiter.limit("10/minute")
-async def create_skill(...):
-    ...
-```
-
----
-
-## Webhook Support (Future)
-
-Webhooks allow the API to notify your application when jobs complete, rather than polling.
-
-**Proposed Implementation:**
-```python
-# Create skill with webhook
-{
-    "task_description": "...",
-    "webhook_url": "https://your-app.com/webhooks/skill-complete",
-    "webhook_secret": "your-secret"
-}
-
-# Webhook payload (POST to webhook_url)
-{
-    "job_id": "...",
-    "status": "completed",
-    "result": {...},
-    "signature": "hmac-sha256 hash"
-}
-```
-
----
 
 ## See Also
 
-- **[API Overview](index.md)** - Architecture and setup
-- **[Schemas Documentation](schemas.md)** - Request/response models
-- **[Jobs Documentation](jobs.md)** - Background job system
+- **[API Schemas](V2_SCHEMAS.md)** - Request/response models
+- **[API Migration Guide](MIGRATION_V1_TO_V2.md)** - Version information
 - **[HITL System](../hitl/)** - Human-in-the-Loop details

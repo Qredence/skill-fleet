@@ -1,6 +1,6 @@
 # API Documentation
 
-**Last Updated**: 2026-01-12
+**Last Updated**: 2026-01-25
 **Location**: `src/skill_fleet/api/`
 
 ## Overview
@@ -10,6 +10,21 @@ The Skills Fleet FastAPI REST API provides programmatic access to the skill crea
 `★ Insight ─────────────────────────────────────`
 The API uses a **job-based pattern** for long-running skill creation. Instead of blocking HTTP requests, skills are created in background jobs. Clients poll for status and respond to HITL checkpoints via separate endpoints, making the API suitable for web UIs and webhooks.
 `─────────────────────────────────────────────────`
+
+## API Versions
+
+Skills Fleet has two API versions:
+
+| Version | Status | Base Path | Documentation |
+|---------|--------|-----------|---------------|
+| **v2** | ✅ Current/Stable | `/api/v2/` | [Endpoints](endpoints.md) |
+| **v1** | 🔄 Experimental | `/api/v1/chat` | [Migration Guide](MIGRATION_V1_TO_V2.md) |
+
+**v2 API** (Current): Main API for skill creation, taxonomy, validation, HITL workflows.
+
+**v1 API** (Experimental): Chat streaming endpoints for real-time conversational interfaces.
+
+See [API Versioning Guide](MIGRATION_V1_TO_V2.md) for detailed comparison and migration information.
 
 ## Quick Start
 

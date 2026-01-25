@@ -1,11 +1,45 @@
 # Skills Fleet Codebase Restructuring Status
 
-**Last Updated**: 2026-01-23  
-**Status**: Phase 2+ Complete
+**Last Updated**: 2026-01-25
+**Status**: ✅ FastAPI-Centric Restructure Complete
 
 ## Overview
 
 The Skills Fleet codebase has undergone a restructuring to improve maintainability, clarity, and separation of concerns. This document describes the current architecture, completed work, and future considerations.
+
+## What's New (Post-Restructure)
+
+### Architecture Enhancements
+
+1. **Domain Layer (DDD Patterns)**
+   - Domain entities: `Skill`, `Job`, `TaxonomyPath`
+   - Value objects with validation
+   - Specification pattern for business rules
+   - Domain events for future event-driven architecture
+   - Repository interfaces for data access abstraction
+
+2. **Service Layer**
+   - `BaseService` with dependency injection
+   - `SkillService`, `JobService`, `ConversationService`
+   - MLflow hierarchical run tracking
+   - Automatic artifact logging
+
+3. **Caching Layer**
+   - In-memory cache with TTL configuration
+   - Pattern-based invalidation
+   - Cache statistics and monitoring
+   - Redis migration path documented
+
+4. **Conversational Interface (v1 API)**
+   - Session management with state machine
+   - Multi-turn conversations
+   - Intent-based routing
+   - Server-Sent Events (SSE) streaming
+
+5. **API Versioning Clarity**
+   - v2 API: Main, stable API for skill operations
+   - v1 API: Experimental chat streaming endpoints
+   - See [API Migration Guide](../api/MIGRATION_V1_TO_V2.md)
 
 ## Architecture Pattern: Facade + Delegation
 
@@ -27,9 +61,14 @@ skill-fleet/
 │   │   ├── main.py       # Delegates to api/app.py
 │   │   └── api/          # Placeholder for future API routes
 │   │
-│   ├── domain/           # Domain-driven design facade
-│   │   ├── skill/        # Re-exports core models
-│   │   └── taxonomy/     # Re-exports taxonomy manager
+│   ├── domain/           # Domain-driven design facade (NEW)
+│   │   ├── models/       # Domain entities (Skill, Job)
+│   │   ├── repositories/ # Repository interfaces
+│   │   ├── services/     # Domain services
+│   │   └── specifications/ # Business rules (Specification pattern)
+│   │
+│   ├── services/         # Service layer facade (NEW)
+│   │   └── __init__.py   # Re-exports from core.services
 │   │
 │   ├── dspy/             # Task-based DSPy facades
 │   │   ├── signatures/   # Re-exports with task-based names
@@ -39,8 +78,49 @@ skill-fleet/
 │   ├── infrastructure/   # Technical infrastructure facade
 │   │   └── database/     # Re-exports database layer
 │   │
-│   └── services/         # Service layer facade
-│       └── __init__.py   # Re-exports from core.services
+│   ├── api/              # FastAPI implementation
+│   │   ├── app.py        # Application factory
+│   │   ├── routes/       # API endpoints (v2 main, v1 experimental chat)
+│   │   ├── schemas/      # Pydantic models
+│   │   └── cache/        # Caching layer (NEW)
+│   │
+│   ├── core/             # Core business logic
+│   │   ├── dspy/         # DSPy integration (actual code)
+│   │   ├── services/     # Service implementations
+│   │   ├── models.py     # Pydantic models
+│   │   └── config.py     # Configuration models
+│   │
+│   ├── db/               # Database layer
+│   │   ├── models.py     # SQLAlchemy models
+│   │   ├── repositories.py # Repository implementations
+│   │   └── database.py   # Connection management
+│   │
+│   ├── cli/              # Command-line interface
+│   │   ├── app.py        # Typer application
+│   │   ├── commands/     # Individual commands
+│   │   └── client.py     # API client
+│   │
+│   ├── taxonomy/         # Taxonomy management
+│   │   └── manager.py    # Taxonomy operations
+│   │
+│   ├── validators/       # Skill validation
+│   │   └── skill_validator.py
+│   │
+│   ├── analytics/        # Usage analytics
+│   │   └── engine.py     # Tracking and recommendations
+│   │
+│   ├── onboarding/       # User onboarding
+│   │   └── bootstrap.py  # Skill bootstrapping
+│   │
+│   ├── llm/              # LLM configuration
+│   │   ├── dspy_config.py # Centralized DSPy setup
+│   │   └── fleet_config.py # Provider configuration
+│   │
+│   └── common/           # Shared utilities
+│       ├── utils.py      # JSON parsing, type conversion
+│       ├── paths.py      # Path utilities
+│       ├── security.py   # Path sanitization
+│       └── async_utils.py # Async helpers
 ```
 
 ### Internal Implementation

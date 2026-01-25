@@ -1,5 +1,7 @@
 # MLflow Setup for DSPy Autologging
 
+**Last Updated**: 2026-01-25
+
 ## Quick Start
 
 ### 1. Start MLflow UI Server
@@ -58,6 +60,59 @@ With `mlflow.dspy.autolog()` enabled (DSPy 3.1.2+), MLflow automatically tracks:
 - **Parameters**: Model settings, temperature, max_tokens
 - **Metrics**: Performance metrics and evaluation scores
 
+### Hierarchical Runs (NEW)
+Skill creation workflows now use **parent-child run hierarchies**:
+
+```
+skill_creation_job_abc123 (parent)
+├── understanding (child)
+│   ├── LM calls: 5
+│   ├── Tokens: 2,340
+│   └── Duration: 12.3s
+├── generation (child)
+│   ├── LM calls: 3
+│   ├── Tokens: 1,890
+│   └── Duration: 8.7s
+└── validation (child)
+    ├── Quality score: 0.85
+    ├── Tokens: 456
+    └── Duration: 3.2s
+```
+
+### Tag Organization (ENHANCED)
+Runs are automatically tagged with:
+
+| Tag | Description | Example |
+|-----|-------------|---------|
+| `user_id` | User who initiated the job | `user_123` |
+| `job_id` | Unique job identifier | `job_abc123` |
+| `skill_type` | Type of skill being created | `guide`, `tool_integration` |
+| `model` | LLM model used | `gemini-3-flash` |
+| `phase` | Current workflow phase | `understanding`, `generation`, `validation` |
+| `service` | Service creating the run | `SkillService` |
+
+### Complete Artifact Logging (ENHANCED)
+All skill artifacts are automatically logged:
+
+| Artifact | Description | Location |
+|----------|-------------|----------|
+| `skill_content.md` | Generated SKILL.md content | Artifacts/ |
+| `metadata.json` | Skill metadata | Artifacts/ |
+| `validation_report.json` | Quality validation results | Artifacts/ |
+| `conversation_history.json` | HITL conversation transcript | Artifacts/ |
+
+### LM Usage Tracking (DSPy 3.1.2)
+DSPy 3.1.2 provides complete LM usage tracking:
+
+```python
+# Automatically tracked metrics
+mlflow.log_metric("lm_calls", 15)           # Total LM calls
+mlflow.log_metric("lm_tokens_total", 5432)  # Total tokens used
+mlflow.log_metric("lm_tokens_input", 2341)  # Input tokens
+mlflow.log_metric("lm_tokens_output", 3091) # Output tokens
+mlflow.log_metric("lm_duration", 45.2)      # Total LM time (seconds)
+```
+
 ### Optimization Workflows
 - **MIPROv2**: Prompt optimization iterations
 - **GEPA**: Reflection cycles and improvements
@@ -78,7 +133,7 @@ with MLflowContext(
 
 ## Using MLflow During Development
 
-### Track Skill Creation Workflows
+### Track Skill Creation Workflows (ENHANCED)
 
 ```python
 from skill_fleet.services.monitoring import MLflowContext, setup_dspy_autologging
@@ -86,12 +141,32 @@ from skill_fleet.services.monitoring import MLflowContext, setup_dspy_autologgin
 # Setup at application startup
 setup_dspy_autologging(experiment_name="skill-creation")
 
-# Track skill creation
-with MLflowContext(run_name="create-python-decorators"):
-    result = skill_creation_program.forward(
-        task_description="Create a skill for Python decorators",
-        ...
-    )
+# Parent run for the entire skill creation job
+with mlflow.start_run(run_name=f"skill_creation_{job_id}") as parent_run:
+    # Parent-level tags
+    mlflow.set_tag("user_id", user_id)
+    mlflow.set_tag("job_id", job_id)
+    mlflow.set_tag("service", "SkillService")
+
+    # Child run for Phase 1: Understanding
+    with mlflow.start_run(run_name="understanding", nested=True):
+        mlflow.set_tag("phase", "understanding")
+        result = understanding_program.forward(...)
+        # LM metrics auto-logged by DSPy 3.1.2
+
+    # Child run for Phase 2: Generation
+    with mlflow.start_run(run_name="generation", nested=True):
+        mlflow.set_tag("phase", "generation")
+        result = generation_program.forward(...)
+        # Artifacts auto-logged
+        mlflow.log_text(content, "skill_content.md")
+
+    # Child run for Phase 3: Validation
+    with mlflow.start_run(run_name="validation", nested=True):
+        mlflow.set_tag("phase", "validation")
+        report = validate_skill(result.skill)
+        mlflow.log_dict(report.to_dict(), "validation_report.json")
+        mlflow.log_metric("quality_score", report.score)
 ```
 
 ### Compare Optimizers

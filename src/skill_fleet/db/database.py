@@ -75,6 +75,7 @@ engine = create_engine(
     pool_pre_ping=bool(not _IS_SQLITE),
     pool_size=10 if not _IS_SQLITE else 0,
     max_overflow=20 if not _IS_SQLITE else 0,
+    pool_recycle=300 if not _IS_SQLITE else -1,  # Recycle connections every 5 min
     echo=os.getenv("SQL_ECHO", "false").lower() == "true",
     connect_args={"check_same_thread": False} if _IS_SQLITE else {},
 )
@@ -93,6 +94,7 @@ async_engine = create_async_engine(
     pool_pre_ping=bool(not _IS_SQLITE),
     pool_size=10 if not _IS_SQLITE else 0,
     max_overflow=20 if not _IS_SQLITE else 0,
+    pool_recycle=300 if not _IS_SQLITE else -1,  # Recycle connections every 5 min
     echo=os.getenv("SQL_ECHO", "false").lower() == "true",
 )
 

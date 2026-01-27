@@ -77,4 +77,4 @@ skills/practices/rlm/scripts/rlm_repl.py
 skills/python/fastapi-production/examples/02-partial-updates/interactive_demo.py
 skills/python/fastapi-production/examples/02-partial-updates/patch_endpoint_example.py
 skills/python/fastapi-production/examples/02-partial-updates/test_patch_endpoint.py
-fixes.
+fixes.fixes/

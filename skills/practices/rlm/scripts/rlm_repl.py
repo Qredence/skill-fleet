@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Persistent mini-REPL for RLM-style workflows in Claude Code.
+"""
+Persistent mini-REPL for RLM-style workflows in Claude Code.
 
 This script provides a *stateful* Python environment across invocations by
 saving a pickle file to disk. It is intentionally small and dependency-free.
@@ -44,8 +45,7 @@ import time
 import traceback
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
-
+from typing import Any
 
 DEFAULT_STATE_PATH = Path(".claude/rlm_state/state.pkl")
 DEFAULT_MAX_OUTPUT_CHARS = 8000
@@ -59,7 +59,7 @@ def _ensure_parent_dir(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
 
-def _load_state(state_path: Path) -> Dict[str, Any]:
+def _load_state(state_path: Path) -> dict[str, Any]:
     if not state_path.exists():
         raise RlmReplError(
             f"No state found at {state_path}. Run: python rlm_repl.py init <context_path>"
@@ -71,7 +71,7 @@ def _load_state(state_path: Path) -> Dict[str, Any]:
     return state
 
 
-def _save_state(state: Dict[str, Any], state_path: Path) -> None:
+def _save_state(state: dict[str, Any], state_path: Path) -> None:
     _ensure_parent_dir(state_path)
     tmp_path = state_path.with_suffix(state_path.suffix + ".tmp")
     with tmp_path.open("wb") as f:
@@ -108,9 +108,9 @@ def _is_pickleable(value: Any) -> bool:
         return False
 
 
-def _filter_pickleable(d: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str]]:
-    kept: Dict[str, Any] = {}
-    dropped: List[str] = []
+def _filter_pickleable(d: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
+    kept: dict[str, Any] = {}
+    dropped: list[str] = []
     for k, v in d.items():
         if _is_pickleable(v):
             kept[k] = v
@@ -119,7 +119,7 @@ def _filter_pickleable(d: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str]]:
     return kept, dropped
 
 
-def _make_helpers(context_ref: Dict[str, Any], buffers_ref: List[str]):
+def _make_helpers(context_ref: dict[str, Any], buffers_ref: list[str]):
     # These close over context_ref/buffers_ref so changes persist.
     def peek(start: int = 0, end: int = 1000) -> str:
         content = context_ref.get("content", "")
@@ -130,9 +130,9 @@ def _make_helpers(context_ref: Dict[str, Any], buffers_ref: List[str]):
         max_matches: int = 20,
         window: int = 120,
         flags: int = 0,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         content = context_ref.get("content", "")
-        out: List[Dict[str, Any]] = []
+        out: list[dict[str, Any]] = []
         for m in re.finditer(pattern, content, flags):
             start, end = m.span()
             snippet_start = max(0, start - window)
@@ -148,7 +148,7 @@ def _make_helpers(context_ref: Dict[str, Any], buffers_ref: List[str]):
                 break
         return out
 
-    def chunk_indices(size: int = 200_000, overlap: int = 0) -> List[Tuple[int, int]]:
+    def chunk_indices(size: int = 200_000, overlap: int = 0) -> list[tuple[int, int]]:
         if size <= 0:
             raise ValueError("size must be > 0")
         if overlap < 0:
@@ -158,7 +158,7 @@ def _make_helpers(context_ref: Dict[str, Any], buffers_ref: List[str]):
 
         content = context_ref.get("content", "")
         n = len(content)
-        spans: List[Tuple[int, int]] = []
+        spans: list[tuple[int, int]] = []
         step = size - overlap
         for start in range(0, n, step):
             end = min(n, start + size)
@@ -173,12 +173,12 @@ def _make_helpers(context_ref: Dict[str, Any], buffers_ref: List[str]):
         overlap: int = 0,
         prefix: str = "chunk",
         encoding: str = "utf-8",
-    ) -> List[str]:
+    ) -> list[str]:
         content = context_ref.get("content", "")
         spans = chunk_indices(size=size, overlap=overlap)
         out_path = Path(out_dir)
         out_path.mkdir(parents=True, exist_ok=True)
-        paths: List[str] = []
+        paths: list[str] = []
         for i, (s, e) in enumerate(spans):
             p = out_path / f"{prefix}_{i:04d}.txt"
             p.write_text(content[s:e], encoding=encoding)
@@ -202,7 +202,7 @@ def cmd_init(args: argparse.Namespace) -> int:
     ctx_path = Path(args.context)
 
     content = _read_text_file(ctx_path, max_bytes=args.max_bytes)
-    state: Dict[str, Any] = {
+    state: dict[str, Any] = {
         "version": 1,
         "context": {
             "path": str(ctx_path),
@@ -282,7 +282,7 @@ def cmd_exec(args: argparse.Namespace) -> int:
 
     # Build execution environment.
     # Start from persisted variables, then inject context, buffers and helpers.
-    env: Dict[str, Any] = dict(persisted)
+    env: dict[str, Any] = dict(persisted)
     env["context"] = ctx
     env["content"] = ctx.get("content", "")
     env["buffers"] = buffers
@@ -415,7 +415,7 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
-def main(argv: List[str]) -> int:
+def main(argv: list[str]) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 

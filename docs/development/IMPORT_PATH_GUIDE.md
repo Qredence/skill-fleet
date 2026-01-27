@@ -7,7 +7,7 @@
 After the FastAPI-centric restructure, Skills Fleet uses a **facade pattern** with clean public import paths. This guide provides canonical import paths for all modules.
 
 `★ Insight ─────────────────────────────────────`
-The facade pattern separates public API from implementation. Import from `skill_fleet.domain` for domain entities, `skill_fleet.api` for API components, and `skill_fleet.services` for business logic. Direct imports from `skill_fleet.core` or `skill_fleet.db` are for internal use.
+The facade pattern separates public API from implementation. Import from `skill_fleet.domain` for domain entities and `skill_fleet.app` for FastAPI application. Direct imports from `skill_fleet.core` or `skill_fleet.db` are for internal use.
 `─────────────────────────────────────────────────`
 
 ## Recommended Import Patterns
@@ -84,28 +84,21 @@ from skill_fleet.services import (
 )
 ```
 
-### 3. API Layer
+### 3. Application Layer
 
 ```python
 # FastAPI Application
-from skill_fleet.api.app import create_app, get_app, app
+from skill_fleet.app import create_app, get_app, app
 
-# API Dependencies
-from skill_fleet.api.dependencies import (
+# Application Dependencies
+from skill_fleet.app.dependencies import (
     SkillsRoot,
     DraftsRoot,
     TaxonomyManagerDep,
 )
 
-# API Exceptions
-from skill_fleet.api.exceptions import (
-    BadRequestException,
-    NotFoundException,
-    SkillFleetAPIException,
-)
-
-# Pydantic Schemas
-from skill_fleet.api.schemas import (
+# Application Schemas
+from skill_fleet.app.api.schemas import (
     CreateSkillRequest,
     CreateSkillResponse,
     HitlPromptResponse,
@@ -306,12 +299,12 @@ class CustomSkillService(BaseService):
         return await self.domain_service.publish(skill)
 ```
 
-### Example 2: FastAPI Route with Service Layer
+### Example 2: FastAPI Route with Application Layer
 
 ```python
-# api/routes/custom.py
+# app/api/v1/custom.py
 from fastapi import APIRouter, Depends
-from skill_fleet.api.dependencies import SkillsRoot
+from skill_fleet.app.dependencies import SkillsRoot
 from skill_fleet.domain import Job, JobStatus
 from skill_fleet.core.dspy import SkillCreationProgram
 
@@ -401,12 +394,11 @@ If you have code using old import paths:
 - [ ] Update `skill_fleet.core.programs` → `skill_fleet.dspy.programs`
 - [ ] Update `skill_fleet.core.models` → `skill_fleet.domain`
 - [ ] Update `skill_fleet.core.services` → `skill_fleet.services` or keep as `skill_fleet.core.services`
-- [ ] Update API route imports to use `skill_fleet.api.routes`
 - [ ] Update validator imports to use `skill_fleet.validators`
 
 ## Best Practices
 
-1. **Use facade imports** from `skill_fleet.domain`, `skill_fleet.api`, `skill_fleet.services`
+1. **Use facade imports** from `skill_fleet.domain`, `skill_fleet.app`, `skill_fleet.services`
 2. **Avoid internal imports** from `skill_fleet.core`, `skill_fleet.db` unless necessary
 3. **Import specific classes** rather than using `from module import *`
 4. **Use type hints** with imported domain models
@@ -425,14 +417,24 @@ uv sync
 
 ### Import Error: "Cannot import 'X' from 'skill_fleet.api'"
 
-Some API components are in submodules:
+The `skill_fleet.api` module has been removed. Use `skill_fleet.app` instead:
 
 ```python
-# Wrong
+# Wrong (old)
 from skill_fleet.api import CreateSkillRequest
 
-# Correct
-from skill_fleet.api.schemas import CreateSkillRequest
+# Correct (new)
+from skill_fleet.app.api.schemas import CreateSkillRequest
+
+# For FastAPI application
+from skill_fleet.app import create_app, get_app, app
+
+# For application dependencies
+from skill_fleet.app.dependencies import (
+    SkillsRoot,
+    DraftsRoot,
+    TaxonomyManagerDep,
+)
 ```
 
 ### Multiple Import Paths Work

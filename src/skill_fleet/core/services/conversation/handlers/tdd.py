@@ -154,7 +154,7 @@ class TDDHandlers:
         try:
             existing_skills = self.taxonomy.get_mounted_skills("default")
 
-            p1_result = await self.phase1.aforward(
+            p1_result = await self.phase1.acall(
                 task_description=session.task_description,
                 user_context="Interactive session",
                 taxonomy_structure=json.dumps(
@@ -163,7 +163,7 @@ class TDDHandlers:
                 existing_skills=json.dumps(existing_skills),
             )
 
-            p2_result = await self.phase2.aforward(
+            p2_result = await self.phase2.acall(
                 skill_metadata=p1_result["plan"]["skill_metadata"],
                 content_plan=p1_result["plan"]["content_plan"],
                 generation_instructions=p1_result["plan"]["generation_instructions"],
@@ -171,7 +171,7 @@ class TDDHandlers:
                 dependency_summaries=json.dumps(p1_result["dependencies"]),
             )
 
-            p3_result = await self.phase3.aforward(
+            p3_result = await self.phase3.acall(
                 skill_content=p2_result["skill_content"],
                 skill_metadata=p1_result["plan"]["skill_metadata"],
                 content_plan=p1_result["plan"]["content_plan"],

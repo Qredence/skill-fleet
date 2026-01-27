@@ -18,9 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class InterpretIntentModule(dspy.Module):
-    """
-    Module for interpreting user intent using MultiChainComparison.
-    """
+    """Module for interpreting user intent using MultiChainComparison."""
 
     def __init__(self, n_candidates: int = 3):
         super().__init__()

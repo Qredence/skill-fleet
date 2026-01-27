@@ -13,8 +13,8 @@ from __future__ import annotations
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
-from .....api.exceptions import NotFoundException
-from .....api.jobs import get_job
+from ....exceptions import NotFoundException
+from ....services.jobs import get_job
 
 router = APIRouter()
 
@@ -26,6 +26,7 @@ class JobDetailResponse(BaseModel):
     Contains all job status information including progress, results,
     and HITL interaction data.
     """
+
     job_id: str = Field(..., description="Job ID")
     status: str = Field(..., description="Job status")
     task_description: str = Field(..., description="Task description")
@@ -64,8 +65,8 @@ async def get_job_status(job_id: str) -> JobDetailResponse:
     return JobDetailResponse(
         job_id=job.job_id,
         status=job.status,
-        task_description=job.task_description,
-        user_id=job.user_id,
+        task_description=getattr(job, "task_description", ""),
+        user_id=getattr(job, "user_id", "default"),
         current_phase=job.current_phase,
         progress_message=job.progress_message,
         error=job.error,

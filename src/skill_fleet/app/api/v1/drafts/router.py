@@ -11,18 +11,22 @@ Endpoints:
 
 from __future__ import annotations
 
+import contextlib
 import os
 import shutil
 import tempfile
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from .....common.path_validation import resolve_path_within_root
 from .....common.security import sanitize_taxonomy_path
-from .....api.dependencies import SkillsRoot, TaxonomyManagerDep
-from .....api.jobs import delete_job_session, get_job, save_job_session
+from ....services.jobs import delete_job_session, get_job, save_job_session
+
+if TYPE_CHECKING:
+    from ....dependencies import SkillsRoot, TaxonomyManagerDep
 
 router = APIRouter()
 
@@ -67,6 +71,7 @@ async def promote_draft(
         job_id: The job ID whose draft should be promoted
         request: Promotion options (overwrite, delete_draft, force)
         skills_root: Root directory for skills (injected)
+        taxonomy_manager: Taxonomy manager for path resolution and validation
 
     Returns:
         PromoteDraftResponse with the final path
@@ -166,10 +171,8 @@ async def promote_draft(
                 raise e
 
         # Update taxonomy meta/cache by loading metadata (best-effort)
-        try:
+        with contextlib.suppress(Exception):
             taxonomy_manager._ensure_all_skills_loaded()
-        except Exception:
-            pass
 
         job.promoted = True
         job.final_path = str(target_dir)

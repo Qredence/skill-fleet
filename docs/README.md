@@ -26,7 +26,7 @@ Instead of a monolithic prompt or ad‑hoc tool chain, the system stores skills 
 Skill creation runs as a FastAPI background job and is **draft-first**:
 
 - Jobs write drafts under `skills/_drafts/<job_id>/...` once content exists.
-- Promotion into the taxonomy is explicit (`skill-fleet promote <job_id>` or `POST /api/v2/drafts/{job_id}/promote`).
+- Promotion into the taxonomy is explicit (`skill-fleet promote <job_id>` or `POST /api/v1/drafts/{job_id}/promote`).
 
 This design keeps the taxonomy stable and makes review/iteration the default before “publishing” a new skill.
 `─────────────────────────────────────────────────`

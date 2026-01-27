@@ -14,10 +14,8 @@ for simplicity. In production applications:
 
 from __future__ import annotations
 
-from typing import Optional
-from pydantic import BaseModel, EmailStr, Field
 from fastapi import FastAPI, HTTPException, status
-
+from pydantic import BaseModel, EmailStr, Field
 
 # ========================================
 # 1. THE USER MODELS
@@ -25,6 +23,7 @@ from fastapi import FastAPI, HTTPException, status
 
 class UserBase(BaseModel):
     """Base user fields shared across models"""
+
     name: str = Field(..., min_length=1, max_length=100)
     email: EmailStr
     age: int = Field(..., ge=0, le=150)
@@ -32,6 +31,7 @@ class UserBase(BaseModel):
 
 class User(UserBase):
     """Full user model with id"""
+
     id: int
 
     class Config:
@@ -47,6 +47,7 @@ class User(UserBase):
 
 class UserCreate(UserBase):
     """Model for creating a new user"""
+
     pass
 
 
@@ -57,9 +58,10 @@ class UserUpdate(BaseModel):
     KEY FEATURE: All fields are Optional, allowing partial updates.
     This is the Pydantic model that makes PATCH work properly.
     """
-    name: Optional[str] = Field(None, min_length=1, max_length=100)
-    email: Optional[EmailStr] = None
-    age: Optional[int] = Field(None, ge=0, le=150)
+
+    name: str | None = Field(None, min_length=1, max_length=100)
+    email: EmailStr | None = None
+    age: int | None = Field(None, ge=0, le=150)
 
     class Config:
         json_schema_extra = {

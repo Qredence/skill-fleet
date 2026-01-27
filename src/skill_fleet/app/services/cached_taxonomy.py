@@ -25,14 +25,16 @@ Usage:
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from ....app.cache import (
+from ...app.cache import (
     cache_key,
     get_cache,
     invalidate_pattern,
 )
-from ....taxonomy.manager import TaxonomyManager
+
+if TYPE_CHECKING:
+    from ...taxonomy.manager import TaxonomyManager
 
 logger = logging.getLogger(__name__)
 
@@ -147,7 +149,7 @@ class CachedTaxonomyService:
 
         """
         # Create a cache key based on task description hash
-        from ....app.cache import hash_key
+        from ...app.cache import hash_key
 
         key_hash = hash_key(task_description)
         cache_key_val = cache_key("taxonomy", "branches", key_hash)
@@ -155,11 +157,11 @@ class CachedTaxonomyService:
         # Try cache first
         cached = get_cache().get(cache_key_val)
         if cached is not None:
-            logger.debug(f"Cache hit: relevant branches for task")
+            logger.debug("Cache hit: relevant branches for task")
             return cached
 
         # Get from taxonomy manager
-        logger.debug(f"Cache miss: relevant branches for task")
+        logger.debug("Cache miss: relevant branches for task")
         result = self.taxonomy_manager.get_relevant_branches(task_description)
 
         # Cache for 10 minutes (task descriptions often repeat)
@@ -192,7 +194,7 @@ class CachedTaxonomyService:
         if meta is None:
             return None
 
-        from ....taxonomy.models import SkillMetadata
+        from ...taxonomy.metadata import SkillMetadata
 
         if isinstance(meta, SkillMetadata):
             result = {

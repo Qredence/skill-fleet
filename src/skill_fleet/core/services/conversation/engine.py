@@ -5,12 +5,11 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import dspy
 
 from ....common.streaming import create_streaming_module
-from ....taxonomy.manager import TaxonomyManager
 from ...dspy.modules.conversation import (
     AssessReadinessModule,
     ConfirmUnderstandingModule,
@@ -30,6 +29,9 @@ from ...dspy.modules.understanding import Phase1UnderstandingModule
 from ...dspy.modules.validation import Phase3ValidationModule
 from .handlers import ConversationHandlers
 from .models import AgentResponse, ConversationSession, ConversationState
+
+if TYPE_CHECKING:
+    from ....taxonomy.manager import TaxonomyManager
 
 logger = logging.getLogger(__name__)
 

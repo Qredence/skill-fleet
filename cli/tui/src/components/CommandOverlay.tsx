@@ -9,17 +9,34 @@ interface CommandOverlayProps {
 
 const COMMANDS = [
   {
+    key: "config",
     label: "/config   Manage configuration (API keys, etc.)",
     value: "/config",
   },
-  { label: "/status   Show current application status", value: "/status" },
-  { label: "/model    Switch AI model", value: "/model" },
-  { label: "/think    Toggle explain-mode", value: "/think" },
-  { label: "/agent    Manage subagents or delegate tasks", value: "/agent" },
-  { label: "/clear    Clear conversation history", value: "/clear" },
-  { label: "/jobs     Monitor running jobs", value: "/jobs" },
-  { label: "/skills   Manage skills", value: "/list" },
-  { label: "/help     Show help", value: "/help" },
+  {
+    key: "status",
+    label: "/status   Show current application status",
+    value: "/status",
+  },
+  { key: "model", label: "/model    Switch AI model", value: "/model" },
+  {
+    key: "think",
+    label: "/think    Toggle explain-mode",
+    value: "/think",
+  },
+  {
+    key: "agent",
+    label: "/agent    Manage subagents or delegate tasks",
+    value: "/agent",
+  },
+  {
+    key: "clear",
+    label: "/clear    Clear conversation history",
+    value: "/clear",
+  },
+  { key: "jobs", label: "/jobs     Monitor running jobs", value: "/jobs" },
+  { key: "skills", label: "/skills   Manage skills", value: "/list" },
+  { key: "help", label: "/help     Show help", value: "/help" },
 ];
 
 export const CommandOverlay: React.FC<CommandOverlayProps> = ({ onSelect }) => {

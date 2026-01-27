@@ -216,9 +216,9 @@ from skill_fleet.core.dspy import SkillCreationProgram
 from skill_fleet.core.dspy.modules.phase1_understanding import Phase1UnderstandingModule
 from skill_fleet.core.models import SkillMetadata
 
-# API internals
-from skill_fleet.api.app import create_app
-from skill_fleet.api.routes import skills, taxonomy
+# Application layer
+from skill_fleet.app import create_app
+from skill_fleet.app.api.v1.router import router
 
 # Database
 from skill_fleet.db import get_db, SkillRepository
@@ -375,7 +375,7 @@ The current structure is stable, maintainable, and ready for continued developme
 
 ## References
 
-- [Cleanup & Optimization Plan](../../plans/cleanup-and-optimization-plan.md)
+- [Cleanup & Optimization Plan](../../plans/archive/cleanup-and-optimization-plan.md)
 - [API Documentation](../api/index.md)
 - [DSPy Documentation](../dspy/index.md)
 - [Developer Reference](../concepts/developer-reference.md)

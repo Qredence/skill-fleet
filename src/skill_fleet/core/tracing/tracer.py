@@ -37,11 +37,12 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any
-
-import dspy
+from typing import TYPE_CHECKING, Any
 
 from ...common.dspy_compat import coerce_reasoning_text
+
+if TYPE_CHECKING:
+    import dspy
 
 logger = logging.getLogger(__name__)
 

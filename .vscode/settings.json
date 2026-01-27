@@ -2,5 +2,6 @@
   "python-envs.defaultEnvManager": "ms-python.python:venv",
   "python-envs.defaultPackageManager": "ms-python.python:pip",
   "python-envs.pythonProjects": [],
-  "python.languageServer": "None"
+  "python.languageServer": "None",
+  "markdown.validate.enabled": true
 }

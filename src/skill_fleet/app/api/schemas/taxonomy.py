@@ -36,7 +36,9 @@ class AdaptTaxonomyRequest(BaseModel):
 
     user_id: str = Field(..., description="User ID")
     query_history: list[str] = Field(default=[], description="Recent user queries")
-    interaction_data: dict[str, Any] = Field(default_factory=dict, description="User interaction patterns")
+    interaction_data: dict[str, Any] = Field(
+        default_factory=dict, description="User interaction patterns"
+    )
 
 
 class AdaptTaxonomyResponse(BaseModel):

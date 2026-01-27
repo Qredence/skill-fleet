@@ -1,7 +1,7 @@
 """
 DSPy signatures for Phase 3: Validation & Refinement.
 
-Phase 3 validates the generated skill content and iteratively refines
+Phase 3 validates generated skill content and iteratively refines
 it based on validation results and user feedback.
 
 Workflow:
@@ -11,8 +11,6 @@ Workflow:
 
 All signatures use Pydantic models for type safety.
 """
-
-from __future__ import annotations
 
 import dspy
 
@@ -182,7 +180,7 @@ class GenerateAutoFix(dspy.Signature):
     """
 
     # Inputs
-    skill_content: str = dspy.InputField(desc="Current SKILL.md content with the validation issue")
+    skill_content: str = dspy.InputField(desc="Current SKILL.md content with validation issue")
     issue: ValidationCheckItem = dspy.InputField(
         desc="Specific issue to fix (has: check_id, severity, message, suggested_fix)"
     )
@@ -193,7 +191,7 @@ class GenerateAutoFix(dspy.Signature):
     # Outputs
     fixed_content: str = dspy.OutputField(
         desc="SKILL.md content with ONLY this issue fixed. Preserve all other content exactly. "
-        "Maintain markdown formatting, code blocks, and quality. Min changes to fix the issue."
+        "Maintain markdown formatting, code blocks, and quality. Min changes to fix issue."
     )
     fix_applied: str = dspy.OutputField(
         desc="1-2 sentence description of change made. Be specific: 'Added YAML frontmatter with name=X and description=Y' "

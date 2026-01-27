@@ -14,13 +14,17 @@ Endpoints:
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
+from pydantic import BaseModel
 
-from .....api.exceptions import NotFoundException
-from ....schemas.skills import (
+from .....core.dspy.modules.workflows.quality_assurance import QualityAssuranceOrchestrator
+from ....dependencies import SkillServiceDep
+from ....exceptions import NotFoundException
+from ...schemas.skills import (
     CreateSkillRequest,
     CreateSkillResponse,
     RefineSkillRequest,
@@ -29,13 +33,11 @@ from ....schemas.skills import (
     ValidateSkillRequest,
     ValidateSkillResponse,
 )
-from .....app.dependencies import SkillServiceDep
-from .....workflows.quality_assurance.orchestrator import QualityAssuranceOrchestrator
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from .....app.services.skill_service import SkillService
+    pass
 
 router = APIRouter()
 
@@ -64,9 +66,12 @@ async def create_skill(
 
     """
     # Import here to avoid circular dependency with job system
-    from ....api.jobs import create_job
+    from ....services.jobs import create_job
 
-    job_id = create_job()
+    job_id = create_job(
+        task_description=request.task_description,
+        user_id=request.user_id,
+    )
 
     async def run_workflow():
         """Run the skill creation workflow in background."""
@@ -111,13 +116,21 @@ async def get_skill(skill_id: str, skill_service: SkillServiceDep) -> SkillDetai
             metadata=skill_data.get("metadata", {}),
             content=skill_data.get("content"),
         )
-    except FileNotFoundError:
-        raise NotFoundException("Skill", skill_id)
+    except FileNotFoundError as err:
+        raise NotFoundException("Skill", skill_id) from err
+
+
+class UpdateSkillRequest(BaseModel):
+    """Request body for updating a skill."""
+
+    content: str | None = None
+    metadata: dict | None = None
 
 
 @router.put("/{skill_id}", response_model=dict[str, str])
 async def update_skill(
     skill_id: str,
+    request: UpdateSkillRequest,
     skill_service: SkillServiceDep,
 ) -> dict[str, str]:
     """
@@ -125,6 +138,7 @@ async def update_skill(
 
     Args:
         skill_id: Unique skill identifier
+        request: Update request with content and/or metadata
         skill_service: Injected SkillService for data access
 
     Returns:
@@ -133,19 +147,47 @@ async def update_skill(
     Raises:
         HTTPException: If skill not found (404)
 
-    Note:
-        Currently returns success without actual updates.
-        Full implementation would accept an update request body
-        and modify skill metadata/content.
-
     """
     try:
         # Verify skill exists
         skill_service.get_skill_by_path(skill_id)
-        # TODO: Implement actual update logic with request body
+
+        # Resolve the actual filesystem path
+        from .....taxonomy.manager import TaxonomyManager
+
+        taxonomy_manager = TaxonomyManager(skill_service.skills_root)
+        relative_path = taxonomy_manager.resolve_skill_location(skill_id)
+        skill_path = skill_service.skills_root / relative_path
+
+        # Update skill if content provided
+        if request.content:
+            skill_md_path = skill_path / "SKILL.md"
+            if skill_md_path.exists():
+                skill_md_path.write_text(request.content, encoding="utf-8")
+
+        # Update metadata if provided
+        if request.metadata:
+            metadata_path = skill_path / "metadata.json"
+            if metadata_path.exists():
+                # Read existing metadata
+                current = json.loads(metadata_path.read_text(encoding="utf-8"))
+                # Merge updates
+                current.update(request.metadata)
+                # Write back
+                metadata_path.write_text(json.dumps(current, indent=2), encoding="utf-8")
+
         return {"skill_id": skill_id, "status": "updated"}
-    except FileNotFoundError:
-        raise NotFoundException("Skill", skill_id)
+    except FileNotFoundError as err:
+        raise NotFoundException("Skill", skill_id) from err
+    except Exception as err:
+        from fastapi import status
+
+        from .....app.exceptions import SkillFleetAPIError
+
+        raise SkillFleetAPIError(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update skill: {str(err)}",
+        ) from err
 
 
 @router.post("/{skill_id}/validate", response_model=ValidateSkillResponse)
@@ -179,8 +221,8 @@ async def validate_skill(
             "type": skill_data.get("type"),
             **skill_data.get("metadata", {}),
         }
-    except FileNotFoundError:
-        raise NotFoundException("Skill", skill_id)
+    except FileNotFoundError as err:
+        raise NotFoundException("Skill", skill_id) from err
 
     # Initialize orchestrator and run validation
     orchestrator = QualityAssuranceOrchestrator()
@@ -202,15 +244,19 @@ async def validate_skill(
         # Build issues list
         issues = []
         for issue in critical_issues:
-            issues.append({
-                "severity": "error",
-                "message": issue.get("message", str(issue)),
-            })
+            issues.append(
+                {
+                    "severity": "error",
+                    "message": issue.get("message", str(issue)),
+                }
+            )
         for warning in warnings:
-            issues.append({
-                "severity": "warning",
-                "message": warning.get("message", str(warning)),
-            })
+            issues.append(
+                {
+                    "severity": "warning",
+                    "message": warning.get("message", str(warning)),
+                }
+            )
 
         return ValidateSkillResponse(
             passed=validation_report.get("passed", False),
@@ -221,10 +267,7 @@ async def validate_skill(
 
     except Exception as e:
         logger.exception(f"Error in skill validation: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Validation failed: {e}"
-        ) from e
+        raise HTTPException(status_code=500, detail=f"Validation failed: {e}") from e
 
 
 @router.post("/{skill_id}/refine", response_model=RefineSkillResponse)
@@ -263,8 +306,8 @@ async def refine_skill(
             "type": skill_data.get("type"),
             **skill_data.get("metadata", {}),
         }
-    except FileNotFoundError:
-        raise NotFoundException("Skill", skill_id)
+    except FileNotFoundError as err:
+        raise NotFoundException("Skill", skill_id) from err
 
     # Initialize orchestrator
     orchestrator = QualityAssuranceOrchestrator()
@@ -284,7 +327,18 @@ async def refine_skill(
         # Check if refinement was successful
         refined_content = result.get("refined_content")
         if refined_content:
-            # TODO: Save refined content back to skill storage
+            # Save refined content back to skill storage
+            try:
+                skill_path = skill_service.taxonomy_manager.resolve_skill_location(skill_id)
+                skill_md_path = skill_service.skills_root / skill_path / "SKILL.md"
+                if skill_md_path.exists():
+                    skill_md_path.write_text(refined_content, encoding="utf-8")
+                    logger.debug(f"Persisted refined skill to {skill_md_path}")
+                else:
+                    logger.warning(f"Could not persist refinement: {skill_md_path} not found")
+            except Exception as e:
+                logger.error(f"Failed to persist refinement: {e}")
+
             message = "Skill refined successfully based on feedback"
             status = "completed"
         else:
@@ -299,7 +353,4 @@ async def refine_skill(
 
     except Exception as e:
         logger.exception(f"Error in skill refinement: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Refinement failed: {e}"
-        ) from e
+        raise HTTPException(status_code=500, detail=f"Refinement failed: {e}") from e

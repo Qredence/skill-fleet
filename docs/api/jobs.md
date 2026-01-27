@@ -63,7 +63,7 @@ class JobState(BaseModel):
 ### Creating a Job
 
 ```python
-from skill_fleet.api.jobs import create_job
+from skill_fleet.app.services.jobs import create_job
 
 job_id = create_job()
 # Returns: "f47ac10b-58cc-4372-a567-0e02b2c3d479"

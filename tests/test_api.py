@@ -67,7 +67,7 @@ class TestHealthEndpoint:
 
 
 class TestSkillsCreateEndpoint:
-    """Tests for /api/v2/skills/create endpoint."""
+    """Tests for /api/v1/skills/ endpoint."""
 
     def test_create_skill_returns_job_id(self, client):
         """Test skill creation returns a job ID and accepted status.
@@ -78,7 +78,7 @@ class TestSkillsCreateEndpoint:
         - Response includes 'status' field with value 'accepted'
         """
         response = client.post(
-            "/api/v2/skills/create",
+            "/api/v1/skills/",
             json={"task_description": "Create an OpenAPI skill for REST endpoints"},
         )
 
@@ -95,7 +95,7 @@ class TestSkillsCreateEndpoint:
         Verifies that Pydantic validation catches missing required fields
         and returns HTTP 422 (Unprocessable Entity).
         """
-        response = client.post("/api/v2/skills/create", json={})
+        response = client.post("/api/v1/skills/", json={})
 
         assert response.status_code == 422  # Validation error
         data = response.json()
@@ -110,7 +110,7 @@ class TestSkillsCreateEndpoint:
         by Pydantic, returning HTTP 422.
         """
         response = client.post(
-            "/api/v2/skills/create",
+            "/api/v1/skills/",
             # Now fails min_length=10
             json={"task_description": "short"},
         )

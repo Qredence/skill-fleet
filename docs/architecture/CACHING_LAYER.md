@@ -62,7 +62,7 @@ BRANCH_TTL = 600   # 10 minutes
 ### 1. Decorator-Based Caching
 
 ```python
-from skill_fleet.api.cache import cache_endpoint, cache_user_data, cache_branch_data
+from skill_fleet.app.cache import cache_endpoint, cache_user_data, cache_branch_data
 
 # Cache with default TTL (5 minutes)
 @cache_endpoint
@@ -92,7 +92,7 @@ async def get_taxonomy_branch(branch_path: str):
 ### 2. Manual Cache Operations
 
 ```python
-from skill_fleet.api.cache_manager import cache_manager
+from skill_fleet.app.cache_manager import cache_manager
 
 # Get from cache
 cached_value = cache_manager.get("taxonomy:global")
@@ -111,7 +111,7 @@ cache_manager.clear()
 ### 3. Cache Invalidation on Write
 
 ```python
-from skill_fleet.api.cache_manager import cache_manager
+from skill_fleet.app.cache_manager import cache_manager
 
 async def create_skill(skill_data):
     """Create a skill and invalidate related cache."""
@@ -147,7 +147,7 @@ Cache keys are generated based on:
 ### Custom Key Functions
 
 ```python
-from skill_fleet.api.cache import cache_endpoint
+from skill_fleet.app.cache import cache_endpoint
 
 @cache_endpoint(key_function=lambda kwargs: f"custom:{kwargs['skill_id']}")
 async def get_skill(skill_id: str):
@@ -160,7 +160,7 @@ async def get_skill(skill_id: str):
 The cache supports regex-based pattern invalidation for bulk cache clearing.
 
 ```python
-from skill_fleet.api.cache_manager import cache_manager
+from skill_fleet.app.cache_manager import cache_manager
 
 # Invalidate all skill caches
 cache_manager.invalidate_pattern("/skills/*")
@@ -188,7 +188,7 @@ cache_manager.invalidate_pattern("/taxonomy/*")
 The cache manager provides statistics for monitoring and debugging.
 
 ```python
-from skill_fleet.api.cache_manager import cache_manager
+from skill_fleet.app.cache_manager import cache_manager
 
 # Get cache statistics
 stats = cache_manager.get_stats()
@@ -267,7 +267,7 @@ cache:
 ### 3. Use Redis Backend
 
 ```python
-from skill_fleet.api.cache_manager import get_cache_backend
+from skill_fleet.app.cache_manager import get_cache_backend
 
 # Automatically uses Redis if configured
 cache = get_cache_backend()

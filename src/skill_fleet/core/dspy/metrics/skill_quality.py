@@ -24,10 +24,12 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import dspy
 import yaml
+
+if TYPE_CHECKING:
+    import dspy
 
 
 @dataclass
@@ -312,10 +314,9 @@ def evaluate_structure(body: str) -> tuple[dict[str, bool | str], list[str], lis
         if "quick start" in raw_name.lower():
             logical_name = "Quick Start"
 
-        if flags.get(section):
-            if logical_name not in reported_logical_sections:
-                strengths.append(f"Has {logical_name} section")
-                reported_logical_sections.add(logical_name)
+        if flags.get(section) and logical_name not in reported_logical_sections:
+            strengths.append(f"Has {logical_name} section")
+            reported_logical_sections.add(logical_name)
 
     if flags.get("has_real_world_impact"):
         strengths.append("Includes real-world impact/benefits")

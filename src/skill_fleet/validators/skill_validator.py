@@ -305,11 +305,14 @@ class SkillValidator:
         elif len(capabilities) == 0:
             warnings.append("capabilities list is empty")
 
-        if isinstance(capabilities, list) and weight in self._WEIGHT_ENUM:
-            if not self._validate_weight_capabilities(weight, capabilities):
-                warnings.append(
-                    f"Weight '{weight}' may not match capability count ({len(capabilities)})"
-                )
+        if (
+            isinstance(capabilities, list)
+            and weight in self._WEIGHT_ENUM
+            and not self._validate_weight_capabilities(weight, capabilities)
+        ):
+            warnings.append(
+                f"Weight '{weight}' may not match capability count ({len(capabilities)})"
+            )
 
         return ValidationResult(len(errors) == 0, errors, warnings)
 
@@ -534,9 +537,8 @@ class SkillValidator:
             if len(compat) > 500:
                 warnings.append(f"Compatibility field exceeds 500 characters ({len(compat)})")
 
-        if "metadata" in frontmatter:
-            if not isinstance(frontmatter["metadata"], dict):
-                warnings.append("metadata field should be a key-value mapping")
+        if "metadata" in frontmatter and not isinstance(frontmatter["metadata"], dict):
+            warnings.append("metadata field should be a key-value mapping")
 
         return ValidationResult(len(errors) == 0, errors, warnings)
 
@@ -613,13 +615,11 @@ class SkillValidator:
                 else:
                     # Check depth - only 1 level allowed (e.g., references/file.md, not references/sub/file.md)
                     for item in files:
-                        if item.is_dir() and not item.name.startswith("."):
-                            # examples/ is allowed to have subdirectories (demo projects)
-                            if subdir != "examples":
-                                warnings.append(
-                                    f"Nested subdirectory not recommended: {subdir}/{item.name}/ "
-                                    f"(use flat structure in {subdir}/)"
-                                )
+                        if item.is_dir() and not item.name.startswith(".") and subdir != "examples":
+                            warnings.append(
+                                f"Nested subdirectory not recommended: {subdir}/{item.name}/ "
+                                f"(use flat structure in {subdir}/)"
+                            )
             elif subdir in LEGACY_SUBDIRECTORIES:
                 warnings.append(
                     f"Legacy subdirectory '{subdir}/' is deprecated. "
@@ -923,9 +923,7 @@ class SkillValidator:
             return False
         if weight == "medium" and (cap_count < 3 or cap_count > 10):
             return False
-        if weight == "heavyweight" and cap_count < 8:
-            return False
-        return True
+        return not (weight == "heavyweight" and cap_count < 8)
 
     def _is_safe_path_component(self, component: str) -> bool:
         """

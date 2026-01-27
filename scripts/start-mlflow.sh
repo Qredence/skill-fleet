@@ -13,13 +13,13 @@ if [ ! -d "mlruns" ]; then
 fi
 
 # Start MLflow UI
-echo "✅ MLflow UI starting on http://localhost:5000"
+echo "✅ MLflow UI starting on http://localhost:5001"
 echo ""
 echo "Press Ctrl+C to stop the server"
 echo ""
 
 uv run mlflow ui \
     --host localhost \
-    --port 5000 \
+    --port 5001 \
     --backend-store-uri sqlite:///mlflow.db \
     --default-artifact-root ./mlartifacts

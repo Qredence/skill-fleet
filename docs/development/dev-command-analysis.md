@@ -7,7 +7,7 @@ This document analyzes the implementation of the `skill-fleet dev` command (`src
 The command manages two distinct subprocesses:
 
 1.  **API Server (Python/Uvicorn)**
-    *   **Command:** `sys.executable -m uvicorn skill_fleet.api.app:app ...`
+    *   **Command:** `sys.executable -m uvicorn skill_fleet.app.main:app ...`
     *   **Logging:** `stdout` and `stderr` are redirected to a file: `.skill_fleet_logs/api-dev.log`. This prevents API logs from interfering with the TUI interface.
     *   **Readiness:** The command polls the `/docs` endpoint (via `_wait_for_api_ready`) to ensure the API is accepting requests before launching the TUI.
 

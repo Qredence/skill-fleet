@@ -13,31 +13,32 @@ Approved LLM Models:
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import dspy
 
-from ...models import (
-    BestPractice,
-    Capability,
-    CapabilityImplementation,
-    ClarifyingQuestion,
-    CompatibilityConstraints,
-    DependencyAnalysis,
-    DependencyRef,
-    EvolutionMetadata,
-    PackagingManifest,
-    ParentSkillInfo,
-    ResourceRequirements,
-    RevisionPlan,
-    SkillMetadata,
-    SkillSkeleton,
-    TestCase,
-    UsageExample,
-    UserExample,
-    ValidationCheckItem,
-    ValidationReport,
-)
+if TYPE_CHECKING:
+    from ...models import (
+        BestPractice,
+        Capability,
+        CapabilityImplementation,
+        ClarifyingQuestion,
+        CompatibilityConstraints,
+        DependencyAnalysis,
+        DependencyRef,
+        EvolutionMetadata,
+        PackagingManifest,
+        ParentSkillInfo,
+        ResourceRequirements,
+        RevisionPlan,
+        SkillMetadata,
+        SkillSkeleton,
+        TestCase,
+        UsageExample,
+        UserExample,
+        ValidationCheckItem,
+        ValidationReport,
+    )
 
 # =============================================================================
 # Step 0: Gather Examples - Understanding Before Creation

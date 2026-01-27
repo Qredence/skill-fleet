@@ -17,8 +17,9 @@ from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, HTTPException
 
-from .....api.exceptions import NotFoundException
-from ....schemas.quality import (
+from .....core.dspy.modules.workflows.quality_assurance import QualityAssuranceOrchestrator
+from ....exceptions import NotFoundException
+from ...schemas.quality import (
     AssessQualityRequest,
     AssessQualityResponse,
     AutoFixRequest,
@@ -26,14 +27,13 @@ from ....schemas.quality import (
     ValidateRequest,
     ValidateResponse,
 )
-from .....app.dependencies import SkillServiceDep
-from .....workflows.quality_assurance.orchestrator import QualityAssuranceOrchestrator
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 if TYPE_CHECKING:
+    from .....app.dependencies import SkillServiceDep
     from .....app.services.skill_service import SkillService
 
 
@@ -50,6 +50,7 @@ def _load_skill_content(skill_id: str, skill_service: SkillService) -> tuple[str
 
     Raises:
         HTTPException: If skill not found
+
     """
     try:
         skill_data = skill_service.get_skill_by_path(skill_id)
@@ -90,10 +91,7 @@ async def validate(request: ValidateRequest, skill_service: SkillServiceDep) -> 
         content = request.content
         metadata = {}
     else:
-        raise HTTPException(
-            status_code=400,
-            detail="Either skill_id or content must be provided"
-        )
+        raise HTTPException(status_code=400, detail="Either skill_id or content must be provided")
 
     # Initialize orchestrator
     orchestrator = QualityAssuranceOrchestrator()
@@ -117,17 +115,21 @@ async def validate(request: ValidateRequest, skill_service: SkillServiceDep) -> 
         # Build issues list for response
         issues = []
         for issue in critical_issues:
-            issues.append({
-                "severity": "error",
-                "message": issue.get("message", str(issue)),
-                "location": issue.get("location", "unknown"),
-            })
+            issues.append(
+                {
+                    "severity": "error",
+                    "message": issue.get("message", str(issue)),
+                    "location": issue.get("location", "unknown"),
+                }
+            )
         for warning in warnings:
-            issues.append({
-                "severity": "warning",
-                "message": warning.get("message", str(warning)),
-                "location": warning.get("location", "unknown"),
-            })
+            issues.append(
+                {
+                    "severity": "warning",
+                    "message": warning.get("message", str(warning)),
+                    "location": warning.get("location", "unknown"),
+                }
+            )
 
         # Extract recommendations from quality assessment
         quality_assessment = result.get("quality_assessment", {})
@@ -143,14 +145,13 @@ async def validate(request: ValidateRequest, skill_service: SkillServiceDep) -> 
 
     except Exception as e:
         logger.exception(f"Error in validation workflow: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Validation failed: {e}"
-        ) from e
+        raise HTTPException(status_code=500, detail=f"Validation failed: {e}") from e
 
 
 @router.post("/assess", response_model=AssessQualityResponse)
-async def assess_quality(request: AssessQualityRequest, skill_service: SkillServiceDep) -> AssessQualityResponse:
+async def assess_quality(
+    request: AssessQualityRequest, skill_service: SkillServiceDep
+) -> AssessQualityResponse:
     """
     Assess content quality across multiple dimensions.
 
@@ -173,10 +174,7 @@ async def assess_quality(request: AssessQualityRequest, skill_service: SkillServ
         content = request.content
         metadata = {}
     else:
-        raise HTTPException(
-            status_code=400,
-            detail="Either skill_id or content must be provided"
-        )
+        raise HTTPException(status_code=400, detail="Either skill_id or content must be provided")
 
     # Initialize orchestrator
     orchestrator = QualityAssuranceOrchestrator()
@@ -205,7 +203,9 @@ async def assess_quality(request: AssessQualityRequest, skill_service: SkillServ
         # Extract strengths and weaknesses
         strengths = quality_assessment.get("strengths", [])
         weaknesses = quality_assessment.get("weaknesses", [])
-        suggestions = quality_assessment.get("suggestions", quality_assessment.get("recommendations", []))
+        suggestions = quality_assessment.get(
+            "suggestions", quality_assessment.get("recommendations", [])
+        )
 
         # Calculate overall score from dimensions or use calibrated
         overall_score = quality_assessment.get("calibrated_score")
@@ -222,10 +222,7 @@ async def assess_quality(request: AssessQualityRequest, skill_service: SkillServ
 
     except Exception as e:
         logger.exception(f"Error in quality assessment workflow: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Quality assessment failed: {e}"
-        ) from e
+        raise HTTPException(status_code=500, detail=f"Quality assessment failed: {e}") from e
 
 
 @router.post("/fix", response_model=AutoFixResponse)
@@ -252,10 +249,7 @@ async def auto_fix(request: AutoFixRequest, skill_service: SkillServiceDep) -> A
         content = request.content
         metadata = {}
     else:
-        raise HTTPException(
-            status_code=400,
-            detail="Either skill_id or content must be provided"
-        )
+        raise HTTPException(status_code=400, detail="Either skill_id or content must be provided")
 
     # Initialize orchestrator
     orchestrator = QualityAssuranceOrchestrator()
@@ -287,7 +281,7 @@ async def auto_fix(request: AutoFixRequest, skill_service: SkillServiceDep) -> A
         fixed_content = result.get("refined_content", content)
 
         # Build fixes applied list from validation report
-        validation_report = result.get("validation_report", {})
+        result.get("validation_report", {})
         fixes_applied = []
 
         # Add issues that were resolved
@@ -297,25 +291,31 @@ async def auto_fix(request: AutoFixRequest, skill_service: SkillServiceDep) -> A
         # If we have refined content, consider issues fixed
         if "refined_content" in result:
             for issue in request.issues:
-                fixes_applied.append({
-                    "issue": issue.get("message", str(issue)),
-                    "fix": f"Addressed: {issue.get('message', '')}",
-                })
+                fixes_applied.append(
+                    {
+                        "issue": issue.get("message", str(issue)),
+                        "fix": f"Addressed: {issue.get('message', '')}",
+                    }
+                )
 
         # Get remaining issues from the result
         remaining_issues = []
         for issue in critical_issues:
-            remaining_issues.append({
-                "severity": "error",
-                "message": issue.get("message", str(issue)),
-                "location": issue.get("location", "unknown"),
-            })
+            remaining_issues.append(
+                {
+                    "severity": "error",
+                    "message": issue.get("message", str(issue)),
+                    "location": issue.get("location", "unknown"),
+                }
+            )
         for warning in warnings:
-            remaining_issues.append({
-                "severity": "warning",
-                "message": warning.get("message", str(warning)),
-                "location": warning.get("location", "unknown"),
-            })
+            remaining_issues.append(
+                {
+                    "severity": "warning",
+                    "message": warning.get("message", str(warning)),
+                    "location": warning.get("location", "unknown"),
+                }
+            )
 
         # Calculate confidence from quality score
         quality_assessment = result.get("quality_assessment", {})
@@ -330,7 +330,4 @@ async def auto_fix(request: AutoFixRequest, skill_service: SkillServiceDep) -> A
 
     except Exception as e:
         logger.exception(f"Error in auto-fix workflow: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Auto-fix failed: {e}"
-        ) from e
+        raise HTTPException(status_code=500, detail=f"Auto-fix failed: {e}") from e

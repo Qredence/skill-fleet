@@ -2,9 +2,9 @@
 Shared HITL job runner for CLI commands.
 
 The Skill Fleet API uses a background job + HITL (Human-in-the-Loop) prompt model:
-- CLI starts a job via `/api/v2/skills/create`
-- API exposes the current prompt via `/api/v2/hitl/{job_id}/prompt`
-- CLI responds via `/api/v2/hitl/{job_id}/response`
+- CLI starts a job via `/api/v1/skills/`
+- API exposes the current prompt via `/api/v1/hitl/{job_id}/prompt`
+- CLI responds via `/api/v1/hitl/{job_id}/response`
 
 This module centralizes the polling + interaction handling so `create` and `chat`
 commands stay consistent.

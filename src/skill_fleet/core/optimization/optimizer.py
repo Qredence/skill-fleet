@@ -18,11 +18,12 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 import dspy
 
-from ..dspy.programs import LegacySkillCreationProgram
+if TYPE_CHECKING:
+    from ..dspy.programs import LegacySkillCreationProgram
 
 logger = logging.getLogger(__name__)
 

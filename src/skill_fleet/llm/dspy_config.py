@@ -17,14 +17,16 @@ Usage:
 from __future__ import annotations
 
 import os
-from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import dspy
 
 from ..common.paths import default_config_path
 from .fleet_config import build_lm_for_task, load_fleet_config
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 def _resolve_adapter(config: dict[str, Any], lm: dspy.LM) -> dspy.Adapter | None:
@@ -92,7 +94,9 @@ def configure_dspy(
     if temp_str := os.environ.get("DSPY_TEMPERATURE"):
         try:
             temp = float(temp_str)
-            lm.kwargs["temperature"] = temp
+            kwargs = getattr(lm, "kwargs", None)
+            if isinstance(kwargs, dict):
+                kwargs["temperature"] = temp
         except ValueError:
             pass
 

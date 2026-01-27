@@ -1,5 +1,5 @@
 """
-Skills-Fleet Database Models
+Skills-Fleet Database Models.
 
 SQLAlchemy models for the skills fleet database schema.
 These models map to the PostgreSQL tables defined in migrations/001_init_skills_schema.sql
@@ -120,6 +120,24 @@ class ChecklistPhaseEnum:
     RED = "red"
     GREEN = "green"
     REFACTOR = "refactor"
+
+
+class ConversationStateEnum:
+    """Conversation workflow states for session persistence."""
+
+    EXPLORING = "EXPLORING"
+    DEEP_UNDERSTANDING = "DEEP_UNDERSTANDING"
+    MULTI_SKILL_DETECTED = "MULTI_SKILL_DETECTED"
+    CONFIRMING = "CONFIRMING"
+    READY = "READY"
+    CREATING = "CREATING"
+    TDD_RED_PHASE = "TDD_RED_PHASE"
+    TDD_GREEN_PHASE = "TDD_GREEN_PHASE"
+    TDD_REFACTOR_PHASE = "TDD_REFACTOR_PHASE"
+    REVIEWING = "REVIEWING"
+    REVISING = "REVISING"
+    CHECKLIST_COMPLETE = "CHECKLIST_COMPLETE"
+    COMPLETE = "COMPLETE"
 
 
 class ValidationStatusEnum:
@@ -339,9 +357,7 @@ class Skill(Base):
 
 
 class TaxonomyCategory(Base):
-    """
-    Hierarchical category organization for skills.
-    """
+    """Hierarchical category organization for skills."""
 
     __tablename__ = "taxonomy_categories"
 
@@ -378,9 +394,7 @@ class TaxonomyCategory(Base):
 
 
 class TaxonomyClosure(Base):
-    """
-    Closure table for efficient tree queries on taxonomy.
-    """
+    """Closure table for efficient tree queries on taxonomy."""
 
     __tablename__ = "taxonomy_closure"
 
@@ -400,9 +414,7 @@ class TaxonomyClosure(Base):
 
 
 class SkillCategory(Base):
-    """
-    Many-to-many relationship between skills and categories.
-    """
+    """Many-to-many relationship between skills and categories."""
 
     __tablename__ = "skill_categories"
 
@@ -429,9 +441,7 @@ class SkillCategory(Base):
 
 
 class SkillAlias(Base):
-    """
-    Legacy path support for skills.
-    """
+    """Legacy path support for skills."""
 
     __tablename__ = "skill_aliases"
 
@@ -458,9 +468,7 @@ class SkillAlias(Base):
 
 
 class SkillFacet(Base):
-    """
-    Multi-dimensional filtering for skills.
-    """
+    """Multi-dimensional filtering for skills."""
 
     __tablename__ = "skill_facets"
 
@@ -483,9 +491,7 @@ class SkillFacet(Base):
 
 
 class FacetDefinition(Base):
-    """
-    Facet lookup table for validation.
-    """
+    """Facet lookup table for validation."""
 
     __tablename__ = "facet_definitions"
 
@@ -503,9 +509,7 @@ class FacetDefinition(Base):
 
 
 class Capability(Base):
-    """
-    What skills can do - discrete capabilities.
-    """
+    """What skills can do - discrete capabilities."""
 
     __tablename__ = "capabilities"
 
@@ -531,9 +535,7 @@ class Capability(Base):
 
 
 class SkillDependency(Base):
-    """
-    Skill dependency graph.
-    """
+    """Skill dependency graph."""
 
     __tablename__ = "skill_dependencies"
 
@@ -576,9 +578,7 @@ class SkillDependency(Base):
 
 
 class DependencyClosure(Base):
-    """
-    Closure table for dependency graph traversal.
-    """
+    """Closure table for dependency graph traversal."""
 
     __tablename__ = "dependency_closure"
 
@@ -598,9 +598,7 @@ class DependencyClosure(Base):
 
 
 class SkillReference(Base):
-    """
-    Cross-references between skills (see also).
-    """
+    """Cross-references between skills (see also)."""
 
     __tablename__ = "skill_references"
 
@@ -628,9 +626,7 @@ class SkillReference(Base):
 
 
 class SkillKeyword(Base):
-    """
-    Search terms for skills.
-    """
+    """Search terms for skills."""
 
     __tablename__ = "skill_keywords"
 
@@ -653,9 +649,7 @@ class SkillKeyword(Base):
 
 
 class SkillTag(Base):
-    """
-    User-defined tags for skills.
-    """
+    """User-defined tags for skills."""
 
     __tablename__ = "skill_tags"
 
@@ -677,9 +671,7 @@ class SkillTag(Base):
 
 
 class TagStats(Base):
-    """
-    Tag popularity tracking.
-    """
+    """Tag popularity tracking."""
 
     __tablename__ = "tag_stats"
 
@@ -697,9 +689,7 @@ class TagStats(Base):
 
 
 class SkillFile(Base):
-    """
-    Associated files and resources for skills.
-    """
+    """Associated files and resources for skills."""
 
     __tablename__ = "skill_files"
 
@@ -747,9 +737,7 @@ class SkillFile(Base):
 
 
 class SkillAllowedTool(Base):
-    """
-    Tools a skill is allowed to use.
-    """
+    """Tools a skill is allowed to use."""
 
     __tablename__ = "skill_allowed_tools"
 
@@ -778,9 +766,7 @@ class SkillAllowedTool(Base):
 
 
 class Job(Base):
-    """
-    Background job tracking.
-    """
+    """Background job tracking."""
 
     __tablename__ = "jobs"
 
@@ -852,9 +838,7 @@ class Job(Base):
 
 
 class HITLInteraction(Base):
-    """
-    Human-in-the-Loop interaction tracking.
-    """
+    """Human-in-the-Loop interaction tracking."""
 
     __tablename__ = "hitl_interactions"
 
@@ -900,9 +884,7 @@ class HITLInteraction(Base):
 
 
 class DeepUnderstandingState(Base):
-    """
-    Extended HITL tracking for deep understanding phase.
-    """
+    """Extended HITL tracking for deep understanding phase."""
 
     __tablename__ = "deep_understanding_state"
 
@@ -927,9 +909,7 @@ class DeepUnderstandingState(Base):
 
 
 class TDDWorkflowState(Base):
-    """
-    Test-driven development workflow tracking.
-    """
+    """Test-driven development workflow tracking."""
 
     __tablename__ = "tdd_workflow_state"
 
@@ -958,9 +938,7 @@ class TDDWorkflowState(Base):
 
 
 class ValidationReport(Base):
-    """
-    Skill validation results.
-    """
+    """Skill validation results."""
 
     __tablename__ = "validation_reports"
 
@@ -1008,9 +986,7 @@ class ValidationReport(Base):
 
 
 class ValidationCheck(Base):
-    """
-    Individual validation check items.
-    """
+    """Individual validation check items."""
 
     __tablename__ = "validation_checks"
 
@@ -1049,9 +1025,7 @@ class ValidationCheck(Base):
 
 
 class SkillTestCoverage(Base):
-    """
-    Test coverage tracking for skills.
-    """
+    """Test coverage tracking for skills."""
 
     __tablename__ = "skill_test_coverage"
 
@@ -1087,9 +1061,7 @@ class SkillTestCoverage(Base):
 
 
 class UsageEvent(Base):
-    """
-    Skill usage tracking events.
-    """
+    """Skill usage tracking events."""
 
     __tablename__ = "usage_events"
 
@@ -1119,9 +1091,7 @@ class UsageEvent(Base):
 
 
 class OptimizationJob(Base):
-    """
-    DSPy optimization job tracking.
-    """
+    """DSPy optimization job tracking."""
 
     __tablename__ = "optimization_jobs"
 
@@ -1150,3 +1120,115 @@ class OptimizationJob(Base):
         Index("idx_optimization_jobs_created_at", "created_at"),
         Index("idx_optimization_jobs_optimizer", "optimizer"),
     )
+
+
+# =============================================================================
+# CONVERSATION SESSIONS
+# =============================================================================
+
+
+class ConversationSession(Base):
+    """
+    Database-backed conversation session storage.
+
+    Replaces the in-memory _sessions dict in conversational router.
+    Persists conversation state across server restarts.
+    """
+
+    __tablename__ = "conversation_sessions"
+
+    # Primary key
+    session_id: Mapped[UUID] = mapped_column(
+        primary_key=True, server_default=func.gen_random_uuid()
+    )
+
+    # User context
+    user_id: Mapped[str] = mapped_column(String(128), nullable=False, default="default")
+
+    # Workflow state
+    state: Mapped[str] = mapped_column(
+        Enum(
+            ConversationStateEnum.EXPLORING,
+            ConversationStateEnum.DEEP_UNDERSTANDING,
+            ConversationStateEnum.MULTI_SKILL_DETECTED,
+            ConversationStateEnum.CONFIRMING,
+            ConversationStateEnum.READY,
+            ConversationStateEnum.CREATING,
+            ConversationStateEnum.TDD_RED_PHASE,
+            ConversationStateEnum.TDD_GREEN_PHASE,
+            ConversationStateEnum.TDD_REFACTOR_PHASE,
+            ConversationStateEnum.REVIEWING,
+            ConversationStateEnum.REVISING,
+            ConversationStateEnum.CHECKLIST_COMPLETE,
+            ConversationStateEnum.COMPLETE,
+            name="conversation_state_enum",
+            create_constraint=True,
+        ),
+        nullable=False,
+        default=ConversationStateEnum.EXPLORING,
+    )
+    task_description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    taxonomy_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
+
+    # Multi-skill support
+    multi_skill_queue: Mapped[list[str] | None] = mapped_column(
+        ARRAY(String), server_default=text("'{}'"), nullable=True
+    )
+    current_skill_index: Mapped[int] = mapped_column(Integer, default=0)
+
+    # Conversation data (JSONB for flexibility)
+    messages: Mapped[list] = mapped_column(JSONB, server_default=text("'[]'::jsonb"))
+    collected_examples: Mapped[list] = mapped_column(JSONB, server_default=text("'[]'::jsonb"))
+
+    # Draft data
+    skill_draft: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    skill_metadata_draft: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+
+    # TDD workflow
+    checklist_state: Mapped[dict] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
+
+    # Pending confirmations
+    pending_confirmation: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+
+    # Deep understanding phase
+    deep_understanding: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    current_understanding: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # User problem/goals
+    user_problem: Mapped[str | None] = mapped_column(Text, nullable=True)
+    user_goals: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
+
+    # Research context
+    research_context: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+
+    # Session metadata
+    session_metadata: Mapped[dict] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
+
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+    last_activity_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Optional job association
+    job_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("jobs.job_id", ondelete="SET NULL"), nullable=True
+    )
+
+    __table_args__ = (
+        Index("idx_sessions_user", "user_id"),
+        Index("idx_sessions_state", "state"),
+        Index("idx_sessions_created_at", "created_at"),
+        Index("idx_sessions_last_activity", "last_activity_at"),
+        Index("idx_sessions_expires_at", "expires_at"),
+        Index("idx_sessions_job", "job_id"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<ConversationSession(session_id={self.session_id}, state='{self.state}')>"

@@ -18,12 +18,14 @@ from typing import TYPE_CHECKING, Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from .....core.dspy.modules.workflows.conversational import (
+    ConversationalOrchestrator,
+    ConversationMessage,
+    ConversationState,
+)
 from .....db.database import get_db
 from .....db.models import ConversationStateEnum
 from .....db.repositories import get_conversation_session_repository
-from .....workflows.conversational_interface.orchestrator import (
-    ConversationalOrchestrator,
-)
 from ...schemas.conversational import (
     SendMessageRequest,
     SendMessageResponse,
@@ -33,11 +35,11 @@ from ...schemas.conversational import (
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session as DbSession
 
-    from .....db.models import ConversationSession
-    from .....db.repositories import ConversationSessionRepository
-    from .....workflows.conversational_interface.orchestrator import (
+    from .....core.dspy.modules.workflows.conversational import (
         ConversationContext,
     )
+    from .....db.models import ConversationSession
+    from .....db.repositories import ConversationSessionRepository
 
 logger = logging.getLogger(__name__)
 
@@ -69,8 +71,6 @@ def _db_session_to_context(
         ConversationContext populated from database
 
     """
-    from .....workflows.conversational_interface.orchestrator import ConversationMessage
-
     # Initialize a fresh context
     context = orchestrator.initialize_conversation_sync(
         initial_message="",
@@ -78,10 +78,20 @@ def _db_session_to_context(
         enable_mlflow=False,
     )
 
-    # Restore state from database
-    context.state = context.__class__(db_session.state)
+    # Map database state to ConversationState enum
+    state_mapping = {
+        "EXPLORING": ConversationState.INTERPRETING_INTENT,
+        "DEEP_UNDERSTANDING": ConversationState.DEEP_UNDERSTANDING,
+        "CONFIRMING": ConversationState.CONFIRMING_UNDERSTANDING,
+        "COLLECTING_FEEDBACK": ConversationState.COLLECTING_FEEDBACK,
+        "TESTING": ConversationState.TESTING,
+        "REVISING": ConversationState.REFINING,
+        "COMPLETE": ConversationState.COMPLETED,
+    }
+    default_state = ConversationState.INTERPRETING_INTENT
+    context.state = state_mapping.get(db_session.state, default_state)
+
     context.task_description = db_session.task_description or ""
-    context.taxonomy_path = db_session.taxonomy_path or ""
     context.current_understanding = db_session.current_understanding or ""
 
     # Restore messages
@@ -119,7 +129,7 @@ def _context_to_db_updates(context: ConversationContext) -> dict[str, Any]:
             {
                 "role": msg.role,
                 "content": msg.content,
-                "timestamp": msg.timestamp.isoformat() if hasattr(msg, "timestamp") else None,
+                "timestamp": msg.timestamp,  # Already a string
                 "metadata": msg.metadata,
             }
         )
@@ -127,7 +137,6 @@ def _context_to_db_updates(context: ConversationContext) -> dict[str, Any]:
     return {
         "state": context.state.value if hasattr(context.state, "value") else str(context.state),
         "task_description": context.task_description or None,
-        "taxonomy_path": context.taxonomy_path or None,
         "current_understanding": context.current_understanding or None,
         "messages": messages,
         "collected_examples": context.collected_examples,
@@ -192,15 +201,13 @@ async def send_message(
     if not session_id:
         import uuid
 
-        session_id = str(uuid.uuid4())[:12]
+        session_id = str(uuid.uuid4())
 
     # Get or create session from database
     db_session = _get_or_create_session(session_id, repo)
     context = _db_session_to_context(db_session, orchestrator)
 
     # Add user message to context
-    from .....workflows.conversational_interface.orchestrator import ConversationMessage
-
     user_message = ConversationMessage(
         role="user",
         content=request.message,
@@ -244,7 +251,7 @@ async def send_message(
             )
 
             # Update state
-            context.state = context.CONFIRMING_UNDERSTANDING
+            context.state = ConversationState.CONFIRMING_UNDERSTANDING
 
         elif intent_type == "clarify":
             # Generate clarifying question
@@ -263,7 +270,7 @@ async def send_message(
                 "I understand you want to refine the skill. "
                 "Please provide the skill content and your feedback."
             )
-            context.state = context.COLLECTING_FEEDBACK
+            context.state = ConversationState.COLLECTING_FEEDBACK
 
         elif intent_type == "multi_skill":
             response_text = (
@@ -416,9 +423,128 @@ async def list_sessions(
 
     """
     repo = get_conversation_session_repository(db)
-    sessions = repo.list_active(limit=100)
+    sessions = repo.list_active_summaries(limit=100)
 
     return {
         "count": len(sessions),
         "sessions": sessions,
     }
+
+
+@router.post("/stream")
+async def stream_chat(
+    request: SendMessageRequest,
+    db: DbSessionDep,
+):
+    """
+    Stream chat responses.
+
+    Server-Sent Events endpoint for streaming chat responses.
+
+    Args:
+        request: Message request with session_id, message, and user_id
+        db: Database session (injected)
+
+    Yields:
+        Server-sent events with message chunks
+
+    """
+    import json
+
+    from fastapi.responses import StreamingResponse
+
+    async def event_generator():
+        try:
+            orchestrator = ConversationalOrchestrator()
+            repo = get_conversation_session_repository(db)
+            session_id = request.session_id or str(__import__('uuid').uuid4())
+            db_session = _get_or_create_session(session_id, repo)
+            context = _db_session_to_context(db_session, orchestrator)
+
+            # Add user message to context
+            user_message = ConversationMessage(
+                role="user",
+                content=request.message,
+                metadata={"user_id": request.user_id},
+            )
+            context.messages.append(user_message)
+
+            # Interpret user intent
+            yield f"data: {json.dumps({'type': 'thinking', 'data': 'Analyzing your request...'})}\n\n"
+
+            intent_result = await orchestrator.interpret_intent(
+                user_message=request.message,
+                context=context,
+                enable_mlflow=False,
+            )
+
+            intent_type = intent_result.get("intent_type", "unknown")
+            response_text = ""
+
+            if intent_type == "create_skill":
+                yield f"data: {json.dumps({'type': 'thinking', 'data': 'Understanding your skill requirements...'})}\n\n"
+
+                understanding_result = await orchestrator.deep_understanding(
+                    context=context,
+                    enable_mlflow=False,
+                )
+                context.current_understanding = understanding_result.get("enhanced_understanding", "")
+
+                confirmation_result = await orchestrator.confirm_understanding(
+                    context=context,
+                    enable_mlflow=False,
+                )
+                response_text = confirmation_result.get("confirmation_summary", "")
+                context.state = ConversationState.CONFIRMING_UNDERSTANDING
+
+            elif intent_type == "clarify":
+                question_result = await orchestrator.generate_clarifying_question(
+                    context=context,
+                    enable_mlflow=False,
+                )
+                response_text = question_result.get("question", "Could you please provide more details?")
+
+            elif intent_type == "refine":
+                response_text = (
+                    "I understand you want to refine the skill. "
+                    "Please provide the skill content and your feedback."
+                )
+                context.state = ConversationState.COLLECTING_FEEDBACK
+
+            elif intent_type == "multi_skill":
+                response_text = (
+                    "I see you want to create multiple skills. "
+                    "Let's work on them one at a time. Which would you like to start with?"
+                )
+            else:
+                response_text = "I understand. How can I help you create or improve a skill today?"
+
+            # Add assistant response to context
+            context.messages.append(ConversationMessage(
+                role="assistant",
+                content=response_text,
+                metadata={"intent_type": intent_type},
+            ))
+
+            # Yield the response
+            yield f"data: {json.dumps({'type': 'message', 'data': response_text})}\n\n"
+
+            # Update database with new context
+            updates = _context_to_db_updates(context)
+            for key, value in updates.items():
+                setattr(db_session, key, value)
+            repo.update(db_session)
+            db.commit()
+
+            # Send completion event
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+        except Exception as e:
+            logger.exception("Error in stream_chat")
+            yield f"data: {json.dumps({'type': 'error', 'data': str(e)})}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache"},
+    )

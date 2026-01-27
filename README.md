@@ -9,16 +9,19 @@ A modular AI capability platform that keeps agent skills organized, discoverable
 ## Why Skills Fleet?
 
 ### For Technical Teams
+
 - **DSPy-Powered Optimization**: Built on DSPy (a framework for optimizing LLM workflows) with MIPROv2 and GEPA optimizers for reliable, consistent skill generation.
 - **agentskills.io Compliant**: Standard YAML frontmatter ensures skills work across different agent frameworks.
-- **Production-Ready**: FastAPI v2 server with async background jobs and comprehensive testing.
+- **Production-Ready**: FastAPI server with v2 API (current stable), async background jobs, and comprehensive testing.
 
 ### For Decision Makers
+
 - **Modular & Maintainable**: Skills are versioned, tracked, and independently testable.
 - **Standards-Based**: Open specification compliance prevents vendor lock-in.
 - **Scalable**: Hierarchical taxonomy for organized growth, supporting hundreds of skills.
 
 ### For Everyone
+
 - **Easy to Use**: Simple chat interface for creating skills without coding.
 - **Validated**: Automated compliance checking ensures quality.
 - **Observable**: Built-in analytics and usage tracking.
@@ -49,27 +52,30 @@ cp .env.example .env
 Create your first skill in under 2 minutes:
 
 1. **Install dependencies**:
-    ```bash
-    uv sync --group dev
-    cp .env.example .env
-    # Edit .env and add your GOOGLE_API_KEY
-    ```
+
+   ```bash
+   uv sync --group dev
+   cp .env.example .env
+   # Edit .env and add your GOOGLE_API_KEY
+   ```
 
 2. **Start the API server**:
-    ```bash
-    uv run skill-fleet serve
-    ```
+
+   ```bash
+   uv run skill-fleet serve
+   ```
 
 3. **Create a skill via chat** (in a new terminal):
-    ```bash
-    uv run skill-fleet chat "Create a Python decorators skill"
-    ```
+
+   ```bash
+   uv run skill-fleet chat "Create a Python decorators skill"
+   ```
 
 4. **Review and Promote**:
-    The skill is created as a draft. After reviewing it in `skills/_drafts/<job_id>`, promote it:
-    ```bash
-    uv run skill-fleet promote <job_id>
-    ```
+   The skill is created as a draft. After reviewing it in `skills/_drafts/<job_id>`, promote it:
+   ```bash
+   uv run skill-fleet promote <job_id>
+   ```
 
 **Note**: Taxonomy v0.2 uses simplified paths (e.g., `python/decorators` instead of `technical_skills/programming/languages/python/decorators`). Legacy paths still resolve with deprecation warnings.
 
@@ -78,41 +84,51 @@ Create your first skill in under 2 minutes:
 Unlock the full power of the Skills Fleet CLI:
 
 ### 💬 Interactive Chat
+
 Build skills conversationally with real-time feedback and streaming.
+
 ```bash
 uv run skill-fleet chat "Create a Redis caching skill"
 ```
 
 ### 📊 Quality Evaluation
+
 Score skills against calibrated metrics (0.0-1.0) to ensure quality.
+
 ```bash
 uv run skill-fleet evaluate skills/python/async
 ```
 
 ### 🧠 DSPy Optimization
+
 Automatically tune prompts using MIPROv2 or GEPA for better reliability.
+
 ```bash
 uv run skill-fleet optimize --optimizer miprov2
 ```
 
 ### ✅ Compliance Validation
+
 Ensure skills meet [agentskills.io](https://agentskills.io) standards.
+
 ```bash
 uv run skill-fleet validate skills/general/testing
 ```
 
 ## Command Reference
 
-| Command | Description |
-|---------|-------------|
-| `uv run skill-fleet serve` | Start the FastAPI v2 server (required for most operations) |
-| `uv run skill-fleet chat` | Interactive conversational skill creation |
-| `uv run skill-fleet list` | List all skills in the taxonomy |
-| `uv run skill-fleet promote <id>` | Promote a draft skill to the permanent taxonomy |
-| `uv run skill-fleet validate <path>`| Validate a skill against agentskills.io standards |
-| `uv run skill-fleet generate-xml`| Generate an XML registry for agent discovery |
-| `uv run skill-fleet optimize` | Run DSPy MIPROv2/GEPA optimization |
-| `uv run skill-fleet analytics` | View usage and performance statistics |
+| Command                              | Description                                                  |
+| ------------------------------------ | ------------------------------------------------------------ |
+| `uv run skill-fleet serve`           | Start the FastAPI server (v2 API main, v1 experimental chat) |
+| `uv run skill-fleet chat`            | Interactive conversational skill creation                    |
+| `uv run skill-fleet list`            | List all skills in the taxonomy                              |
+| `uv run skill-fleet promote <id>`    | Promote a draft skill to the permanent taxonomy              |
+| `uv run skill-fleet validate <path>` | Validate a skill against agentskills.io standards            |
+| `uv run skill-fleet generate-xml`    | Generate an XML registry for agent discovery                 |
+| `uv run skill-fleet optimize`        | Run DSPy MIPROv2/GEPA optimization                           |
+| `uv run skill-fleet analytics`       | View usage and performance statistics                        |
+
+**API Versioning**: The main API is v2 (`/api/v2/*`), which is production-ready. An experimental v1 API (`/api/v1/chat/*`) provides chat streaming features. See [docs/api/MIGRATION_V1_TO_V2.md](docs/api/MIGRATION_V1_TO_V2.md) for details.
 
 ## Project Structure
 
@@ -120,9 +136,11 @@ uv run skill-fleet validate skills/general/testing
 skill-fleet/
 ├── src/skill_fleet/
 │   ├── agent/          # Conversational agent for skill creation
-│   ├── api/            # FastAPI v2 REST API & routes
+│   ├── api/            # FastAPI REST API (v2 main, v1 experimental chat)
 │   ├── cli/            # Typer-based CLI (fleet-agent)
 │   ├── core/           # Core logic (DSPy programs, tools, models)
+│   ├── domain/         # Domain layer (DDD patterns: entities, specifications)
+│   ├── services/       # Service layer (business logic orchestration)
 │   ├── llm/            # LLM configuration and DSPy setup
 │   ├── taxonomy/       # Skill taxonomy management & index
 │   ├── validators/     # Skill validation logic
@@ -143,11 +161,13 @@ skill-fleet/
 ## Configuration
 
 The system is configured via `config/config.yaml`. This file defines:
+
 - **Models**: Default model is `gemini/gemini-3-flash-preview`.
 - **Roles**: Router, Planner, Worker, Judge.
 - **Optimizers**: Settings for MIPROv2 and GEPA.
 
 ### Environment Variables
+
 - `GOOGLE_API_KEY`: Required for Gemini models.
 - `SKILL_FLEET_ENV`: (Optional) `production` (default) or `development`.
 - `SKILL_FLEET_CORS_ORIGINS`: Required in production. Comma-separated list of allowed origins. Set to `*` only in `development`.
@@ -157,6 +177,7 @@ The system is configured via `config/config.yaml`. This file defines:
 ## Development & Testing
 
 ### Running Tests
+
 ```bash
 # Run all tests
 uv run pytest
@@ -166,13 +187,16 @@ uv run pytest --cov=skill_fleet
 ```
 
 ### Linting & Formatting
+
 Uses [Ruff](https://docs.astral.sh/ruff/) for high-performance linting:
+
 ```bash
 uv run ruff check .
 uv run ruff format .
 ```
 
 ### Utility Scripts
+
 - `scripts/setup_branch_protection.sh`: Configure GitHub branch protection.
 - `scripts/run_dspy_tools.py`: Run DSPy optimization and evaluation tools.
 - `scripts/check_docstrings.py`: Verify documentation completeness.
@@ -180,27 +204,33 @@ uv run ruff format .
 ## Documentation
 
 ### Getting Started
+
 - [Documentation Index](docs/index.md) - Central hub for all documentation
 - [Getting Started Guide](docs/getting-started/index.md) - Installation, CLI usage, validation
 - [Introduction](docs/intro/introduction.md) - System introduction and navigation
 
 ### Core Concepts
+
 - [System Overview](docs/overview.md) - Architecture, taxonomy model, and concepts
 - [AGENTS.md](AGENTS.md) - Comprehensive working guide for AI agents
 - [Developer Reference](docs/concepts/developer-reference.md) - Development workflows
 
 ### Technical Documentation
+
 - [DSPy Framework](docs/dspy/index.md) - 3-phase workflow, signatures, modules
 - [API Documentation](docs/api/index.md) - REST API endpoints and schemas
-- [CLI Reference](docs/cli/index.md) - Command-line interface
+- [CLI Guide](docs/guides/cli.md) - Command-line interface (consolidated)
 - [LLM Configuration](docs/llm/index.md) - Provider setup and task models
+- [LLM Configuration](docs/reference/llm-config.md) - Provider setup and task models (consolidated)
 
 ### Advanced Topics
+
 - [HITL System](docs/hitl/index.md) - Human-in-the-Loop workflow
 - [agentskills.io Compliance](docs/concepts/agentskills-compliance.md) - Schema and validation
 - [Optimization](docs/dspy/optimization.md) - MIPROv2, GEPA, caching
 
 ### Development
+
 - [Contributing](docs/development/CONTRIBUTING.md) - Contribution guidelines
 - [Architecture Decisions](docs/development/ARCHITECTURE_DECISIONS.md) - Design rationale
 

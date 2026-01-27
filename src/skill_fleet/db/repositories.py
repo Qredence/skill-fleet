@@ -1,5 +1,5 @@
 """
-Skills-Fleet Database Repositories
+Skills-Fleet Database Repositories.
 
 Repository layer for common CRUD operations on skills fleet entities.
 """
@@ -12,6 +12,8 @@ from sqlalchemy.orm import Session, joinedload
 
 from skill_fleet.db.models import (
     Capability,
+    ConversationSession,
+    ConversationStateEnum,
     HITLInteraction,
     Job,
     Skill,
@@ -31,9 +33,7 @@ ModelType = TypeVar("ModelType", bound=Any)
 
 
 class BaseRepository(Generic[ModelType]):  # noqa: UP046
-    """
-    Base repository with common CRUD operations.
-    """
+    """Base repository with common CRUD operations."""
 
     def __init__(self, model: type[ModelType], db: Session):
         self.model = model
@@ -97,7 +97,7 @@ class BaseRepository(Generic[ModelType]):  # noqa: UP046
 
     def delete(self, *, id: int) -> ModelType | None:
         """Delete an entity by ID."""
-        obj = self.db.query(self.model).get(id)
+        obj = self.db.get(self.model, id)
         if obj:
             self.db.delete(obj)
             self.db.commit()
@@ -676,3 +676,270 @@ def get_validation_repository(db: Session) -> ValidationRepository:
 def get_usage_repository(db: Session) -> UsageRepository:
     """Get a UsageRepository instance."""
     return UsageRepository(db)
+
+
+class ConversationSessionRepository:
+    """
+    Repository for conversation session persistence.
+
+    Replaces in-memory session dict with database-backed storage.
+    """
+
+    def __init__(self, db: Session):
+        self.db = db
+
+    def get_by_id(self, session_id: str | Any) -> ConversationSession | None:
+        """
+        Get a session by its ID.
+
+        Args:
+            session_id: UUID of the session (string or UUID)
+
+        Returns:
+            ConversationSession or None if not found
+
+        """
+        from uuid import UUID
+
+        if isinstance(session_id, str):
+            try:
+                session_id = UUID(session_id)
+            except ValueError:
+                return None
+        return (
+            self.db.query(ConversationSession)
+            .filter(ConversationSession.session_id == session_id)
+            .first()
+        )
+
+    def get_by_user(
+        self,
+        user_id: str,
+        *,
+        active_only: bool = True,
+        limit: int = 50,
+    ) -> list[ConversationSession]:
+        """
+        Get all sessions for a user.
+
+        Args:
+            user_id: User identifier
+            active_only: Filter to non-complete sessions
+            limit: Maximum sessions to return
+
+        Returns:
+            List of ConversationSession instances
+
+        """
+        query = self.db.query(ConversationSession).filter(ConversationSession.user_id == user_id)
+
+        if active_only:
+            query = query.filter(ConversationSession.state != ConversationStateEnum.COMPLETE)
+
+        return query.order_by(ConversationSession.last_activity_at.desc()).limit(limit).all()
+
+    def create(
+        self,
+        *,
+        session_id: str | None = None,
+        user_id: str = "default",
+        state: str = ConversationStateEnum.EXPLORING,
+        metadata: dict | None = None,
+    ) -> ConversationSession:
+        """
+        Create a new conversation session.
+
+        Args:
+            session_id: Optional pre-defined session ID (must be valid UUID if provided)
+            user_id: User identifier
+            state: Initial conversation state
+            metadata: Optional session metadata
+
+        Returns:
+            Created ConversationSession
+
+        Raises:
+            ValueError: If session_id is provided but not a valid UUID
+
+        """
+        from datetime import timedelta
+        from uuid import UUID, uuid4
+
+        # Parse or generate session ID
+        if session_id:
+            if isinstance(session_id, str):
+                try:
+                    parsed_id = UUID(session_id)
+                except ValueError as e:
+                    raise ValueError(f"Invalid session_id: {session_id}") from e
+            else:
+                parsed_id = session_id
+        else:
+            parsed_id = uuid4()
+
+        session = ConversationSession(
+            session_id=parsed_id,
+            user_id=user_id,
+            state=state,
+            session_metadata=metadata or {},
+            expires_at=datetime.now(UTC) + timedelta(hours=24),
+        )
+        self.db.add(session)
+        self.db.commit()
+        self.db.refresh(session)
+        return session
+
+    # Allowed fields for update - prevents mutation of protected fields
+    _ALLOWED_UPDATE_FIELDS = frozenset(
+        {
+            "state",
+            "session_metadata",
+            "messages",
+            "expires_at",
+            "current_skill_request",
+            "pending_skills",
+        }
+    )
+
+    def update(
+        self,
+        session: ConversationSession,
+        **updates: Any,
+    ) -> ConversationSession:
+        """
+        Update a session with new values.
+
+        Only allows updates to whitelisted fields: state, session_metadata,
+        messages, expires_at, current_skill_request, pending_skills.
+
+        Args:
+            session: Session to update
+            **updates: Fields to update (only allowed fields are applied)
+
+        Returns:
+            Updated ConversationSession
+
+        """
+        for key, value in updates.items():
+            if key in self._ALLOWED_UPDATE_FIELDS:
+                setattr(session, key, value)
+
+        # Always update activity timestamp
+        session.last_activity_at = datetime.now(UTC)
+
+        self.db.commit()
+        self.db.refresh(session)
+        return session
+
+    def add_message(
+        self,
+        session: ConversationSession,
+        role: str,
+        content: str,
+        metadata: dict | None = None,
+    ) -> ConversationSession:
+        """
+        Add a message to the session.
+
+        Args:
+            session: Session to add message to
+            role: Message role (user, assistant, system)
+            content: Message content
+            metadata: Optional message metadata
+
+        Returns:
+            Updated ConversationSession
+
+        """
+        messages = list(session.messages) if session.messages else []
+        messages.append(
+            {
+                "role": role,
+                "content": content,
+                "timestamp": datetime.now(UTC).isoformat(),
+                "metadata": metadata or {},
+            }
+        )
+        return self.update(session, messages=messages)
+
+    def delete(self, session_id: str | Any) -> bool:
+        """
+        Delete a session.
+
+        Args:
+            session_id: UUID of the session
+
+        Returns:
+            True if deleted, False if not found
+
+        """
+        session = self.get_by_id(session_id)
+        if session:
+            self.db.delete(session)
+            self.db.commit()
+            return True
+        return False
+
+    def cleanup_expired(self) -> int:
+        """
+        Remove expired sessions.
+
+        Returns:
+            Number of sessions deleted
+
+        """
+        result = (
+            self.db.query(ConversationSession)
+            .filter(
+                ConversationSession.expires_at.isnot(None),
+                ConversationSession.expires_at < datetime.now(UTC),
+            )
+            .delete(synchronize_session=False)
+        )
+        self.db.commit()
+        return result
+
+    def list_active_summaries(
+        self,
+        *,
+        limit: int = 100,
+    ) -> list[dict]:
+        """
+        List all active (non-expired, non-complete) sessions as summary dicts.
+
+        Returns:
+            List of session summary dicts (not ORM models)
+
+        """
+        sessions = (
+            self.db.query(ConversationSession)
+            .filter(
+                ConversationSession.state != ConversationStateEnum.COMPLETE,
+            )
+            .filter(
+                (ConversationSession.expires_at.is_(None))
+                | (ConversationSession.expires_at > datetime.now(UTC))
+            )
+            .order_by(ConversationSession.last_activity_at.desc())
+            .limit(limit)
+            .all()
+        )
+
+        return [
+            {
+                "session_id": str(s.session_id),
+                "user_id": s.user_id,
+                "state": s.state,
+                "message_count": len(s.messages) if s.messages else 0,
+                "created_at": s.created_at.isoformat() if s.created_at else None,
+                "last_activity_at": (
+                    s.last_activity_at.isoformat() if s.last_activity_at else None
+                ),
+            }
+            for s in sessions
+        ]
+
+
+def get_conversation_session_repository(db: Session) -> ConversationSessionRepository:
+    """Get a ConversationSessionRepository instance."""
+    return ConversationSessionRepository(db)

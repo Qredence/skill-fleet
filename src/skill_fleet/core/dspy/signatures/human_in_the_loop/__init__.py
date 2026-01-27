@@ -12,9 +12,12 @@ HITL Checkpoints:
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import dspy
 
-from ....models import ClarifyingQuestion, ValidationCheckItem
+if TYPE_CHECKING:
+    from ....models import ClarifyingQuestion, ValidationCheckItem
 
 # =============================================================================
 # Phase 1 HITL: Understanding & Planning
@@ -288,3 +291,12 @@ class DetermineHITLStrategy(dspy.Signature):
     reasoning: dspy.Reasoning = dspy.OutputField(
         desc="Reasoning for this strategy. May be returned as a dspy.Reasoning object."
     )
+
+
+# =============================================================================
+# Aliased exports for disambiguated imports
+# =============================================================================
+
+# HITLAssessReadiness is the human-in-the-loop variant focused on phase transitions
+# Use this when evaluating readiness to proceed between workflow phases
+HITLAssessReadiness = AssessReadiness

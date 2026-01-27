@@ -371,8 +371,8 @@ class Phase1UnderstandingModule(dspy.Module):
         user_confirmation: str = "",
     ) -> dict[str, Any]:
         """Execute Phase 1 orchestrator asynchronously."""
-        requirements = await self.gather_requirements.aforward(task_description)
-        intent_future = self.analyze_intent.aforward(task_description, user_context)
+        requirements = await self.gather_requirements.acall(task_description)
+        intent_future = self.analyze_intent.acall(task_description, user_context)
 
         # `FindTaxonomyPath` signature expects a list[str] for existing_skills.
         # The public program contract uses JSON strings; normalize here.
@@ -385,19 +385,19 @@ class Phase1UnderstandingModule(dspy.Module):
             existing_skill_paths = []
         existing_skill_paths = [str(s) for s in existing_skill_paths]
 
-        taxonomy_future = self.find_taxonomy.aforward(
+        taxonomy_future = self.find_taxonomy.acall(
             task_description,
             taxonomy_structure,
             existing_skill_paths,
         )
         intent_result, taxonomy_result = await asyncio.gather(intent_future, taxonomy_future)
-        deps_result = await self.analyze_dependencies.aforward(
+        deps_result = await self.analyze_dependencies.acall(
             task_description,
             str(intent_result["task_intent"]),
             taxonomy_result["recommended_path"],
             existing_skills,
         )
-        plan = await self.synthesize.aforward(
+        plan = await self.synthesize.acall(
             intent_analysis=str(intent_result),
             taxonomy_analysis=str(taxonomy_result),
             dependency_analysis=str(deps_result),

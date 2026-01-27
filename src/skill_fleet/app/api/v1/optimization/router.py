@@ -17,8 +17,8 @@ from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, HTTPException
 
-from .....api.exceptions import NotFoundException
-from .....api.schemas.optimization import (
+from .....core.dspy.modules.workflows.signature_tuning import SignatureTuningOrchestrator
+from ...schemas.optimization import (
     AnalyzeFailuresRequest,
     AnalyzeFailuresResponse,
     CompareRequest,
@@ -26,15 +26,13 @@ from .....api.schemas.optimization import (
     ImproveRequest,
     ImproveResponse,
 )
-from .....app.dependencies import SkillServiceDep
-from .....workflows.signature_optimization.tuner import SignatureTuningOrchestrator
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 if TYPE_CHECKING:
-    from .....app.services.skill_service import SkillService
+    pass
 
 
 def _build_sample_content(failure_examples: list[dict[str, Any]]) -> str:
@@ -137,10 +135,7 @@ async def analyze_failures(request: AnalyzeFailuresRequest) -> AnalyzeFailuresRe
 
     except Exception as e:
         logger.exception(f"Error in signature failure analysis: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failure analysis failed: {e}"
-        ) from e
+        raise HTTPException(status_code=500, detail=f"Failure analysis failed: {e}") from e
 
 
 @router.post("/improve", response_model=ImproveResponse)
@@ -198,11 +193,13 @@ async def improve_signature(request: ImproveRequest) -> ImproveResponse:
         # Build test cases from improvement targets
         test_cases = []
         for target in request.improvement_targets:
-            test_cases.append({
-                "target": target,
-                "description": f"Test case for {target}",
-                "status": "proposed",
-            })
+            test_cases.append(
+                {
+                    "target": target,
+                    "description": f"Test case for {target}",
+                    "status": "proposed",
+                }
+            )
 
         # Add default test cases if none specified
         if not test_cases:
@@ -232,10 +229,7 @@ async def improve_signature(request: ImproveRequest) -> ImproveResponse:
 
     except Exception as e:
         logger.exception(f"Error in signature improvement proposal: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Improvement proposal failed: {e}"
-        ) from e
+        raise HTTPException(status_code=500, detail=f"Improvement proposal failed: {e}") from e
 
 
 @router.post("/compare", response_model=CompareResponse)
@@ -258,8 +252,7 @@ async def compare_signatures(request: CompareRequest) -> CompareResponse:
     # Build sample content from test inputs
     if request.test_inputs:
         test_content = "\n".join(
-            f"Test {i}: {test_input}"
-            for i, test_input in enumerate(request.test_inputs[:5], 1)
+            f"Test {i}: {test_input}" for i, test_input in enumerate(request.test_inputs[:5], 1)
         )
     else:
         test_content = "Sample test content for signature comparison."
@@ -308,11 +301,13 @@ async def compare_signatures(request: CompareRequest) -> CompareResponse:
         # Build signature info with versions
         signature_a_info = {
             "name": request.signature_a_name,
-            "version": request.signature_a_version or (history_a.get("version") if history_a else "1"),
+            "version": request.signature_a_version
+            or (history_a.get("version") if history_a else "1"),
         }
         signature_b_info = {
             "name": request.signature_b_name,
-            "version": request.signature_b_version or (history_b.get("version") if history_b else "1"),
+            "version": request.signature_b_version
+            or (history_b.get("version") if history_b else "1"),
         }
 
         # Build metrics dict
@@ -334,7 +329,4 @@ async def compare_signatures(request: CompareRequest) -> CompareResponse:
 
     except Exception as e:
         logger.exception(f"Error in signature comparison: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Signature comparison failed: {e}"
-        ) from e
+        raise HTTPException(status_code=500, detail=f"Signature comparison failed: {e}") from e

@@ -19,9 +19,13 @@ from __future__ import annotations
 
 import json
 import logging
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from ...core.dspy.modules.workflows import (
+    ContentGenerationOrchestrator,
+    QualityAssuranceOrchestrator,
+    TaskAnalysisOrchestrator,
+)
 from ...core.models import SkillCreationResult
 from ...core.tracing.mlflow import (
     end_parent_run,
@@ -37,11 +41,8 @@ from ...taxonomy.manager import TaxonomyManager
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from ...workflows import (
-        ContentGenerationOrchestrator,
-        QualityAssuranceOrchestrator,
-        TaskAnalysisOrchestrator,
-    )
+    from pathlib import Path
+
     from ..schemas.skills import CreateSkillRequest
 
 
@@ -95,7 +96,9 @@ class SkillService:
             SkillCreationResult: Result of the skill creation workflow
 
         """
-        logger.info("Creating skill for user %s: %s", request.user_id, request.task_description[:100])
+        logger.info(
+            "Creating skill for user %s: %s", request.user_id, request.task_description[:100]
+        )
 
         # Provide real taxonomy context
         taxonomy_structure = self.taxonomy_manager.get_relevant_branches(request.task_description)
@@ -170,7 +173,7 @@ class SkillService:
             if enable_mlflow:
                 with start_child_run("phase3_quality_assurance"):
                     phase3_result = await qa_orchestrator.validate_and_refine(
-                        skill_content=phase2_result.get("content", ""),
+                        skill_content=phase2_result.get("skill_content", ""),
                         skill_metadata=phase1_result.get("plan", {}).get("skill_metadata", {}),
                         content_plan=phase1_result.get("plan", {}),
                         validation_rules="agentskills.io compliance",
@@ -179,7 +182,7 @@ class SkillService:
                     )
             else:
                 phase3_result = await qa_orchestrator.validate_and_refine(
-                    skill_content=phase2_result.get("content", ""),
+                    skill_content=phase2_result.get("skill_content", ""),
                     skill_metadata=phase1_result.get("plan", {}).get("skill_metadata", {}),
                     content_plan=phase1_result.get("plan", {}),
                     validation_rules="agentskills.io compliance",
@@ -189,8 +192,10 @@ class SkillService:
 
             # Construct result from orchestrator outputs
             result = SkillCreationResult(
-                status="completed" if phase3_result["validation_report"]["passed"] else "pending_review",
-                skill_content=phase2_result.get("content"),
+                status="completed"
+                if phase3_result["validation_report"]["passed"]
+                else "pending_review",
+                skill_content=phase2_result.get("skill_content"),
                 metadata=phase1_result.get("plan", {}).get("skill_metadata"),
                 validation_report=phase3_result.get("validation_report"),
                 quality_assessment=phase3_result.get("quality_assessment"),
@@ -216,7 +221,7 @@ class SkillService:
 
                 # Log complete skill artifacts
                 log_skill_artifacts(
-                    content=phase2_result.get("content"),
+                    content=phase2_result.get("skill_content"),
                     metadata=skill_metadata,
                     validation_report=validation_report,
                     quality_assessment=quality_assessment,
@@ -245,9 +250,9 @@ class SkillService:
             Path where draft skill was saved, or None if save failed
 
         """
-        from ...api.routes.skills import _save_skill_to_draft
+        from ..utils.draft_save import save_skill_to_draft
 
-        return _save_skill_to_draft(
+        return save_skill_to_draft(
             drafts_root=self.drafts_root,
             job_id=job_id,
             result=result,

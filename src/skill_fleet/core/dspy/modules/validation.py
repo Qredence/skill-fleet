@@ -444,7 +444,7 @@ class Phase3ValidationModule(dspy.Module):
         """
         skill_content = _canonicalize_skill_md_frontmatter(skill_content, skill_metadata)
 
-        validation_result = await self.validator.aforward(
+        validation_result = await self.validator.acall(
             skill_content=skill_content,
             skill_metadata=skill_metadata,
             content_plan=content_plan,
@@ -453,7 +453,7 @@ class Phase3ValidationModule(dspy.Module):
 
         refined_content = skill_content
         if not validation_result["validation_report"].passed or user_feedback:
-            refinement_result = await self.refiner.aforward(
+            refinement_result = await self.refiner.acall(
                 current_content=skill_content,
                 validation_issues=str(validation_result["validation_report"]),
                 user_feedback=user_feedback,
@@ -464,7 +464,7 @@ class Phase3ValidationModule(dspy.Module):
 
             # Re-run validation after refinement so the reported status/score matches
             # the final content we return to callers.
-            validation_result = await self.validator.aforward(
+            validation_result = await self.validator.acall(
                 skill_content=refined_content,
                 skill_metadata=skill_metadata,
                 content_plan=content_plan,
@@ -472,7 +472,7 @@ class Phase3ValidationModule(dspy.Module):
             )
 
         validation_result["refined_content"] = refined_content
-        quality_result = await self.quality_assessor.aforward(
+        quality_result = await self.quality_assessor.acall(
             skill_content=refined_content,
             skill_metadata=skill_metadata,
             target_level=target_level,

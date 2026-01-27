@@ -1,5 +1,5 @@
 """
-Skills-Fleet Database Module
+Skills-Fleet Database Module.
 
 This module provides database models, connection management,
 and repositories for the skills fleet system.

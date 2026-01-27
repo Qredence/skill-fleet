@@ -2,8 +2,8 @@
  * useHitl Hook
  *
  * Manages Human-in-the-Loop interactions for a specific job:
- * - Polls GET /api/v2/hitl/{job_id}/prompt for pending prompts
- * - Submits responses via POST /api/v2/hitl/{job_id}/response
+ * - Polls GET /api/v1/hitl/{job_id}/prompt for pending prompts
+ * - Submits responses via POST /api/v1/hitl/{job_id}/response
  * - Tracks HITL state and provides callbacks
  */
 
@@ -88,7 +88,7 @@ export function useHitl(options: UseHitlOptions): UseHitlReturn {
     if (!jobId) return null;
 
     try {
-      const response = await fetch(`${apiUrl}/api/v2/hitl/${jobId}/prompt`);
+      const response = await fetch(`${apiUrl}/api/v1/hitl/${jobId}/prompt`);
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -226,7 +226,7 @@ export function useHitl(options: UseHitlOptions): UseHitlReturn {
       }
 
       try {
-        const res = await fetch(`${apiUrl}/api/v2/hitl/${jobId}/response`, {
+        const res = await fetch(`${apiUrl}/api/v1/hitl/${jobId}/response`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

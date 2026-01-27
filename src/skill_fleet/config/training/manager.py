@@ -45,9 +45,7 @@ class TrainingDataConfig:
 
 
 class TrainingDataManager:
-    """
-    Manages the lifecycle, quality, and selection of training examples for DSPy.
-    """
+    """Manages the lifecycle, quality, and selection of training examples for DSPy."""
 
     def __init__(self, data_root: Path | str = "config/training"):
         self.data_root = Path(data_root)

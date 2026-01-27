@@ -467,3 +467,12 @@ class EnhanceSkillContent(dspy.Signature):
     enhancement_notes: str = dspy.OutputField(
         desc="Brief notes on what was added and why. Max 100 words."
     )
+
+
+# =============================================================================
+# Aliased exports for disambiguated imports
+# =============================================================================
+
+# ConversationalAssessReadiness is the conversational variant focused on user examples
+# Use this when evaluating readiness based on gathered examples and clarifications
+ConversationalAssessReadiness = AssessReadiness

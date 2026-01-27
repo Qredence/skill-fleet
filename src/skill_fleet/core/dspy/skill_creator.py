@@ -203,7 +203,7 @@ class SkillCreationProgram(dspy.Module):
                     progress_callback(
                         "understanding", "Gathering initial requirements from task description..."
                     )
-                requirements = await self.phase1.gather_requirements.aforward(task_description)
+                requirements = await self.phase1.gather_requirements.acall(task_description)
 
                 if requirements["ambiguities"]:
                     # Generate focused questions using class-based signature
@@ -239,7 +239,7 @@ class SkillCreationProgram(dspy.Module):
                     "understanding",
                     "Analyzing intent, finding taxonomy path, and checking dependencies...",
                 )
-            p1_result = await self.phase1.aforward(
+            p1_result = await self.phase1.acall(
                 task_description=task_description,
                 user_context=str(user_context),
                 taxonomy_structure=taxonomy_structure,
@@ -265,7 +265,7 @@ class SkillCreationProgram(dspy.Module):
                         else:
                             dependencies.append(str(dep))
 
-                summary = await self.confirm_understanding.aforward(
+                summary = await self.confirm_understanding.acall(
                     task_description=task_description,
                     user_clarifications=user_clarifications,
                     intent_analysis=str(p1_result["intent"]),
@@ -332,7 +332,7 @@ class SkillCreationProgram(dspy.Module):
             # For now, Phase 2 generates content without explicit parent context
             parent_skills_content = ""
 
-            p2_result = await self.phase2.aforward(
+            p2_result = await self.phase2.acall(
                 skill_metadata=p1_result["plan"]["skill_metadata"],
                 content_plan=p1_result["plan"]["content_plan"],
                 generation_instructions=generation_instructions,
@@ -344,7 +344,7 @@ class SkillCreationProgram(dspy.Module):
 
             # HITL 2.1: Preview & Feedback
             if self.hitl_enabled and hitl_callback:
-                preview = await self.preview_generator.aforward(
+                preview = await self.preview_generator.acall(
                     skill_content=p2_result["skill_content"],
                     metadata=str(p1_result["plan"]["skill_metadata"]),
                 )
@@ -364,12 +364,12 @@ class SkillCreationProgram(dspy.Module):
 
                 if isinstance(feedback, dict) and feedback.get("action") == "refine":
                     # Analyze feedback and re-run Phase 2 refinement
-                    analysis = await self.feedback_analyzer.aforward(
+                    analysis = await self.feedback_analyzer.acall(
                         user_feedback=feedback.get("feedback", ""),
                         current_content=p2_result["skill_content"],
                     )
 
-                    p2_result = await self.phase2.aforward(
+                    p2_result = await self.phase2.acall(
                         skill_metadata=p1_result["plan"]["skill_metadata"],
                         content_plan=p1_result["plan"]["content_plan"],
                         generation_instructions=generation_instructions,
@@ -391,7 +391,7 @@ class SkillCreationProgram(dspy.Module):
                 progress_callback(
                     "validation", "Checking agentskills.io compliance and content quality..."
                 )
-            p3_result = await self.phase3.aforward(
+            p3_result = await self.phase3.acall(
                 skill_content=p2_result["skill_content"],
                 skill_metadata=p1_result["plan"]["skill_metadata"],
                 content_plan=p1_result["plan"]["content_plan"],
@@ -406,7 +406,7 @@ class SkillCreationProgram(dspy.Module):
                 max_rounds = 3
                 rounds_used = 0
                 while True:
-                    report = await self.validation_formatter.aforward(
+                    report = await self.validation_formatter.acall(
                         validation_report=str(p3_result["validation_report"]),
                         skill_content=p3_result["refined_content"],
                     )
@@ -437,7 +437,7 @@ class SkillCreationProgram(dspy.Module):
                             )
 
                         # Manual refinement request
-                        p3_result = await self.phase3.aforward(
+                        p3_result = await self.phase3.acall(
                             skill_content=p3_result["refined_content"],
                             skill_metadata=p1_result["plan"]["skill_metadata"],
                             content_plan=p1_result["plan"]["content_plan"],

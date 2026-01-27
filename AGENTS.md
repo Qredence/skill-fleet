@@ -17,8 +17,8 @@ The **Agentic Skills System** is a hierarchical, dynamic capability framework th
 - **API-first execution**: FastAPI is the canonical surface for running DSPy workflows; the CLI (`skill-fleet create/chat/...`) is a thin API client.
 - **Draft-first persistence**: jobs write drafts under `skills/_drafts/<job_id>/...`; promotion into the taxonomy is explicit via:
   - `uv run skill-fleet promote <job_id>`, or
-  - `POST /api/v2/drafts/{job_id}/promote`
-- **Job persistence caveat**: by default, job state is stored in-memory; a server restart may cause `GET /api/v2/hitl/{job_id}/prompt` to return 404.
+  - `POST /api/v1/drafts/{job_id}/promote`
+- **Job persistence caveat**: by default, job state is stored in-memory; a server restart may cause `GET /api/v1/hitl/{job_id}/prompt` to return 404.
 - **Known runtime warnings (observed locally)**:
   - Pydantic serializer warnings for streaming/chat payloads (shape mismatches can indicate version drift between producer/consumer models).
 - **CLI UX footguns (observed locally)**:
@@ -42,12 +42,12 @@ The **Agentic Skills System** is a hierarchical, dynamic capability framework th
    - Each skill is a directory containing a `SKILL.md` file with YAML frontmatter
 
 2. **Unified Core Architecture** (`src/skill_fleet/core/`)
-    - **DSPy Integration** (`dspy/`): Complete DSPy framework integration
-      - `modules/`: Phase 1 (Understanding), Phase 2 (Generation), Phase 3 (Validation)
-      - `signatures/`: DSPy signatures for each phase
-      - `programs/`: LegacySkillCreationProgram, SkillRevisionProgram, QuickSkillProgram
-      - `evaluation.py`: Integration with DSPy Evaluate and quality metrics
-      - `skill_creator.py`: Main 3-phase orchestrator (SkillCreationProgram)
+   - **DSPy Integration** (`dspy/`): Complete DSPy framework integration
+     - `modules/`: Phase 1 (Understanding), Phase 2 (Generation), Phase 3 (Validation)
+     - `signatures/`: DSPy signatures for each phase
+     - `programs/`: LegacySkillCreationProgram, SkillRevisionProgram, QuickSkillProgram
+     - `evaluation.py`: Integration with DSPy Evaluate and quality metrics
+     - `skill_creator.py`: Main 3-phase orchestrator (SkillCreationProgram)
    - **Evaluation & Metrics** (`dspy/metrics/`): Multi-dimensional quality assessment
      - `skill_quality.py`: Calibrated metrics (Obra/superpowers standards)
      - `adaptive_weighting.py`: Style-adaptive metric weights (navigation_hub, comprehensive, minimal)
@@ -74,12 +74,12 @@ The **Agentic Skills System** is a hierarchical, dynamic capability framework th
    - **Interactive CLI** (`interactive_cli.py`): Rich-based chat interface
    - **PromptUI** (`ui/prompts.py`): Abstraction for interactive prompts
 
-5. **API Layer** (`src/skill_fleet/api/`)
-   - FastAPI REST API with async background jobs
-   - **Routes** (`routes/`): skills, taxonomy, validation, evaluation, drafts, optimization
-   - Auto-discovery system for DSPy modules (`discovery.py`)
-   - Jobs system for long-running operations (`jobs.py`)
-   - Quality-assured program versions with Refine/BestOfN
+5. **Application Layer** (`src/skill_fleet/app/`)
+   - FastAPI application with async background jobs
+   - **API v1 Routes** (`api/v1/`): conversational, skills, taxonomy, quality, optimization, hitl, jobs, drafts
+   - Application factory with middleware, CORS, exception handling (`factory.py`)
+   - Application dependencies (`dependencies.py`): SkillsRoot, DraftsRoot, TaxonomyManagerDep
+   - Application services (`services/`): job_manager, skill_service, cached_taxonomy
 
 6. **Frontend UI** (`src/skill_fleet/ui/`)
    - React/TypeScript application
@@ -107,6 +107,7 @@ The **Agentic Skills System** is a hierarchical, dynamic capability framework th
 ### What It Means
 
 **agentskills.io** is a specification for standardizing agent skills to enable:
+
 - **Discoverability**: Agents can enumerate available skills via XML
 - **Interoperability**: Skills can be shared across different agent frameworks
 - **Metadata**: Standardized frontmatter enables automated indexing and searching
@@ -146,17 +147,19 @@ description: Comprehensive guide to Python's asyncio framework, including corout
 ## 📏 Calibrated Evaluation
 
 ### Quality Standards
+
 The system uses multi-dimensional metrics calibrated against **Obra/superpowers** and **Anthropics** standards.
 
 1. **Structure Completeness**: Frontmatter, Overview, "When to Use", Quick Reference.
 2. **Pattern Quality**: Mandatory inclusion of Anti-patterns (❌) and Production patterns (✅).
 3. **Practical Value**: Common Mistakes, Red Flags, and Real-world Impact sections.
-4. **Obra Indicators**: 
+4. **Obra Indicators**:
    - **Core Principle**: A strong, imperative statement of the skill's essence.
    - **Iron Law**: Mandatory rules (e.g., "NO X WITHOUT Y").
    - **Contrast**: Explicit Good/Bad or ❌/✅ paired examples.
 
 ### Scoring & Penalties
+
 - **Target Score**: > 0.8 is considered high quality.
 - **Penalty Multipliers**: Scores are penalized (e.g., 0.7x multiplier) if critical elements like "Core Principle" or "Good/Bad Contrast" are missing.
 - **Calibration**: Metrics are regularly tuned against "golden skills" in `config/training/gold_skills.json`.
@@ -208,29 +211,20 @@ uv run skill-fleet chat --auto-approve
 The skill creation process uses a DSPy-powered 3-phase workflow:
 
 **Phase 1: Understanding & Planning**
+
 1. **Deep Understanding**: Ask WHY questions to understand user's problem and goals
 2. **Research**: Perform web and filesystem research when needed
 3. **Intent Analysis**: Parse task description and identify skill type
 4. **Taxonomy Path**: Find optimal placement in skills hierarchy
 5. **Dependency Analysis**: Identify related skills and prerequisites
 
-**Phase 2: Content Generation**
-6. **Initialize**: Create skill skeleton and directory structure
-7. **Gather Examples**: Collect usage examples from user (optional)
-8. **Edit**: Generate skill content (SKILL.md, metadata, supporting files)
-9. **Preview**: Present draft for review
+**Phase 2: Content Generation** 6. **Initialize**: Create skill skeleton and directory structure 7. **Gather Examples**: Collect usage examples from user (optional) 8. **Edit**: Generate skill content (SKILL.md, metadata, supporting files) 9. **Preview**: Present draft for review
 
-**Phase 3: Validation & Refinement**
-10. **Validate**: Run compliance checks and quality validation
-11. **TDD Checklist**: MANDATORY 3-phase verification:
-    - **RED**: Baseline tests without skill (identify rationalizations)
-    - **GREEN**: Tests with skill (verify compliance)
-    - **REFACTOR**: Close loopholes with explicit counters
-12. **Iterate**: Refine based on feedback (if needed)
-13. **Save**: Persist to taxonomy
+**Phase 3: Validation & Refinement** 10. **Validate**: Run compliance checks and quality validation 11. **TDD Checklist**: MANDATORY 3-phase verification: - **RED**: Baseline tests without skill (identify rationalizations) - **GREEN**: Tests with skill (verify compliance) - **REFACTOR**: Close loopholes with explicit counters 12. **Iterate**: Refine based on feedback (if needed) 13. **Save**: Persist to taxonomy
 
 **Conversational Agent Flow:**
 The `chat` command uses a natural language interface that:
+
 - Asks clarifying questions one at a time
 - Performs research when context is needed
 - Presents structured confirmation before creation
@@ -262,11 +256,13 @@ edit_lm = get_task_lm("skill_edit")
 ```
 
 **Environment Variables:**
+
 - `DSPY_CACHEDIR`: Override DSPy cache directory (default: `.dspy_cache`)
 - `DSPY_TEMPERATURE`: Global temperature override for all tasks
 
 **Task-Specific LMs:**
 Different workflow phases use different LM configurations:
+
 - `skill_understand`: Task analysis (high temperature for creativity)
 - `skill_plan`: Structure planning (medium temperature)
 - `skill_initialize`: Directory initialization (minimal temperature)
@@ -281,16 +277,19 @@ Different workflow phases use different LM configurations:
 DSPy programs can be optimized for better quality and consistency:
 
 **MIPROv2 Optimization:**
+
 - Automatically tunes prompts using training data
 - Adjusts few-shot examples for each module
 - Best for: Improving average quality across many examples
 
 **GEPA Optimization:**
+
 - Reflective prompt evolution with critique cycle
 - Uses stronger reasoning model for reflection
 - Best for: Complex tasks requiring deep reasoning
 
 **Optimization CLI:**
+
 ```bash
 # Optimize workflow with MIPROv2
 uv run skill-fleet optimize --optimizer miprov2 --model gemini-3-flash-preview
@@ -307,6 +306,7 @@ uv run skill-fleet optimize --optimizer miprov2 --track
 
 **Quality Assurance:**
 Programs can run in "quality-assured" mode:
+
 - Uses Refine wrapper for iterative improvement
 - Uses BestOfN for generating multiple candidates
 - Slower but higher quality outputs
@@ -323,6 +323,7 @@ program_qa = SkillCreationProgram(quality_assured=True)
 
 **MLflow Tracing:**
 Optional MLflow integration for tracking experiments:
+
 ```python
 from skill_fleet.core.tracing import configure_tracing
 
@@ -357,6 +358,7 @@ uv run skill-fleet generate-xml -o available_skills.xml
 ```
 
 The generated XML follows the agentskills.io format:
+
 ```xml
 <available_skills>
   <skill>
@@ -401,6 +403,7 @@ uv run skill-fleet analytics --user-id user@example.com
 ```
 
 **Analytics Features:**
+
 - **Usage Tracking**: JSONL log of all skill usage events
 - **Success Rates**: Track skill success/failure patterns
 - **Skill Combinations**: Identify commonly co-used skills
@@ -408,6 +411,7 @@ uv run skill-fleet analytics --user-id user@example.com
 - **Most Used Skills**: Rank skills by usage frequency
 
 **Analytics Data Location:**
+
 - Log file: `analytics/usage_log.jsonl`
 - Analytics root: Configurable via environment variable
 
@@ -419,32 +423,29 @@ uv run skill-fleet analytics --user-id user@example.com
 
 ```
 src/skill_fleet/
-├── agent/
-│   ├── agent.py                 # Conversational agent (1850+ lines)
-│   ├── modules.py               # Agent conversation modules
-│   ├── phase1/                  # Phase 1: Understanding & Planning
-│   │   ├── signatures.py
-│   │   └── understand.py
-│   ├── phase2/                  # Phase 2: Scoping
-│   │   ├── signatures.py
-│   │   └── scope.py
-│   └── signatures.py            # Agent-level signatures
 ├── analytics/
 │   └── engine.py                # Usage tracking and analytics engine
-├── api/
-│   ├── app.py                   # FastAPI application
-│   ├── discovery.py             # Auto-discovery of DSPy modules as endpoints
-│   ├── jobs.py                  # Background job handling
-│   ├── routes/                  # API route handlers
-│   │   ├── hitl.py              # HITL feedback endpoints
-│   │   ├── skills.py            # Skill creation endpoints
-│   │   ├── taxonomy.py          # Taxonomy management endpoints
-│   │   ├── validation.py        # Validation endpoints
-│   │   ├── evaluation.py        # Quality evaluation endpoints
-│   │   ├── drafts.py            # Draft promotion and lifecycle
-│   │   ├── optimization.py      # Workflow optimization endpoints
-│   │   └── jobs.py              # Job management endpoints
-│   └── schemas/                 # Pydantic request/response models
+├── app/                         # FastAPI application layer
+│   ├── api/v1/                  # API v1 route handlers
+│   │   ├── conversational/      # Chat and conversation endpoints
+│   │   ├── skills/            # Skill creation endpoints
+│   │   ├── taxonomy/          # Taxonomy management endpoints
+│   │   ├── quality/            # Quality validation endpoints
+│   │   ├── optimization/      # Workflow optimization endpoints
+│   │   ├── hitl/              # Human-in-the-loop endpoints
+│   │   ├── jobs/              # Job management endpoints
+│   │   └── drafts/            # Draft promotion and lifecycle
+│   ├── schemas/                 # Pydantic request/response models
+│   ├── dependencies.py          # FastAPI dependency injection
+│   ├── exceptions.py           # Custom API exceptions
+│   ├── factory.py              # Application factory
+│   ├── lifespan.py            # Startup/shutdown hooks
+│   ├── middleware/            # Logging and error handling
+│   ├── config.py              # Application configuration
+│   ├── cache.py               # Caching utilities
+│   └── services/                # Service layer
+│       ├── job_manager.py     # Background job management
+│       └── skill_service.py   # Skill service
 ├── cli/
 │   ├── app.py                   # Main Typer application
 │   ├── interactive_cli.py       # Rich-based conversational interface
@@ -587,6 +588,7 @@ bun run build
 ```
 
 **UI Features:**
+
 - **Chat Interface**: Real-time conversational skill creation with message list and input area
 - **Artifact Display**: View skill catalog, skill details, and workflow dashboard
 - **CLI Bridge**: Direct integration with backend CLI for command execution
@@ -595,6 +597,7 @@ bun run build
 - **Tools Integration**: File system access and command execution permissions
 
 **UI Components:**
+
 - `Chat`: MessageList, InputArea, SuggestionList
 - `Artifacts`: CatalogTree, SkillDetail, WorkflowDashboard
 - `Layout`: AppShell with resizable panes
@@ -608,17 +611,19 @@ bun run build
 ### 1. YAML Frontmatter
 
 **PROBLEM**: Frontmatter not at the top of the file
+
 ```markdown
 # My Skill
 
 ---
-name: my-skill
----
+
+## name: my-skill
 
 [Content...]
 ```
 
 **SOLUTION**: Frontmatter MUST be the first thing in the file
+
 ```markdown
 ---
 name: my-skill
@@ -633,6 +638,7 @@ description: Description here
 ### 2. Skill Name Format
 
 **PROBLEM**: Incorrect name format
+
 ```yaml
 name: My Skill        # ❌ Contains spaces
 name: my_skill        # ❌ Uses underscores
@@ -640,13 +646,15 @@ name: MySkill         # ❌ CamelCase
 ```
 
 **SOLUTION**: Use kebab-case
+
 ```yaml
-name: my-skill        # ✅ Correct format
+name: my-skill # ✅ Correct format
 ```
 
 ### 3. Missing Description
 
 **PROBLEM**: No description in frontmatter
+
 ```yaml
 ---
 name: my-skill
@@ -654,6 +662,7 @@ name: my-skill
 ```
 
 **SOLUTION**: Always include a description
+
 ```yaml
 ---
 name: my-skill
@@ -664,6 +673,7 @@ description: This skill teaches developers how to use Docker effectively.
 ### 4. Migration Workflow
 
 **ALWAYS** run with `--dry-run` first to preview changes:
+
 ```bash
 # Step 1: Preview
 uv run skill-fleet migrate --dry-run
@@ -677,6 +687,7 @@ uv run skill-fleet migrate
 ### 5. Validation Before Committing
 
 **ALWAYS** validate skills before creating a commit:
+
 ```bash
 # Validate a specific skill
 uv run skill-fleet validate path/to/skill
@@ -690,6 +701,7 @@ If validation fails, fix issues before committing.
 ### 6. Testing After Changes
 
 **ALWAYS** run tests after modifying core code:
+
 ```bash
 uv run pytest
 
@@ -838,7 +850,7 @@ uv run ruff format .
 - Skills: `skills/`
 - CLI: `src/skill_fleet/cli/`
 - Core DSPy: `src/skill_fleet/core/dspy/`
-- API: `src/skill_fleet/api/`
+- Application: `src/skill_fleet/app/`
 - UI: `src/skill_fleet/ui/`
 - Tests: `tests/`
 - Docs: `docs/`
@@ -849,6 +861,7 @@ uv run ruff format .
 ## 📚 Further Reading
 
 ### User Documentation
+
 - [Getting Started](docs/getting-started/index.md) - Quick installation, CLI usage, validation, and templates
 - [agentskills.io Compliance Guide](docs/agentskills-compliance.md) - Complete specification
 - [Skill Creator Guide](docs/skill-creator-guide.md) - Detailed creation workflow
@@ -857,6 +870,7 @@ uv run ruff format .
 - [API Reference](docs/api-reference.md) - Python API documentation
 
 ### Developer Documentation
+
 - [Contributing Guide](docs/development/CONTRIBUTING.md) - Development setup and workflows
 - [Architecture Decisions](docs/development/ARCHITECTURE_DECISIONS.md) - Key architectural decisions and their rationale
 
@@ -865,18 +879,21 @@ uv run ruff format .
 ## 📚 Documentation Navigation
 
 ### Where to Start
+
 - **[docs/index.md](docs/index.md)** - Central documentation hub with all resources
 - **[README.md](README.md)** - Project overview and quick start
 - **[docs/getting-started/index.md](docs/getting-started/index.md)** - Installation and basic usage
 
 ### Deep Dives by Topic
+
 - **[docs/dspy/](docs/dspy/)** - DSPy framework integration
 - **[docs/api/](docs/api/)** - REST API and endpoints
-- **[docs/cli/](docs/cli/)** - Command-line interface
+- **[docs/guides/cli.md](docs/guides/cli.md)** - Command-line interface (consolidated)
 - **[docs/hitl/](docs/hitl/)** - Human-in-the-Loop system
 - **[docs/llm/](docs/llm/)** - LLM configuration
 
 ### Advanced Topics
+
 - **[docs/overview.md](docs/overview.md)** - System architecture and taxonomy
 - **[docs/concepts/](docs/concepts/)** - Core concepts and compliance
 - **[docs/development/](docs/development/)** - Contributing and architecture decisions
@@ -901,29 +918,34 @@ uv run ruff format .
 ## 🐛 Troubleshooting
 
 ### "YAML frontmatter not found"
+
 - Ensure frontmatter is at the very top of the file
 - Check that you have both opening and closing `---` delimiters
 
 ### "Invalid skill name format"
+
 - Use kebab-case only (lowercase with hyphens)
 - No spaces, underscores, or capital letters
 
 ### "DSPy cache issues"
+
 - Clear cache: `rm -rf ~/.cache/dspy/`
 - Or set custom cache dir: `export DSPY_CACHEDIR=/path/to/cache`
 
 ### "DSPy not configured"
+
 - CLI automatically configures DSPy on startup
 - For library use: call `configure_dspy()` before any DSPy operations
 - Check `config/config.yaml` for LM settings
 - Verify `GOOGLE_API_KEY` is set
 
 ### "Tests failing after changes"
+
 - Run `uv run pytest -v` for verbose output
 - Check if validators need updating
 - Verify skill format compliance
 
 ---
 
-**Last Updated**: 2026-01-16
+**Last Updated**: 2026-01-26
 **Maintainer**: skill-fleet team

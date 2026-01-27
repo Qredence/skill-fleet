@@ -1,3 +1,5 @@
+"""Reproduce an issue with skill fleet functionality."""
+
 from skill_fleet.core.dspy.utils.question_options import generate_smart_options
 
 try:

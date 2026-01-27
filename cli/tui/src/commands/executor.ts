@@ -132,8 +132,8 @@ export class CommandExecutor {
     this.onProgress?.('Fetching skills...');
 
     const url = filter
-      ? `${this.apiUrl}/api/v2/skills?category=${filter}`
-      : `${this.apiUrl}/api/v2/skills`;
+      ? `${this.apiUrl}/api/v1/taxonomy?category=${filter}`
+      : `${this.apiUrl}/api/v1/taxonomy/`;
 
     const response = await fetch(url);
     
@@ -170,7 +170,7 @@ export class CommandExecutor {
     this.onProgress?.(`Validating ${skillPath}...`);
 
     const response = await fetch(
-      `${this.apiUrl}/api/v2/validation/validate?skill_path=${encodeURIComponent(skillPath)}`
+      `${this.apiUrl}/api/v1/quality/validate?skill_path=${encodeURIComponent(skillPath)}`
     );
 
     if (!response.ok) {
@@ -204,7 +204,7 @@ export class CommandExecutor {
 
     this.onProgress?.(`Promoting draft ${jobId}...`);
 
-    const response = await fetch(`${this.apiUrl}/api/v2/drafts/${jobId}/promote`, {
+    const response = await fetch(`${this.apiUrl}/api/v1/drafts/${jobId}/promote`, {
       method: 'POST',
     });
 
@@ -236,7 +236,7 @@ export class CommandExecutor {
 
     this.onProgress?.(`Checking status for ${jobId}...`);
 
-    const response = await fetch(`${this.apiUrl}/api/v2/jobs/${jobId}`);
+    const response = await fetch(`${this.apiUrl}/api/v1/jobs/${jobId}`);
 
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);

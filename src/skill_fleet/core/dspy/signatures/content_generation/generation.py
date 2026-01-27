@@ -17,19 +17,14 @@ v2 Golden Standard (Jan 2026):
 - Simplified frontmatter (no metadata.json required)
 """
 
-from __future__ import annotations
-
 from typing import Literal
 
 import dspy
 
-from ....models import (
-    BestPractice,
-    Capability,
-    SkillMetadata,
-    TestCase,
-    UsageExample,
-)
+# DSPy requires concrete (runtime) types for Signature field annotations.
+# Using `from __future__ import annotations` turns these into ForwardRefs, which
+# breaks signature construction.
+from ....models import BestPractice, Capability, SkillMetadata, TestCase, UsageExample
 
 # =============================================================================
 # Skill Style Type

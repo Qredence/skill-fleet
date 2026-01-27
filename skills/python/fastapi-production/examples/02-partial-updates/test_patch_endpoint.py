@@ -8,8 +8,7 @@ This shows exactly how the PATCH endpoint handles different scenarios:
 """
 
 from fastapi.testclient import TestClient
-from patch_endpoint_example import app, UserUpdate
-
+from patch_endpoint_example import UserUpdate, app
 
 # Create test client
 client = TestClient(app)
@@ -159,11 +158,11 @@ def test_model_dump_exclude_unset():
 
     print("\nModel with only 'name' field set:")
     print(f"  update_data.model_dump() = {update_data.model_dump()}")
-    print(f"  -> Includes all fields with defaults (None)")
+    print("  -> Includes all fields with defaults (None)")
 
     print("\nupdate_data.model_dump(exclude_unset=True):")
     print(f"  -> {update_data.model_dump(exclude_unset=True)}")
-    print(f"  -> Includes ONLY fields that were explicitly set!")
+    print("  -> Includes ONLY fields that were explicitly set!")
 
     # Create with multiple fields
     update_data2 = UserUpdate(name="Test", age=25)
@@ -174,7 +173,7 @@ def test_model_dump_exclude_unset():
     update_data3 = UserUpdate()
     print("\nModel with no fields set:")
     print(f"  update_data.model_dump(exclude_unset=True) = {update_data3.model_dump(exclude_unset=True)}")
-    print(f"  -> Returns empty dict!")
+    print("  -> Returns empty dict!")
 
     print("\n" + "="*70)
 

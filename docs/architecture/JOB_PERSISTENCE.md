@@ -37,7 +37,7 @@ Skills-fleet uses **dual-layer persistent job storage** to ensure jobs survive A
 
 ### JobManager Facade
 ```python
-from skill_fleet.api.job_manager import JobManager
+from skill_fleet.app.services.job_manager import JobManager
 
 # Initialize
 manager = JobManager()
@@ -493,7 +493,7 @@ sqlite3 skills_fleet.db \
   "SELECT status, COUNT(*) FROM jobs GROUP BY status;"
 
 # View memory store
-python -c "from skill_fleet.api.job_manager import get_job_manager; \
+python -c "from skill_fleet.app.services.job_manager import get_job_manager; \
   m = get_job_manager(); print(f'Memory jobs: {len(m.memory.store)}')"
 ```
 
@@ -501,7 +501,7 @@ python -c "from skill_fleet.api.job_manager import get_job_manager; \
 
 ```python
 import logging
-logging.getLogger('skill_fleet.api.job_manager').setLevel(logging.DEBUG)
+logging.getLogger('skill_fleet.app.services.job_manager').setLevel(logging.DEBUG)
 
 # Shows:
 # - Memory hits/misses

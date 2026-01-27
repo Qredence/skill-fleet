@@ -10,7 +10,9 @@ from pydantic import BaseModel, Field
 class SendMessageRequest(BaseModel):
     """Request body for sending a message in conversation."""
 
-    session_id: str | None = Field(default=None, description="Session ID (optional for new sessions)")
+    session_id: str | None = Field(
+        default=None, description="Session ID (optional for new sessions)"
+    )
     message: str = Field(..., description="User message to send")
     user_id: str = Field(default="default", description="User ID for context")
 

@@ -34,27 +34,49 @@ def _with_postgres_driver(url: str, driver: str, *, override: bool = False) -> s
     return url
 
 
-# Database URL from environment or default
-RAW_DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://neondb_owner:your_password@ep-something.aws.us-east-1.aws.neon.tech/neondb?sslmode=require",
-)
+# Database URL from environment
+# In production: DATABASE_URL is required
+# In development/test: falls back to SQLite for convenience
+RAW_DATABASE_URL = os.getenv("DATABASE_URL")
+_ENV = os.getenv("SKILL_FLEET_ENV", "production")
+
+if not RAW_DATABASE_URL:
+    if _ENV in ("development", "test", "testing"):
+        # Use SQLite for development/testing if no DATABASE_URL is provided
+        RAW_DATABASE_URL = "sqlite:///./skill_fleet_dev.db"
+    else:
+        raise ValueError(
+            "DATABASE_URL environment variable is required in production. "
+            "Set it to a PostgreSQL connection string, e.g.: "
+            "postgresql://user:pass@host/dbname?sslmode=require"
+        )
 
 # Use psycopg (v3) for sync engine when driver isn't specified.
+# SQLite URLs pass through unchanged.
 DATABASE_URL = _with_postgres_driver(RAW_DATABASE_URL, "psycopg")
 
 # Async database URL (derive from DATABASE_URL unless explicitly set).
+# For SQLite, use aiosqlite driver for async support.
 ASYNC_DATABASE_URL = os.getenv("ASYNC_DATABASE_URL")
 if not ASYNC_DATABASE_URL:
-    ASYNC_DATABASE_URL = _with_postgres_driver(RAW_DATABASE_URL, "asyncpg", override=True)
+    if RAW_DATABASE_URL.startswith("sqlite"):
+        # SQLite async uses aiosqlite driver
+        ASYNC_DATABASE_URL = RAW_DATABASE_URL.replace("sqlite:", "sqlite+aiosqlite:")
+    else:
+        ASYNC_DATABASE_URL = _with_postgres_driver(RAW_DATABASE_URL, "asyncpg", override=True)
+
+# Check if we're using SQLite (different engine configuration)
+_IS_SQLITE = DATABASE_URL.startswith("sqlite")
 
 # Synchronous engine
+# SQLite doesn't support connection pooling like PostgreSQL
 engine = create_engine(
     DATABASE_URL,
-    pool_pre_ping=True,
-    pool_size=10,
-    max_overflow=20,
+    pool_pre_ping=bool(not _IS_SQLITE),
+    pool_size=10 if not _IS_SQLITE else 0,
+    max_overflow=20 if not _IS_SQLITE else 0,
     echo=os.getenv("SQL_ECHO", "false").lower() == "true",
+    connect_args={"check_same_thread": False} if _IS_SQLITE else {},
 )
 
 # Synchronous session factory
@@ -65,11 +87,12 @@ SessionLocal = sessionmaker(
 )
 
 # Async engine
+# SQLite async doesn't support connection pooling
 async_engine = create_async_engine(
     ASYNC_DATABASE_URL,
-    pool_pre_ping=True,
-    pool_size=10,
-    max_overflow=20,
+    pool_pre_ping=bool(not _IS_SQLITE),
+    pool_size=10 if not _IS_SQLITE else 0,
+    max_overflow=20 if not _IS_SQLITE else 0,
     echo=os.getenv("SQL_ECHO", "false").lower() == "true",
 )
 
@@ -136,9 +159,7 @@ async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
 
 @contextmanager
 def get_db_context_manager() -> SyncGenerator[Session, None, None]:
-    """
-    Alias for get_db_context() for backward compatibility.
-    """
+    """Alias for get_db_context() for backward compatibility."""
     with get_db_context() as db:
         yield db
 

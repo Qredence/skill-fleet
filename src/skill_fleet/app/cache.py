@@ -35,10 +35,12 @@ import json
 import logging
 import threading
 import time
-from datetime import datetime, timezone, timedelta
-from typing import Any, Callable, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from pydantic import BaseModel
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -172,10 +174,7 @@ class InMemoryCache:
 
         """
         with self._lock:
-            expired_keys = [
-                key for key, entry in self._cache.items()
-                if entry.is_expired()
-            ]
+            expired_keys = [key for key, entry in self._cache.items() if entry.is_expired()]
             for key in expired_keys:
                 del self._cache[key]
 
@@ -233,7 +232,7 @@ def hash_key(value: str | dict | BaseModel) -> str:
 
 def cached(ttl: int = 300, key_prefix: str = ""):
     """
-    Decorator to cache function results.
+    Cache function results.
 
     Args:
         ttl: Time-to-live in seconds
@@ -246,6 +245,7 @@ def cached(ttl: int = 300, key_prefix: str = ""):
         ...     return taxonomy_data
 
     """
+
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         @functools.wraps(func)
         def wrapper(*args, **kwargs) -> T:
@@ -279,7 +279,7 @@ def cache_result(
     prefix: str = "",
 ):
     """
-    Decorator to cache function results with custom key generation.
+    Cache function results with custom key generation.
 
     Args:
         key_func: Optional function to generate cache key
@@ -295,6 +295,7 @@ def cache_result(
         ...     return fetch_skills(user_id, skill_type)
 
     """
+
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         @functools.wraps(func)
         def wrapper(*args, **kwargs) -> T:
@@ -346,10 +347,7 @@ def invalidate_pattern(pattern: str) -> int:
     import fnmatch
 
     with _cache._lock:
-        keys_to_delete = [
-            key for key in _cache._cache.keys()
-            if fnmatch.fnmatch(key, pattern)
-        ]
+        keys_to_delete = [key for key in _cache._cache if fnmatch.fnmatch(key, pattern)]
         for key in keys_to_delete:
             del _cache._cache[key]
 

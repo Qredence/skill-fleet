@@ -49,6 +49,7 @@ Example:
 from __future__ import annotations
 
 import logging
+from datetime import UTC
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -360,8 +361,9 @@ def start_parent_run(
 
     """
     try:
+        from datetime import datetime
+
         import mlflow
-        from datetime import datetime, timezone
 
         mlflow.set_tracking_uri(DEFAULT_TRACKING_URI)
         mlflow.set_experiment(experiment_name)
@@ -386,7 +388,7 @@ def start_parent_run(
             tags["skill_type"] = skill_type
 
         # Add date tag for time-based filtering
-        tags["date"] = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        tags["date"] = datetime.now(UTC).strftime("%Y-%m-%d")
 
         mlflow.set_tags(tags)  # type: ignore[attr-defined]
 
@@ -555,9 +557,7 @@ def log_quality_metrics(quality_data: dict[str, Any], prefix: str = "quality") -
 
         # Extract common quality metrics
         for key, value in quality_data.items():
-            if isinstance(value, (int, float)):
-                metrics[f"{prefix}_{key}"] = float(value)
-            elif isinstance(value, bool):
+            if isinstance(value, (int, float, bool)):
                 metrics[f"{prefix}_{key}"] = float(value)
 
         mlflow.log_metrics(metrics)  # type: ignore[attr-defined]
@@ -596,6 +596,7 @@ def log_skill_artifacts(
     """
     try:
         import json
+
         import mlflow
 
         # Log skill content if provided
@@ -648,6 +649,7 @@ def log_validation_results(
     """
     try:
         import json
+
         import mlflow
 
         metrics: dict[str, float] = {}

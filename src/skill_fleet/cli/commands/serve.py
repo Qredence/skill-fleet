@@ -133,4 +133,4 @@ def serve_command(
         f"[bold green]🔥 Starting Skill Fleet API on {final_host}:{final_port}...[/bold green]"
     )
     console.print("[dim]Press Ctrl+C to stop[/dim]\n")
-    uvicorn.run("skill_fleet.api.app:app", host=final_host, port=final_port, reload=final_reload)
+    uvicorn.run("skill_fleet.app.main:app", host=final_host, port=final_port, reload=final_reload)

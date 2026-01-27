@@ -199,7 +199,7 @@ class MyService(BaseService):
 
 ```python
 from fastapi import Depends
-from skill_fleet.api.dependencies import get_skill_service
+from skill_fleet.app.dependencies import get_skill_service
 
 @router.post("/skills")
 async def create_skill(

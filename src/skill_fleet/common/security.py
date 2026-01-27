@@ -171,9 +171,58 @@ def is_safe_path_component(component: str) -> bool:
     return all(c.isalnum() or c in "._-" for c in component)
 
 
+def resolve_skill_md_path(skills_root: Path, taxonomy_path: str) -> Path:
+    """
+    Resolve the path to a skill's SKILL.md file atomically.
+
+    This function is TOCTOU (time-of-check-time-of-use) safe and
+    prevents symlink-based path traversal attacks.
+
+    Args:
+        skills_root: Root directory for skills
+        taxonomy_path: The taxonomy path to the skill (e.g., "python/fastapi")
+
+    Returns:
+        The absolute path to the SKILL.md file
+
+    Raises:
+        ValueError: If the path is invalid or escapes the skills root
+        FileNotFoundError: If the SKILL.md file doesn't exist
+
+    """
+    # Sanitize and validate taxonomy path
+    safe_taxonomy_path = sanitize_taxonomy_path(taxonomy_path)
+    if safe_taxonomy_path is None:
+        raise ValueError("Invalid path")
+
+    skills_root_resolved = skills_root.resolve()
+
+    # Resolve path atomically to prevent TOCTOU attacks
+    # resolve(strict=True) raises FileNotFoundError if path doesn't exist
+    # and resolves symlinks automatically while preserving safety
+    skill_dir = skills_root_resolved / safe_taxonomy_path
+    candidate_md = skill_dir / "SKILL.md"
+
+    # Atomic check: verify SKILL.md exists
+    # Using resolve(strict=True) is safe against TOCTOU
+    try:
+        resolved_md = candidate_md.resolve(strict=True)
+    except FileNotFoundError:
+        raise FileNotFoundError(candidate_md.as_posix()) from None
+
+    # Verify resolved path is within skills root (prevents symlink escapes)
+    try:
+        resolved_md.relative_to(skills_root_resolved)
+    except ValueError as e:
+        raise ValueError("Invalid path") from e
+
+    return resolved_md
+
+
 __all__ = [
     "is_safe_path_component",
     "resolve_path_within_root",
     "sanitize_relative_file_path",
     "sanitize_taxonomy_path",
+    "resolve_skill_md_path",
 ]

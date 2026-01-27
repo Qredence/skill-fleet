@@ -12,7 +12,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from ..llm.dspy_config import configure_dspy
 from .config import get_settings
-from .exceptions import SkillFleetAPIException
+from .exceptions import SkillFleetAPIError
 from .lifespan import lifespan
 from .middleware.logging import ErrorHandlingMiddleware, LoggingMiddleware
 
@@ -167,9 +167,9 @@ def _register_exception_handlers(app: FastAPI) -> None:
 
     """
 
-    @app.exception_handler(SkillFleetAPIException)
+    @app.exception_handler(SkillFleetAPIError)
     async def skill_fleet_exception_handler(
-        request: Request, exc: SkillFleetAPIException
+        request: Request, exc: SkillFleetAPIError
     ) -> JSONResponse:
         """Handle custom Skill Fleet exceptions."""
         request_id = getattr(request.state, "request_id", "unknown")

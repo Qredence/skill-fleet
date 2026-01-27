@@ -496,7 +496,7 @@ class Phase2GenerationModule(dspy.Module):
             dict: Final generated content with all metadata and subdirectory_files
 
         """
-        content_result = await self.generate_content.aforward(
+        content_result = await self.generate_content.acall(
             skill_metadata=skill_metadata,
             content_plan=content_plan,
             generation_instructions=generation_instructions,
@@ -506,7 +506,7 @@ class Phase2GenerationModule(dspy.Module):
         )
 
         if user_feedback or change_requests:
-            refinement_result = await self.incorporate_feedback.aforward(
+            refinement_result = await self.incorporate_feedback.acall(
                 current_content=content_result["skill_content"],
                 user_feedback=user_feedback,
                 change_requests=change_requests,

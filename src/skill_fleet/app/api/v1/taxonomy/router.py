@@ -19,23 +19,21 @@ from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, HTTPException, Path
 
-from .....api.exceptions import NotFoundException
-from .....api.schemas.taxonomy import (
+from .....app.services.cached_taxonomy import get_cached_taxonomy_service
+from ...schemas.taxonomy import (
     AdaptTaxonomyRequest,
     AdaptTaxonomyResponse,
     TaxonomyResponse,
     UpdateTaxonomyRequest,
     UserTaxonomyResponse,
 )
-from .....app.dependencies import TaxonomyManagerDep
-from .....app.services.cached_taxonomy import get_cached_taxonomy_service
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 if TYPE_CHECKING:
-    from .....taxonomy.manager import TaxonomyManager
+    from .....app.dependencies import TaxonomyManagerDep
 
 
 @router.get("/", response_model=TaxonomyResponse)
@@ -67,10 +65,7 @@ async def get_taxonomy(taxonomy_manager: TaxonomyManagerDep) -> TaxonomyResponse
 
     except Exception as e:
         logger.exception(f"Error getting taxonomy: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to retrieve taxonomy: {e}"
-        ) from e
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve taxonomy: {e}") from e
 
 
 @router.post("/", response_model=dict[str, str])
@@ -99,13 +94,62 @@ async def update_taxonomy(
         # Verify taxonomy manager is accessible
         _ = taxonomy_manager.meta
 
-        # TODO: Implement actual update logic:
-        # - Merge updates into taxonomy structure
-        # - Validate new categories/paths
-        # - Update taxonomy_meta.json
-        # - Rebuild index
+        # Validate and process updates
+        import json
 
-        logger.info(f"Taxonomy update requested by user {request.user_id}: {list(request.updates.keys())}")
+        updates_applied = []
+        errors = []
+
+        for path, update_data in request.updates.items():
+            try:
+                # Validate path doesn't contain traversal
+                if ".." in path or path.startswith("/"):
+                    errors.append(f"Invalid path (traversal attempt): {path}")
+                    continue
+
+                # Resolve the skill/category path
+                try:
+                    resolved_path = taxonomy_manager.resolve_skill_location(path)
+                    target_dir = taxonomy_manager.skills_root / resolved_path
+                except FileNotFoundError:
+                    # Path doesn't exist - might be a new category
+                    target_dir = taxonomy_manager.skills_root / path
+                    target_dir.mkdir(parents=True, exist_ok=True)
+
+                # Update metadata if provided
+                if isinstance(update_data, dict):
+                    metadata_path = target_dir / "metadata.json"
+                    if metadata_path.exists():
+                        # Merge with existing
+                        current = json.loads(metadata_path.read_text(encoding="utf-8"))
+                        current.update(update_data)
+                    else:
+                        # Create new metadata
+                        current = update_data
+
+                    metadata_path.write_text(json.dumps(current, indent=2), encoding="utf-8")
+                    updates_applied.append(path)
+
+            except Exception as update_err:
+                errors.append(f"Failed to update {path}: {update_err}")
+                logger.warning(f"Taxonomy update failed for {path}: {update_err}")
+
+        # Update taxonomy meta timestamp
+        meta_path = taxonomy_manager.skills_root / "taxonomy_meta.json"
+        if meta_path.exists():
+            try:
+                meta = json.loads(meta_path.read_text(encoding="utf-8"))
+                from datetime import UTC, datetime
+
+                meta["last_updated"] = datetime.now(UTC).isoformat()
+                meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
+            except Exception as meta_err:
+                logger.warning(f"Failed to update taxonomy_meta.json: {meta_err}")
+
+        logger.info(
+            f"Taxonomy update by user {request.user_id}: "
+            f"{len(updates_applied)} applied, {len(errors)} errors"
+        )
 
         # Invalidate cache to force refresh
         cached_service = get_cached_taxonomy_service(taxonomy_manager)
@@ -113,22 +157,21 @@ async def update_taxonomy(
         logger.info(f"Invalidated {invalidated} taxonomy cache entries")
 
         return {
-            "status": "updated",
-            "message": "Taxonomy update processed",
+            "status": "updated" if not errors else "partial",
+            "message": f"Taxonomy update: {len(updates_applied)} applied, {len(errors)} errors",
+            "updates_applied": updates_applied,
+            "errors": errors if errors else None,
         }
 
     except Exception as e:
         logger.exception(f"Error updating taxonomy: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to update taxonomy: {e}"
-        ) from e
+        raise HTTPException(status_code=500, detail=f"Failed to update taxonomy: {e}") from e
 
 
 @router.get("/user/{user_id}", response_model=UserTaxonomyResponse)
 async def get_user_taxonomy(
+    taxonomy_manager: TaxonomyManagerDep,
     user_id: str = Path(..., description="User ID"),
-    taxonomy_manager: TaxonomyManagerDep = None,
 ) -> UserTaxonomyResponse:
     """
     Get user-specific taxonomy adaptation.
@@ -166,17 +209,14 @@ async def get_user_taxonomy(
 
     except Exception as e:
         logger.exception(f"Error getting user taxonomy: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to retrieve user taxonomy: {e}"
-        ) from e
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve user taxonomy: {e}") from e
 
 
 @router.post("/user/{user_id}/adapt", response_model=AdaptTaxonomyResponse)
 async def adapt_taxonomy(
+    taxonomy_manager: TaxonomyManagerDep,
     user_id: str = Path(..., description="User ID"),
     request: AdaptTaxonomyRequest = None,
-    taxonomy_manager: TaxonomyManagerDep = None,
 ) -> AdaptTaxonomyResponse:
     """
     Adapt taxonomy to user based on their usage patterns.
@@ -249,7 +289,4 @@ async def adapt_taxonomy(
 
     except Exception as e:
         logger.exception(f"Error adapting taxonomy: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to adapt taxonomy: {e}"
-        ) from e
+        raise HTTPException(status_code=500, detail=f"Failed to adapt taxonomy: {e}") from e

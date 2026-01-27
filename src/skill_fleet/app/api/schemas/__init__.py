@@ -10,6 +10,8 @@ Schema modules:
     taxonomy: Taxonomy management schemas
     quality: Quality assurance schemas
     optimization: Signature optimization schemas
+    hitl: Human-in-the-loop interaction schemas
+    models: Core job state models
 """
 
 from __future__ import annotations
@@ -18,6 +20,16 @@ from .conversational import (
     SendMessageRequest,
     SendMessageResponse,
     SessionHistoryResponse,
+)
+from .hitl import (
+    QuestionOption,
+    StructuredQuestion,
+    normalize_questions,
+)
+from .models import (
+    DeepUnderstandingState,
+    JobState,
+    TDDWorkflowState,
 )
 from .optimization import (
     AnalyzeFailuresRequest,
@@ -53,6 +65,14 @@ from .taxonomy import (
 )
 
 __all__ = [
+    # Job state models
+    "TDDWorkflowState",
+    "DeepUnderstandingState",
+    "JobState",
+    # HITL models
+    "QuestionOption",
+    "StructuredQuestion",
+    "normalize_questions",
     # Skills schemas
     "CreateSkillRequest",
     "CreateSkillResponse",

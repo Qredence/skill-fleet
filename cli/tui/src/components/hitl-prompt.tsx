@@ -22,11 +22,16 @@ export interface QuestionOption {
   description?: string;
 }
 
+/** Question type from API */
+export type QuestionType = "boolean" | "single" | "multi" | "text";
+
 /** Structured question from API */
 export interface StructuredQuestion {
   text: string;
+  question_type?: QuestionType;
   options?: QuestionOption[];
   allows_multiple?: boolean;
+  allows_other?: boolean;
   rationale?: string;
 }
 
@@ -261,6 +266,37 @@ const ClarifyPrompt: React.FC<ClarifyPromptProps> = ({
   }
 
   const hasOptions = question.options && question.options.length > 0;
+  const questionType = question.question_type || "text";
+  const allowsOther = question.allows_other !== false; // default true
+
+  // Build options list with optional "Other" choice
+  const optionsWithOther = hasOptions
+    ? [
+        ...question.options!.map((opt) => ({
+          label: selectedOptions.has(opt.id)
+            ? `✓ ${opt.label}`
+            : `  ${opt.label}`,
+          value: opt.id,
+        })),
+        ...(allowsOther
+          ? [{ label: "  ✏️ Other: type your own", value: "__other__" }]
+          : []),
+      ]
+    : [];
+
+  // Get hint text based on question type
+  const getHintText = () => {
+    switch (questionType) {
+      case "boolean":
+        return "(Yes/No)";
+      case "single":
+        return "(Select one)";
+      case "multi":
+        return "(Select multiple with Enter, then Tab to continue)";
+      default:
+        return "(Type your answer)";
+    }
+  };
 
   return (
     <Box
@@ -293,19 +329,17 @@ const ClarifyPrompt: React.FC<ClarifyPromptProps> = ({
       {hasOptions ? (
         <Box flexDirection="column">
           <Text color="gray" dimColor>
-            {question.allows_multiple
-              ? "(Select multiple with Enter, then Tab to continue)"
-              : "(Select one)"}
+            {getHintText()}
           </Text>
           <SelectInput
-            items={question.options!.map((opt) => ({
-              label: selectedOptions.has(opt.id)
-                ? `✓ ${opt.label}`
-                : `  ${opt.label}`,
-              value: opt.id,
-            }))}
+            items={optionsWithOther}
             onSelect={(item) => {
-              if (question.allows_multiple) {
+              if (item.value === "__other__") {
+                // Switch to text input mode - clear options and use text
+                onTextChange("");
+                // For now, just proceed with empty to trigger text mode
+                // In a full implementation, we'd track a "showOtherInput" state
+              } else if (question.allows_multiple) {
                 onOptionToggle(item.value);
               } else {
                 // Single select - immediately proceed

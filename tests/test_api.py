@@ -5,12 +5,10 @@ Tests FastAPI endpoints in src/skill_fleet/api/
 
 from __future__ import annotations
 
-from unittest.mock import patch
-
 import pytest
 from fastapi.testclient import TestClient
 
-from skill_fleet.api.app import get_app
+from skill_fleet.app.factory import get_app
 
 # ============================================================================
 # Constants
@@ -79,18 +77,17 @@ class TestSkillsCreateEndpoint:
         - Response includes a 'job_id' field
         - Response includes 'status' field with value 'accepted'
         """
-        with patch("skill_fleet.api.routes.skills.run_skill_creation"):
-            response = client.post(
-                "/api/v2/skills/create",
-                json={"task_description": "Create an OpenAPI skill for REST endpoints"},
-            )
+        response = client.post(
+            "/api/v2/skills/create",
+            json={"task_description": "Create an OpenAPI skill for REST endpoints"},
+        )
 
-            assert response.status_code == 200
-            data = response.json()
-            assert "job_id" in data
-            assert isinstance(data["job_id"], str)
-            assert len(data["job_id"]) > 0
-            assert data["status"] == "accepted"
+        assert response.status_code == 200
+        data = response.json()
+        assert "job_id" in data
+        assert isinstance(data["job_id"], str)
+        assert len(data["job_id"]) > 0
+        assert data["status"] == "accepted"
 
     def test_create_skill_missing_description(self, client):
         """Test skill creation fails without task_description field.
@@ -98,14 +95,13 @@ class TestSkillsCreateEndpoint:
         Verifies that Pydantic validation catches missing required fields
         and returns HTTP 422 (Unprocessable Entity).
         """
-        with patch("skill_fleet.api.routes.skills.run_skill_creation"):
-            response = client.post("/api/v2/skills/create", json={})
+        response = client.post("/api/v2/skills/create", json={})
 
-            assert response.status_code == 422  # Validation error
-            data = response.json()
-            assert "details" in data
-            assert data["error"] == "Validation error"
-            assert "Field required" in str(data["details"])
+        assert response.status_code == 422  # Validation error
+        data = response.json()
+        assert "details" in data
+        assert data["error"] == "Validation error"
+        assert "Field required" in str(data["details"])
 
     def test_create_skill_empty_description(self, client):
         """Test skill creation fails with empty or too short task_description.
@@ -113,15 +109,14 @@ class TestSkillsCreateEndpoint:
         Verifies that inputs failing min_length validation are correctly handled
         by Pydantic, returning HTTP 422.
         """
-        with patch("skill_fleet.api.routes.skills.run_skill_creation"):
-            response = client.post(
-                "/api/v2/skills/create",
-                # Now fails min_length=10
-                json={"task_description": "short"},
-            )
+        response = client.post(
+            "/api/v2/skills/create",
+            # Now fails min_length=10
+            json={"task_description": "short"},
+        )
 
-            assert response.status_code == 422
-            data = response.json()
-            assert "details" in data
-            assert data["error"] == "Validation error"
-            assert "at least 10 characters" in str(data["details"])
+        assert response.status_code == 422
+        data = response.json()
+        assert "details" in data
+        assert data["error"] == "Validation error"
+        assert "at least 10 characters" in str(data["details"])

@@ -9,10 +9,10 @@ import pytest
 
 from skill_fleet.workflows.conversational_interface import (
     ConversationalOrchestrator,
+    ConversationContext,
+    ConversationMessage,
     ConversationState,
     IntentType,
-    ConversationMessage,
-    ConversationContext,
 )
 
 
@@ -25,30 +25,30 @@ def orchestrator() -> ConversationalOrchestrator:
 def test_initialization(orchestrator: ConversationalOrchestrator) -> None:
     """Test orchestrator can be initialized."""
     assert orchestrator is not None
-    assert hasattr(orchestrator, 'initialize_conversation')
-    assert hasattr(orchestrator, 'interpret_intent')
-    assert hasattr(orchestrator, 'generate_clarifying_question')
-    assert hasattr(orchestrator, 'deep_understanding')
-    assert hasattr(orchestrator, 'confirm_understanding')
-    assert hasattr(orchestrator, 'process_feedback')
-    assert hasattr(orchestrator, 'suggest_tests')
+    assert hasattr(orchestrator, "initialize_conversation")
+    assert hasattr(orchestrator, "interpret_intent")
+    assert hasattr(orchestrator, "generate_clarifying_question")
+    assert hasattr(orchestrator, "deep_understanding")
+    assert hasattr(orchestrator, "confirm_understanding")
+    assert hasattr(orchestrator, "process_feedback")
+    assert hasattr(orchestrator, "suggest_tests")
 
 
 def test_orchestrator_has_expected_modules(orchestrator: ConversationalOrchestrator) -> None:
     """Test that orchestrator has all expected DSPy modules."""
     expected_modules = [
-        'interpret_intent_module',
-        'detect_multi_skill_module',
-        'generate_question_module',
-        'deep_understanding_module',
-        'understanding_summary_module',
-        'confirm_understanding_module',
-        'assess_readiness_module',
-        'present_skill_module',
-        'process_feedback_module',
-        'suggest_tests_module',
-        'verify_tdd_module',
-        'enhance_skill_module',
+        "interpret_intent_module",
+        "detect_multi_skill_module",
+        "generate_question_module",
+        "deep_understanding_module",
+        "understanding_summary_module",
+        "confirm_understanding_module",
+        "assess_readiness_module",
+        "present_skill_module",
+        "process_feedback_module",
+        "suggest_tests_module",
+        "verify_tdd_module",
+        "enhance_skill_module",
     ]
 
     for module_name in expected_modules:
@@ -58,13 +58,13 @@ def test_orchestrator_has_expected_modules(orchestrator: ConversationalOrchestra
 def test_orchestrator_has_sync_wrappers(orchestrator: ConversationalOrchestrator) -> None:
     """Test that orchestrator has synchronous wrappers for async methods."""
     expected_sync_methods = [
-        'initialize_conversation_sync',
-        'interpret_intent_sync',
-        'generate_clarifying_question_sync',
-        'deep_understanding_sync',
-        'confirm_understanding_sync',
-        'process_feedback_sync',
-        'suggest_tests_sync',
+        "initialize_conversation_sync",
+        "interpret_intent_sync",
+        "generate_clarifying_question_sync",
+        "deep_understanding_sync",
+        "confirm_understanding_sync",
+        "process_feedback_sync",
+        "suggest_tests_sync",
     ]
 
     for method_name in expected_sync_methods:
@@ -139,9 +139,9 @@ def test_initialize_conversation_signature(orchestrator: ConversationalOrchestra
 
     # Check for expected parameters
     expected_params = [
-        'initial_message',
-        'metadata',
-        'enable_mlflow',
+        "initial_message",
+        "metadata",
+        "enable_mlflow",
     ]
 
     for param in expected_params:

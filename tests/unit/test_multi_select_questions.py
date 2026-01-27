@@ -1,6 +1,6 @@
 """Tests for multi-select clarification questions."""
 
-from skill_fleet.api.schemas.hitl import (
+from skill_fleet.app.schemas.hitl import (
     StructuredQuestion,
     _dict_to_structured_question,
     normalize_questions,

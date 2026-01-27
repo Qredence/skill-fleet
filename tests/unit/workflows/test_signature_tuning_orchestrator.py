@@ -19,9 +19,9 @@ def orchestrator() -> SignatureTuningOrchestrator:
 def test_initialization(orchestrator: SignatureTuningOrchestrator) -> None:
     """Test orchestrator can be initialized."""
     assert orchestrator is not None
-    assert hasattr(orchestrator, 'tune_signature')
-    assert hasattr(orchestrator, 'tune_iteratively')
-    assert hasattr(orchestrator, 'get_version_history')
+    assert hasattr(orchestrator, "tune_signature")
+    assert hasattr(orchestrator, "tune_iteratively")
+    assert hasattr(orchestrator, "get_version_history")
 
 
 def test_initialization_with_custom_params() -> None:
@@ -46,14 +46,14 @@ def test_default_parameters(orchestrator: SignatureTuningOrchestrator) -> None:
 
 def test_orchestrator_module_initialization(orchestrator: SignatureTuningOrchestrator) -> None:
     """Test that orchestrator properly initializes its DSPy modules."""
-    assert hasattr(orchestrator, 'tuner')
+    assert hasattr(orchestrator, "tuner")
 
 
 def test_orchestrator_has_sync_wrappers(orchestrator: SignatureTuningOrchestrator) -> None:
     """Test that orchestrator has synchronous wrappers for async methods."""
     expected_sync_methods = [
-        'tune_signature_sync',
-        'tune_iteratively_sync',
+        "tune_signature_sync",
+        "tune_iteratively_sync",
     ]
 
     for method_name in expected_sync_methods:
@@ -76,13 +76,13 @@ def test_tune_signature_signature(orchestrator: SignatureTuningOrchestrator) -> 
 
     # Check for expected parameters
     expected_params = [
-        'skill_content',
-        'current_signature',
-        'metric_score',
-        'target_score',
-        'skill_type',
-        'signature_id',
-        'enable_mlflow',
+        "skill_content",
+        "current_signature",
+        "metric_score",
+        "target_score",
+        "skill_type",
+        "signature_id",
+        "enable_mlflow",
     ]
 
     for param in expected_params:
@@ -96,10 +96,10 @@ def test_tune_signature_default_parameters(orchestrator: SignatureTuningOrchestr
     sig = inspect.signature(orchestrator.tune_signature)
 
     # Check default values
-    assert sig.parameters['target_score'].default == 0.80
-    assert sig.parameters['skill_type'].default == "comprehensive"
-    assert sig.parameters['signature_id'].default is None
-    assert sig.parameters['enable_mlflow'].default is True
+    assert sig.parameters["target_score"].default == 0.80
+    assert sig.parameters["skill_type"].default == "comprehensive"
+    assert sig.parameters["signature_id"].default is None
+    assert sig.parameters["enable_mlflow"].default is True
 
 
 def test_tune_iteratively_signature(orchestrator: SignatureTuningOrchestrator) -> None:
@@ -111,13 +111,13 @@ def test_tune_iteratively_signature(orchestrator: SignatureTuningOrchestrator) -
 
     # Check for expected parameters
     expected_params = [
-        'skill_content',
-        'current_signature',
-        'metric_score',
-        'target_score',
-        'skill_type',
-        're_evaluate_fn',
-        'enable_mlflow',
+        "skill_content",
+        "current_signature",
+        "metric_score",
+        "target_score",
+        "skill_type",
+        "re_evaluate_fn",
+        "enable_mlflow",
     ]
 
     for param in expected_params:

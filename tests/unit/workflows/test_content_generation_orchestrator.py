@@ -19,23 +19,24 @@ def orchestrator() -> ContentGenerationOrchestrator:
 def test_initialization(orchestrator: ContentGenerationOrchestrator) -> None:
     """Test orchestrator can be initialized."""
     assert orchestrator is not None
-    assert hasattr(orchestrator, 'generate')
-    assert hasattr(orchestrator, 'generate_sync')
+    assert hasattr(orchestrator, "generate")
+    assert hasattr(orchestrator, "generate_sync")
 
 
 def test_orchestrator_module_initialization(orchestrator: ContentGenerationOrchestrator) -> None:
     """Test that orchestrator properly initializes its DSPy modules."""
     # The orchestrator should have initialized the generation module
-    assert hasattr(orchestrator, 'generation_module')
+    assert hasattr(orchestrator, "generation_module")
     from skill_fleet.core.dspy.modules import Phase2GenerationModule
+
     assert isinstance(orchestrator.generation_module, Phase2GenerationModule)
 
 
 def test_orchestrator_has_expected_methods(orchestrator: ContentGenerationOrchestrator) -> None:
     """Test that orchestrator has all expected methods."""
     expected_methods = [
-        'generate',
-        'generate_sync',
+        "generate",
+        "generate_sync",
     ]
 
     for method_name in expected_methods:
@@ -52,11 +53,11 @@ def test_generate_method_signature(orchestrator: ContentGenerationOrchestrator) 
 
     # Check for expected parameters
     expected_params = [
-        'understanding',
-        'plan',
-        'skill_style',
-        'user_feedback',
-        'enable_mlflow',
+        "understanding",
+        "plan",
+        "skill_style",
+        "user_feedback",
+        "enable_mlflow",
     ]
 
     for param in expected_params:
@@ -72,35 +73,39 @@ def test_generate_sync_method_signature(orchestrator: ContentGenerationOrchestra
 
     # Check for expected parameters
     expected_params = [
-        'understanding',
-        'plan',
-        'skill_style',
-        'user_feedback',
-        'enable_mlflow',
+        "understanding",
+        "plan",
+        "skill_style",
+        "user_feedback",
+        "enable_mlflow",
     ]
 
     for param in expected_params:
         assert param in params, f"Missing parameter: {param}"
 
 
-def test_orchestrator_accepts_different_skill_styles(orchestrator: ContentGenerationOrchestrator) -> None:
+def test_orchestrator_accepts_different_skill_styles(
+    orchestrator: ContentGenerationOrchestrator,
+) -> None:
     """Test that orchestrator accepts different skill style values."""
     import inspect
 
     sig = inspect.signature(orchestrator.generate)
-    skill_style_param = sig.parameters.get('skill_style')
+    skill_style_param = sig.parameters.get("skill_style")
 
     assert skill_style_param is not None
     # Check that there's a default value
     assert skill_style_param.default is not inspect.Parameter.empty
 
 
-def test_orchestrator_handles_user_feedback_parameter(orchestrator: ContentGenerationOrchestrator) -> None:
+def test_orchestrator_handles_user_feedback_parameter(
+    orchestrator: ContentGenerationOrchestrator,
+) -> None:
     """Test that orchestrator accepts user feedback parameter."""
     import inspect
 
     sig = inspect.signature(orchestrator.generate)
-    user_feedback_param = sig.parameters.get('user_feedback')
+    user_feedback_param = sig.parameters.get("user_feedback")
 
     assert user_feedback_param is not None
     # Check that there's a default value (empty string)
@@ -112,7 +117,7 @@ def test_orchestrator_handles_mlflow_parameter(orchestrator: ContentGenerationOr
     import inspect
 
     sig = inspect.signature(orchestrator.generate)
-    mlflow_param = sig.parameters.get('enable_mlflow')
+    mlflow_param = sig.parameters.get("enable_mlflow")
 
     assert mlflow_param is not None
     # Check that the default is True

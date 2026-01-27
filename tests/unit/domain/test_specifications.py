@@ -2,27 +2,19 @@
 Unit tests for domain specifications.
 """
 
-import pytest
-
 from skill_fleet.domain.models import Job, JobStatus, Skill, SkillMetadata, SkillType
 from skill_fleet.domain.specifications import (
-    Specification,
-    AndSpecification,
-    OrSpecification,
-    NotSpecification,
-    SkillHasValidName,
-    SkillHasValidType,
-    SkillHasValidTaxonomyPath,
-    SkillIsComplete,
-    SkillIsReadyForPublication,
+    JobCanBeRetried,
+    JobCanBeStarted,
     JobHasValidDescription,
     JobIsPending,
     JobIsRunning,
     JobIsTerminal,
-    JobCanBeStarted,
-    JobCanBeRetried,
     JobRequiresHITL,
-    JobIsStale,
+    SkillHasValidName,
+    SkillHasValidType,
+    SkillIsComplete,
+    SkillIsReadyForPublication,
 )
 
 

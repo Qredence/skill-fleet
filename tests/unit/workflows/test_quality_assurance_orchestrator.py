@@ -19,22 +19,23 @@ def orchestrator() -> QualityAssuranceOrchestrator:
 def test_initialization(orchestrator: QualityAssuranceOrchestrator) -> None:
     """Test orchestrator can be initialized."""
     assert orchestrator is not None
-    assert hasattr(orchestrator, 'validate_and_refine')
-    assert hasattr(orchestrator, 'validate_and_refine_sync')
+    assert hasattr(orchestrator, "validate_and_refine")
+    assert hasattr(orchestrator, "validate_and_refine_sync")
 
 
 def test_orchestrator_module_initialization(orchestrator: QualityAssuranceOrchestrator) -> None:
     """Test that orchestrator properly initializes its DSPy modules."""
-    assert hasattr(orchestrator, 'validation_module')
+    assert hasattr(orchestrator, "validation_module")
     from skill_fleet.core.dspy.modules import Phase3ValidationModule
+
     assert isinstance(orchestrator.validation_module, Phase3ValidationModule)
 
 
 def test_orchestrator_has_expected_methods(orchestrator: QualityAssuranceOrchestrator) -> None:
     """Test that orchestrator has all expected methods."""
     expected_methods = [
-        'validate_and_refine',
-        'validate_and_refine_sync',
+        "validate_and_refine",
+        "validate_and_refine_sync",
     ]
 
     for method_name in expected_methods:
@@ -51,13 +52,13 @@ def test_validate_and_refine_method_signature(orchestrator: QualityAssuranceOrch
 
     # Check for expected parameters
     expected_params = [
-        'skill_content',
-        'skill_metadata',
-        'content_plan',
-        'validation_rules',
-        'user_feedback',
-        'target_level',
-        'enable_mlflow',
+        "skill_content",
+        "skill_metadata",
+        "content_plan",
+        "validation_rules",
+        "user_feedback",
+        "target_level",
+        "enable_mlflow",
     ]
 
     for param in expected_params:
@@ -71,9 +72,9 @@ def test_validate_and_refine_default_parameters(orchestrator: QualityAssuranceOr
     sig = inspect.signature(orchestrator.validate_and_refine)
 
     # Check default values
-    assert sig.parameters['user_feedback'].default == ""
-    assert sig.parameters['target_level'].default == "intermediate"
-    assert sig.parameters['enable_mlflow'].default is True
+    assert sig.parameters["user_feedback"].default == ""
+    assert sig.parameters["target_level"].default == "intermediate"
+    assert sig.parameters["enable_mlflow"].default is True
 
 
 def test_validate_and_refine_sync_signature(orchestrator: QualityAssuranceOrchestrator) -> None:

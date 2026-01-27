@@ -8,9 +8,8 @@ clarifying questions, previews, feedback analysis, and checkpoint management.
 import pytest
 
 from skill_fleet.workflows.human_in_the_loop import (
-    HITLCheckpointManager,
-    Checkpoint,
     CheckpointPhase,
+    HITLCheckpointManager,
 )
 
 
@@ -23,27 +22,27 @@ def manager() -> HITLCheckpointManager:
 def test_initialization(manager: HITLCheckpointManager) -> None:
     """Test manager can be initialized."""
     assert manager is not None
-    assert hasattr(manager, 'determine_strategy')
-    assert hasattr(manager, 'generate_clarifying_questions')
-    assert hasattr(manager, 'confirm_understanding')
-    assert hasattr(manager, 'generate_preview')
-    assert hasattr(manager, 'analyze_feedback')
-    assert hasattr(manager, 'format_validation_results')
-    assert hasattr(manager, 'plan_refinement')
-    assert hasattr(manager, 'assess_readiness')
+    assert hasattr(manager, "determine_strategy")
+    assert hasattr(manager, "generate_clarifying_questions")
+    assert hasattr(manager, "confirm_understanding")
+    assert hasattr(manager, "generate_preview")
+    assert hasattr(manager, "analyze_feedback")
+    assert hasattr(manager, "format_validation_results")
+    assert hasattr(manager, "plan_refinement")
+    assert hasattr(manager, "assess_readiness")
 
 
 def test_manager_has_expected_modules(manager: HITLCheckpointManager) -> None:
     """Test that manager has all expected DSPy modules."""
     expected_modules = [
-        'strategy_module',
-        'clarifying_questions_module',
-        'confirm_understanding_module',
-        'preview_generator_module',
-        'feedback_analyzer_module',
-        'validation_formatter_module',
-        'refinement_planner_module',
-        'readiness_assessor_module',
+        "strategy_module",
+        "clarifying_questions_module",
+        "confirm_understanding_module",
+        "preview_generator_module",
+        "feedback_analyzer_module",
+        "validation_formatter_module",
+        "refinement_planner_module",
+        "readiness_assessor_module",
     ]
 
     for module_name in expected_modules:
@@ -53,14 +52,14 @@ def test_manager_has_expected_modules(manager: HITLCheckpointManager) -> None:
 def test_manager_has_sync_wrappers(manager: HITLCheckpointManager) -> None:
     """Test that manager has synchronous wrappers for async methods."""
     expected_sync_methods = [
-        'determine_strategy_sync',
-        'generate_clarifying_questions_sync',
-        'confirm_understanding_sync',
-        'generate_preview_sync',
-        'analyze_feedback_sync',
-        'format_validation_results_sync',
-        'plan_refinement_sync',
-        'assess_readiness_sync',
+        "determine_strategy_sync",
+        "generate_clarifying_questions_sync",
+        "confirm_understanding_sync",
+        "generate_preview_sync",
+        "analyze_feedback_sync",
+        "format_validation_results_sync",
+        "plan_refinement_sync",
+        "assess_readiness_sync",
     ]
 
     for method_name in expected_sync_methods:
@@ -140,7 +139,7 @@ def test_checkpoint_phase_enum() -> None:
 
 def test_checkpoint_manager_has_checkpoints_dict(manager: HITLCheckpointManager) -> None:
     """Test that manager maintains checkpoints dictionary."""
-    assert hasattr(manager, 'checkpoints')
+    assert hasattr(manager, "checkpoints")
     assert isinstance(manager.checkpoints, dict)
 
     # Create a checkpoint and verify it's in the dict

@@ -19,10 +19,10 @@ from typing import Any
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
-from .....api.job_manager import get_job_manager
-from .....api.jobs import notify_hitl_response
-from .....api.schemas import StructuredQuestion, normalize_questions
-from .....api.exceptions import NotFoundException
+from ....exceptions import NotFoundException
+from ....schemas import StructuredQuestion, normalize_questions
+from ....services.job_manager import get_job_manager
+from ....services.jobs import notify_hitl_response
 
 router = APIRouter()
 
@@ -34,6 +34,7 @@ class HITLConfigResponse(BaseModel):
     Contains the accepted keywords and patterns for intent detection.
     Enables UI clients to stay in sync with backend HITL configuration.
     """
+
     action_keywords: dict[str, list[str]] = Field(
         ...,
         description="Keywords for detecting user intent (proceed, revise, cancel)",
@@ -47,6 +48,7 @@ class HITLPromptResponse(BaseModel):
     This model contains all possible fields across different interaction types.
     Fields are optional since different interaction types use different subsets.
     """
+
     status: str = Field(..., description="Job status")
     type: str | None = Field(None, description="HITL interaction type")
     current_phase: str | None = Field(None, description="Current workflow phase")
@@ -79,6 +81,7 @@ class HITLPromptResponse(BaseModel):
 
 class HITLResponseResult(BaseModel):
     """Response model for HITL response submission."""
+
     status: str = Field(..., description="Response status (accepted, ignored)")
     detail: str | None = Field(None, description="Additional details")
 
@@ -93,7 +96,7 @@ async def get_hitl_config() -> HITLConfigResponse:
     to stay in sync with the backend if configuration changes.
 
     Returns:
-        HITLConfigResponse with action keywords for intent detection
+        HITLConfigResponse: Action keywords for intent detection (proceed, revise, cancel)
 
     """
     return HITLConfigResponse(
@@ -117,7 +120,19 @@ async def get_hitl_config() -> HITLConfigResponse:
 
 @router.get("/{job_id}/prompt")
 async def get_prompt(job_id: str) -> HITLPromptResponse:
-    """Retrieve the current HITL prompt for a job."""
+    """
+    Retrieve the current HITL prompt for a job.
+
+    Args:
+        job_id: The job ID to retrieve the prompt for
+
+    Returns:
+        HITLPromptResponse: Current HITL prompt data including questions, content, and status
+
+    Raises:
+        NotFoundException: If job not found (404)
+
+    """
     manager = get_job_manager()
     job = manager.get_job(job_id)
     if not job:
@@ -181,7 +196,10 @@ async def post_response(job_id: str, response: dict) -> HITLResponseResult:
         response: Response data (format depends on interaction type)
 
     Returns:
-        HITLResponseResult indicating if response was accepted or ignored
+        HITLResponseResult: Response status (accepted/ignored) with optional detail
+
+    Raises:
+        NotFoundException: If job not found (404)
 
     """
     manager = get_job_manager()
@@ -213,7 +231,7 @@ async def post_response(job_id: str, response: dict) -> HITLResponseResult:
         job.status = "running"
 
     # Auto-save session on each HITL response
-    from .....api.jobs import save_job_session
+    from ....services.jobs import save_job_session
 
     save_job_session(job_id)
 

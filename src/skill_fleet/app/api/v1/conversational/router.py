@@ -2,7 +2,8 @@
 Conversational interface routes for v1 API.
 
 This module provides endpoints for chat and conversational interactions.
-These routes use the conversational workflow orchestrator.
+These routes use the conversational workflow orchestrator with database-backed
+session storage via ConversationSessionRepository.
 
 Endpoints:
     POST /api/v1/chat/message - Send a message in a conversation
@@ -13,74 +14,168 @@ Endpoints:
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Annotated, Any
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends, HTTPException
 
-from .....api.schemas.conversational import (
+from .....db.database import get_db
+from .....db.models import ConversationStateEnum
+from .....db.repositories import get_conversation_session_repository
+from .....workflows.conversational_interface.orchestrator import (
+    ConversationalOrchestrator,
+)
+from ...schemas.conversational import (
     SendMessageRequest,
     SendMessageResponse,
     SessionHistoryResponse,
 )
-from .....workflows.conversational_interface.orchestrator import (
-    ConversationalOrchestrator,
-    ConversationContext,
-)
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session as DbSession
+
+    from .....db.models import ConversationSession
+    from .....db.repositories import ConversationSessionRepository
+    from .....workflows.conversational_interface.orchestrator import (
+        ConversationContext,
+    )
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# In-memory session storage (TODO: Replace with Redis for production)
-_sessions: dict[str, ConversationContext] = {}
-
-if TYPE_CHECKING:
-    from .....workflows.conversational_interface.orchestrator import ConversationalOrchestrator
+# Type alias for database dependency
+DbSessionDep = Annotated["DbSession", Depends(get_db)]
 
 
 def _generate_message_id() -> str:
     """Generate a unique message ID."""
     import uuid
+
     return f"msg-{uuid.uuid4().hex[:8]}"
 
 
-def _get_or_create_session(session_id: str) -> ConversationContext:
+def _db_session_to_context(
+    db_session: ConversationSession,
+    orchestrator: ConversationalOrchestrator,
+) -> ConversationContext:
     """
-    Get existing session or create a new one.
+    Convert a database session to a ConversationContext.
 
     Args:
-        session_id: Session identifier
+        db_session: Database session model
+        orchestrator: Orchestrator for context initialization
 
     Returns:
-        ConversationContext for the session
+        ConversationContext populated from database
 
     """
-    orchestrator = ConversationalOrchestrator()
+    from .....workflows.conversational_interface.orchestrator import ConversationMessage
 
-    if session_id in _sessions:
-        return _sessions[session_id]
-
-    # Create new session
+    # Initialize a fresh context
     context = orchestrator.initialize_conversation_sync(
         initial_message="",
-        metadata={"created_at": datetime.now(UTC).isoformat()},
+        metadata=db_session.session_metadata or {},
         enable_mlflow=False,
     )
-    _sessions[session_id] = context
 
-    logger.info(f"Created new conversation session: {session_id}")
+    # Restore state from database
+    context.state = context.__class__(db_session.state)
+    context.task_description = db_session.task_description or ""
+    context.taxonomy_path = db_session.taxonomy_path or ""
+    context.current_understanding = db_session.current_understanding or ""
+
+    # Restore messages
+    if db_session.messages:
+        for msg_data in db_session.messages:
+            context.messages.append(
+                ConversationMessage(
+                    role=msg_data.get("role", "user"),
+                    content=msg_data.get("content", ""),
+                    metadata=msg_data.get("metadata", {}),
+                )
+            )
+
+    # Restore examples
+    if db_session.collected_examples:
+        context.collected_examples = list(db_session.collected_examples)
+
     return context
 
 
+def _context_to_db_updates(context: ConversationContext) -> dict[str, Any]:
+    """
+    Extract database update fields from a ConversationContext.
+
+    Args:
+        context: The context to extract from
+
+    Returns:
+        Dict of field names to values
+
+    """
+    messages = []
+    for msg in context.messages:
+        messages.append(
+            {
+                "role": msg.role,
+                "content": msg.content,
+                "timestamp": msg.timestamp.isoformat() if hasattr(msg, "timestamp") else None,
+                "metadata": msg.metadata,
+            }
+        )
+
+    return {
+        "state": context.state.value if hasattr(context.state, "value") else str(context.state),
+        "task_description": context.task_description or None,
+        "taxonomy_path": context.taxonomy_path or None,
+        "current_understanding": context.current_understanding or None,
+        "messages": messages,
+        "collected_examples": context.collected_examples,
+    }
+
+
+def _get_or_create_session(
+    session_id: str,
+    repo: ConversationSessionRepository,
+) -> ConversationSession:
+    """
+    Get existing session from database or create a new one.
+
+    Args:
+        session_id: Session identifier
+        repo: Session repository
+
+    Returns:
+        ConversationSession from database
+
+    """
+    db_session = repo.get_by_id(session_id)
+    if db_session:
+        return db_session
+
+    # Create new session in database
+    db_session = repo.create(
+        session_id=session_id,
+        user_id="default",
+        state=ConversationStateEnum.EXPLORING,
+        metadata={"source": "api"},
+    )
+
+    logger.info(f"Created new conversation session: {session_id}")
+    return db_session
+
+
 @router.post("/message", response_model=SendMessageResponse)
-async def send_message(request: SendMessageRequest) -> SendMessageResponse:
+async def send_message(
+    request: SendMessageRequest,
+    db: DbSessionDep,
+) -> SendMessageResponse:
     """
     Send a message in a conversation.
 
     Args:
         request: Message request with session_id, message, and user_id
+        db: Database session (injected)
 
     Returns:
         SendMessageResponse: Response with session_id, message_id, response text, and context
@@ -90,15 +185,18 @@ async def send_message(request: SendMessageRequest) -> SendMessageResponse:
 
     """
     orchestrator = ConversationalOrchestrator()
+    repo = get_conversation_session_repository(db)
 
     # Generate or use provided session_id
     session_id = request.session_id
     if not session_id:
         import uuid
+
         session_id = str(uuid.uuid4())[:12]
 
-    # Get or create session context
-    context = _get_or_create_session(session_id)
+    # Get or create session from database
+    db_session = _get_or_create_session(session_id, repo)
+    context = _db_session_to_context(db_session, orchestrator)
 
     # Add user message to context
     from .....workflows.conversational_interface.orchestrator import ConversationMessage
@@ -141,7 +239,9 @@ async def send_message(request: SendMessageRequest) -> SendMessageResponse:
             )
 
             response_text = confirmation_result.get("confirmation_summary", "")
-            context_metadata["confirmation_completeness"] = confirmation_result.get("completeness_score", 0.0)
+            context_metadata["confirmation_completeness"] = confirmation_result.get(
+                "completeness_score", 0.0
+            )
 
             # Update state
             context.state = context.CONFIRMING_UNDERSTANDING
@@ -153,15 +253,23 @@ async def send_message(request: SendMessageRequest) -> SendMessageResponse:
                 enable_mlflow=False,
             )
 
-            response_text = question_result.get("question", "Could you please provide more details?")
+            response_text = question_result.get(
+                "question", "Could you please provide more details?"
+            )
             context_metadata["question_options"] = question_result.get("question_options", [])
 
         elif intent_type == "refine":
-            response_text = "I understand you want to refine the skill. Please provide the skill content and your feedback."
+            response_text = (
+                "I understand you want to refine the skill. "
+                "Please provide the skill content and your feedback."
+            )
             context.state = context.COLLECTING_FEEDBACK
 
         elif intent_type == "multi_skill":
-            response_text = "I see you want to create multiple skills. Let's work on them one at a time. Which would you like to start with?"
+            response_text = (
+                "I see you want to create multiple skills. "
+                "Let's work on them one at a time. Which would you like to start with?"
+            )
         else:
             response_text = "I understand. How can I help you create or improve a skill today?"
 
@@ -178,8 +286,8 @@ async def send_message(request: SendMessageRequest) -> SendMessageResponse:
         )
         context.messages.append(assistant_message)
 
-        # Update session in storage
-        _sessions[session_id] = context
+        # Persist updated context to database
+        repo.update(db_session, **_context_to_db_updates(context))
 
         return SendMessageResponse(
             session_id=session_id,
@@ -195,19 +303,20 @@ async def send_message(request: SendMessageRequest) -> SendMessageResponse:
 
     except Exception as e:
         logger.exception(f"Error processing message: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to process message: {e}"
-        ) from e
+        raise HTTPException(status_code=500, detail=f"Failed to process message: {e}") from e
 
 
 @router.post("/session/{session_id}", response_model=dict[str, str])
-async def create_session(session_id: str) -> dict[str, str]:
+async def create_session(
+    session_id: str,
+    db: DbSessionDep,
+) -> dict[str, str]:
     """
     Create or resume a conversation session.
 
     Args:
         session_id: Unique session identifier
+        db: Database session (injected)
 
     Returns:
         Dictionary with session_id and status
@@ -217,30 +326,32 @@ async def create_session(session_id: str) -> dict[str, str]:
 
     """
     try:
-        context = _get_or_create_session(session_id)
+        repo = get_conversation_session_repository(db)
+        db_session = _get_or_create_session(session_id, repo)
 
         return {
             "session_id": session_id,
-            "status": "active" if context else "new",
-            "state": context.state.value if context else "initializing",
-            "message_count": len(context.messages) if context else 0,
+            "status": "active" if db_session else "new",
+            "state": db_session.state if db_session else "initializing",
+            "message_count": str(len(db_session.messages) if db_session.messages else 0),
         }
 
     except Exception as e:
         logger.exception(f"Error creating session: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to create session: {e}"
-        ) from e
+        raise HTTPException(status_code=500, detail=f"Failed to create session: {e}") from e
 
 
 @router.get("/session/{session_id}/history", response_model=SessionHistoryResponse)
-async def get_session_history(session_id: str) -> SessionHistoryResponse:
+async def get_session_history(
+    session_id: str,
+    db: DbSessionDep,
+) -> SessionHistoryResponse:
     """
     Get the history of a conversation session.
 
     Args:
         session_id: Unique session identifier
+        db: Database session (injected)
 
     Returns:
         SessionHistoryResponse: Session history with messages and metadata
@@ -249,32 +360,35 @@ async def get_session_history(session_id: str) -> SessionHistoryResponse:
         HTTPException: If session not found (404)
 
     """
-    if session_id not in _sessions:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Session not found: {session_id}"
-        )
+    repo = get_conversation_session_repository(db)
+    db_session = repo.get_by_id(session_id)
 
-    context = _sessions[session_id]
+    if not db_session:
+        raise HTTPException(status_code=404, detail=f"Session not found: {session_id}")
 
     # Convert messages to dict format for API response
     messages = []
-    for msg in context.messages:
-        messages.append({
-            "role": msg.role,
-            "content": msg.content,
-            "timestamp": msg.timestamp,
-            "metadata": msg.metadata,
-        })
+    if db_session.messages:
+        for msg in db_session.messages:
+            messages.append(
+                {
+                    "role": msg.get("role", "user"),
+                    "content": msg.get("content", ""),
+                    "timestamp": msg.get("timestamp"),
+                    "metadata": msg.get("metadata", {}),
+                }
+            )
 
     # Build metadata
     metadata = {
-        "state": context.state.value,
-        "message_count": len(context.messages),
-        "created_at": context.created_at,
-        "has_understanding": bool(context.current_understanding),
-        "examples_count": len(context.collected_examples),
-        **context.metadata,
+        "state": db_session.state,
+        "message_count": len(db_session.messages) if db_session.messages else 0,
+        "created_at": db_session.created_at.isoformat() if db_session.created_at else None,
+        "has_understanding": bool(db_session.current_understanding),
+        "examples_count": len(db_session.collected_examples)
+        if db_session.collected_examples
+        else 0,
+        **(db_session.session_metadata or {}),
     }
 
     return SessionHistoryResponse(
@@ -284,25 +398,25 @@ async def get_session_history(session_id: str) -> SessionHistoryResponse:
     )
 
 
-# Additional endpoint for listing sessions
 @router.get("/sessions", response_model=dict[str, Any])
-async def list_sessions() -> dict[str, Any]:
+async def list_sessions(
+    db: DbSessionDep,
+) -> dict[str, Any]:
     """
     List all active conversation sessions.
+
+    Args:
+        db: Database session (injected)
 
     Returns:
         Dictionary with session count and session summaries
 
+    Raises:
+        HTTPException: If session listing fails
+
     """
-    sessions = []
-    for session_id, context in _sessions.items():
-        sessions.append({
-            "session_id": session_id,
-            "state": context.state.value,
-            "message_count": len(context.messages),
-            "created_at": context.created_at,
-            "last_activity": context.messages[-1].timestamp if context.messages else context.created_at,
-        })
+    repo = get_conversation_session_repository(db)
+    sessions = repo.list_active(limit=100)
 
     return {
         "count": len(sessions),

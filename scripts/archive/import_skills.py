@@ -240,10 +240,12 @@ class SkillImporter:
         skills = []
 
         for skill_path in self.skills_dir.rglob("*"):
-            if skill_path.is_dir() and (skill_path / "SKILL.md").exists():
-                # Skip hidden directories
-                if not any(part.startswith(".") for part in skill_path.parts):
-                    skills.append(skill_path)
+            if (
+                skill_path.is_dir()
+                and (skill_path / "SKILL.md").exists()
+                and not any(part.startswith(".") for part in skill_path.parts)
+            ):
+                skills.append(skill_path)
 
         return sorted(skills)
 

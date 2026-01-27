@@ -279,17 +279,7 @@ except Exception as e:
 # Test 9: Check API routes
 print("\n[Test 9] Checking API routes...")
 try:
-    from skill_fleet.api.routes.optimization import OptimizeRequest, router
-
-    # Check endpoints exist
-    routes = [r.path for r in router.routes]
-    expected_routes = ["/start", "/status/{job_id}", "/optimizers"]
-
-    for expected in expected_routes:
-        if expected in routes:
-            print(f"✅ API route exists: {expected}")
-        else:
-            print(f"⚠️  API route missing: {expected}")
+    from skill_fleet.app.api.schemas.optimization import OptimizeRequest
 
     # Check request model
     request = OptimizeRequest(

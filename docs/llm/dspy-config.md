@@ -189,7 +189,7 @@ Parameters are merged in this order (later values override earlier):
 ### Application Startup
 
 ```python
-from skill_fleet.api.app import create_app
+from skill_fleet.app import create_app
 from skill_fleet.llm.dspy_config import configure_dspy
 
 # Configure DSPy before creating app

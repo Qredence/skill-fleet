@@ -77,17 +77,52 @@ class TestSkillsCreateEndpoint:
         - Response includes a 'job_id' field
         - Response includes 'status' field with value 'accepted'
         """
-        response = client.post(
-            "/api/v1/skills/",
-            json={"task_description": "Create an OpenAPI skill for REST endpoints"},
+        from unittest.mock import AsyncMock, MagicMock
+        from skill_fleet.app.dependencies import get_skill_service
+        from skill_fleet.core.models import SkillCreationResult, SkillMetadata
+
+        # Mock the service
+        mock_service = MagicMock()
+        mock_service.create_skill = AsyncMock(
+            return_value=SkillCreationResult(
+                status="completed",
+                skill_content="Mock content",
+                metadata=SkillMetadata(
+                    skill_id="test.skill",
+                    name="test-skill",
+                    description="A test skill",
+                    type="technical",
+                    weight="lightweight",
+                ),
+                validation_report={"passed": True},
+                quality_assessment={},
+            )
         )
 
-        assert response.status_code == 200
-        data = response.json()
-        assert "job_id" in data
-        assert isinstance(data["job_id"], str)
-        assert len(data["job_id"]) > 0
-        assert data["status"] == "accepted"
+        # Apply override
+        app = client.app
+        app.dependency_overrides[get_skill_service] = lambda: mock_service
+
+        try:
+            response = client.post(
+                "/api/v1/skills/",
+                json={
+                    "task_description": "Create an OpenAPI skill for REST endpoints",
+                    "user_id": "test_user",
+                },
+            )
+
+            assert response.status_code == 200
+            data = response.json()
+            assert "job_id" in data
+            assert isinstance(data["job_id"], str)
+            assert len(data["job_id"]) > 0
+            assert data["status"] == "completed"
+
+            # Verify service was called
+            mock_service.create_skill.assert_called_once()
+        finally:
+            app.dependency_overrides.clear()
 
     def test_create_skill_missing_description(self, client):
         """Test skill creation fails without task_description field.

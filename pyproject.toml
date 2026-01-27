@@ -9,6 +9,7 @@ license = { text = "Apache-2.0" }
 keywords = ["agents", "skills", "dspy", "fastapi", "cli", "workflow"]
 dependencies = [
   "asyncpg>=0.31.0",
+  "aiosqlite>=0.17.0",
   "click>=8.3.1",
   "datasets>=4.4.2",
   "dspy>=3.1.2,<4",

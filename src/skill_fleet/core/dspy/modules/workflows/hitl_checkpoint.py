@@ -161,6 +161,7 @@ class HITLCheckpointManager:
         task_description: str,
         initial_analysis: str,
         ambiguities: list[str],
+        previous_answers: str = "",
         enable_mlflow: bool = True,
     ) -> dict[str, Any]:
         """
@@ -170,6 +171,7 @@ class HITLCheckpointManager:
             task_description: User's task description
             initial_analysis: Initial analysis of the task
             ambiguities: List of identified ambiguities
+            previous_answers: JSON of previous Q&A context (empty for first round)
             enable_mlflow: Whether to track with MLflow
 
         Returns:
@@ -179,12 +181,14 @@ class HITLCheckpointManager:
         if enable_mlflow:
             setup_mlflow_experiment("hitl-clarifying-questions")
             log_parameter("ambiguity_count", len(ambiguities))
+            log_parameter("has_previous_answers", bool(previous_answers))
 
         try:
             result = await self.clarifying_questions_module.acall(
                 task_description=task_description,
                 initial_analysis=initial_analysis,
                 ambiguities=ambiguities,
+                previous_answers=previous_answers,
             )
 
             if enable_mlflow:
@@ -205,6 +209,48 @@ class HITLCheckpointManager:
         finally:
             if enable_mlflow:
                 end_mlflow_run()
+
+    async def generate_followup_questions(
+        self,
+        task_description: str,
+        previous_questions: list[dict],
+        previous_answers: dict[str, Any],
+        enable_mlflow: bool = True,
+    ) -> dict[str, Any]:
+        """
+        Generate follow-up questions based on prior Q&A context.
+
+        This enables iterative refinement where each round of questions
+        incorporates the answers from previous rounds.
+
+        Args:
+            task_description: User's task description
+            previous_questions: List of previously asked questions
+            previous_answers: Dict mapping question indices to answers
+            enable_mlflow: Whether to track with MLflow
+
+        Returns:
+            Dictionary with questions, priority, and rationale
+
+        """
+        # Format Q&A context as JSON for the LLM
+        import json
+
+        qa_context = json.dumps(
+            {
+                "questions": previous_questions,
+                "answers": previous_answers,
+            },
+            indent=2,
+        )
+
+        return await self.generate_clarifying_questions(
+            task_description=task_description,
+            initial_analysis=f"Previous Q&A context:\n{qa_context}",
+            ambiguities=[],
+            previous_answers=qa_context,
+            enable_mlflow=enable_mlflow,
+        )
 
     async def confirm_understanding(
         self,

@@ -60,6 +60,7 @@ class ClarifyingQuestionsModule(dspy.Module):
     Generate clarifying questions to understand user intent better.
 
     Uses ChainOfThought for reasoning about what questions are most valuable.
+    Supports iterative refinement via previous_answers context.
     """
 
     def __init__(self):
@@ -67,10 +68,20 @@ class ClarifyingQuestionsModule(dspy.Module):
         self.generate_questions = dspy.ChainOfThought(GenerateClarifyingQuestions)
 
     def forward(
-        self, task_description: str, initial_analysis: str, ambiguities: list[str]
+        self,
+        task_description: str,
+        initial_analysis: str,
+        ambiguities: list[str],
+        previous_answers: str = "",
     ) -> dict[str, Any]:
         """
         Generate 2-3 focused clarifying questions.
+
+        Args:
+            task_description: User's initial task description
+            initial_analysis: Initial analysis of the task
+            ambiguities: List of ambiguities to clarify
+            previous_answers: JSON of previous Q&A for context (empty for first round)
 
         Returns:
             Dict with: questions, priority, rationale
@@ -80,6 +91,7 @@ class ClarifyingQuestionsModule(dspy.Module):
             task_description=task_description,
             initial_analysis=initial_analysis,
             ambiguities=ambiguities,
+            previous_answers=previous_answers,
         )
 
         return {
@@ -95,11 +107,13 @@ class ClarifyingQuestionsModule(dspy.Module):
         task_description = _get_arg(kwargs, args, "task_description", 0)
         initial_analysis = _get_arg(kwargs, args, "initial_analysis", 1)
         ambiguities = _get_arg(kwargs, args, "ambiguities", 2)
+        previous_answers = _get_arg(kwargs, args, "previous_answers", 3) or ""
 
         result = await self.generate_questions.acall(
             task_description=task_description,
             initial_analysis=initial_analysis,
             ambiguities=ambiguities,
+            previous_answers=previous_answers,
         )
         return {
             "questions": result.questions,

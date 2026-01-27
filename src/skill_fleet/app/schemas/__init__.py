@@ -8,7 +8,7 @@ HITL models provide structured question/response types for the
 API-first architecture where CLI is a thin client.
 """
 
-from .hitl import QuestionOption, StructuredQuestion, normalize_questions
+from .hitl import QuestionOption, QuestionType, StructuredQuestion, normalize_questions
 from .models import DeepUnderstandingState, JobState, TDDWorkflowState
 
 __all__ = [
@@ -17,6 +17,7 @@ __all__ = [
     "DeepUnderstandingState",
     "JobState",
     # HITL models
+    "QuestionType",
     "QuestionOption",
     "StructuredQuestion",
     "normalize_questions",

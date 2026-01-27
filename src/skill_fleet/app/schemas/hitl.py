@@ -12,9 +12,19 @@ CLI is a thin client that only renders pre-structured data.
 from __future__ import annotations
 
 import re
+from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, Field
+
+
+class QuestionType(str, Enum):
+    """Type of HITL question."""
+
+    BOOLEAN = "boolean"  # Yes/No question
+    SINGLE_CHOICE = "single"  # Pick one from options
+    MULTI_CHOICE = "multi"  # Pick multiple from options
+    FREE_TEXT = "text"  # Open text response
 
 
 class QuestionOption(BaseModel):
@@ -34,12 +44,20 @@ class StructuredQuestion(BaseModel):
     """
 
     text: str = Field(..., description="The question text")
+    question_type: QuestionType = Field(
+        default=QuestionType.FREE_TEXT,
+        description="Type of question (boolean, single, multi, text)",
+    )
     options: list[QuestionOption] | None = Field(
         default=None, description="Optional list of choices for multiple-choice questions"
     )
     allows_multiple: bool = Field(
         default=True,
         description="Whether multiple options can be selected (multi-select by default)",
+    )
+    allows_other: bool = Field(
+        default=True,
+        description="Whether to show 'Other: type your own' option",
     )
     rationale: str | None = Field(default=None, description="Why this question is being asked")
 
@@ -130,9 +148,17 @@ def _dict_to_structured_question(data: dict[str, Any]) -> StructuredQuestion:
     - {"question": "...", "rationale": "..."}
     - {"text": "...", "options": [...]}
     - {"q": "..."}
+    - {"question_type": "boolean|single|multi|text"}
     """
     # Extract question text from various possible keys
     text = data.get("text") or data.get("question") or data.get("q") or str(data)
+
+    # Determine question type
+    raw_type = data.get("question_type", "text")
+    try:
+        question_type = QuestionType(raw_type)
+    except ValueError:
+        question_type = QuestionType.FREE_TEXT
 
     # Extract options if present
     options: list[QuestionOption] | None = None
@@ -157,13 +183,16 @@ def _dict_to_structured_question(data: dict[str, Any]) -> StructuredQuestion:
 
     return StructuredQuestion(
         text=text,
+        question_type=question_type,
         options=options if options else None,
         allows_multiple=bool(data.get("allows_multiple", True)),  # Default to multi-select
+        allows_other=bool(data.get("allows_other", True)),  # Default to allow custom text
         rationale=data.get("rationale"),
     )
 
 
 __all__ = [
+    "QuestionType",
     "QuestionOption",
     "StructuredQuestion",
     "normalize_questions",

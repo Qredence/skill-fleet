@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING
 import dspy
 
 if TYPE_CHECKING:
-    from ....models import ClarifyingQuestion, ValidationCheckItem
+    from ....models import ValidationCheckItem
 
 # =============================================================================
 # Phase 1 HITL: Understanding & Planning
@@ -34,7 +34,12 @@ class GenerateClarifyingQuestions(dspy.Signature):
     - Confirm taxonomy placement
     - Verify dependencies
 
-    Keep questions specific and actionable. Avoid yes/no questions.
+    Each question should include:
+    - question_type: 'boolean' (Yes/No), 'single' (pick one), 'multi' (pick many), or 'text' (free form)
+    - options: list of {id, label} choices for boolean/single/multi types
+    - allows_other: whether to show "Other: type your own" option
+
+    Keep questions specific and actionable.
     """
 
     # Inputs
@@ -45,10 +50,19 @@ class GenerateClarifyingQuestions(dspy.Signature):
     ambiguities: list[str] = dspy.InputField(
         desc="List of detected ambiguities that need clarification"
     )
+    previous_answers: str = dspy.InputField(
+        desc="JSON of previous Q&A context to incorporate (empty string if first round)",
+        default="",
+    )
 
     # Outputs
-    questions: list[ClarifyingQuestion] = dspy.OutputField(
-        desc="2-3 focused clarifying questions (NOT yes/no). Each has: question, rationale, suggested_answers"
+    questions: list[dict] = dspy.OutputField(
+        desc="""List of 2-3 structured questions. Each dict has:
+        - text: the question text
+        - question_type: 'boolean' | 'single' | 'multi' | 'text'
+        - options: list of {id, label} for choice questions (use [{id:'yes',label:'Yes'},{id:'no',label:'No'}] for boolean)
+        - rationale: why this question helps
+        - allows_other: true to show 'Other' option"""
     )
     priority: str = dspy.OutputField(
         desc="Priority level: 'critical' (must answer), 'important' (should answer), 'optional' (nice to have)"

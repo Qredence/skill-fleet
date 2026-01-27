@@ -80,15 +80,21 @@ def _db_session_to_context(
 
     # Map database state to ConversationState enum
     state_mapping = {
-        "EXPLORING": ConversationState.INTERPRETING_INTENT,
+        "EXPLORING": ConversationState.EXPLORING,
         "DEEP_UNDERSTANDING": ConversationState.DEEP_UNDERSTANDING,
-        "CONFIRMING": ConversationState.CONFIRMING_UNDERSTANDING,
-        "COLLECTING_FEEDBACK": ConversationState.COLLECTING_FEEDBACK,
-        "TESTING": ConversationState.TESTING,
-        "REVISING": ConversationState.REFINING,
-        "COMPLETE": ConversationState.COMPLETED,
+        "MULTI_SKILL_DETECTED": ConversationState.MULTI_SKILL_DETECTED,
+        "CONFIRMING": ConversationState.CONFIRMING,
+        "READY": ConversationState.READY,
+        "CREATING": ConversationState.CREATING,
+        "TDD_RED_PHASE": ConversationState.TDD_RED_PHASE,
+        "TDD_GREEN_PHASE": ConversationState.TDD_GREEN_PHASE,
+        "TDD_REFACTOR_PHASE": ConversationState.TDD_REFACTOR_PHASE,
+        "REVIEWING": ConversationState.REVIEWING,
+        "REVISING": ConversationState.REVISING,
+        "CHECKLIST_COMPLETE": ConversationState.CHECKLIST_COMPLETE,
+        "COMPLETE": ConversationState.COMPLETE,
     }
-    default_state = ConversationState.INTERPRETING_INTENT
+    default_state = ConversationState.EXPLORING
     context.state = state_mapping.get(db_session.state, default_state)
 
     context.task_description = db_session.task_description or ""
@@ -251,7 +257,7 @@ async def send_message(
             )
 
             # Update state
-            context.state = ConversationState.CONFIRMING_UNDERSTANDING
+            context.state = ConversationState.CONFIRMING
 
         elif intent_type == "clarify":
             # Generate clarifying question
@@ -270,7 +276,7 @@ async def send_message(
                 "I understand you want to refine the skill. "
                 "Please provide the skill content and your feedback."
             )
-            context.state = ConversationState.COLLECTING_FEEDBACK
+            context.state = ConversationState.REVIEWING
 
         elif intent_type == "multi_skill":
             response_text = (
@@ -457,7 +463,7 @@ async def stream_chat(
         try:
             orchestrator = ConversationalOrchestrator()
             repo = get_conversation_session_repository(db)
-            session_id = request.session_id or str(__import__('uuid').uuid4())
+            session_id = request.session_id or str(__import__("uuid").uuid4())
             db_session = _get_or_create_session(session_id, repo)
             context = _db_session_to_context(db_session, orchestrator)
 
@@ -470,7 +476,7 @@ async def stream_chat(
             context.messages.append(user_message)
 
             # Interpret user intent
-            yield f"data: {json.dumps({'type': 'thinking', 'data': 'Analyzing your request...'})}\n\n"
+            yield f"event: thinking\ndata: {json.dumps({'content': 'Analyzing your request...'})}\n\n"
 
             intent_result = await orchestrator.interpret_intent(
                 user_message=request.message,
@@ -482,34 +488,38 @@ async def stream_chat(
             response_text = ""
 
             if intent_type == "create_skill":
-                yield f"data: {json.dumps({'type': 'thinking', 'data': 'Understanding your skill requirements...'})}\n\n"
+                yield f"event: thinking\ndata: {json.dumps({'content': 'Understanding your skill requirements...'})}\n\n"
 
                 understanding_result = await orchestrator.deep_understanding(
                     context=context,
                     enable_mlflow=False,
                 )
-                context.current_understanding = understanding_result.get("enhanced_understanding", "")
+                context.current_understanding = understanding_result.get(
+                    "enhanced_understanding", ""
+                )
 
                 confirmation_result = await orchestrator.confirm_understanding(
                     context=context,
                     enable_mlflow=False,
                 )
                 response_text = confirmation_result.get("confirmation_summary", "")
-                context.state = ConversationState.CONFIRMING_UNDERSTANDING
+                context.state = ConversationState.CONFIRMING
 
             elif intent_type == "clarify":
                 question_result = await orchestrator.generate_clarifying_question(
                     context=context,
                     enable_mlflow=False,
                 )
-                response_text = question_result.get("question", "Could you please provide more details?")
+                response_text = question_result.get(
+                    "question", "Could you please provide more details?"
+                )
 
             elif intent_type == "refine":
                 response_text = (
                     "I understand you want to refine the skill. "
                     "Please provide the skill content and your feedback."
                 )
-                context.state = ConversationState.COLLECTING_FEEDBACK
+                context.state = ConversationState.REVIEWING
 
             elif intent_type == "multi_skill":
                 response_text = (
@@ -520,14 +530,16 @@ async def stream_chat(
                 response_text = "I understand. How can I help you create or improve a skill today?"
 
             # Add assistant response to context
-            context.messages.append(ConversationMessage(
-                role="assistant",
-                content=response_text,
-                metadata={"intent_type": intent_type},
-            ))
+            context.messages.append(
+                ConversationMessage(
+                    role="assistant",
+                    content=response_text,
+                    metadata={"intent_type": intent_type},
+                )
+            )
 
             # Yield the response
-            yield f"data: {json.dumps({'type': 'message', 'data': response_text})}\n\n"
+            yield f"event: response\ndata: {json.dumps({'content': response_text})}\n\n"
 
             # Update database with new context
             updates = _context_to_db_updates(context)
@@ -537,11 +549,11 @@ async def stream_chat(
             db.commit()
 
             # Send completion event
-            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+            yield "event: complete\ndata: {}\n\n"
 
         except Exception as e:
             logger.exception("Error in stream_chat")
-            yield f"data: {json.dumps({'type': 'error', 'data': str(e)})}\n\n"
+            yield f"event: error\ndata: {json.dumps({'message': str(e)})}\n\n"
 
     return StreamingResponse(
         event_generator(),

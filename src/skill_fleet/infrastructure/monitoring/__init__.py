@@ -8,7 +8,7 @@ This package provides:
 - Logging configuration
 """
 
-from skill_fleet.services.monitoring.mlflow_setup import (
+from .mlflow_setup import (
     MLflowContext,
     get_current_run_id,
     setup_dspy_autologging,

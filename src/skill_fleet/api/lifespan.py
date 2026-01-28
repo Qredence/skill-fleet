@@ -41,8 +41,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # STARTUP
     # =========================================================================
 
-    from ..db.database import SessionLocal, init_db
-    from ..db.repositories import JobRepository
+    from ..infrastructure.db.database import SessionLocal, init_db
+    from ..infrastructure.db.repositories import JobRepository
     from .services.job_manager import initialize_job_manager
 
     try:
@@ -60,7 +60,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.info("✅ JobManager initialized with database persistence")
 
         # Initialize MLflow DSPy autologging
-        from ..services.monitoring.mlflow_setup import setup_dspy_autologging
+        from ..infrastructure.monitoring.mlflow_setup import setup_dspy_autologging
         from .config import get_settings
 
         settings = get_settings()
@@ -115,7 +115,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
         # Close database connections
         try:
-            from ..db.database import close_async_db, close_db
+            from ..infrastructure.db.database import close_async_db, close_db
 
             close_db()
             await close_async_db()

@@ -36,6 +36,12 @@ class BaseRepository(Generic[ModelType]):  # noqa: UP046
     """Base repository with common CRUD operations."""
 
     def __init__(self, model: type[ModelType], db: Session):
+        """Initialize the base repository.
+
+        Args:
+            model: The model class for this repository.
+            db: The database session.
+        """
         self.model = model
         self.db = db
 
@@ -116,6 +122,11 @@ class SkillRepository(BaseRepository[Skill]):
     """Repository for Skill entity."""
 
     def __init__(self, db: Session):
+        """Initialize the skill repository.
+
+        Args:
+            db: The database session.
+        """
         super().__init__(Skill, db)
 
     def get_by_path(self, skill_path: str) -> Skill | None:
@@ -327,6 +338,11 @@ class JobRepository(BaseRepository[Job]):
     """Repository for Job entity."""
 
     def __init__(self, db: Session):
+        """Initialize the job repository.
+
+        Args:
+            db: The database session.
+        """
         super().__init__(Job, db)
 
     def get_by_id(self, job_id: Any) -> Job | None:
@@ -438,6 +454,11 @@ class TaxonomyRepository(BaseRepository[TaxonomyCategory]):
     """Repository for TaxonomyCategory entity."""
 
     def __init__(self, db: Session):
+        """Initialize the taxonomy repository.
+
+        Args:
+            db: The database session.
+        """
         super().__init__(TaxonomyCategory, db)
 
     def get_by_path(self, path: str) -> TaxonomyCategory | None:
@@ -529,6 +550,11 @@ class ValidationRepository(BaseRepository[ValidationReport]):
     """Repository for ValidationReport entity."""
 
     def __init__(self, db: Session):
+        """Initialize the validation repository.
+
+        Args:
+            db: The database session.
+        """
         super().__init__(ValidationReport, db)
 
     def get_latest_for_skill(self, skill_id: int) -> ValidationReport | None:
@@ -555,6 +581,11 @@ class UsageRepository:
     """Repository for usage analytics."""
 
     def __init__(self, db: Session):
+        """Initialize the usage repository.
+
+        Args:
+            db: The database session.
+        """
         self.db = db
 
     def record_usage(

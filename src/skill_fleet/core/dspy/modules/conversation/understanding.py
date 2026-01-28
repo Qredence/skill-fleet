@@ -36,6 +36,17 @@ class GenerateQuestionModule(dspy.Module):
         conversation_context: str = "",
         previous_questions: list[str] | None = None,
     ) -> dspy.Prediction:
+        """Generate a clarifying question for the given task.
+
+        Args:
+            task_description: The task description to generate questions for.
+            collected_examples: Examples collected so far, as list or JSON string.
+            conversation_context: Context from the conversation history.
+            previous_questions: List of previously asked questions to avoid repetition.
+
+        Returns:
+            Prediction with question, question_options, and reasoning.
+        """
         examples_str = (
             json.dumps(collected_examples, indent=2)
             if isinstance(collected_examples, list)
@@ -85,6 +96,17 @@ class GenerateQuestionModule(dspy.Module):
         conversation_context: str = "",
         previous_questions: list[str] | None = None,
     ) -> dspy.Prediction:
+        """Asynchronously generate a clarifying question for the given task.
+
+        Args:
+            task_description: The task description to generate questions for.
+            collected_examples: Examples collected so far, as list or JSON string.
+            conversation_context: Context from the conversation history.
+            previous_questions: List of previously asked questions to avoid repetition.
+
+        Returns:
+            Prediction with question, question_options, and reasoning.
+        """
         examples_str = (
             json.dumps(collected_examples, indent=2)
             if isinstance(collected_examples, list)
@@ -144,6 +166,21 @@ class DeepUnderstandingModule(dspy.Module):
         previous_questions: list[dict] | None = None,
         questions_asked_count: int = 0,
     ) -> dspy.Prediction:
+        """Process deep understanding of the user's task.
+
+        Args:
+            initial_task: The initial task description from the user.
+            conversation_history: History of the conversation as list or JSON string.
+            research_findings: Research findings as dict or JSON string.
+            current_understanding: Current understanding summary.
+            previous_questions: Previously asked questions to avoid repetition.
+            questions_asked_count: Count of questions already asked.
+
+        Returns:
+            Prediction with next_question, reasoning, research_needed,
+            understanding_summary, readiness_score, refined_task_description,
+            user_problem, and user_goals.
+        """
         history_str = (
             json.dumps(conversation_history, indent=2)
             if isinstance(conversation_history, list)
@@ -261,6 +298,21 @@ class DeepUnderstandingModule(dspy.Module):
         previous_questions: list[dict] | None = None,
         questions_asked_count: int = 0,
     ) -> dspy.Prediction:
+        """Asynchronously process deep understanding of the user's task.
+
+        Args:
+            initial_task: The initial task description from the user.
+            conversation_history: History of the conversation as list or JSON string.
+            research_findings: Research findings as dict or JSON string.
+            current_understanding: Current understanding summary.
+            previous_questions: Previously asked questions to avoid repetition.
+            questions_asked_count: Count of questions already asked.
+
+        Returns:
+            Prediction with next_question, reasoning, research_needed,
+            understanding_summary, readiness_score, refined_task_description,
+            user_problem, and user_goals.
+        """
         history_str = (
             json.dumps(conversation_history, indent=2)
             if isinstance(conversation_history, list)

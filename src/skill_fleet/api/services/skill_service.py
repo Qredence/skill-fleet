@@ -48,7 +48,7 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from ...schemas.skills import CreateSkillRequest
+    from ..schemas.skills import CreateSkillRequest
 
 
 class SkillService:

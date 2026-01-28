@@ -155,7 +155,7 @@ async def update_skill(
         skill_service.get_skill_by_path(skill_id)
 
         # Resolve the actual filesystem path
-        from ..taxonomy.manager import TaxonomyManager
+        from ...taxonomy.manager import TaxonomyManager
 
         taxonomy_manager = TaxonomyManager(skill_service.skills_root)
         relative_path = taxonomy_manager.resolve_skill_location(skill_id)
@@ -184,7 +184,7 @@ async def update_skill(
     except Exception as err:
         from fastapi import status
 
-        from ...exceptions import SkillFleetAPIError
+        from ..exceptions import SkillFleetAPIError
 
         raise SkillFleetAPIError(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

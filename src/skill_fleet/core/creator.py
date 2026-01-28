@@ -20,7 +20,7 @@ from .dspy.programs import LegacySkillCreationProgram, SkillRevisionProgram
 from .hitl import FeedbackHandler, create_feedback_handler
 
 if TYPE_CHECKING:
-    from ..taxonomy.manager import TaxonomyManager
+    from ...taxonomy.manager import TaxonomyManager
     from .optimization import WorkflowOptimizer
 
 logger = logging.getLogger(__name__)
@@ -380,7 +380,7 @@ def create_skill(
     verbose: bool = True,
 ) -> dict[str, Any]:
     """Convenience function for quick skill creation."""
-    from ..taxonomy.manager import TaxonomyManager
+    from ...taxonomy.manager import TaxonomyManager
 
     taxonomy = TaxonomyManager(Path(skills_root))
     creator = TaxonomySkillCreator(taxonomy_manager=taxonomy, verbose=verbose)

@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import async_sessionmaker
     from sqlalchemy.orm import Session
 
-    from ...db.repositories import JobRepository
+    from ...infrastructure.db.repositories import JobRepository
 
 from ..schemas.models import DeepUnderstandingState, JobState, TDDWorkflowState
 

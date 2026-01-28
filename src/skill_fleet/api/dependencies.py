@@ -22,8 +22,8 @@ from typing import Annotated
 
 from fastapi import Depends
 
+from ...taxonomy.manager import TaxonomyManager
 from ..common.paths import ensure_skills_root_initialized
-from ..taxonomy.manager import TaxonomyManager
 from .services.skill_service import SkillService
 
 

@@ -21,6 +21,7 @@ from .hitl import FeedbackHandler, create_feedback_handler
 
 if TYPE_CHECKING:
     from skill_fleet.taxonomy.manager import TaxonomyManager
+
     from .optimization import WorkflowOptimizer
 
 logger = logging.getLogger(__name__)

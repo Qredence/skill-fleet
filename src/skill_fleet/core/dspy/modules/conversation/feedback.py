@@ -29,6 +29,16 @@ class PresentSkillModule(dspy.Module):
         skill_metadata: dict | str,
         validation_report: dict | str,
     ) -> dspy.Prediction:
+        """Present skill for review.
+
+        Args:
+            skill_content: The skill content to present.
+            skill_metadata: Metadata about the skill.
+            validation_report: Validation report for the skill.
+
+        Returns:
+            Prediction with presentation results.
+        """
         metadata_str = (
             json.dumps(skill_metadata, indent=2)
             if isinstance(skill_metadata, dict)

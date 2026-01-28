@@ -14,6 +14,7 @@ else:
         content: str | None = None
 
         def __new__(cls, content: str | None = None, **kwargs):
+            """Create a new Reasoning instance."""
             return super().__new__(cls, content or "")
 
         def __init__(self, content: str | None = None, **kwargs):

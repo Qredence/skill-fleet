@@ -31,6 +31,7 @@ from skill_fleet.infrastructure.tracing.mlflow import (
     start_child_run,
     start_parent_run,
 )
+from skill_fleet.taxonomy.manager import TaxonomyManager
 
 from ...core.dspy.modules.workflows import (
     ContentGenerationOrchestrator,
@@ -39,7 +40,6 @@ from ...core.dspy.modules.workflows import (
 )
 from ...core.dspy.modules.workflows.hitl_checkpoint import HITLCheckpointManager
 from ...core.models import SkillCreationResult
-from skill_fleet.taxonomy.manager import TaxonomyManager
 from ..schemas.models import JobState
 from .job_manager import get_job_manager
 

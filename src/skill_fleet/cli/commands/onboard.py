@@ -9,6 +9,8 @@ import typer
 from rich.console import Console
 from rich.progress import Progress
 
+from skill_fleet.taxonomy.manager import TaxonomyManager
+
 from ...common.paths import (
     default_profiles_path,
     default_skills_root,
@@ -16,7 +18,6 @@ from ...common.paths import (
 )
 from ...core.creator import TaxonomySkillCreator
 from ...onboarding.bootstrap import SkillBootstrapper
-from skill_fleet.taxonomy.manager import TaxonomyManager
 from ..onboarding_cli import collect_onboarding_responses
 
 console = Console()

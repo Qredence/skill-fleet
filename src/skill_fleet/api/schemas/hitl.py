@@ -12,7 +12,7 @@ CLI is a thin client that only renders pre-structured data.
 from __future__ import annotations
 
 import re
-from enum import Enum, StrEnum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field

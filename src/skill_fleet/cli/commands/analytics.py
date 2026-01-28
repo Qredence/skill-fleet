@@ -9,9 +9,10 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from skill_fleet.taxonomy.manager import TaxonomyManager
+
 from ...analytics.engine import AnalyticsEngine, RecommendationEngine
 from ...common.paths import default_skills_root, ensure_skills_root_initialized
-from skill_fleet.taxonomy.manager import TaxonomyManager
 
 
 def analytics_command(

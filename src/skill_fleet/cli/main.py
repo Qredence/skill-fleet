@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from skill_fleet.taxonomy.manager import TaxonomyManager
+
 from ..core.creator import TaxonomySkillCreator
 from ..core.dspy import configure_dspy
 from ..validators.skill_validator import SkillValidator

@@ -7,7 +7,7 @@ dependency overrides.
 
 Usage:
     from fastapi import Depends
-    from skill_fleet.app.dependencies import get_taxonomy_manager, get_skills_root
+    from skill_fleet.api.dependencies import get_taxonomy_manager, get_skills_root
 
     @router.get("/skills")
     async def list_skills(manager: TaxonomyManager = Depends(get_taxonomy_manager)) -> list:

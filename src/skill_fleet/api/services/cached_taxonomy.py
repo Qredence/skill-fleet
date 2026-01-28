@@ -10,7 +10,7 @@ Cache Configuration:
 - Pattern-based invalidation support
 
 Usage:
-    >>> from skill_fleet.app.services.cached_taxonomy import cached_taxonomy_service
+    >>> from skill_fleet.api.services.cached_taxonomy import cached_taxonomy_service
     >>>
     >>> # Get global taxonomy (cached)
     >>> taxonomy = cached_taxonomy_service.get_global_taxonomy()

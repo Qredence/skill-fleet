@@ -12,7 +12,7 @@ Features:
 - Redis-compatible interface for future migration
 
 Usage:
-    >>> from skill_fleet.app.cache import cache_manager
+    >>> from skill_fleet.api.cache import cache_manager
     >>>
     >>> # Cache a value
     >>> cache_manager.set("taxonomy:global", taxonomy_data, ttl=300)

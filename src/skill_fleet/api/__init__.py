@@ -16,7 +16,7 @@ Directory Structure:
 
 Usage:
     # Run the server
-    uvicorn skill_fleet.app.factory:app --reload
+    uvicorn skill_fleet.api.factory:app --reload
 
     # Or via CLI
     skill-fleet serve

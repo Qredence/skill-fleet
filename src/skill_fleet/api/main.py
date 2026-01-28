@@ -6,13 +6,13 @@ The FastAPI app is the primary interface for all skill-fleet operations.
 
 Usage:
     # Run with uvicorn
-    uvicorn skill_fleet.app.main:app --reload
+    uvicorn skill_fleet.api.main:app --reload
 
     # Or via CLI
     skill-fleet serve
 
     # Programmatic usage
-    from skill_fleet.app import create_app
+    from skill_fleet.api import create_app
     app = create_app()
 """
 
@@ -63,5 +63,5 @@ def get_app() -> FastAPI:
 
 
 # Module-level app instance for uvicorn compatibility
-# Usage: uvicorn skill_fleet.app.main:app
+# Usage: uvicorn skill_fleet.api.main:app
 app = get_app()

@@ -279,7 +279,7 @@ except Exception as e:
 # Test 9: Check API routes
 print("\n[Test 9] Checking API routes...")
 try:
-    from skill_fleet.app.api.schemas.optimization import OptimizeRequest
+    from skill_fleet.api.schemas.optimization import OptimizeRequest
 
     # Check request model
     request = OptimizeRequest(

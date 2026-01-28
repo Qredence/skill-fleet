@@ -253,5 +253,5 @@ def get_app() -> FastAPI:
 
 
 # Module-level app for backward compatibility with uvicorn
-# Usage: uvicorn skill_fleet.app.factory:app
+# Usage: uvicorn skill_fleet.api.factory:app
 app = get_app()

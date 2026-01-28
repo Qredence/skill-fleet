@@ -25,6 +25,7 @@ from .commands.onboard import onboard_command
 from .commands.optimize import optimize_command
 from .commands.promote import promote_command
 from .commands.serve import serve_command
+from .commands.terminal import terminal_command
 from .commands.validate import validate_command
 
 # Initialize Typer app
@@ -114,6 +115,7 @@ app.command(name="list")(list_command)
 app.command(name="serve")(serve_command)
 app.command(name="dev")(dev_command)
 app.command(name="chat")(chat_command)
+app.command(name="terminal")(terminal_command)
 app.command(name="validate")(validate_command)
 app.command(name="onboard")(onboard_command)
 app.command(name="analytics")(analytics_command)

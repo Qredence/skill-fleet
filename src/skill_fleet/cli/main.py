@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from ..core.creator import TaxonomySkillCreator
-from ..llm.dspy_config import configure_dspy
+from ..core.dspy import configure_dspy
 from ..taxonomy.manager import TaxonomyManager
 from ..validators.skill_validator import SkillValidator
 

@@ -16,17 +16,14 @@ import os
 import shutil
 import tempfile
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from .....common.path_validation import resolve_path_within_root
-from .....common.security import sanitize_taxonomy_path
-from ....services.jobs import delete_job_session, get_job, save_job_session
+from skill_fleet.common.security import resolve_path_within_root, sanitize_taxonomy_path
 
-if TYPE_CHECKING:
-    from ....dependencies import SkillsRoot, TaxonomyManagerDep
+from ..dependencies import SkillsRoot, TaxonomyManagerDep
+from ..services.jobs import delete_job_session, get_job, save_job_session
 
 router = APIRouter()
 
@@ -171,8 +168,9 @@ async def promote_draft(
                 raise e
 
         # Update taxonomy meta/cache by loading metadata (best-effort)
+        # Refresh cache by reloading always-loaded skills
         with contextlib.suppress(Exception):
-            taxonomy_manager._ensure_all_skills_loaded()
+            taxonomy_manager._load_always_loaded_skills()
 
         job.promoted = True
         job.final_path = str(target_dir)

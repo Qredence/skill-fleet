@@ -19,14 +19,14 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from .conversational.router import router as conversational_router
-from .drafts.router import router as drafts_router
-from .hitl.router import router as hitl_router
-from .jobs.router import router as jobs_router
-from .optimization.router import router as optimization_router
-from .quality.router import router as quality_router
-from .skills.router import router as skills_router
-from .taxonomy.router import router as taxonomy_router
+from .conversational import router as conversational_router
+from .drafts import router as drafts_router
+from .hitl import router as hitl_router
+from .jobs import router as jobs_router
+from .optimization import router as optimization_router
+from .quality import router as quality_router
+from .skills import router as skills_router
+from .taxonomy import router as taxonomy_router
 
 router = APIRouter()
 

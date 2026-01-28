@@ -16,15 +16,16 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import TYPE_CHECKING
+from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 
-from .....core.dspy.modules.workflows.quality_assurance import QualityAssuranceOrchestrator
-from ....dependencies import SkillServiceDep
-from ....exceptions import NotFoundException
-from ...schemas.skills import (
+from skill_fleet.core.dspy.modules.workflows.quality_assurance import QualityAssuranceOrchestrator
+
+from ..dependencies import get_skill_service
+from ..exceptions import NotFoundException
+from ..schemas.skills import (
     CreateSkillRequest,
     CreateSkillResponse,
     RefineSkillRequest,
@@ -33,11 +34,10 @@ from ...schemas.skills import (
     ValidateSkillRequest,
     ValidateSkillResponse,
 )
+from ..services.skill_service import SkillService
 
 logger = logging.getLogger(__name__)
 
-if TYPE_CHECKING:
-    pass
 
 router = APIRouter()
 
@@ -46,7 +46,7 @@ router = APIRouter()
 async def create_skill(
     request: CreateSkillRequest,
     background_tasks: BackgroundTasks,
-    skill_service: SkillServiceDep,
+    skill_service: Annotated[SkillService, Depends(get_skill_service)],
 ) -> CreateSkillResponse:
     """
     Create a new skill from a natural language description.
@@ -66,7 +66,7 @@ async def create_skill(
 
     """
     # Import here to avoid circular dependency with job system
-    from ....services.jobs import create_job
+    from ..services.jobs import create_job
 
     job_id = create_job(
         task_description=request.task_description,
@@ -90,7 +90,9 @@ async def create_skill(
 
 
 @router.get("/{skill_id}", response_model=SkillDetailResponse)
-async def get_skill(skill_id: str, skill_service: SkillServiceDep) -> SkillDetailResponse:
+async def get_skill(
+    skill_id: str, skill_service: Annotated[SkillService, Depends(get_skill_service)]
+) -> SkillDetailResponse:
     """
     Get details for a skill by ID.
 
@@ -131,7 +133,7 @@ class UpdateSkillRequest(BaseModel):
 async def update_skill(
     skill_id: str,
     request: UpdateSkillRequest,
-    skill_service: SkillServiceDep,
+    skill_service: Annotated[SkillService, Depends(get_skill_service)],
 ) -> dict[str, str]:
     """
     Update an existing skill.
@@ -153,7 +155,7 @@ async def update_skill(
         skill_service.get_skill_by_path(skill_id)
 
         # Resolve the actual filesystem path
-        from .....taxonomy.manager import TaxonomyManager
+        from ..taxonomy.manager import TaxonomyManager
 
         taxonomy_manager = TaxonomyManager(skill_service.skills_root)
         relative_path = taxonomy_manager.resolve_skill_location(skill_id)
@@ -182,7 +184,7 @@ async def update_skill(
     except Exception as err:
         from fastapi import status
 
-        from .....app.exceptions import SkillFleetAPIError
+        from ...exceptions import SkillFleetAPIError
 
         raise SkillFleetAPIError(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -194,7 +196,7 @@ async def update_skill(
 async def validate_skill(
     skill_id: str,
     request: ValidateSkillRequest,
-    skill_service: SkillServiceDep,
+    skill_service: Annotated[SkillService, Depends(get_skill_service)],
 ) -> ValidateSkillResponse:
     """
     Validate a skill.
@@ -274,7 +276,7 @@ async def validate_skill(
 async def refine_skill(
     skill_id: str,
     request: RefineSkillRequest,
-    skill_service: SkillServiceDep,
+    skill_service: Annotated[SkillService, Depends(get_skill_service)],
 ) -> RefineSkillResponse:
     """
     Refine a skill based on user feedback.

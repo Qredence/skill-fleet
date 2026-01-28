@@ -27,7 +27,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-from ...app.cache import (
+from skill_fleet.api.cache import (
     cache_key,
     get_cache,
     invalidate_pattern,
@@ -149,7 +149,7 @@ class CachedTaxonomyService:
 
         """
         # Create a cache key based on task description hash
-        from ...app.cache import hash_key
+        from skill_fleet.api.cache import hash_key
 
         key_hash = hash_key(task_description)
         cache_key_val = cache_key("taxonomy", "branches", key_hash)

@@ -14,7 +14,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_serializer, model_validator
 
-from ....core.models import ChecklistState
+from skill_fleet.core.models import ChecklistState
 
 
 class TDDWorkflowState(BaseModel):

@@ -22,6 +22,6 @@ Usage:
     skill-fleet serve
 """
 
-from skill_fleet.app.factory import app, create_app, get_app
+from .factory import app, create_app, get_app
 
 __all__ = ["create_app", "get_app", "app"]

@@ -16,13 +16,14 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, BackgroundTasks
 from pydantic import BaseModel, Field
 
-from ....exceptions import NotFoundException
-from ....schemas import StructuredQuestion, normalize_questions
-from ....services.job_manager import get_job_manager
-from ....services.jobs import notify_hitl_response
+from ..dependencies import SkillServiceDep
+from ..exceptions import NotFoundException
+from ..schemas import StructuredQuestion, normalize_questions
+from ..services.job_manager import get_job_manager
+from ..services.jobs import notify_hitl_response
 
 router = APIRouter()
 
@@ -181,7 +182,12 @@ async def get_prompt(job_id: str) -> HITLPromptResponse:
 
 
 @router.post("/{job_id}/response")
-async def post_response(job_id: str, response: dict) -> HITLResponseResult:
+async def post_response(
+    job_id: str,
+    response: dict,
+    background_tasks: BackgroundTasks,
+    skill_service: SkillServiceDep,
+) -> HITLResponseResult:
     """
     Submit a response to an HITL prompt.
 
@@ -214,6 +220,22 @@ async def post_response(job_id: str, response: dict) -> HITLResponseResult:
     # Use lock to make status check and response assignment atomic
     # This prevents race conditions where status changes between check and assignment
     async with job.hitl_lock:
+        # Handle stateless resumption (Phase 5: Interactive HITL)
+        if job.status == "pending_user_input":
+            # Extract answers (support wrapped or direct format)
+            answers = response.get("answers", response)
+
+            # Resume in background to avoid blocking response
+            background_tasks.add_task(
+                skill_service.resume_skill_creation, job_id=job_id, answers=answers
+            )
+
+            # Update status immediately so UI changes state
+            job.status = "running"
+            manager.update_job(job_id, {"status": "running"})
+
+            return HITLResponseResult(status="accepted")
+
         # Only accept responses when the job is actively waiting for HITL. This avoids
         # late/stale responses accidentally being consumed by a *future* HITL prompt.
         if job.status != "pending_hitl":
@@ -231,7 +253,7 @@ async def post_response(job_id: str, response: dict) -> HITLResponseResult:
         job.status = "running"
 
     # Auto-save session on each HITL response
-    from ....services.jobs import save_job_session
+    from ..services.jobs import save_job_session
 
     save_job_session(job_id)
 

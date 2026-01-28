@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from ..llm.dspy_config import configure_dspy
+from ..core.dspy import configure_dspy
 from .config import get_settings
 from .exceptions import SkillFleetAPIError
 from .lifespan import lifespan
@@ -140,7 +140,7 @@ def create_app() -> FastAPI:
     _register_exception_handlers(app)
 
     # Include v1 API router (the only API version)
-    from .api.v1.router import router as v1_router
+    from .v1.router import router as v1_router
 
     app.include_router(v1_router, prefix="/api/v1", tags=["v1-api"])
 

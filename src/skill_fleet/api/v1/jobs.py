@@ -13,8 +13,8 @@ from __future__ import annotations
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
-from ....exceptions import NotFoundException
-from ....services.jobs import get_job
+from ..exceptions import NotFoundException
+from ..services.jobs import get_job
 
 router = APIRouter()
 

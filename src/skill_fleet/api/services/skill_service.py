@@ -19,15 +19,10 @@ from __future__ import annotations
 
 import json
 import logging
+import uuid
 from typing import TYPE_CHECKING, Any
 
-from ...core.dspy.modules.workflows import (
-    ContentGenerationOrchestrator,
-    QualityAssuranceOrchestrator,
-    TaskAnalysisOrchestrator,
-)
-from ...core.models import SkillCreationResult
-from ...core.tracing.mlflow import (
+from skill_fleet.infrastructure.tracing.mlflow import (
     end_parent_run,
     log_quality_metrics,
     log_skill_artifacts,
@@ -36,14 +31,24 @@ from ...core.tracing.mlflow import (
     start_child_run,
     start_parent_run,
 )
+
+from ...core.dspy.modules.workflows import (
+    ContentGenerationOrchestrator,
+    QualityAssuranceOrchestrator,
+    TaskAnalysisOrchestrator,
+)
+from ...core.dspy.modules.workflows.hitl_checkpoint import HITLCheckpointManager
+from ...core.models import SkillCreationResult
 from ...taxonomy.manager import TaxonomyManager
+from ..schemas.models import JobState
+from .job_manager import get_job_manager
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from ..schemas.skills import CreateSkillRequest
+    from ...schemas.skills import CreateSkillRequest
 
 
 class SkillService:
@@ -65,10 +70,12 @@ class SkillService:
         self.skills_root = skills_root
         self.drafts_root = drafts_root
         self.taxonomy_manager = TaxonomyManager(skills_root)
+        self.hitl_manager = HITLCheckpointManager()
 
     async def create_skill(
         self,
         request: CreateSkillRequest,
+        existing_job_id: str | None = None,
         hitl_callback: Any | None = None,
         progress_callback: Any | None = None,
         enable_mlflow: bool = True,
@@ -88,6 +95,7 @@ class SkillService:
 
         Args:
             request: Skill creation request with task description and user ID
+            existing_job_id: Optional ID of existing job to resume
             hitl_callback: Optional callback for HITL interactions
             progress_callback: Optional callback for progress updates
             enable_mlflow: Whether to track with MLflow (default: True)
@@ -96,9 +104,37 @@ class SkillService:
             SkillCreationResult: Result of the skill creation workflow
 
         """
+        job_manager = get_job_manager()
+
+        if existing_job_id:
+            job_id = existing_job_id
+            job = job_manager.get_job(job_id)
+            if not job:
+                # Should not happen in resume flow
+                job_id = existing_job_id
+        else:
+            job_id = str(uuid.uuid4())
+            # Create job state
+            job_state = JobState(
+                job_id=job_id,
+                task_description=request.task_description,
+                user_id=request.user_id,
+                status="running",
+            )
+            job_manager.create_job(job_state)
+
         logger.info(
-            "Creating skill for user %s: %s", request.user_id, request.task_description[:100]
+            "Creating skill for user %s: %s (Job ID: %s)",
+            request.user_id,
+            request.task_description[:100],
+            job_id,
         )
+
+        # Check for previous answers to inject into context
+        previous_answers_context = ""
+        job = job_manager.get_job(job_id)
+        if job and job.deep_understanding.answers:
+            previous_answers_context = f"\n\nPRIOR USER CLARIFICATIONS:\n{json.dumps(job.deep_understanding.answers, default=str)}"
 
         # Provide real taxonomy context
         taxonomy_structure = self.taxonomy_manager.get_relevant_branches(request.task_description)
@@ -117,7 +153,7 @@ class SkillService:
             parent_run_id = start_parent_run(
                 run_name=request.task_description[:100],
                 user_id=request.user_id,
-                job_id=getattr(request, "job_id", None),
+                job_id=job_id,
                 skill_type=skill_type,
                 description=f"Skill creation: {request.task_description[:200]}",
             )
@@ -132,7 +168,7 @@ class SkillService:
                 with start_child_run("phase1_task_analysis"):
                     phase1_result = await task_orchestrator.analyze(
                         task_description=request.task_description,
-                        user_context=request.user_id,
+                        user_context=request.user_id + previous_answers_context,
                         taxonomy_structure=json.dumps(taxonomy_structure),
                         existing_skills=mounted_skills,
                         enable_mlflow=False,  # Don't start separate run, we're in child run
@@ -140,11 +176,45 @@ class SkillService:
             else:
                 phase1_result = await task_orchestrator.analyze(
                     task_description=request.task_description,
-                    user_context=request.user_id,
+                    user_context=request.user_id + previous_answers_context,
                     taxonomy_structure=json.dumps(taxonomy_structure),
                     existing_skills=mounted_skills,
                     enable_mlflow=False,
                 )
+
+            # Check for ambiguities and trigger HITL if needed
+            requirements = phase1_result.get("requirements", {})
+            ambiguities = requirements.get("ambiguities", [])
+
+            if ambiguities and len(ambiguities) > 0:
+                # Generate clarifying questions
+                questions = await self.hitl_manager.generate_clarifying_questions(
+                    task_description=request.task_description,
+                    initial_analysis=json.dumps(requirements),
+                    ambiguities=ambiguities,
+                    previous_answers=previous_answers_context,
+                )
+
+                if questions:
+                    # Suspend job
+                    job = job_manager.get_job(job_id)
+                    if job:
+                        job.status = "pending_user_input"
+                        job.deep_understanding.questions_asked = questions
+                        job_manager.update_job(
+                            job_id,
+                            {
+                                "status": "pending_user_input",
+                                "deep_understanding": job.deep_understanding,
+                            },
+                        )
+
+                    return SkillCreationResult(
+                        job_id=job_id,
+                        status="pending_user_input",
+                        message="Clarification needed from user",
+                        hitl_context={"questions": questions},
+                    )
 
             # Phase 2: Content Generation
             if progress_callback:
@@ -233,6 +303,40 @@ class SkillService:
             # End parent run
             if enable_mlflow and parent_run_id:
                 end_parent_run()
+
+    async def resume_skill_creation(
+        self, job_id: str, answers: dict[str, Any]
+    ) -> SkillCreationResult:
+        """
+        Resume skill creation with HITL answers.
+
+        Args:
+            job_id: ID of the suspended job
+            answers: User answers to clarification questions
+
+        Returns:
+            SkillCreationResult
+
+        """
+        job_manager = get_job_manager()
+        job = job_manager.get_job(job_id)
+        if not job:
+            raise ValueError(f"Job {job_id} not found")
+
+        # Update answers in DeepUnderstandingState (append as record)
+        job.deep_understanding.answers.append(answers)
+
+        job.status = "running"
+        job_manager.update_job(
+            job_id, {"status": "running", "deep_understanding": job.deep_understanding}
+        )
+
+        # Re-construct request from stored job state
+        from ..schemas.skills import CreateSkillRequest
+
+        request = CreateSkillRequest(task_description=job.task_description, user_id=job.user_id)
+
+        return await self.create_skill(request, existing_job_id=job_id)
 
     def save_skill_to_draft(
         self,

@@ -18,15 +18,16 @@ from typing import TYPE_CHECKING, Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from .....core.dspy.modules.workflows.conversational import (
+from skill_fleet.core.dspy.modules.workflows.conversational import (
     ConversationalOrchestrator,
     ConversationMessage,
     ConversationState,
 )
-from .....db.database import get_db
-from .....db.models import ConversationStateEnum
-from .....db.repositories import get_conversation_session_repository
-from ...schemas.conversational import (
+from skill_fleet.infrastructure.db.database import get_db
+from skill_fleet.infrastructure.db.models import ConversationStateEnum
+from skill_fleet.infrastructure.db.repositories import get_conversation_session_repository
+
+from ..schemas.conversational import (
     SendMessageRequest,
     SendMessageResponse,
     SessionHistoryResponse,
@@ -35,11 +36,11 @@ from ...schemas.conversational import (
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session as DbSession
 
-    from .....core.dspy.modules.workflows.conversational import (
+    from skill_fleet.core.dspy.modules.workflows.conversational import (
         ConversationContext,
     )
-    from .....db.models import ConversationSession
-    from .....db.repositories import ConversationSessionRepository
+    from skill_fleet.infrastructure.db.models import ConversationSession
+    from skill_fleet.infrastructure.db.repositories import ConversationSessionRepository
 
 logger = logging.getLogger(__name__)
 
@@ -481,7 +482,7 @@ async def stream_chat(
             intent_result = await orchestrator.interpret_intent(
                 user_message=request.message,
                 context=context,
-                enable_mlflow=False,
+                enable_mlflow=True,
             )
 
             intent_type = intent_result.get("intent_type", "unknown")
@@ -492,7 +493,7 @@ async def stream_chat(
 
                 understanding_result = await orchestrator.deep_understanding(
                     context=context,
-                    enable_mlflow=False,
+                    enable_mlflow=True,
                 )
                 context.current_understanding = understanding_result.get(
                     "enhanced_understanding", ""
@@ -500,7 +501,7 @@ async def stream_chat(
 
                 confirmation_result = await orchestrator.confirm_understanding(
                     context=context,
-                    enable_mlflow=False,
+                    enable_mlflow=True,
                 )
                 response_text = confirmation_result.get("confirmation_summary", "")
                 context.state = ConversationState.CONFIRMING
@@ -508,7 +509,7 @@ async def stream_chat(
             elif intent_type == "clarify":
                 question_result = await orchestrator.generate_clarifying_question(
                     context=context,
-                    enable_mlflow=False,
+                    enable_mlflow=True,
                 )
                 response_text = question_result.get(
                     "question", "Could you please provide more details?"

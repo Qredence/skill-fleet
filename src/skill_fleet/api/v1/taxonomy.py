@@ -15,25 +15,23 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Path
 
-from .....app.services.cached_taxonomy import get_cached_taxonomy_service
-from ...schemas.taxonomy import (
+from ..dependencies import TaxonomyManagerDep
+from ..schemas.taxonomy import (
     AdaptTaxonomyRequest,
     AdaptTaxonomyResponse,
     TaxonomyResponse,
     UpdateTaxonomyRequest,
     UserTaxonomyResponse,
 )
+from ..services.cached_taxonomy import get_cached_taxonomy_service
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-if TYPE_CHECKING:
-    from .....app.dependencies import TaxonomyManagerDep
 
 
 @router.get("/", response_model=TaxonomyResponse)
@@ -68,11 +66,11 @@ async def get_taxonomy(taxonomy_manager: TaxonomyManagerDep) -> TaxonomyResponse
         raise HTTPException(status_code=500, detail=f"Failed to retrieve taxonomy: {e}") from e
 
 
-@router.post("/", response_model=dict[str, str])
+@router.post("/", response_model=dict[str, Any])
 async def update_taxonomy(
     request: UpdateTaxonomyRequest,
     taxonomy_manager: TaxonomyManagerDep,
-) -> dict[str, str]:
+) -> dict[str, Any]:
     """
     Update the global taxonomy.
 
@@ -216,7 +214,7 @@ async def get_user_taxonomy(
 async def adapt_taxonomy(
     taxonomy_manager: TaxonomyManagerDep,
     user_id: str = Path(..., description="User ID"),
-    request: AdaptTaxonomyRequest = None,
+    request: AdaptTaxonomyRequest | None = None,
 ) -> AdaptTaxonomyResponse:
     """
     Adapt taxonomy to user based on their usage patterns.
@@ -235,6 +233,7 @@ async def adapt_taxonomy(
         cached_service = get_cached_taxonomy_service(taxonomy_manager)
 
         # Get relevant branches based on query history
+        query_text = ""
         if request and request.query_history:
             # Use recent queries to find relevant taxonomy branches
             query_text = " ".join(request.query_history[-5:])  # Last 5 queries

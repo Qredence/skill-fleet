@@ -250,7 +250,7 @@ def cached(ttl: int = 300, key_prefix: str = ""):
         @functools.wraps(func)
         def wrapper(*args, **kwargs) -> T:
             # Generate cache key from function name and arguments
-            func_name = func.__name__
+            func_name = getattr(func, "__name__", "unknown")
             args_str = str(args) + str(sorted(kwargs.items()))
             cache_key_suffix = hash_key(args_str)
             key = cache_key(func_name, cache_key_suffix, prefix=key_prefix)
@@ -302,13 +302,14 @@ def cache_result(
             # Generate cache key
             if key_func:
                 key_suffix = key_func(*args, **kwargs)
+                key = cache_key(prefix, key_suffix) if prefix else cache_key("custom", key_suffix)
             else:
-                func_name = func.__name__
+                func_name = getattr(func, "__name__", "unknown")
                 args_str = str(args) + str(sorted(kwargs.items()))
                 key_suffix = hash_key(args_str)
-                func_name = func.__name__
-
-            key = cache_key(prefix, key_suffix) if prefix else cache_key(func_name, key_suffix)
+                key = (
+                    cache_key(func_name, key_suffix) if prefix else cache_key(func_name, key_suffix)
+                )
 
             # Try to get from cache
             result = _cache.get(key)

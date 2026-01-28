@@ -17,8 +17,9 @@ from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, HTTPException
 
-from .....core.dspy.modules.workflows.signature_tuning import SignatureTuningOrchestrator
-from ...schemas.optimization import (
+from skill_fleet.core.dspy.modules.workflows.signature_tuning import SignatureTuningOrchestrator
+
+from ..schemas.optimization import (
     AnalyzeFailuresRequest,
     AnalyzeFailuresResponse,
     CompareRequest,

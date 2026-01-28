@@ -13,13 +13,15 @@ Endpoints:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
-from .....core.dspy.modules.workflows.quality_assurance import QualityAssuranceOrchestrator
-from ....exceptions import NotFoundException
-from ...schemas.quality import (
+from skill_fleet.core.dspy.modules.workflows.quality_assurance import QualityAssuranceOrchestrator
+
+from ..dependencies import get_skill_service
+from ..exceptions import NotFoundException
+from ..schemas.quality import (
     AssessQualityRequest,
     AssessQualityResponse,
     AutoFixRequest,
@@ -27,14 +29,11 @@ from ...schemas.quality import (
     ValidateRequest,
     ValidateResponse,
 )
+from ..services.skill_service import SkillService
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-if TYPE_CHECKING:
-    from .....app.dependencies import SkillServiceDep
-    from .....app.services.skill_service import SkillService
 
 
 def _load_skill_content(skill_id: str, skill_service: SkillService) -> tuple[str, dict]:
@@ -68,7 +67,9 @@ def _load_skill_content(skill_id: str, skill_service: SkillService) -> tuple[str
 
 
 @router.post("/validate", response_model=ValidateResponse)
-async def validate(request: ValidateRequest, skill_service: SkillServiceDep) -> ValidateResponse:
+async def validate(
+    request: ValidateRequest, skill_service: Annotated[SkillService, Depends(get_skill_service)]
+) -> ValidateResponse:
     """
     Validate a skill or content.
 
@@ -150,7 +151,8 @@ async def validate(request: ValidateRequest, skill_service: SkillServiceDep) -> 
 
 @router.post("/assess", response_model=AssessQualityResponse)
 async def assess_quality(
-    request: AssessQualityRequest, skill_service: SkillServiceDep
+    request: AssessQualityRequest,
+    skill_service: Annotated[SkillService, Depends(get_skill_service)],
 ) -> AssessQualityResponse:
     """
     Assess content quality across multiple dimensions.
@@ -226,7 +228,9 @@ async def assess_quality(
 
 
 @router.post("/fix", response_model=AutoFixResponse)
-async def auto_fix(request: AutoFixRequest, skill_service: SkillServiceDep) -> AutoFixResponse:
+async def auto_fix(
+    request: AutoFixRequest, skill_service: Annotated[SkillService, Depends(get_skill_service)]
+) -> AutoFixResponse:
     """
     Automatically fix issues in skill or content.
 

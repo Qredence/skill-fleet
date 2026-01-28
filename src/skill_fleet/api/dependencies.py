@@ -18,12 +18,13 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 
 from fastapi import Depends
 
 from ..common.paths import ensure_skills_root_initialized
 from ..taxonomy.manager import TaxonomyManager
+from .services.skill_service import SkillService
 
 
 @lru_cache(maxsize=1)
@@ -114,18 +115,11 @@ def clear_taxonomy_manager_cache() -> None:
     _get_cached_taxonomy_manager.cache_clear()
 
 
-if TYPE_CHECKING:
-    from .services.skill_service import SkillService
-
-
 def get_skill_service(
     skills_root: Annotated[Path, Depends(get_skills_root)],
     drafts_root: Annotated[Path, Depends(get_drafts_root)],
 ) -> SkillService:
     """Get a SkillService instance."""
-    # Import here to avoid circular dependency
-    from .services.skill_service import SkillService
-
     return SkillService(skills_root=skills_root, drafts_root=drafts_root)
 
 
@@ -133,7 +127,7 @@ def get_skill_service(
 SkillsRoot = Annotated[Path, Depends(get_skills_root)]
 DraftsRoot = Annotated[Path, Depends(get_drafts_root)]
 TaxonomyManagerDep = Annotated[TaxonomyManager, Depends(get_taxonomy_manager)]
-SkillServiceDep = Annotated["SkillService", Depends(get_skill_service)]
+SkillServiceDep = Annotated[SkillService, Depends(get_skill_service)]
 
 
 __all__ = [

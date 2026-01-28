@@ -34,7 +34,7 @@ from skill_fleet.api.cache import (
 )
 
 if TYPE_CHECKING:
-    from ...taxonomy.manager import TaxonomyManager
+    from skill_fleet.taxonomy.manager import TaxonomyManager
 
 logger = logging.getLogger(__name__)
 

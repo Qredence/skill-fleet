@@ -13,7 +13,7 @@ import re
 from typing import TYPE_CHECKING
 
 from ...common.security import sanitize_taxonomy_path
-from ...taxonomy.manager import TaxonomyManager
+from skill_fleet.taxonomy.manager import TaxonomyManager
 
 if TYPE_CHECKING:
     from pathlib import Path

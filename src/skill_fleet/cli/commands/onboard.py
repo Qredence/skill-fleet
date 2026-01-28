@@ -16,7 +16,7 @@ from ...common.paths import (
 )
 from ...core.creator import TaxonomySkillCreator
 from ...onboarding.bootstrap import SkillBootstrapper
-from ...taxonomy.manager import TaxonomyManager
+from skill_fleet.taxonomy.manager import TaxonomyManager
 from ..onboarding_cli import collect_onboarding_responses
 
 console = Console()

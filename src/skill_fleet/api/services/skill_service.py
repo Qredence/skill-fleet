@@ -39,7 +39,7 @@ from ...core.dspy.modules.workflows import (
 )
 from ...core.dspy.modules.workflows.hitl_checkpoint import HITLCheckpointManager
 from ...core.models import SkillCreationResult
-from ...taxonomy.manager import TaxonomyManager
+from skill_fleet.taxonomy.manager import TaxonomyManager
 from ..schemas.models import JobState
 from .job_manager import get_job_manager
 

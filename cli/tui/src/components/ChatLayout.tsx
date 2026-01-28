@@ -79,7 +79,6 @@ function formatThinkingChunk(chunk: ThinkingChunk): string {
 
 export const ChatLayout: React.FC<ChatLayoutProps> = ({ apiUrl }) => {
   const [input, setInput] = useState("");
-  const [messageIdCounter, setMessageIdCounter] = useState(1);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showMainMenu, setShowMainMenu] = useState(true);
@@ -152,10 +151,8 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({ apiUrl }) => {
   });
 
   const getNextMessageId = useCallback((prefix: string = "msg") => {
-    const id = `${prefix}-${Date.now()}-${messageIdCounter}`;
-    setMessageIdCounter((prev) => prev + 1);
-    return id;
-  }, [messageIdCounter]);
+    return `${prefix}-${crypto.randomUUID()}`;
+  }, []);
 
   const addMessage = (role: Message["role"], content: string) => {
     const id = getNextMessageId(role === "thinking" ? "think" : "msg");

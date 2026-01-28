@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, Any
 import dspy
 from dspy.streaming import StatusMessageProvider, StreamListener
 
-from .dspy_compat import coerce_reasoning_text
+from .dspy_compat import Reasoning, coerce_reasoning_text
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -169,7 +169,7 @@ def _coerce_json_value(value: Any, seen: set[int] | None = None) -> Any:
     if seen is None:
         seen = set()
 
-    if isinstance(value, dspy.Reasoning):
+    if isinstance(value, Reasoning):
         return coerce_reasoning_text(value)
 
     if isinstance(value, dict):

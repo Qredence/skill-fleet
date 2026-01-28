@@ -13,13 +13,14 @@ from datetime import UTC, datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
-from .....common.async_utils import run_async
-from .....core.tracing.mlflow import (
+from skill_fleet.infrastructure.tracing.mlflow import (
     end_mlflow_run,
     log_parameter,
     log_phase_metrics,
     setup_mlflow_experiment,
 )
+
+from .....common.async_utils import run_async
 from ..hitl import (
     ClarifyingQuestionsModule,
     ConfirmUnderstandingModule,

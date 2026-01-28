@@ -30,8 +30,9 @@ from typing import Any
 import dspy
 import yaml
 
+from skill_fleet.infrastructure.llm.dspy_config import configure_dspy
+
 from ...common.paths import default_config_path
-from ...llm.dspy_config import configure_dspy
 from .metrics import (
     SkillQualityScores,
     assess_skill_quality,

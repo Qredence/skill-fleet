@@ -17,13 +17,14 @@ from datetime import UTC, datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
-from .....common.async_utils import run_async
-from .....core.tracing.mlflow import (
+from skill_fleet.infrastructure.tracing.mlflow import (
     end_mlflow_run,
     log_parameter,
     log_phase_metrics,
     setup_mlflow_experiment,
 )
+
+from .....common.async_utils import run_async
 from ..conversation import (
     AssessReadinessModule,
     ConfirmUnderstandingModule,
@@ -46,19 +47,26 @@ logger = logging.getLogger(__name__)
 
 
 class ConversationState(Enum):
-    """States in the conversation workflow."""
+    """
+    States in the conversation workflow.
 
-    INITIALIZING = "initializing"
-    INTERPRETING_INTENT = "interpreting_intent"
-    CLARIFYING = "clarifying"
-    DEEP_UNDERSTANDING = "deep_understanding"
-    CONFIRMING_UNDERSTANDING = "confirming_understanding"
-    CREATING_SKILL = "creating_skill"
-    PRESENTING_SKILL = "presenting_skill"
-    COLLECTING_FEEDBACK = "collecting_feedback"
-    REFINING = "refining"
-    TESTING = "testing"
-    COMPLETED = "completed"
+    These must match the database enum conversation_state_enum in
+    migrations/003_add_conversation_sessions.sql
+    """
+
+    EXPLORING = "EXPLORING"  # Understanding user intent, asking clarifying questions
+    DEEP_UNDERSTANDING = "DEEP_UNDERSTANDING"  # Asking WHY questions, researching context
+    MULTI_SKILL_DETECTED = "MULTI_SKILL_DETECTED"  # Multiple skills needed, presenting breakdown
+    CONFIRMING = "CONFIRMING"  # Presenting confirmation summary before creation
+    READY = "READY"  # User confirmed, ready to create skill
+    CREATING = "CREATING"  # Executing skill creation workflow
+    TDD_RED_PHASE = "TDD_RED_PHASE"  # Running baseline tests without skill
+    TDD_GREEN_PHASE = "TDD_GREEN_PHASE"  # Verifying skill works with tests
+    TDD_REFACTOR_PHASE = "TDD_REFACTOR_PHASE"  # Closing loopholes, re-testing
+    REVIEWING = "REVIEWING"  # Presenting skill for user feedback
+    REVISING = "REVISING"  # Processing feedback and regenerating
+    CHECKLIST_COMPLETE = "CHECKLIST_COMPLETE"  # TDD checklist fully complete
+    COMPLETE = "COMPLETE"  # Skill approved, saved, ready for next
 
 
 class IntentType(Enum):
@@ -95,7 +103,7 @@ class ConversationContext:
     """Context for the conversation."""
 
     conversation_id: str
-    state: ConversationState = ConversationState.INITIALIZING
+    state: ConversationState = ConversationState.EXPLORING
     messages: list[ConversationMessage] = field(default_factory=list)
     collected_examples: list[dict] = field(default_factory=list)
     current_understanding: str = ""
@@ -184,7 +192,7 @@ class ConversationalOrchestrator:
         try:
             context = ConversationContext(
                 conversation_id=self._create_conversation_id(),
-                state=ConversationState.INTERPRETING_INTENT,
+                state=ConversationState.EXPLORING,
                 metadata=metadata or {},
             )
 
@@ -256,9 +264,9 @@ class ConversationalOrchestrator:
             # Update context state based on intent
             intent_type = result.get("intent_type", "unknown")
             if intent_type == "create_skill":
-                context.state = ConversationState.CLARIFYING
+                context.state = ConversationState.EXPLORING
             elif intent_type == "refine":
-                context.state = ConversationState.COLLECTING_FEEDBACK
+                context.state = ConversationState.REVIEWING
 
             if enable_mlflow:
                 log_phase_metrics(
@@ -441,12 +449,13 @@ class ConversationalOrchestrator:
             setup_mlflow_experiment("conversatorial-confirm-understanding")
 
         try:
-            context.state = ConversationState.CONFIRMING_UNDERSTANDING
+            context.state = ConversationState.CONFIRMING
 
             result = await self.confirm_understanding_module.acall(
                 task_description=context.task_description,
-                conversation_summary=context.current_understanding,
-                key_points=str(context.collected_examples),
+                taxonomy_path=context.metadata.get("taxonomy_path", ""),
+                skill_metadata_draft=context.current_understanding,
+                collected_examples=context.collected_examples,
             )
 
             summary = result.get("confirmation_summary", "")
@@ -506,7 +515,7 @@ class ConversationalOrchestrator:
             setup_mlflow_experiment("conversatorial-process-feedback")
 
         try:
-            context.state = ConversationState.COLLECTING_FEEDBACK
+            context.state = ConversationState.REVIEWING
             context.messages.append(
                 ConversationMessage(
                     role="user",

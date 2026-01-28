@@ -14,8 +14,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-from .....common.async_utils import run_async
-from .....core.tracing.mlflow import (
+from skill_fleet.infrastructure.tracing.mlflow import (
     end_mlflow_run,
     get_mlflow_run_id,
     log_lm_usage,
@@ -23,6 +22,8 @@ from .....core.tracing.mlflow import (
     log_phase_metrics,
     setup_mlflow_experiment,
 )
+
+from .....common.async_utils import run_async
 from ..validation import Phase3ValidationModule
 
 if TYPE_CHECKING:

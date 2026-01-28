@@ -10,7 +10,7 @@ from typing import Any, Generic, TypeVar
 from sqlalchemy import asc, desc
 from sqlalchemy.orm import Session, joinedload
 
-from skill_fleet.db.models import (
+from .models import (
     Capability,
     ConversationSession,
     ConversationStateEnum,

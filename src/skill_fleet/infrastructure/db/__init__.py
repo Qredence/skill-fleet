@@ -5,7 +5,7 @@ This module provides database models, connection management,
 and repositories for the skills fleet system.
 """
 
-from skill_fleet.db.database import (
+from .database import (
     AsyncSessionLocal,
     SessionLocal,
     async_engine,
@@ -15,7 +15,7 @@ from skill_fleet.db.database import (
     get_db_context,
     init_db,
 )
-from skill_fleet.db.repositories import (
+from .repositories import (
     JobRepository,
     SkillRepository,
     TaxonomyRepository,

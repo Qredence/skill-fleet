@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.orm import Session, sessionmaker
 
-from skill_fleet.db.models import Base
+from .models import Base
 
 
 def _with_postgres_driver(url: str, driver: str, *, override: bool = False) -> str:

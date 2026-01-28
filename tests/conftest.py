@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -21,7 +20,7 @@ if "DATABASE_URL" not in os.environ:
     os.environ["DATABASE_URL"] = "sqlite:///./test_skill_fleet.db"
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import Session
+    pass
 
 
 # =============================================================================

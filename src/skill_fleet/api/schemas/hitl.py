@@ -12,13 +12,13 @@ CLI is a thin client that only renders pre-structured data.
 from __future__ import annotations
 
 import re
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field
 
 
-class QuestionType(str, Enum):
+class QuestionType(StrEnum):
     """Type of HITL question."""
 
     BOOLEAN = "boolean"  # Yes/No question

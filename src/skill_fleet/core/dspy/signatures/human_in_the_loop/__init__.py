@@ -16,6 +16,8 @@ from typing import TYPE_CHECKING
 
 import dspy
 
+from .....common.dspy_compat import Reasoning
+
 if TYPE_CHECKING:
     from ....models import ValidationCheckItem
 
@@ -302,8 +304,8 @@ class DetermineHITLStrategy(dspy.Signature):
     checkpoints: list[str] = dspy.OutputField(
         desc="List of checkpoint names to enable (e.g., ['phase1_clarify', 'phase1_confirm', ...])"
     )
-    reasoning: dspy.Reasoning = dspy.OutputField(
-        desc="Reasoning for this strategy. May be returned as a dspy.Reasoning object."
+    reasoning: Reasoning = dspy.OutputField(
+        desc="Reasoning for this strategy. May be returned as a Reasoning object."
     )
 
 

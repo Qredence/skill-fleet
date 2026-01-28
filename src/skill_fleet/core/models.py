@@ -643,7 +643,12 @@ class SkillCreationResult(BaseModel):
     # Core version fields (status-based)
     status: str = Field(
         default="completed",
-        description="Status: 'completed', 'failed', 'cancelled', 'pending_review'",
+        description="Status: 'completed', 'failed', 'cancelled', 'pending_review', 'pending_user_input'",
+    )
+    job_id: str | None = Field(default=None, description="Job identifier")
+    message: str | None = Field(default=None, description="Status message or prompt")
+    hitl_context: dict[str, Any] | None = Field(
+        default=None, description="HITL context (e.g., questions)"
     )
     skill_content: str | None = Field(default=None, description="Generated SKILL.md content")
     metadata: SkillMetadata | None = Field(default=None, description="Skill metadata")

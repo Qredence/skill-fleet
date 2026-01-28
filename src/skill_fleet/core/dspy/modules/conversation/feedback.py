@@ -70,6 +70,53 @@ class PresentSkillModule(dspy.Module):
             suggested_questions=questions,
         )
 
+    async def aforward(
+        self,
+        skill_content: str,
+        skill_metadata: dict | str,
+        validation_report: dict | str,
+    ) -> dspy.Prediction:
+        metadata_str = (
+            json.dumps(skill_metadata, indent=2)
+            if isinstance(skill_metadata, dict)
+            else skill_metadata
+        )
+        report_str = (
+            json.dumps(validation_report, indent=2)
+            if isinstance(validation_report, dict)
+            else validation_report
+        )
+
+        result = await self.present.acall(
+            skill_content=skill_content,
+            skill_metadata=metadata_str,
+            validation_report=report_str,
+        )
+
+        highlights = safe_json_loads(
+            getattr(result, "key_highlights", []), default=[], field_name="key_highlights"
+        )
+        if isinstance(highlights, dict):
+            highlights = []
+        if not isinstance(highlights, list):
+            highlights = [str(highlights)] if highlights else []
+
+        questions = safe_json_loads(
+            getattr(result, "suggested_questions", []),
+            default=[],
+            field_name="suggested_questions",
+        )
+        if isinstance(questions, dict):
+            questions = []
+        if not isinstance(questions, list):
+            questions = [str(questions)] if questions else []
+
+        return dspy.Prediction(
+            conversational_summary=getattr(result, "conversational_summary", "").strip(),
+            key_highlights=highlights,
+            suggested_questions=questions,
+        )
+
 
 class ProcessFeedbackModule(dspy.Module):
     """Module for processing user feedback using dspy.Predict."""
@@ -91,6 +138,32 @@ class ProcessFeedbackModule(dspy.Module):
         )
 
         result = self.process(
+            user_feedback=user_feedback,
+            current_skill_content=current_skill_content,
+            validation_errors=errors_str,
+        )
+
+        feedback_type = getattr(result, "feedback_type", "approve").strip().lower()
+
+        return dspy.Prediction(
+            feedback_type=feedback_type,
+            revision_plan=getattr(result, "revision_plan", "").strip(),
+            requires_regeneration=bool(getattr(result, "requires_regeneration", False)),
+        )
+
+    async def aforward(
+        self,
+        user_feedback: str,
+        current_skill_content: str,
+        validation_errors: list[str] | str = "",
+    ) -> dspy.Prediction:
+        errors_str = (
+            json.dumps(validation_errors, indent=2)
+            if isinstance(validation_errors, list)
+            else validation_errors
+        )
+
+        result = await self.process.acall(
             user_feedback=user_feedback,
             current_skill_content=current_skill_content,
             validation_errors=errors_str,

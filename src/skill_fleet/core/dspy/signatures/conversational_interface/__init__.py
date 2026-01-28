@@ -23,6 +23,8 @@ from typing import Literal
 
 import dspy
 
+from .....common.dspy_compat import Reasoning
+
 # =============================================================================
 # Intent Understanding and Multi-Skill Detection
 # =============================================================================
@@ -91,8 +93,8 @@ class DetectMultiSkillNeeds(dspy.Signature):
     skill_breakdown: list[str] = dspy.OutputField(
         desc="List of discrete skill names needed (if multiple). Each should be a clear, focused skill (e.g., ['condition-based-waiting', 'error-handling-patterns'])"
     )
-    reasoning: dspy.Reasoning = dspy.OutputField(
-        desc="Explanation of why multiple skills are needed (or why one skill is sufficient). Should identify distinct concerns, different triggers, or separate use cases. May be returned as a dspy.Reasoning object."
+    reasoning: Reasoning = dspy.OutputField(
+        desc="Explanation of why multiple skills are needed (or why one skill is sufficient). Should identify distinct concerns, different triggers, or separate use cases. May be returned as a Reasoning object."
     )
     suggested_order: list[str] = dspy.OutputField(
         desc="Recommended order to create skills (same as skill_breakdown if multiple, empty list if single). Order should respect dependencies and logical progression."
@@ -134,8 +136,8 @@ class GenerateClarifyingQuestion(dspy.Signature):
     question_options: list[str] = dspy.OutputField(
         desc="Multi-select options (2-5 required). Use domain-specific options: programming languages, project states, team sizes, priorities, scopes, experience levels, CI/CD platforms, etc. Include 'Other' as final option for free-form input. Empty list for free-form questions."
     )
-    reasoning: dspy.Reasoning = dspy.OutputField(
-        desc="Why this question matters - what gap in understanding it addresses. May be returned as a dspy.Reasoning object."
+    reasoning: Reasoning = dspy.OutputField(
+        desc="Why this question matters - what gap in understanding it addresses. May be returned as a Reasoning object."
     )
 
 
@@ -204,8 +206,8 @@ class DeepUnderstandingSignature(dspy.Signature):
     next_question: str = dspy.OutputField(
         desc='Next question to ask as JSON string of ClarifyingQuestion object. Empty string if ready. Format: {"id": "unique-id", "question": "text", "context": "why asking", "options": [{"id": "a", "label": "Label", "description": "Details"}], "allows_multiple": true, "required": true}. Options must have id, label, description fields.'
     )
-    reasoning: dspy.Reasoning = dspy.OutputField(
-        desc="Agent's thinking. Explain why this question is CRITICAL for implementation. If >3 questions asked, explain why we still can't proceed. May be returned as a dspy.Reasoning object."
+    reasoning: Reasoning = dspy.OutputField(
+        desc="Agent's thinking. Explain why this question is CRITICAL for implementation. If >3 questions asked, explain why we still can't proceed. May be returned as a Reasoning object."
     )
     research_needed: dict | None = dspy.OutputField(
         desc="JSON dict if research needed. Only request research if CRITICAL for understanding context."

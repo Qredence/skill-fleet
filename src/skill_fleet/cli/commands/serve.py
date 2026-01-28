@@ -108,7 +108,7 @@ def serve_command(
     """
     import uvicorn
 
-    from skill_fleet.db.database import init_db
+    from skill_fleet.infrastructure.db.database import init_db
 
     # Initialize database unless skipped
     if not skip_db_init:

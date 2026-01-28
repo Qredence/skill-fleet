@@ -32,8 +32,8 @@ def init(
     Creates all necessary tables for skills-fleet persistence.
     Idempotent - safe to run multiple times.
     """
-    from skill_fleet.db.database import SessionLocal, drop_db, init_db
-    from skill_fleet.db.models import HITLInteraction, Job, Skill
+    from skill_fleet.infrastructure.db.database import SessionLocal, drop_db, init_db
+    from skill_fleet.infrastructure.db.models import HITLInteraction, Job, Skill
 
     try:
         if force:
@@ -79,8 +79,8 @@ def status() -> None:
     Verifies that the database is accessible and all required
     tables exist.
     """
-    from skill_fleet.db.database import SessionLocal
-    from skill_fleet.db.models import HITLInteraction, Job, Skill, TaxonomyCategory
+    from skill_fleet.infrastructure.db.database import SessionLocal
+    from skill_fleet.infrastructure.db.models import HITLInteraction, Job, Skill, TaxonomyCategory
 
     try:
         session = SessionLocal()
@@ -154,7 +154,7 @@ def reset_db(
             abort=True,
         )
 
-    from skill_fleet.db.database import drop_db, init_db
+    from skill_fleet.infrastructure.db.database import drop_db, init_db
 
     try:
         logger.info("Dropping database...")

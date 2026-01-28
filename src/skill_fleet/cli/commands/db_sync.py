@@ -173,7 +173,7 @@ def import_from_db_command(
             )
 
             # Build query
-            from skill_fleet.db.models import (
+            from skill_fleet.infrastructure.db.models import (
                 Skill,
                 SkillCategory,
                 SkillStatusEnum,

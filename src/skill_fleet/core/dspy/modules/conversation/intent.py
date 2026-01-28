@@ -30,6 +30,18 @@ class InterpretIntentModule(dspy.Module):
         conversation_history: list[dict] | str = "",
         current_state: str = "EXPLORING",
     ) -> dspy.Prediction:
+        """
+        Interpret user intent from message.
+
+        Args:
+            user_message: The user's message to interpret.
+            conversation_history: History of the conversation as list or JSON string.
+            current_state: Current conversation state.
+
+        Returns:
+            Prediction with intent_type, extracted_task, and confidence.
+
+        """
         history_str = (
             json.dumps(conversation_history, indent=2)
             if isinstance(conversation_history, list)
@@ -54,6 +66,18 @@ class InterpretIntentModule(dspy.Module):
         conversation_history: list[dict] | str = "",
         current_state: str = "EXPLORING",
     ) -> dspy.Prediction:
+        """
+        Async version of forward - interpret user intent from message.
+
+        Args:
+            user_message: The user's message to interpret.
+            conversation_history: History of the conversation as list or JSON string.
+            current_state: Current conversation state.
+
+        Returns:
+            Prediction with intent_type, extracted_task, and confidence.
+
+        """
         history_str = (
             json.dumps(conversation_history, indent=2)
             if isinstance(conversation_history, list)
@@ -86,6 +110,19 @@ class DetectMultiSkillModule(dspy.Module):
         collected_examples: list[dict] | str = "",
         existing_skills: list[str] | str = "",
     ) -> dspy.Prediction:
+        """
+        Detect if multiple skills are needed for a task.
+
+        Args:
+            task_description: The task description to analyze.
+            collected_examples: Examples collected, as list or JSON string.
+            existing_skills: List of existing skills as list or JSON string.
+
+        Returns:
+            Prediction with requires_multiple_skills, skill_breakdown,
+            reasoning, suggested_order, and alternative_approaches.
+
+        """
         examples_str = (
             json.dumps(collected_examples, indent=2)
             if isinstance(collected_examples, list)
@@ -143,6 +180,19 @@ class DetectMultiSkillModule(dspy.Module):
         collected_examples: list[dict] | str = "",
         existing_skills: list[str] | str = "",
     ) -> dspy.Prediction:
+        """
+        Async version of forward - detect if multiple skills are needed for a task.
+
+        Args:
+            task_description: The task description to analyze.
+            collected_examples: Examples collected, as list or JSON string.
+            existing_skills: List of existing skills as list or JSON string.
+
+        Returns:
+            Prediction with requires_multiple_skills, skill_breakdown,
+            reasoning, suggested_order, and alternative_approaches.
+
+        """
         examples_str = (
             json.dumps(collected_examples, indent=2)
             if isinstance(collected_examples, list)

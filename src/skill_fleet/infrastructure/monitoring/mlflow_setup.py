@@ -1,5 +1,7 @@
 """MLflow setup and configuration for DSPy autologging."""
 
+import contextlib
+
 import mlflow
 
 
@@ -18,10 +20,8 @@ def setup_dspy_autologging(
 
     """
     if disable:
-        try:
+        with contextlib.suppress(AttributeError):
             mlflow.dspy.disable_autologging()  # type: ignore[attr-defined]
-        except AttributeError:
-            pass  # Already not enabled
         return
 
     if tracking_uri:

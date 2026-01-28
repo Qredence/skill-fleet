@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import logging
 import os
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import dspy
@@ -25,6 +24,7 @@ from ...common.paths import default_config_path
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
+    from pathlib import Path
 
 logger = logging.getLogger(__name__)
 

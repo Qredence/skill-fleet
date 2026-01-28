@@ -16,9 +16,8 @@ from typing import TYPE_CHECKING
 
 import dspy
 
-from .....common.dspy_compat import Reasoning
-
 if TYPE_CHECKING:
+    from .....common.dspy_compat import Reasoning
     from ....models import ValidationCheckItem
 
 # =============================================================================

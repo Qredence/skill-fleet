@@ -180,6 +180,7 @@ class SkillCreationProgram(dspy.Module):
             existing_skills: List of existing skills
             hitl_callback: Async callback for human interaction
             progress_callback: Callback for progress updates (phase, message)
+            **kwargs: Additional keyword arguments passed to the workflow
 
         Returns:
             SkillCreationResult with content and metadata

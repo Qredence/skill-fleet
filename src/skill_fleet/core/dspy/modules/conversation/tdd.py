@@ -30,7 +30,8 @@ class SuggestTestsModule(dspy.Module):
         skill_type: str,
         skill_metadata: dict | str,
     ) -> dspy.Prediction:
-        """Suggest test scenarios for a skill.
+        """
+        Suggest test scenarios for a skill.
 
         Args:
             skill_content: The skill content to generate tests for.
@@ -38,7 +39,9 @@ class SuggestTestsModule(dspy.Module):
             skill_metadata: Metadata about the skill.
 
         Returns:
-            Prediction with test_scenarios, baseline_predictions, and expected_rationalizations.
+            Prediction with test_scenarios, baseline_predictions,
+            and expected_rationalizations.
+
         """
         metadata_str = (
             json.dumps(skill_metadata, indent=2)
@@ -92,7 +95,8 @@ class SuggestTestsModule(dspy.Module):
         skill_type: str,
         skill_metadata: dict | str,
     ) -> dspy.Prediction:
-        """Async version of forward - suggest test scenarios for a skill.
+        """
+        Async version of forward - suggest test scenarios for a skill.
 
         Args:
             skill_content: The skill content to generate tests for.
@@ -100,7 +104,9 @@ class SuggestTestsModule(dspy.Module):
             skill_metadata: Metadata about the skill.
 
         Returns:
-            Prediction with test_scenarios, baseline_predictions, and expected_rationalizations.
+            Prediction with test_scenarios, baseline_predictions,
+            and expected_rationalizations.
+
         """
         metadata_str = (
             json.dumps(skill_metadata, indent=2)
@@ -161,7 +167,8 @@ class VerifyTDDModule(dspy.Module):
         skill_content: str,
         checklist_state: dict | str,
     ) -> dspy.Prediction:
-        """Verify TDD checklist completion.
+        """
+        Verify TDD checklist completion.
 
         Args:
             skill_content: The skill content to verify.
@@ -169,6 +176,7 @@ class VerifyTDDModule(dspy.Module):
 
         Returns:
             Prediction with all_passed, missing_items, and ready_to_save.
+
         """
         checklist_str = (
             json.dumps(checklist_state, indent=2)
@@ -200,7 +208,8 @@ class VerifyTDDModule(dspy.Module):
         skill_content: str,
         checklist_state: dict | str,
     ) -> dspy.Prediction:
-        """Async version of forward - verify TDD checklist completion.
+        """
+        Async version of forward - verify TDD checklist completion.
 
         Args:
             skill_content: The skill content to verify.
@@ -208,6 +217,7 @@ class VerifyTDDModule(dspy.Module):
 
         Returns:
             Prediction with all_passed, missing_items, and ready_to_save.
+
         """
         checklist_str = (
             json.dumps(checklist_state, indent=2)
@@ -248,7 +258,8 @@ class EnhanceSkillModule(dspy.Module):
         missing_sections: list[str],
         skill_metadata: dict | str,
     ) -> dspy.Prediction:
-        """Enhance skill content by adding missing sections.
+        """
+        Enhance skill content by adding missing sections.
 
         Args:
             skill_content: The current skill content.
@@ -256,7 +267,9 @@ class EnhanceSkillModule(dspy.Module):
             skill_metadata: Metadata about the skill.
 
         Returns:
-            Prediction with enhanced_content, sections_added, and enhancement_notes.
+            Prediction with enhanced_content, sections_added,
+            and enhancement_notes.
+
         """
         metadata_str = (
             json.dumps(skill_metadata, indent=2)
@@ -290,7 +303,8 @@ class EnhanceSkillModule(dspy.Module):
         missing_sections: list[str],
         skill_metadata: dict | str,
     ) -> dspy.Prediction:
-        """Async version of forward - enhance skill content by adding missing sections.
+        """
+        Async version of forward - enhance skill content by adding missing sections.
 
         Args:
             skill_content: The current skill content.
@@ -298,7 +312,9 @@ class EnhanceSkillModule(dspy.Module):
             skill_metadata: Metadata about the skill.
 
         Returns:
-            Prediction with enhanced_content, sections_added, and enhancement_notes.
+            Prediction with enhanced_content, sections_added,
+            and enhancement_notes.
+
         """
         metadata_str = (
             json.dumps(skill_metadata, indent=2)

@@ -29,7 +29,8 @@ class PresentSkillModule(dspy.Module):
         skill_metadata: dict | str,
         validation_report: dict | str,
     ) -> dspy.Prediction:
-        """Present skill for review.
+        """
+        Present skill for review.
 
         Args:
             skill_content: The skill content to present.
@@ -37,7 +38,9 @@ class PresentSkillModule(dspy.Module):
             validation_report: Validation report for the skill.
 
         Returns:
-            Prediction with presentation results.
+            Prediction with conversational_summary, key_highlights,
+            and suggested_questions.
+
         """
         metadata_str = (
             json.dumps(skill_metadata, indent=2)
@@ -86,7 +89,8 @@ class PresentSkillModule(dspy.Module):
         skill_metadata: dict | str,
         validation_report: dict | str,
     ) -> dspy.Prediction:
-        """Async version of forward - present skill for review.
+        """
+        Async version of forward - present skill for review.
 
         Args:
             skill_content: The skill content to present.
@@ -94,7 +98,9 @@ class PresentSkillModule(dspy.Module):
             validation_report: Validation report for the skill.
 
         Returns:
-            Prediction with conversational_summary, key_highlights, and suggested_questions.
+            Prediction with conversational_summary, key_highlights,
+            and suggested_questions.
+
         """
         metadata_str = (
             json.dumps(skill_metadata, indent=2)
@@ -151,15 +157,19 @@ class ProcessFeedbackModule(dspy.Module):
         current_skill_content: str,
         validation_errors: list[str] | str = "",
     ) -> dspy.Prediction:
-        """Process user feedback on skill content.
+        """
+        Process user feedback on skill content.
 
         Args:
             user_feedback: The feedback provided by the user.
             current_skill_content: The current skill content being reviewed.
-            validation_errors: Any validation errors to consider.
+            validation_errors: Any validation errors to consider,
+                as list or JSON string.
 
         Returns:
-            Prediction with feedback_type, revision_plan, and requires_regeneration.
+            Prediction with feedback_type, revision_plan,
+            and requires_regeneration.
+
         """
         errors_str = (
             json.dumps(validation_errors, indent=2)
@@ -187,15 +197,19 @@ class ProcessFeedbackModule(dspy.Module):
         current_skill_content: str,
         validation_errors: list[str] | str = "",
     ) -> dspy.Prediction:
-        """Async version of forward - process user feedback on skill content.
+        """
+        Async version of forward - process user feedback on skill content.
 
         Args:
             user_feedback: The feedback provided by the user.
             current_skill_content: The current skill content being reviewed.
-            validation_errors: Any validation errors to consider.
+            validation_errors: Any validation errors to consider,
+                as list or JSON string.
 
         Returns:
-            Prediction with feedback_type, revision_plan, and requires_regeneration.
+            Prediction with feedback_type, revision_plan,
+            and requires_regeneration.
+
         """
         errors_str = (
             json.dumps(validation_errors, indent=2)

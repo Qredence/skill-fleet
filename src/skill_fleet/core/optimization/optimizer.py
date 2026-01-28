@@ -307,8 +307,9 @@ def optimize_with_gepa(
     # adapter instead of using a broad Any cast to keep type checking intact.
     def _gepa_metric_adapter(*args: Any, **kwargs: Any) -> Any:
         """
-        Adapter to use `skill_creation_metric` with GEPA without disabling
-        type checking via a broad Any cast.
+        Adapter to use `skill_creation_metric` with GEPA.
+
+        This avoids disabling type checking via a broad Any cast.
         """
         return skill_creation_metric(*args, **kwargs)
 

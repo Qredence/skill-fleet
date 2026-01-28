@@ -191,7 +191,12 @@ class TaskAnalysisOrchestrator:
         running the async analysis in the event loop.
 
         Args:
-            Same as analyze() method
+            task_description: Description of the task to analyze
+            user_context: Context about the user
+            taxonomy_structure: Current taxonomy tree
+            existing_skills: List of existing skills
+            user_confirmation: User confirmation text
+            enable_mlflow: Whether to enable MLflow tracking
 
         Returns:
             Same as analyze() method

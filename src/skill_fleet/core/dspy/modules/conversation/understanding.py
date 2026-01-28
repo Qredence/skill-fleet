@@ -36,7 +36,8 @@ class GenerateQuestionModule(dspy.Module):
         conversation_context: str = "",
         previous_questions: list[str] | None = None,
     ) -> dspy.Prediction:
-        """Generate a clarifying question for the given task.
+        """
+        Generate a clarifying question for the given task.
 
         Args:
             task_description: The task description to generate questions for.
@@ -46,6 +47,7 @@ class GenerateQuestionModule(dspy.Module):
 
         Returns:
             Prediction with question, question_options, and reasoning.
+
         """
         examples_str = (
             json.dumps(collected_examples, indent=2)
@@ -96,7 +98,8 @@ class GenerateQuestionModule(dspy.Module):
         conversation_context: str = "",
         previous_questions: list[str] | None = None,
     ) -> dspy.Prediction:
-        """Asynchronously generate a clarifying question for the given task.
+        """
+        Asynchronously generate a clarifying question for the given task.
 
         Args:
             task_description: The task description to generate questions for.
@@ -106,6 +109,7 @@ class GenerateQuestionModule(dspy.Module):
 
         Returns:
             Prediction with question, question_options, and reasoning.
+
         """
         examples_str = (
             json.dumps(collected_examples, indent=2)
@@ -166,7 +170,8 @@ class DeepUnderstandingModule(dspy.Module):
         previous_questions: list[dict] | None = None,
         questions_asked_count: int = 0,
     ) -> dspy.Prediction:
-        """Process deep understanding of the user's task.
+        """
+        Process deep understanding of the user's task.
 
         Args:
             initial_task: The initial task description from the user.
@@ -180,6 +185,7 @@ class DeepUnderstandingModule(dspy.Module):
             Prediction with next_question, reasoning, research_needed,
             understanding_summary, readiness_score, refined_task_description,
             user_problem, and user_goals.
+
         """
         history_str = (
             json.dumps(conversation_history, indent=2)
@@ -298,7 +304,8 @@ class DeepUnderstandingModule(dspy.Module):
         previous_questions: list[dict] | None = None,
         questions_asked_count: int = 0,
     ) -> dspy.Prediction:
-        """Asynchronously process deep understanding of the user's task.
+        """
+        Asynchronously process deep understanding of the user's task.
 
         Args:
             initial_task: The initial task description from the user.
@@ -312,6 +319,7 @@ class DeepUnderstandingModule(dspy.Module):
             Prediction with next_question, reasoning, research_needed,
             understanding_summary, readiness_score, refined_task_description,
             user_problem, and user_goals.
+
         """
         history_str = (
             json.dumps(conversation_history, indent=2)
@@ -522,6 +530,18 @@ class AssessReadinessModule(dspy.Module):
         examples: list[dict] | str = "",
         questions_asked: int = 0,
     ) -> dspy.Prediction:
+        """
+        Assess readiness for skill creation.
+
+        Args:
+            task_description: The task description to assess.
+            examples: Examples collected so far, as list or JSON string.
+            questions_asked: Number of questions already asked.
+
+        Returns:
+            Prediction with readiness_score, readiness_reasoning, and should_proceed.
+
+        """
         examples_str = json.dumps(examples, indent=2) if isinstance(examples, list) else examples
 
         result = self.assess(
@@ -542,6 +562,18 @@ class AssessReadinessModule(dspy.Module):
         examples: list[dict] | str = "",
         questions_asked: int = 0,
     ) -> dspy.Prediction:
+        """
+        Async version of forward - assess readiness for skill creation.
+
+        Args:
+            task_description: The task description to assess.
+            examples: Examples collected so far, as list or JSON string.
+            questions_asked: Number of questions already asked.
+
+        Returns:
+            Prediction with readiness_score, readiness_reasoning, and should_proceed.
+
+        """
         examples_str = json.dumps(examples, indent=2) if isinstance(examples, list) else examples
 
         result = await self.assess.acall(
@@ -571,6 +603,19 @@ class ConfirmUnderstandingModule(dspy.Module):
         skill_metadata_draft: dict | str,
         collected_examples: list[dict] | str = "",
     ) -> dspy.Prediction:
+        """
+        Generate confirmation message before skill creation.
+
+        Args:
+            task_description: The task description to confirm.
+            taxonomy_path: The taxonomy path for the skill.
+            skill_metadata_draft: Draft metadata for the skill.
+            collected_examples: Examples collected, as list or JSON string.
+
+        Returns:
+            Prediction with confirmation_summary, key_points, and confirmation_question.
+
+        """
         metadata_str = (
             json.dumps(skill_metadata_draft, indent=2)
             if isinstance(skill_metadata_draft, dict)
@@ -610,6 +655,19 @@ class ConfirmUnderstandingModule(dspy.Module):
         skill_metadata_draft: dict | str,
         collected_examples: list[dict] | str = "",
     ) -> dspy.Prediction:
+        """
+        Async version of forward - generate confirmation message before skill creation.
+
+        Args:
+            task_description: The task description to confirm.
+            taxonomy_path: The taxonomy path for the skill.
+            skill_metadata_draft: Draft metadata for the skill.
+            collected_examples: Examples collected, as list or JSON string.
+
+        Returns:
+            Prediction with confirmation_summary, key_points, and confirmation_question.
+
+        """
         metadata_str = (
             json.dumps(skill_metadata_draft, indent=2)
             if isinstance(skill_metadata_draft, dict)
@@ -660,6 +718,23 @@ class UnderstandingSummaryModule(dspy.Module):
         research_context: dict | str = "",
         collected_examples: list[dict] | str = "",
     ) -> dspy.Prediction:
+        """
+        Generate structured understanding summary before creation.
+
+        Args:
+            task_description: The task description to summarize.
+            taxonomy_path: The taxonomy path for the skill.
+            skill_metadata_draft: Draft metadata for the skill.
+            user_problem: Description of the user's problem.
+            user_goals: List of user goals.
+            research_context: Research context as dict or JSON string.
+            collected_examples: Examples collected, as list or JSON string.
+
+        Returns:
+            Prediction with what_was_understood, what_will_be_created,
+            how_it_addresses_task, and alignment_summary.
+
+        """
         metadata_str = (
             json.dumps(skill_metadata_draft, indent=2)
             if isinstance(skill_metadata_draft, dict)
@@ -704,6 +779,23 @@ class UnderstandingSummaryModule(dspy.Module):
         research_context: dict | str = "",
         collected_examples: list[dict] | str = "",
     ) -> dspy.Prediction:
+        """
+        Async version of forward - generate structured understanding summary.
+
+        Args:
+            task_description: The task description to summarize.
+            taxonomy_path: The taxonomy path for the skill.
+            skill_metadata_draft: Draft metadata for the skill.
+            user_problem: Description of the user's problem.
+            user_goals: List of user goals.
+            research_context: Research context as dict or JSON string.
+            collected_examples: Examples collected, as list or JSON string.
+
+        Returns:
+            Prediction with what_was_understood, what_will_be_created,
+            how_it_addresses_task, and alignment_summary.
+
+        """
         metadata_str = (
             json.dumps(skill_metadata_draft, indent=2)
             if isinstance(skill_metadata_draft, dict)

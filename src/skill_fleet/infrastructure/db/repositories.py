@@ -717,6 +717,11 @@ class ConversationSessionRepository:
     """
 
     def __init__(self, db: Session):
+        """Initialize the conversation session repository.
+
+        Args:
+            db: Database session for persistence operations
+        """
         self.db = db
 
     def get_by_id(self, session_id: str | Any) -> ConversationSession | None:

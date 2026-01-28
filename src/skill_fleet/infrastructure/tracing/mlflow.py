@@ -1,4 +1,4 @@
-"""
+r"""
 MLflow integration for skill creation experiment tracking.
 
 Based on: https://dspy.ai/tutorials/math/#mlflow-dspy-integration
@@ -67,7 +67,7 @@ def setup_mlflow_experiment(
     tracking_uri: str = DEFAULT_TRACKING_URI,
 ) -> None:
     """
-    Setup MLflow experiment for skill creation tracking.
+    Set up MLflow experiment for skill creation tracking.
 
     Args:
         experiment_name: Name of the MLflow experiment
@@ -573,7 +573,7 @@ def log_skill_artifacts(
     validation_report: dict[str, Any] | None = None,
     quality_assessment: dict[str, Any] | None = None,
 ) -> None:
-    """
+    r"""
     Log complete skill artifacts to MLflow.
 
     This function logs the full skill content and metadata as artifacts

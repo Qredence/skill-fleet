@@ -19,11 +19,12 @@ Approved LLM Models:
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import dspy
 
-from .....common.dspy_compat import Reasoning
+if TYPE_CHECKING:
+    from .....common.dspy_compat import Reasoning
 
 # =============================================================================
 # Intent Understanding and Multi-Skill Detection

@@ -111,3 +111,7 @@ htmlcov/
 # =============================================================================
 .ipynb_checkpoints
 
+
+# Development/temporary files (not for commit)
+.github/agents/rlm-subcall.md
+.github/skills/

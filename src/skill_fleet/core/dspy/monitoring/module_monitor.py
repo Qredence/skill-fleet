@@ -201,4 +201,11 @@ class ModuleMonitor(dspy.Module):
         return {k: str(v)[:max_len] + "..." if len(str(v)) > max_len else v for k, v in d.items()}
 
     def __repr__(self) -> str:
+        """
+        Return a string representation of the module monitor.
+
+        Returns:
+            String representation.
+
+        """
         return f"ModuleMonitor(name={self.name}, module={self.module.__class__.__name__})"

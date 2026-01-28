@@ -62,6 +62,7 @@ class SignatureVersion:
     hash: str = ""
 
     def __post_init__(self):
+        """Initialize the hash if not provided."""
         if not self.hash:
             self.hash = hashlib.sha256(self.signature_text.encode()).hexdigest()[:12]
 

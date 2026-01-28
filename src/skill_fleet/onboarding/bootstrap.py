@@ -20,12 +20,14 @@ class SkillBootstrapper:
         skill_creator: TaxonomySkillCreator,
         profiles_path: Path,
     ):
-        """Initialize the SkillBootstrapper.
+        """
+        Initialize the SkillBootstrapper.
 
         Args:
             taxonomy_manager: Manager for taxonomy operations
             skill_creator: Creator for generating new skills
             profiles_path: Path to bootstrap profiles configuration file
+
         """
         self.taxonomy = taxonomy_manager
         self.creator = skill_creator

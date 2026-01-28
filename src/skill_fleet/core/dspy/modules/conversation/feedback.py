@@ -86,6 +86,16 @@ class PresentSkillModule(dspy.Module):
         skill_metadata: dict | str,
         validation_report: dict | str,
     ) -> dspy.Prediction:
+        """Async version of forward - present skill for review.
+
+        Args:
+            skill_content: The skill content to present.
+            skill_metadata: Metadata about the skill.
+            validation_report: Validation report for the skill.
+
+        Returns:
+            Prediction with conversational_summary, key_highlights, and suggested_questions.
+        """
         metadata_str = (
             json.dumps(skill_metadata, indent=2)
             if isinstance(skill_metadata, dict)
@@ -141,6 +151,16 @@ class ProcessFeedbackModule(dspy.Module):
         current_skill_content: str,
         validation_errors: list[str] | str = "",
     ) -> dspy.Prediction:
+        """Process user feedback on skill content.
+
+        Args:
+            user_feedback: The feedback provided by the user.
+            current_skill_content: The current skill content being reviewed.
+            validation_errors: Any validation errors to consider.
+
+        Returns:
+            Prediction with feedback_type, revision_plan, and requires_regeneration.
+        """
         errors_str = (
             json.dumps(validation_errors, indent=2)
             if isinstance(validation_errors, list)
@@ -167,6 +187,16 @@ class ProcessFeedbackModule(dspy.Module):
         current_skill_content: str,
         validation_errors: list[str] | str = "",
     ) -> dspy.Prediction:
+        """Async version of forward - process user feedback on skill content.
+
+        Args:
+            user_feedback: The feedback provided by the user.
+            current_skill_content: The current skill content being reviewed.
+            validation_errors: Any validation errors to consider.
+
+        Returns:
+            Prediction with feedback_type, revision_plan, and requires_regeneration.
+        """
         errors_str = (
             json.dumps(validation_errors, indent=2)
             if isinstance(validation_errors, list)

@@ -30,6 +30,16 @@ class SuggestTestsModule(dspy.Module):
         skill_type: str,
         skill_metadata: dict | str,
     ) -> dspy.Prediction:
+        """Suggest test scenarios for a skill.
+
+        Args:
+            skill_content: The skill content to generate tests for.
+            skill_type: The type of skill being tested.
+            skill_metadata: Metadata about the skill.
+
+        Returns:
+            Prediction with test_scenarios, baseline_predictions, and expected_rationalizations.
+        """
         metadata_str = (
             json.dumps(skill_metadata, indent=2)
             if isinstance(skill_metadata, dict)
@@ -82,6 +92,16 @@ class SuggestTestsModule(dspy.Module):
         skill_type: str,
         skill_metadata: dict | str,
     ) -> dspy.Prediction:
+        """Async version of forward - suggest test scenarios for a skill.
+
+        Args:
+            skill_content: The skill content to generate tests for.
+            skill_type: The type of skill being tested.
+            skill_metadata: Metadata about the skill.
+
+        Returns:
+            Prediction with test_scenarios, baseline_predictions, and expected_rationalizations.
+        """
         metadata_str = (
             json.dumps(skill_metadata, indent=2)
             if isinstance(skill_metadata, dict)
@@ -141,6 +161,15 @@ class VerifyTDDModule(dspy.Module):
         skill_content: str,
         checklist_state: dict | str,
     ) -> dspy.Prediction:
+        """Verify TDD checklist completion.
+
+        Args:
+            skill_content: The skill content to verify.
+            checklist_state: Current state of the TDD checklist.
+
+        Returns:
+            Prediction with all_passed, missing_items, and ready_to_save.
+        """
         checklist_str = (
             json.dumps(checklist_state, indent=2)
             if isinstance(checklist_state, dict)
@@ -171,6 +200,15 @@ class VerifyTDDModule(dspy.Module):
         skill_content: str,
         checklist_state: dict | str,
     ) -> dspy.Prediction:
+        """Async version of forward - verify TDD checklist completion.
+
+        Args:
+            skill_content: The skill content to verify.
+            checklist_state: Current state of the TDD checklist.
+
+        Returns:
+            Prediction with all_passed, missing_items, and ready_to_save.
+        """
         checklist_str = (
             json.dumps(checklist_state, indent=2)
             if isinstance(checklist_state, dict)
@@ -210,6 +248,16 @@ class EnhanceSkillModule(dspy.Module):
         missing_sections: list[str],
         skill_metadata: dict | str,
     ) -> dspy.Prediction:
+        """Enhance skill content by adding missing sections.
+
+        Args:
+            skill_content: The current skill content.
+            missing_sections: List of section names to add.
+            skill_metadata: Metadata about the skill.
+
+        Returns:
+            Prediction with enhanced_content, sections_added, and enhancement_notes.
+        """
         metadata_str = (
             json.dumps(skill_metadata, indent=2)
             if isinstance(skill_metadata, dict)
@@ -242,6 +290,16 @@ class EnhanceSkillModule(dspy.Module):
         missing_sections: list[str],
         skill_metadata: dict | str,
     ) -> dspy.Prediction:
+        """Async version of forward - enhance skill content by adding missing sections.
+
+        Args:
+            skill_content: The current skill content.
+            missing_sections: List of section names to add.
+            skill_metadata: Metadata about the skill.
+
+        Returns:
+            Prediction with enhanced_content, sections_added, and enhancement_notes.
+        """
         metadata_str = (
             json.dumps(skill_metadata, indent=2)
             if isinstance(skill_metadata, dict)

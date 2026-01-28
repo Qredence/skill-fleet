@@ -56,6 +56,13 @@ class TaxonomyPath:
     path: str
 
     def __post_init__(self) -> None:
+        """
+        Validate and sanitize the taxonomy path after initialization.
+
+        Raises:
+            ValueError: If the path is empty or contains invalid characters.
+
+        """
         # Validate path format
         if not self.path:
             raise ValueError("Taxonomy path cannot be empty")
@@ -69,6 +76,13 @@ class TaxonomyPath:
         object.__setattr__(self, "path", safe)
 
     def __str__(self) -> str:
+        """
+        Return the string representation of the taxonomy path.
+
+        Returns:
+            The taxonomy path as a string.
+
+        """
         return self.path
 
     def parent(self) -> TaxonomyPath | None:
@@ -93,6 +107,13 @@ class TaxonomyManager:
     _ALWAYS_LOADED_DIRS = ("_core", "mcp_capabilities", "memory_blocks")
 
     def __init__(self, skills_root: Path) -> None:
+        """
+        Initialize the taxonomy manager.
+
+        Args:
+            skills_root: Path to the root directory containing skills.
+
+        """
         # Treat skills_root as configuration input; resolve it once for consistent
         # containment checks and to avoid ambiguous relative path behavior.
         self.skills_root = Path(skills_root).resolve()

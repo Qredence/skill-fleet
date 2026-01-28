@@ -176,6 +176,7 @@ class FileTypeEnum:
 class Skill(Base):
     """
     Primary skills table.
+
     Represents a single skill with its metadata, content, and classification.
     """
 
@@ -210,6 +211,7 @@ class Skill(Base):
             create_constraint=True,
         ),
         nullable=False,
+        default=SkillTypeEnum.COGNITIVE,
     )
     weight: Mapped[str] = mapped_column(
         Enum(
@@ -346,6 +348,13 @@ class Skill(Base):
     )
 
     def __repr__(self) -> str:
+        """
+        Return a string representation of the Skill.
+
+        Returns:
+            A string with skill_id, skill_path, and name.
+
+        """
         return (
             f"<Skill(skill_id={self.skill_id}, skill_path='{self.skill_path}', name='{self.name}')>"
         )
@@ -390,6 +399,13 @@ class TaxonomyCategory(Base):
     )
 
     def __repr__(self) -> str:
+        """
+        Return a string representation of the TaxonomyCategory.
+
+        Returns:
+            A string with category_id and path.
+
+        """
         return f"<TaxonomyCategory(category_id={self.category_id}, path='{self.path}')>"
 
 
@@ -1231,4 +1247,11 @@ class ConversationSession(Base):
     )
 
     def __repr__(self) -> str:
+        """
+        Return a string representation of the ConversationSession.
+
+        Returns:
+            A string with session_id and state.
+
+        """
         return f"<ConversationSession(session_id={self.session_id}, state='{self.state}')>"

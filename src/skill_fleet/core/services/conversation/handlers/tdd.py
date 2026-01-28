@@ -144,9 +144,33 @@ class TDDHandlers:
         )
 
     async def handle_reviewing(self, user_message, session, thinking_callback):
+        """
+        Handle REVIEWING state.
+
+        Args:
+            user_message: The user's input message.
+            session: The current conversation session.
+            thinking_callback: Callback for streaming thinking content.
+
+        Returns:
+            AgentResponse indicating review logic is not fully ported.
+
+        """
         return AgentResponse(message="Review logic not fully ported yet.", state=session.state)
 
     async def handle_revising(self, user_message, session, thinking_callback):
+        """
+        Handle REVISING state.
+
+        Args:
+            user_message: The user's input message.
+            session: The current conversation session.
+            thinking_callback: Callback for streaming thinking content.
+
+        Returns:
+            AgentResponse indicating revision logic is not fully ported.
+
+        """
         return AgentResponse(message="Revision logic not fully ported yet.", state=session.state)
 
     async def create_skill(self, session: ConversationSession, thinking_callback) -> AgentResponse:
@@ -218,6 +242,17 @@ class TDDHandlers:
     async def execute_tdd_red_phase(
         self, session: ConversationSession, thinking_callback
     ) -> AgentResponse:
+        """
+        Execute the TDD RED phase - create test scenarios and baseline predictions.
+
+        Args:
+            session: The current conversation session containing the skill draft.
+            thinking_callback: Callback for streaming thinking content.
+
+        Returns:
+            AgentResponse with RED phase results and transition to GREEN phase.
+
+        """
         if session.skill_draft is None:
             return AgentResponse(
                 message="Error: No skill draft found.",
@@ -256,6 +291,17 @@ class TDDHandlers:
     async def execute_tdd_green_phase(
         self, session: ConversationSession, thinking_callback
     ) -> AgentResponse:
+        """
+        Execute the TDD GREEN phase - verify skill compliance and address failures.
+
+        Args:
+            session: The current conversation session.
+            thinking_callback: Callback for streaming thinking content.
+
+        Returns:
+            AgentResponse with GREEN phase results and transition to REFACTOR phase.
+
+        """
         session.checklist_state.green_tests_run = True
         session.checklist_state.compliance_verified = True
         session.checklist_state.baseline_failures_addressed = True
@@ -271,6 +317,18 @@ class TDDHandlers:
     async def execute_tdd_refactor_phase(
         self, session: ConversationSession, add_counters: bool, thinking_callback
     ) -> AgentResponse:
+        """
+        Execute the TDD REFACTOR phase - add counters and verify rationalizations.
+
+        Args:
+            session: The current conversation session.
+            add_counters: Whether to add explicit counter-arguments to the skill.
+            thinking_callback: Callback for streaming thinking content.
+
+        Returns:
+            AgentResponse with REFACTOR phase results or transition to checklist verification.
+
+        """
         if not session.checklist_state.new_rationalizations_identified:
             session.checklist_state.new_rationalizations_identified = True
             return AgentResponse(
@@ -303,6 +361,20 @@ class TDDHandlers:
     async def verify_checklist_complete(
         self, session: ConversationSession, thinking_callback
     ) -> AgentResponse:
+        """
+        Verify that all TDD checklist items are complete.
+
+        Auto-enhances the skill content if quality sections are missing,
+        then verifies the complete checklist state.
+
+        Args:
+            session: The current conversation session containing the skill draft.
+            thinking_callback: Callback for streaming thinking content.
+
+        Returns:
+            AgentResponse indicating checklist completion status and next steps.
+
+        """
         if session.skill_draft is None:
             return AgentResponse(
                 message="Error: No skill draft found.",
@@ -381,6 +453,16 @@ class TDDHandlers:
             )
 
     async def save_skill(self, session: ConversationSession) -> AgentResponse:
+        """
+        Save the completed skill to the taxonomy.
+
+        Args:
+            session: The current conversation session containing the skill draft.
+
+        Returns:
+            AgentResponse indicating success or failure of the save operation.
+
+        """
         if session.skill_draft is None:
             return AgentResponse(
                 message="Error: No skill draft found.",

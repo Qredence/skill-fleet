@@ -341,9 +341,30 @@ class SkillMetadata(BaseModel):
 
     # Allow dict-like access for deprecated code using .get()
     def get(self, key: str, default: Any = None) -> Any:
+        """
+        Get attribute by key with optional default.
+
+        Args:
+            key: Attribute name to retrieve.
+            default: Default value if attribute not found.
+
+        Returns:
+            The attribute value or default.
+
+        """
         return getattr(self, key, default)
 
     def __getitem__(self, key: str) -> Any:
+        """
+        Enable dict-like access to attributes.
+
+        Args:
+            key: Attribute name to retrieve.
+
+        Returns:
+            The attribute value.
+
+        """
         return getattr(self, key)
 
 
@@ -555,9 +576,30 @@ class ValidationReport(BaseModel):
 
     # Allow dict-like access for deprecated code using .get()
     def get(self, key: str, default: Any = None) -> Any:
+        """
+        Get attribute by key with optional default.
+
+        Args:
+            key: Attribute name to retrieve.
+            default: Default value if attribute not found.
+
+        Returns:
+            The attribute value or default.
+
+        """
         return getattr(self, key, default)
 
     def __getitem__(self, key: str) -> Any:
+        """
+        Enable dict-like access to attributes.
+
+        Args:
+            key: Attribute name to retrieve.
+
+        Returns:
+            The attribute value.
+
+        """
         return getattr(self, key)
 
 

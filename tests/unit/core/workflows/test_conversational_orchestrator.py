@@ -91,7 +91,7 @@ def test_conversation_context_to_dict() -> None:
     """Test converting conversation context to dictionary."""
     context = ConversationContext(
         conversation_id="test123",
-        state=ConversationState.CLARIFYING,
+        state=ConversationState.EXPLORING,
         messages=[
             ConversationMessage(role="user", content="Test"),
         ],
@@ -100,16 +100,16 @@ def test_conversation_context_to_dict() -> None:
     context_dict = context.to_dict()
     assert isinstance(context_dict, dict)
     assert context_dict["conversation_id"] == "test123"
-    assert context_dict["state"] == "clarifying"
+    assert context_dict["state"] == "EXPLORING"
     assert len(context_dict["messages"]) == 1
 
 
 def test_conversation_state_enum() -> None:
     """Test ConversationState enum values."""
-    assert ConversationState.INITIALIZING.value == "initializing"
-    assert ConversationState.INTERPRETING_INTENT.value == "interpreting_intent"
-    assert ConversationState.CLARIFYING.value == "clarifying"
-    assert ConversationState.COMPLETED.value == "completed"
+    assert ConversationState.EXPLORING.value == "EXPLORING"
+    assert ConversationState.DEEP_UNDERSTANDING.value == "DEEP_UNDERSTANDING"
+    assert ConversationState.CONFIRMING.value == "CONFIRMING"
+    assert ConversationState.COMPLETE.value == "COMPLETE"
 
 
 def test_intent_type_enum() -> None:
@@ -154,7 +154,7 @@ def test_conversation_context_defaults() -> None:
         conversation_id="test",
     )
 
-    assert context.state == ConversationState.INITIALIZING
+    assert context.state == ConversationState.EXPLORING
     assert context.messages == []
     assert context.collected_examples == []
     assert context.current_understanding == ""

@@ -9,7 +9,7 @@ from unittest.mock import patch
 import dspy
 import pytest
 
-from skill_fleet.llm.dspy_config import configure_dspy
+from skill_fleet.core.dspy import configure_dspy
 
 
 @pytest.fixture(autouse=True)
@@ -30,9 +30,9 @@ def test_configure_dspy_sets_adapter_from_config(monkeypatch: pytest.MonkeyPatch
     lm = dspy.LM("test", model_type="chat")
 
     with (
-        patch("skill_fleet.llm.dspy_config.load_fleet_config", return_value=config),
+        patch("skill_fleet.core.dspy.lm_config.load_fleet_config", return_value=config),
         patch(
-            "skill_fleet.llm.dspy_config.build_lm_for_task",
+            "skill_fleet.core.dspy.lm_config.build_lm_for_task",
             return_value=lm,
         ),
     ):
@@ -49,9 +49,9 @@ def test_configure_dspy_sets_chat_adapter(monkeypatch: pytest.MonkeyPatch) -> No
     lm = dspy.LM("test", model_type="chat")
 
     with (
-        patch("skill_fleet.llm.dspy_config.load_fleet_config", return_value=config),
+        patch("skill_fleet.core.dspy.lm_config.load_fleet_config", return_value=config),
         patch(
-            "skill_fleet.llm.dspy_config.build_lm_for_task",
+            "skill_fleet.core.dspy.lm_config.build_lm_for_task",
             return_value=lm,
         ),
     ):
@@ -68,9 +68,9 @@ def test_configure_dspy_sets_two_step_adapter(monkeypatch: pytest.MonkeyPatch) -
     lm = dspy.LM("test", model_type="chat")
 
     with (
-        patch("skill_fleet.llm.dspy_config.load_fleet_config", return_value=config),
+        patch("skill_fleet.core.dspy.lm_config.load_fleet_config", return_value=config),
         patch(
-            "skill_fleet.llm.dspy_config.build_lm_for_task",
+            "skill_fleet.core.dspy.lm_config.build_lm_for_task",
             return_value=lm,
         ),
     ):
@@ -87,9 +87,9 @@ def test_configure_dspy_env_override(monkeypatch: pytest.MonkeyPatch) -> None:
     lm = dspy.LM("test", model_type="chat")
 
     with (
-        patch("skill_fleet.llm.dspy_config.load_fleet_config", return_value=config),
+        patch("skill_fleet.core.dspy.lm_config.load_fleet_config", return_value=config),
         patch(
-            "skill_fleet.llm.dspy_config.build_lm_for_task",
+            "skill_fleet.core.dspy.lm_config.build_lm_for_task",
             return_value=lm,
         ),
     ):

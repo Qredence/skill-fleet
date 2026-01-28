@@ -8,7 +8,7 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
-from skill_fleet.app.factory import get_app
+from skill_fleet.api.factory import get_app
 
 # ============================================================================
 # Constants
@@ -78,7 +78,8 @@ class TestSkillsCreateEndpoint:
         - Response includes 'status' field with value 'accepted'
         """
         from unittest.mock import AsyncMock, MagicMock
-        from skill_fleet.app.dependencies import get_skill_service
+
+        from skill_fleet.api.dependencies import get_skill_service
         from skill_fleet.core.models import SkillCreationResult, SkillMetadata
 
         # Mock the service

@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch  # noqa: F401
 
 import pytest
 
-from skill_fleet.llm.fleet_config import (
+from skill_fleet.core.dspy.fleet_config import (
     FleetConfigError,
     TaskLMResolution,
     _get_env_value,
@@ -367,7 +367,7 @@ class TestBuildLmForTask:
         }
 
         with patch.dict(os.environ, {"GOOGLE_API_KEY": "test"}, clear=True):
-            with patch("skill_fleet.llm.fleet_config.dspy.LM") as mock_lm:
+            with patch("skill_fleet.core.dspy.fleet_config.dspy.LM") as mock_lm:
                 mock_lm.return_value = MagicMock()
                 build_lm_for_task(config, "skill_understand")
 

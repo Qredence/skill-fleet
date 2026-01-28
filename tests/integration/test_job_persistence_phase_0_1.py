@@ -13,8 +13,8 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from skill_fleet.app.schemas.models import JobState
-from skill_fleet.app.services.job_manager import JobManager
+from skill_fleet.api.schemas.models import JobState
+from skill_fleet.api.services.job_manager import JobManager
 
 
 class TestJobPersistenceLifecycle:
@@ -328,7 +328,7 @@ class TestJobManagerGlobalInstance:
 
     def test_global_manager_singleton(self):
         """Test that get_job_manager returns same instance."""
-        from skill_fleet.app.services.job_manager import get_job_manager
+        from skill_fleet.api.services.job_manager import get_job_manager
 
         mgr1 = get_job_manager()
         mgr2 = get_job_manager()

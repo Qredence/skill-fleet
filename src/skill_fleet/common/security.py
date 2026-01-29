@@ -73,7 +73,7 @@ def sanitize_relative_file_path(path: str) -> str | None:
     - Is not empty
     - Is not absolute
     - Does not contain Windows-style separators
-    - Contains only safe path components (alphanumeric, dot, hyphen, underscore)
+    - Contains only safe path components (alphanumeric, hyphen, underscore)
     - Does not contain "." or ".." components
 
     This is intended for user-controlled paths that are later joined onto a fixed
@@ -86,7 +86,7 @@ def sanitize_relative_file_path(path: str) -> str | None:
     if path.startswith("/") or "\\" in path or ".." in path:
         return None
 
-    segments = []
+    segments: list[str] = []
     for segment in path.split("/"):
         s = segment.strip()
         if not s or s == ".":
@@ -116,14 +116,18 @@ def resolve_path_within_root(root: Path, relative_path: str) -> Path:
 
     # Security: resolve root and enforce containment before using candidate
     root_resolved = root.resolve()
+    root_real = os.path.realpath(os.fspath(root_resolved))
+
     candidate = root_resolved.joinpath(sanitized)
-    # Verify containment BEFORE resolving the candidate to prevent traversal
-    root_str = os.fspath(root_resolved)
-    candidate_str = os.fspath(candidate)
-    if os.path.commonpath([root_str, candidate_str]) != root_str:
+    # Normalize candidate path (follow symlinks, collapse ".." etc.)
+    candidate_str = os.path.realpath(os.fspath(candidate))
+
+    # Verify that the normalized candidate is contained within the normalized root
+    if os.path.commonpath([root_real, candidate_str]) != root_real:
         raise ValueError(f"Path escapes root: {candidate_str}")
-    # Now safe to resolve (containment already verified)
-    return candidate.resolve(strict=False)
+
+    # Now safe to use the normalized candidate path
+    return Path(candidate_str)
 
 
 def is_safe_path_component(component: str) -> bool:
@@ -135,7 +139,7 @@ def is_safe_path_component(component: str) -> bool:
     - Does not contain path separators (/ or \\)
     - Does not contain null bytes
     - Is not "." or ".."
-    - Contains only alphanumeric characters, dots, hyphens, and underscores
+    - Contains only alphanumeric characters, hyphens, and underscores
 
     Args:
         component: A single path component (filename or directory name)
@@ -144,7 +148,7 @@ def is_safe_path_component(component: str) -> bool:
         True if the component is safe, False otherwise
 
     Examples:
-        >>> is_safe_path_component("valid_name.py")
+        >>> is_safe_path_component("valid_name")
         True
         >>> is_safe_path_component("..")
         False
@@ -167,8 +171,8 @@ def is_safe_path_component(component: str) -> bool:
     if ".." in component:
         return False
 
-    # Allow alphanumeric, dot, hyphen, underscore
-    return all(c.isalnum() or c in "._-" for c in component)
+    # Allow alphanumeric, hyphen, underscore
+    return all(c.isalnum() or c in "-_" for c in component)
 
 
 def resolve_skill_md_path(skills_root: Path, taxonomy_path: str) -> Path:

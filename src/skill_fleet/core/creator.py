@@ -9,17 +9,19 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import dspy
 
 from ..common.utils import json_serialize
-from ..taxonomy.manager import TaxonomyManager
 from ..validators.skill_validator import SkillValidator
 from .dspy.modules import IterateModule
 from .dspy.programs import LegacySkillCreationProgram, SkillRevisionProgram
 from .hitl import FeedbackHandler, create_feedback_handler
-from .optimization import WorkflowOptimizer
+
+if TYPE_CHECKING:
+    from ..taxonomy.manager import TaxonomyManager
+    from .optimization import WorkflowOptimizer
 
 logger = logging.getLogger(__name__)
 

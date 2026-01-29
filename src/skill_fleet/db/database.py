@@ -136,9 +136,7 @@ async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
 
 @contextmanager
 def get_db_context_manager() -> SyncGenerator[Session, None, None]:
-    """
-    Alias for get_db_context() for backward compatibility.
-    """
+    """Alias for get_db_context() for backward compatibility."""
     with get_db_context() as db:
         yield db
 

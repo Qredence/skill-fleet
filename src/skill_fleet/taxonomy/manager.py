@@ -483,9 +483,8 @@ class TaxonomyManager:
             metadata["capabilities"] = []
         if not isinstance(metadata.get("tags"), list):
             metadata["tags"] = []
-        if not metadata.get("category"):
-            if "/" in path:
-                metadata["category"] = "/".join(path.split("/")[:-1])
+        if not metadata.get("category") and "/" in path:
+            metadata["category"] = "/".join(path.split("/")[:-1])
 
         # Generate agentskills.io compliant name
         name = metadata.get("name") or skill_id_to_name(skill_id)

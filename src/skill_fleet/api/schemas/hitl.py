@@ -90,7 +90,7 @@ def normalize_questions(questions: Any) -> list[StructuredQuestion]:
 
 
 def _normalize_string_questions(text: str) -> list[StructuredQuestion]:
-    """
+    r"""
     Split a string that may contain numbered questions into individual questions.
 
     Handles formats like:

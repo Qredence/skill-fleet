@@ -1,5 +1,5 @@
 """
-Skills-Fleet Database Models
+Skills-Fleet Database Models.
 
 SQLAlchemy models for the skills fleet database schema.
 These models map to the PostgreSQL tables defined in migrations/001_init_skills_schema.sql
@@ -339,9 +339,7 @@ class Skill(Base):
 
 
 class TaxonomyCategory(Base):
-    """
-    Hierarchical category organization for skills.
-    """
+    """Hierarchical category organization for skills."""
 
     __tablename__ = "taxonomy_categories"
 
@@ -378,9 +376,7 @@ class TaxonomyCategory(Base):
 
 
 class TaxonomyClosure(Base):
-    """
-    Closure table for efficient tree queries on taxonomy.
-    """
+    """Closure table for efficient tree queries on taxonomy."""
 
     __tablename__ = "taxonomy_closure"
 
@@ -400,9 +396,7 @@ class TaxonomyClosure(Base):
 
 
 class SkillCategory(Base):
-    """
-    Many-to-many relationship between skills and categories.
-    """
+    """Many-to-many relationship between skills and categories."""
 
     __tablename__ = "skill_categories"
 
@@ -429,9 +423,7 @@ class SkillCategory(Base):
 
 
 class SkillAlias(Base):
-    """
-    Legacy path support for skills.
-    """
+    """Legacy path support for skills."""
 
     __tablename__ = "skill_aliases"
 
@@ -458,9 +450,7 @@ class SkillAlias(Base):
 
 
 class SkillFacet(Base):
-    """
-    Multi-dimensional filtering for skills.
-    """
+    """Multi-dimensional filtering for skills."""
 
     __tablename__ = "skill_facets"
 
@@ -483,9 +473,7 @@ class SkillFacet(Base):
 
 
 class FacetDefinition(Base):
-    """
-    Facet lookup table for validation.
-    """
+    """Facet lookup table for validation."""
 
     __tablename__ = "facet_definitions"
 
@@ -503,9 +491,7 @@ class FacetDefinition(Base):
 
 
 class Capability(Base):
-    """
-    What skills can do - discrete capabilities.
-    """
+    """What skills can do - discrete capabilities."""
 
     __tablename__ = "capabilities"
 
@@ -531,9 +517,7 @@ class Capability(Base):
 
 
 class SkillDependency(Base):
-    """
-    Skill dependency graph.
-    """
+    """Skill dependency graph."""
 
     __tablename__ = "skill_dependencies"
 
@@ -576,9 +560,7 @@ class SkillDependency(Base):
 
 
 class DependencyClosure(Base):
-    """
-    Closure table for dependency graph traversal.
-    """
+    """Closure table for dependency graph traversal."""
 
     __tablename__ = "dependency_closure"
 
@@ -598,9 +580,7 @@ class DependencyClosure(Base):
 
 
 class SkillReference(Base):
-    """
-    Cross-references between skills (see also).
-    """
+    """Cross-references between skills (see also)."""
 
     __tablename__ = "skill_references"
 
@@ -628,9 +608,7 @@ class SkillReference(Base):
 
 
 class SkillKeyword(Base):
-    """
-    Search terms for skills.
-    """
+    """Search terms for skills."""
 
     __tablename__ = "skill_keywords"
 
@@ -653,9 +631,7 @@ class SkillKeyword(Base):
 
 
 class SkillTag(Base):
-    """
-    User-defined tags for skills.
-    """
+    """User-defined tags for skills."""
 
     __tablename__ = "skill_tags"
 
@@ -677,9 +653,7 @@ class SkillTag(Base):
 
 
 class TagStats(Base):
-    """
-    Tag popularity tracking.
-    """
+    """Tag popularity tracking."""
 
     __tablename__ = "tag_stats"
 
@@ -697,9 +671,7 @@ class TagStats(Base):
 
 
 class SkillFile(Base):
-    """
-    Associated files and resources for skills.
-    """
+    """Associated files and resources for skills."""
 
     __tablename__ = "skill_files"
 
@@ -747,9 +719,7 @@ class SkillFile(Base):
 
 
 class SkillAllowedTool(Base):
-    """
-    Tools a skill is allowed to use.
-    """
+    """Tools a skill is allowed to use."""
 
     __tablename__ = "skill_allowed_tools"
 
@@ -778,9 +748,7 @@ class SkillAllowedTool(Base):
 
 
 class Job(Base):
-    """
-    Background job tracking.
-    """
+    """Background job tracking."""
 
     __tablename__ = "jobs"
 
@@ -852,9 +820,7 @@ class Job(Base):
 
 
 class HITLInteraction(Base):
-    """
-    Human-in-the-Loop interaction tracking.
-    """
+    """Human-in-the-Loop interaction tracking."""
 
     __tablename__ = "hitl_interactions"
 
@@ -900,9 +866,7 @@ class HITLInteraction(Base):
 
 
 class DeepUnderstandingState(Base):
-    """
-    Extended HITL tracking for deep understanding phase.
-    """
+    """Extended HITL tracking for deep understanding phase."""
 
     __tablename__ = "deep_understanding_state"
 
@@ -927,9 +891,7 @@ class DeepUnderstandingState(Base):
 
 
 class TDDWorkflowState(Base):
-    """
-    Test-driven development workflow tracking.
-    """
+    """Test-driven development workflow tracking."""
 
     __tablename__ = "tdd_workflow_state"
 
@@ -958,9 +920,7 @@ class TDDWorkflowState(Base):
 
 
 class ValidationReport(Base):
-    """
-    Skill validation results.
-    """
+    """Skill validation results."""
 
     __tablename__ = "validation_reports"
 
@@ -1008,9 +968,7 @@ class ValidationReport(Base):
 
 
 class ValidationCheck(Base):
-    """
-    Individual validation check items.
-    """
+    """Individual validation check items."""
 
     __tablename__ = "validation_checks"
 
@@ -1049,9 +1007,7 @@ class ValidationCheck(Base):
 
 
 class SkillTestCoverage(Base):
-    """
-    Test coverage tracking for skills.
-    """
+    """Test coverage tracking for skills."""
 
     __tablename__ = "skill_test_coverage"
 
@@ -1087,9 +1043,7 @@ class SkillTestCoverage(Base):
 
 
 class UsageEvent(Base):
-    """
-    Skill usage tracking events.
-    """
+    """Skill usage tracking events."""
 
     __tablename__ = "usage_events"
 
@@ -1119,9 +1073,7 @@ class UsageEvent(Base):
 
 
 class OptimizationJob(Base):
-    """
-    DSPy optimization job tracking.
-    """
+    """DSPy optimization job tracking."""
 
     __tablename__ = "optimization_jobs"
 

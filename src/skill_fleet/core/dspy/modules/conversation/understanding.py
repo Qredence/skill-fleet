@@ -23,9 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 class GenerateQuestionModule(dspy.Module):
-    """
-    Module for generating contextual clarifying questions using MultiChainComparison.
-    """
+    """Module for generating contextual clarifying questions using MultiChainComparison."""
 
     def __init__(self, n_candidates: int = 3):
         super().__init__()
@@ -82,9 +80,7 @@ class GenerateQuestionModule(dspy.Module):
 
 
 class DeepUnderstandingModule(dspy.Module):
-    """
-    Module for deep understanding using MultiChainComparison.
-    """
+    """Module for deep understanding using MultiChainComparison."""
 
     def __init__(self, n_candidates: int = 3):
         super().__init__()
@@ -324,9 +320,7 @@ class AssessReadinessModule(dspy.Module):
 
 
 class ConfirmUnderstandingModule(dspy.Module):
-    """
-    Module for generating confirmation message before skill creation.
-    """
+    """Module for generating confirmation message before skill creation."""
 
     def __init__(self):
         super().__init__()
@@ -373,9 +367,7 @@ class ConfirmUnderstandingModule(dspy.Module):
 
 
 class UnderstandingSummaryModule(dspy.Module):
-    """
-    Module for generating structured understanding summary before creation.
-    """
+    """Module for generating structured understanding summary before creation."""
 
     def __init__(self):
         super().__init__()

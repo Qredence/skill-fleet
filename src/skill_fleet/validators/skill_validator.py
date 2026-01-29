@@ -534,9 +534,8 @@ class SkillValidator:
             if len(compat) > 500:
                 warnings.append(f"Compatibility field exceeds 500 characters ({len(compat)})")
 
-        if "metadata" in frontmatter:
-            if not isinstance(frontmatter["metadata"], dict):
-                warnings.append("metadata field should be a key-value mapping")
+        if "metadata" in frontmatter and not isinstance(frontmatter["metadata"], dict):
+            warnings.append("metadata field should be a key-value mapping")
 
         return ValidationResult(len(errors) == 0, errors, warnings)
 
@@ -923,9 +922,7 @@ class SkillValidator:
             return False
         if weight == "medium" and (cap_count < 3 or cap_count > 10):
             return False
-        if weight == "heavyweight" and cap_count < 8:
-            return False
-        return True
+        return not (weight == "heavyweight" and cap_count < 8)
 
     def _is_safe_path_component(self, component: str) -> bool:
         """

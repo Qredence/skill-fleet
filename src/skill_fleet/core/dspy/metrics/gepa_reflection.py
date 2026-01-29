@@ -23,9 +23,10 @@ Returns:
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import dspy
+if TYPE_CHECKING:
+    import dspy
 
 
 def gepa_skill_quality_metric(

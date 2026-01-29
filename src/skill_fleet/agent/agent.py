@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import dspy
 
@@ -24,7 +24,6 @@ from ..common.streaming import create_streaming_module, process_stream_sync
 from ..core.dspy.programs import LegacySkillCreationProgram, SkillRevisionProgram
 from ..core.models import ChecklistState
 from ..core.tools import filesystem_research, web_search_research
-from ..taxonomy.manager import TaxonomyManager
 from .modules import (
     AssessReadinessModule,
     ConfirmUnderstandingModule,
@@ -38,6 +37,9 @@ from .modules import (
     UnderstandingSummaryModule,
     VerifyTDDModule,
 )
+
+if TYPE_CHECKING:
+    from ..taxonomy.manager import TaxonomyManager
 
 logger = logging.getLogger(__name__)
 

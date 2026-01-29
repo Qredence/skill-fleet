@@ -1,5 +1,5 @@
 """
-Skills-Fleet Database Repositories
+Skills-Fleet Database Repositories.
 
 Repository layer for common CRUD operations on skills fleet entities.
 """
@@ -31,9 +31,7 @@ ModelType = TypeVar("ModelType", bound=Any)
 
 
 class BaseRepository(Generic[ModelType]):  # noqa: UP046
-    """
-    Base repository with common CRUD operations.
-    """
+    """Base repository with common CRUD operations."""
 
     def __init__(self, model: type[ModelType], db: Session):
         self.model = model

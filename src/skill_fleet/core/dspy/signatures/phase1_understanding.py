@@ -14,14 +14,11 @@ All signatures use Pydantic models for type safety.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 
 import dspy
 
 from ...models import DependencyAnalysis, DependencyRef, SkillMetadata, TaskIntent
-
-if TYPE_CHECKING:
-    pass
 
 # =============================================================================
 # Type Definitions for Constrained Outputs

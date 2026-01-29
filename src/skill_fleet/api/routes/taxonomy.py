@@ -90,10 +90,7 @@ def _recurse_index_tree(tree_data: dict[str, Any], parent_path: str) -> list[Tax
     nodes = []
     for slug, node in tree_data.items():
         # Support both Pydantic model and dict access
-        if hasattr(node, "children"):
-            children = node.children
-        else:
-            children = node.get("children", {})
+        children = node.children if hasattr(node, "children") else node.get("children", {})
 
         current_path = f"{parent_path}.{slug}" if parent_path else slug
         children_nodes = _recurse_index_tree(children, current_path)

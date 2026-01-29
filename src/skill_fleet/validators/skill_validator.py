@@ -125,13 +125,18 @@ class SkillValidator:
         if candidate.is_symlink():
             return None, f"{label} must not be a symlink"
 
+        # Security: verify containment BEFORE resolving to satisfy static analysis
+        base_str = os.fspath(base_dir_resolved)
+        candidate_str = os.fspath(candidate)
+        if os.path.commonpath([base_str, candidate_str]) != base_str:
+            return None, f"{label} path not allowed"
+
         try:
             resolved = candidate.resolve(strict=True)
         except FileNotFoundError:
             return None, f"{label} not found"
 
-        # Explicit containment checks recognized by static analyzers
-        base_str = os.fspath(base_dir_resolved)
+        # Final containment check after resolution (defense in depth)
         resolved_str = os.fspath(resolved)
         if os.path.commonpath([base_str, resolved_str]) != base_str:
             return None, f"{label} path not allowed"

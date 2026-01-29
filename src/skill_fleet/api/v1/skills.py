@@ -234,10 +234,11 @@ async def validate_skill(
     workflow = ValidationWorkflow()
 
     try:
+        taxonomy_path = metadata.get("taxonomy_path") or "general"
         result = await workflow.execute(
             skill_content=content,
             plan={"skill_metadata": metadata},
-            enable_auto_refinement=False,  # Just validate, don't refine
+            taxonomy_path=taxonomy_path,
         )
 
         validation_report = result.get("validation_report", {})
@@ -309,14 +310,11 @@ async def refine_skill(
 
     try:
         # Run validation with feedback (which triggers refinement in the workflow)
-        plan = {
-            "skill_metadata": metadata,
-            "enable_auto_refinement": True,
-        }
+        taxonomy_path = metadata.get("taxonomy_path") or "general"
         result = await workflow.execute(
             skill_content=content,
-            plan=plan,
-            user_feedback=request.feedback,
+            plan={"skill_metadata": metadata},
+            taxonomy_path=taxonomy_path,
         )
 
         # Check if refinement was successful

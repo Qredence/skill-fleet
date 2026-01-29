@@ -35,12 +35,22 @@ logger = logging.getLogger(__name__)
 
 
 def _sanitize_for_log(value: str) -> str:
-    """
-    Remove characters that could be used for log injection (e.g., newlines).
-    """
+    """Remove characters that could be used for log injection (e.g., newlines, control chars, ANSI escapes)."""
     if not isinstance(value, str):
         return value
-    return value.replace("\r", "").replace("\n", "")
+    # Remove all control characters except tab (0x09) and keep printable ASCII and valid Unicode
+    # Also remove null bytes and other potentially problematic characters
+    import re
+
+    # Remove ANSI escape sequences
+    value = re.sub(r"\x1b\[[0-9;]*m", "", value)
+
+    # Remove control characters (0x00-0x1f except \t, and 0x7f)
+    value = "".join(
+        char for char in value if (ord(char) >= 32 or char == "\t") and ord(char) != 127
+    )
+
+    return value
 
 
 router = APIRouter()
@@ -148,7 +158,8 @@ async def update_taxonomy(
             except Exception as update_err:
                 errors.append(f"Failed to update {path}: {update_err}")
                 safe_path = _sanitize_for_log(path)
-                logger.warning(f"Taxonomy update failed for {safe_path}: {update_err}")
+                safe_err = _sanitize_for_log(str(update_err))
+                logger.warning(f"Taxonomy update failed for {safe_path}: {safe_err}")
 
         # Update taxonomy meta timestamp
         meta_path = taxonomy_manager.skills_root / "taxonomy_meta.json"
@@ -162,8 +173,9 @@ async def update_taxonomy(
             except Exception as meta_err:
                 logger.warning(f"Failed to update taxonomy_meta.json: {meta_err}")
 
+        safe_user_id = _sanitize_for_log(request.user_id)
         logger.info(
-            f"Taxonomy update by user {request.user_id}: "
+            f"Taxonomy update by user {safe_user_id}: "
             f"{len(updates_applied)} applied, {len(errors)} errors"
         )
 

@@ -114,16 +114,16 @@ def resolve_path_within_root(root: Path, relative_path: str) -> Path:
     if not sanitized:
         raise ValueError("Invalid relative path")
 
+    # Security: resolve root and enforce containment before using candidate
     root_resolved = root.resolve()
-    candidate = root_resolved.joinpath(sanitized).resolve(strict=False)
-
-    # Use os.path.commonpath for maximum robustness against CodeQL false positives.
+    candidate = root_resolved.joinpath(sanitized)
+    # Verify containment BEFORE resolving the candidate to prevent traversal
     root_str = os.fspath(root_resolved)
     candidate_str = os.fspath(candidate)
     if os.path.commonpath([root_str, candidate_str]) != root_str:
         raise ValueError(f"Path escapes root: {candidate_str}")
-
-    return candidate
+    # Now safe to resolve (containment already verified)
+    return candidate.resolve(strict=False)
 
 
 def is_safe_path_component(component: str) -> bool:

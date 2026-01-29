@@ -102,7 +102,7 @@ async def validate(
         result = await workflow.execute(
             skill_content=content,
             plan={"skill_metadata": metadata},
-            enable_auto_refinement=False,  # Just validate, don't refine
+            taxonomy_path=metadata.get("taxonomy_path", ""),
         )
 
         # Extract validation report
@@ -174,7 +174,7 @@ async def assess_quality(
         result = await workflow.execute(
             skill_content=content,
             plan={"skill_metadata": metadata},
-            enable_auto_refinement=False,
+            taxonomy_path=metadata.get("taxonomy_path", ""),
         )
 
         # Extract quality assessment
@@ -259,8 +259,7 @@ async def auto_fix(
         result = await workflow.execute(
             skill_content=content,
             plan={"skill_metadata": metadata},
-            enable_auto_refinement=True,
-            user_feedback=user_feedback,
+            taxonomy_path=metadata.get("taxonomy_path", ""),
         )
 
         # Extract refined content

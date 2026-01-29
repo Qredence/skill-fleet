@@ -139,10 +139,10 @@ class SkillService:
         taxonomy_structure = self.taxonomy_manager.get_relevant_branches(request.task_description)
         mounted_skills = self.taxonomy_manager.get_mounted_skills(request.user_id)
 
-        # Initialize workflows
-        understanding_workflow = UnderstandingWorkflow()
-        generation_workflow = GenerationWorkflow()
-        validation_workflow = ValidationWorkflow()
+        # Use workflows initialized in __init__
+        understanding_workflow = self.understanding_workflow
+        generation_workflow = self.generation_workflow
+        validation_workflow = self.validation_workflow
 
         # Start MLflow parent run for hierarchical tracking
         parent_run_id = None

@@ -35,13 +35,26 @@ def _sanitize_for_log(value: Any) -> str:
     Make a string safe for single-line log messages by removing line breaks.
 
     This helps prevent log injection via user-controlled values that may
-    contain newline characters.
+    contain newline characters. Also masks potential secrets.
     """
     if value is None:
         return ""
     text = str(value)
     # Replace CR and LF characters with spaces to preserve readability
-    return text.replace("\r", " ").replace("\n", " ")
+    text = text.replace("\r", " ").replace("\n", " ")
+    # Mask potential secrets (API keys, tokens, passwords)
+    import re
+
+    text = re.sub(
+        r"(api[_-]?key|token|password|secret|auth)[\s]*[=:]\s*\S+",
+        r"\1=***",
+        text,
+        flags=re.IGNORECASE,
+    )
+    # Truncate very long values
+    if len(text) > 500:
+        text = text[:497] + "..."
+    return text
 
 
 logger = logging.getLogger(__name__)

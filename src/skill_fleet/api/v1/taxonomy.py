@@ -19,6 +19,8 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Path
 
+from skill_fleet.common.security import sanitize_taxonomy_path
+
 from ..dependencies import TaxonomyManagerDep
 from ..schemas.taxonomy import (
     AdaptTaxonomyRequest,
@@ -111,7 +113,12 @@ async def update_taxonomy(
                     target_dir = taxonomy_manager.skills_root / resolved_path
                 except FileNotFoundError:
                     # Path doesn't exist - might be a new category
-                    target_dir = taxonomy_manager.skills_root / path
+                    # Validate path before using it
+                    safe_path = sanitize_taxonomy_path(path)
+                    if not safe_path:
+                        errors.append(f"Invalid path (security check failed): {path}")
+                        continue
+                    target_dir = taxonomy_manager.skills_root / safe_path
                     target_dir.mkdir(parents=True, exist_ok=True)
 
                 # Update metadata if provided

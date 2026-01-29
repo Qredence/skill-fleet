@@ -3,9 +3,9 @@
 ## 1. Purpose & Architecture
 
 Skill Fleet combines:
-- **FastAPI** for API endpoints that orchestrate DSPy workflows (`/api/v2/skills`, `/api/v2/hitl`, `/api/v2/taxonomy`, `/api/v2/validation`).
-- **DSPy programs** (`src/skill_fleet/core/programs/skill_creator.py`) implementing the three-phase skill creation pipeline with HITL callbacks.
-- **Typer CLI** wrapping the API (`src/skill_fleet/cli/`) and the optional interactive agent (`src/skill_fleet/agent/` + `cli/interactive_cli.py`).
+- **FastAPI** for API endpoints that orchestrate DSPy workflows (`/api/v1/skills`, `/api/v1/quality`, `/api/v1/taxonomy`).
+- **DSPy workflows** (`src/skill_fleet/core/workflows/`) implementing the three-phase skill creation pipeline with HITL support.
+- **Typer CLI** wrapping the API (`src/skill_fleet/cli/`).
 - **Taxonomy manager** (`src/skill_fleet/taxonomy/manager.py`) that enforces agentskills.io compliance and writes `metadata.json` + `SKILL.md`.
 - **Templates** (`config/templates/SKILL_md_template.md`, `config/templates/metadata_template.json`) guide generated output.
 
@@ -14,19 +14,23 @@ Skill Fleet combines:
 ```
 skill-fleet/
 ├── src/skill_fleet/
-│   ├── api/          # FastAPI server, discovery, routes, jobs
-│   ├── cli/          # Typer commands, shared HITL runner
-│   ├── core/         # DSPy modules/signatures/program
-│   ├── llm/          # DSPy configuration, LM builders
-│   ├── taxonomy/      # Skill registration + metadata handling
-│   ├── workflow/      # Legacy workflows (optimizer, creator, tracing)
-│   ├── validators/    # agentskills.io validation rules
-│   ├── agent/         # Conversational agent + session handling
-│   └── common/        # Utilities (paths, async helpers)
-├── config/            # Templates, config YAML, profile bootstrappers
-├── docs/              # Documentation (new user/developer guides + legacy references)
-├── skills/            # Taxonomy content + metadata
-├── tests/             # Pytest suites
+│   ├── api/              # FastAPI server, routes, schemas, services
+│   ├── cli/              # Typer commands, shared HITL runner
+│   ├── core/             # Domain logic + DSPy workflows
+│   │   ├── modules/      # DSPy modules (understanding, generation, validation)
+│   │   ├── signatures/   # DSPy signature definitions
+│   │   ├── workflows/    # Workflow orchestration
+│   │   ├── models.py     # Domain models
+│   │   └── hitl/         # HITL handlers
+│   ├── dspy/             # Centralized DSPy configuration ⭐
+│   ├── taxonomy/         # Skill registration + metadata handling
+│   ├── validators/       # agentskills.io validation rules
+│   ├── infrastructure/   # Database, monitoring, tracing
+│   └── common/           # Utilities (paths, async helpers, security)
+├── config/               # Templates, config YAML, profile bootstrappers
+├── docs/                 # Documentation
+├── skills/               # Taxonomy content + metadata
+├── tests/                # Pytest suites
 ├── .env.example
 ├── pyproject.toml
 └── uv.lock
@@ -36,7 +40,19 @@ skill-fleet/
 
 ### 3.1 Configure DSPy
 
-Call `configure_dspy()` once during startup (API server does this by default). Library consumers can use `skill_fleet.llm.dspy_config.get_task_lm()` when needing task-specific LMs. Keep `DSPY_CACHEDIR` and `DSPY_TEMPERATURE` in sync with environment.
+Call `configure_dspy()` once during startup (API server does this by default).
+
+```python
+from skill_fleet.dspy import configure_dspy, get_task_lm
+
+# Configure globally
+configure_dspy()
+
+# Get task-specific LMs when needed
+lm = get_task_lm("skill_understand")
+```
+
+Keep `DSPY_CACHEDIR` and `DSPY_TEMPERATURE` in sync with environment.
 
 ### 3.2 Build + Run
 
@@ -51,51 +67,180 @@ uv run ruff check src/skill_fleet
 
 ### 3.3 Developer CLI Commands
 
-- `uv run skill-fleet create "...` uses the API `POST /api/v2/skills/create`.
-- `uv run skill-fleet chat` shells the job + HITL loop via `src/skill_fleet/cli/hitl/runner.py`.
+- `uv run skill-fleet create "..."` uses the API `POST /api/v1/skills/`.
 - `uv run skill-fleet validate` and `migrate` operate directly on `skills/` and call `TaxonomyManager`.
 
-## 4. DSPy Program Details
+**Note**: Some CLI commands are temporarily unavailable due to migration:
+- `evaluate`, `evaluate-batch` - Use API directly
+- `optimize` - Feature removed
+- `onboard` - Feature removed
 
-`SkillCreationProgram.aforward()` (with HITL callbacks) executes:
+## 4. DSPy Workflow Architecture
 
-1. **Phase 1**: Understand & plan → `Phase1UnderstandingModule`.
-2. **Phase 2**: Generate content + preview/refinement using `Phase2GenerationModule`.
-3. **Phase 3**: Validation/refinement via `Phase3ValidationModule`.
+### Layer 1: Signatures
 
-HITL callbacks feed prompts back to the CLI or API via `wait_for_hitl_response`. The CLI runner understands `clarify`, `confirm`, `preview`, and `validate` types, so keep that mapping in sync.
+Type definitions using `dspy.Signature`:
+
+```python
+# src/skill_fleet/core/signatures/understanding/requirements.py
+import dspy
+
+class GatherRequirements(dspy.Signature):
+    """Gather requirements from task description."""
+    task_description = dspy.InputField()
+    user_context = dspy.InputField()
+    
+    domain = dspy.OutputField()
+    category = dspy.OutputField()
+    topics = dspy.OutputField()
+```
+
+### Layer 2: Modules
+
+Reusable business logic with async support:
+
+```python
+# src/skill_fleet/core/modules/understanding/requirements.py
+from skill_fleet.core.modules.base import BaseModule
+
+class GatherRequirementsModule(BaseModule):
+    def forward(self, task_description: str, user_context: str) -> dict:
+        result = self.gather(
+            task_description=task_description,
+            user_context=user_context,
+        )
+        return self._parse_result(result)
+    
+    async def aforward(self, task_description: str, user_context: str) -> dict:
+        # Async version
+        return await asyncio.to_thread(self.forward, task_description, user_context)
+```
+
+### Layer 3: Workflows
+
+High-level orchestration with HITL:
+
+```python
+# src/skill_fleet/core/workflows/skill_creation/understanding.py
+class UnderstandingWorkflow:
+    async def execute(self, task_description, user_context, ...) -> dict:
+        # Run modules in parallel
+        results = await asyncio.gather(
+            self._run_requirements(task_description, user_context),
+            self._run_intent(task_description, ...),
+        )
+        
+        # Check for HITL checkpoint
+        if needs_clarification(results):
+            return {"status": "pending_user_input", ...}
+        
+        return self._synthesize(results)
+```
+
+### Using Workflows
+
+```python
+from skill_fleet.core.workflows.skill_creation import (
+    UnderstandingWorkflow,
+    GenerationWorkflow,
+    ValidationWorkflow,
+)
+
+# Phase 1: Understanding
+understanding = UnderstandingWorkflow()
+phase1_result = await understanding.execute(
+    task_description="Build a REST API",
+    user_context={},
+    taxonomy_structure={},
+    existing_skills=[],
+)
+
+# Phase 2: Generation
+generation = GenerationWorkflow()
+phase2_result = await generation.execute(
+    plan=phase1_result["plan"],
+    understanding=phase1_result,
+)
+
+# Phase 3: Validation
+validation = ValidationWorkflow()
+phase3_result = await validation.execute(
+    skill_content=phase2_result["skill_content"],
+    plan=phase1_result["plan"],
+)
+```
 
 ## 5. Templates & Metadata
 
-- `config/templates/SKILL_md_template.md` is trimmed and injected into Phase 2 instructions to steer the LLM’s SKILL.md output.
+- `config/templates/SKILL_md_template.md` is trimmed and injected into generation instructions to steer the LLM's output.
 - `config/templates/metadata_template.json` defines the `metadata.json` fields (version, type, load priority, dependencies, capabilities, evolution).
-- `TaxonomyManager.register_skill()` enforces kebab-case names, descriptions, and metadata lists. Update this logic if templates change.
+- `TaxonomyManager.register_skill()` enforces kebab-case names, descriptions, and metadata lists.
 
 ## 6. Testing & Quality Assurance
 
 1. **Linting**: `uv run ruff check src/skill_fleet`
 2. **Unit tests**: `uv run pytest -q tests/unit`
-3. **Documentation**: Keep AGENTS.md and docs/ in sync with tooling changes.
-4. **Interactive behavior**: Manual smoke tests via `skill-fleet create`, `skill-fleet chat`, `skill-fleet serve`.
+3. **Integration tests**: `uv run pytest tests/integration`
+4. **Documentation**: Keep AGENTS.md and docs/ in sync with tooling changes.
+5. **Interactive behavior**: Manual smoke tests via `skill-fleet create`, `skill-fleet serve`.
 
-## 7. Contributions & Planning
+### Test Organization
 
-- Keep `AGENTS.md` updated when workflows or tooling change; this is the canonical “agent working guide”.
+```
+tests/
+├── unit/           # Fast unit tests
+├── integration/    # Slow integration tests  
+├── api/           # API-specific tests
+├── cli/           # CLI tests
+└── common/        # Common utility tests
+```
+
+## 7. Key Changes from Previous Architecture
+
+### Deleted Components
+- ❌ `core/dspy/` - Legacy DSPy structure (50+ files)
+- ❌ `infrastructure/llm/` - Deprecated LLM config
+- ❌ `onboarding/` - Deprecated onboarding module
+- ❌ Old orchestrators (TaskAnalysisOrchestrator, etc.)
+
+### New Components
+- ✅ `core/modules/` - Clean module structure
+- ✅ `core/signatures/` - Signature definitions
+- ✅ `core/workflows/` - Workflow orchestration
+- ✅ `dspy/` - Centralized DSPy configuration
+
+### Updated Patterns
+
+**Before:**
+```python
+from skill_fleet.core.dspy import configure_dspy
+from skill_fleet.core.dspy.modules.workflows import TaskAnalysisOrchestrator
+```
+
+**After:**
+```python
+from skill_fleet.dspy import configure_dspy
+from skill_fleet.core.workflows.skill_creation import UnderstandingWorkflow
+```
+
+## 8. Contributions & Planning
+
+- Keep `AGENTS.md` updated when workflows or tooling change; this is the canonical "agent working guide".
 - Record multi-step work in `plans/` as ExecPlans or feature plans (see `plans/README.md`).
-- For major features, abide by the multi-agent workflow guidance (Codex + MCP + Agents SDK).
+- For major features, abide by the multi-agent workflow guidance.
 
-## 8. References
+## 9. References
 
 ### Documentation
 
+- **[Architecture Status](../architecture/restructuring-status.md)** - Current architecture overview
+- **[Import Path Guide](../development/IMPORT_PATH_GUIDE.md)** - Canonical import paths
 - **[CLI Reference](../cli/)** - Command documentation and interactive chat
 - **[API Reference](../api/)** - REST API endpoints and schemas
-- **[DSPy Documentation](../dspy/)** - DSPy signatures, modules, programs
-- **[LLM Configuration](../llm/)** - Provider setup and task-specific models
 - **[HITL System](../hitl/)** - Human-in-the-Loop interactions
 
 ### Legacy References
 
 - `docs/cli-reference.md`, `docs/skill-creator-guide.md`, `docs/api-reference.md`
 - `skills/` directory for live examples
-- `docs/plans/` for ongoing experiments (CLI UX, FastAPI production patterns)
+- `docs/plans/` for ongoing experiments

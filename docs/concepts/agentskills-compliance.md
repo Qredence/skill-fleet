@@ -299,7 +299,8 @@ These fields are also maintained in `metadata.json` for backward compatibility a
 When using the skill creator workflow, skills are automatically created with compliant frontmatter:
 
 ```bash
-uv run skill-fleet create-skill --task "Create a Python async programming skill"
+# Create a skill via the API workflow
+uv run skill-fleet create "Create a Python async programming skill"
 ```
 
 The generated SKILL.md will include:
@@ -307,6 +308,16 @@ The generated SKILL.md will include:
 - ✅ Kebab-case name
 - ✅ Appropriate description
 - ✅ Extended metadata
+
+### Skill Creation Workflow
+
+The skill creation process follows a three-phase workflow:
+
+1. **Understanding Phase**: Gathers requirements, analyzes intent, finds taxonomy path, analyzes dependencies
+2. **Generation Phase**: Creates skill content using templates and structured generation
+3. **Validation Phase**: Validates compliance, assesses quality, and refines if needed
+
+This workflow is orchestrated by the workflows in `src/skill_fleet/core/workflows/skill_creation/`.
 
 ### Template Updates
 

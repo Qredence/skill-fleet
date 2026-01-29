@@ -44,6 +44,17 @@ class StreamingSkillChat:
         show_thinking: bool = True,
         force_plain_text: bool = False,
     ):
+        """
+        Initialize the streaming chat.
+
+        Args:
+            client: The API client for skill operations.
+            console: Rich console for output.
+            ui: Optional prompt UI instance.
+            show_thinking: Whether to display thinking/reasoning output.
+            force_plain_text: Force plain text mode without formatting.
+
+        """
         self.client = client
         self.console = console
         self.ui = ui or get_default_ui(force_plain_text=force_plain_text)
@@ -80,11 +91,9 @@ class StreamingSkillChat:
         Uses aggressive polling (100ms) to feel responsive while
         displaying real-time progress and thinking.
         """
-        last_status = None
         last_phase = None
         last_message = None
         displayed_thinking = False
-        displayed_questions = False
 
         with Live(
             Panel(
@@ -109,7 +118,6 @@ class StreamingSkillChat:
                         live.stop()
                         await self._handle_hitl_prompt(job_id, prompt_data)
                         displayed_thinking = False
-                        displayed_questions = False
                         # Restart live display after HITL
                         live.start()
                         continue
@@ -134,10 +142,7 @@ class StreamingSkillChat:
                         phase_label = f"[cyan]{current_phase}[/cyan]" if current_phase else ""
                         message = progress_message or f"Processing... ({status})"
 
-                        if phase_label:
-                            display_text = f"{phase_label}: {message}"
-                        else:
-                            display_text = message
+                        display_text = f"{phase_label}: {message}" if phase_label else message
 
                         live.update(
                             Panel(

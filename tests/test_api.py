@@ -9,6 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from skill_fleet.api.factory import get_app
+from skill_fleet.core.models import ValidationReport
 
 # ============================================================================
 # Constants
@@ -95,7 +96,7 @@ class TestSkillsCreateEndpoint:
                     type="technical",
                     weight="lightweight",
                 ),
-                validation_report={"passed": True},
+                validation_report=ValidationReport(passed=True),
                 quality_assessment={},
             )
         )

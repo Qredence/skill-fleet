@@ -252,7 +252,7 @@ async def auto_fix(
             user_feedback_items.append(f"Fix issue at {location}: {message}")
         else:
             user_feedback_items.append(f"Fix: {message}")
-    user_feedback = "\n".join(user_feedback_items)
+    "\n".join(user_feedback_items)
 
     try:
         # Run refinement workflow

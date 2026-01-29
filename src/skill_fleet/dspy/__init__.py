@@ -91,7 +91,23 @@ def build_lm_for_task(task: str, config: dict[str, Any] | None = None) -> dspy.L
     if temp := os.getenv("DSPY_TEMPERATURE"):
         task_config["temperature"] = float(temp)
 
-    return dspy.LM(**task_config)
+    # Extract typed values for dspy.LM
+    model_str: str = str(task_config["model"])
+    temperature: float = float(task_config["temperature"])
+    model_type: str = "chat"
+    max_tokens_val = task_config.get("max_tokens")
+    max_tokens: int | None = int(max_tokens_val) if max_tokens_val is not None else None
+    cache: bool = bool(task_config.get("cache", True))
+    num_retries: int = int(task_config.get("num_retries", 3))
+
+    return dspy.LM(
+        model=model_str,
+        model_type=model_type,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        cache=cache,
+        num_retries=num_retries,
+    )
 
 
 def configure_dspy(
@@ -137,7 +153,25 @@ def configure_dspy(
     if temp := os.getenv("DSPY_TEMPERATURE"):
         lm_config["temperature"] = float(temp)
 
-    lm = dspy.LM(**lm_config)
+    # Extract typed values for dspy.LM
+    model_str: str = str(lm_config["model"])
+    temperature: float = float(lm_config["temperature"])
+    model_type: str = "chat"
+    max_tokens_val = lm_config.get("max_tokens")
+    max_tokens: int | None = None
+    if max_tokens_val is not None:
+        max_tokens = int(max_tokens_val)
+    cache: bool = bool(lm_config.get("cache", True))
+    num_retries: int = int(lm_config.get("num_retries", 3))
+
+    lm = dspy.LM(
+        model=model_str,
+        model_type=model_type,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        cache=cache,
+        num_retries=num_retries,
+    )
     dspy.configure(lm=lm)
 
     return lm

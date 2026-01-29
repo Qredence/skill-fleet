@@ -17,7 +17,6 @@ This service uses the workflows layer orchestrators for clean separation of conc
 
 from __future__ import annotations
 
-import json
 import logging
 import uuid
 from typing import TYPE_CHECKING, Any
@@ -130,10 +129,10 @@ class SkillService:
         )
 
         # Check for previous answers to inject into context
-        previous_answers_context = ""
+        previous_answers = {}
         job = job_manager.get_job(job_id)
         if job and job.deep_understanding.answers:
-            previous_answers_context = f"\n\nPRIOR USER CLARIFICATIONS:\n{json.dumps(job.deep_understanding.answers, default=str)}"
+            previous_answers = {"prior_clarifications": job.deep_understanding.answers}
 
         # Provide real taxonomy context
         taxonomy_structure = self.taxonomy_manager.get_relevant_branches(request.task_description)
@@ -162,20 +161,23 @@ class SkillService:
             if progress_callback:
                 progress_callback("phase1", "Analyzing requirements and planning skill structure")
 
+            # Build user context dict
+            user_context = {"user_id": request.user_id, **previous_answers}
+
             if enable_mlflow:
                 # Use child run for phase 1
                 with start_child_run("phase1_task_analysis"):
                     phase1_result = await understanding_workflow.execute(
                         task_description=request.task_description,
-                        user_context=request.user_id + previous_answers_context,
-                        taxonomy_structure=json.dumps(taxonomy_structure),
+                        user_context=user_context,
+                        taxonomy_structure=taxonomy_structure,
                         existing_skills=mounted_skills,
                     )
             else:
                 phase1_result = await understanding_workflow.execute(
                     task_description=request.task_description,
-                    user_context=request.user_id + previous_answers_context,
-                    taxonomy_structure=json.dumps(taxonomy_structure),
+                    user_context=user_context,
+                    taxonomy_structure=taxonomy_structure,
                     existing_skills=mounted_skills,
                 )
 
@@ -212,31 +214,36 @@ class SkillService:
                     phase2_result = await generation_workflow.execute(
                         plan=phase1_result.get("plan", {}),
                         understanding=phase1_result,
-                        enable_hitl=False,
+                        enable_hitl_preview=False,
                     )
             else:
                 phase2_result = await generation_workflow.execute(
                     plan=phase1_result.get("plan", {}),
                     understanding=phase1_result,
-                    enable_hitl=False,
+                    enable_hitl_preview=False,
                 )
 
             # Phase 3: Quality Assurance
             if progress_callback:
                 progress_callback("phase3", "Validating and refining skill")
 
+            # Get taxonomy path from phase 1 result
+            taxonomy_path = phase1_result.get("plan", {}).get("taxonomy_path", "")
+
             if enable_mlflow:
                 with start_child_run("phase3_quality_assurance"):
                     phase3_result = await validation_workflow.execute(
                         skill_content=phase2_result.get("skill_content", ""),
                         plan=phase1_result.get("plan", {}),
-                        enable_auto_refinement=True,
+                        taxonomy_path=taxonomy_path,
+                        enable_hitl_review=False,
                     )
             else:
                 phase3_result = await validation_workflow.execute(
                     skill_content=phase2_result.get("skill_content", ""),
                     plan=phase1_result.get("plan", {}),
-                    enable_auto_refinement=True,
+                    taxonomy_path=taxonomy_path,
+                    enable_hitl_review=False,
                 )
 
             # Construct result from workflow outputs

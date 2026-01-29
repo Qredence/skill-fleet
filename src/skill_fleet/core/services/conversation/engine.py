@@ -10,25 +10,27 @@ from typing import TYPE_CHECKING, Any
 import dspy
 
 from ....common.streaming import create_streaming_module
-from ...dspy.modules.conversation import (
-    AssessReadinessModule,
-    ConfirmUnderstandingModule,
-    DeepUnderstandingModule,
-    DetectMultiSkillModule,
-    EnhanceSkillModule,
-    GenerateQuestionModule,
-    InterpretIntentModule,
-    PresentSkillModule,
-    ProcessFeedbackModule,
-    SuggestTestsModule,
-    UnderstandingSummaryModule,
-    VerifyTDDModule,
-)
-from ...dspy.modules.generation import Phase2GenerationModule
-from ...dspy.modules.understanding import Phase1UnderstandingModule
-from ...dspy.modules.validation import Phase3ValidationModule
 from .handlers import ConversationHandlers
 from .models import AgentResponse, ConversationSession, ConversationState
+
+# TODO: These modules have been refactored - update or remove conversation service
+# from ...dspy.modules.conversation import (
+#     AssessReadinessModule,
+#     ConfirmUnderstandingModule,
+#     DeepUnderstandingModule,
+#     DetectMultiSkillModule,
+#     EnhanceSkillModule,
+#     GenerateQuestionModule,
+#     InterpretIntentModule,
+#     PresentSkillModule,
+#     ProcessFeedbackModule,
+#     SuggestTestsModule,
+#     UnderstandingSummaryModule,
+#     VerifyTDDModule,
+# )
+# from ...dspy.modules.generation import Phase2GenerationModule
+# from ...dspy.modules.understanding import Phase1UnderstandingModule
+# from ...dspy.modules.validation import Phase3ValidationModule
 
 if TYPE_CHECKING:
     from ....taxonomy.manager import TaxonomyManager
@@ -40,7 +42,7 @@ class ConversationService(ConversationHandlers):
     """
     Service for orchestrating conversational skill creation.
 
-    Manages state, DSPy module execution, and business logic for the
+    Manages state, DSPy module execution, and business logic for
     interactive skill creation workflow.
     """
 
@@ -60,24 +62,25 @@ class ConversationService(ConversationHandlers):
         self.taxonomy = taxonomy_manager
         self.skills_root = skills_root
 
-        # Initialize conversational modules
-        self.interpret_intent = InterpretIntentModule()
-        self.detect_multi_skill = DetectMultiSkillModule()
-        self.generate_question = GenerateQuestionModule()
-        self.assess_readiness = AssessReadinessModule()
-        self.deep_understanding_module = DeepUnderstandingModule()
-        self.understanding_summary = UnderstandingSummaryModule()
-        self.confirm_understanding = ConfirmUnderstandingModule()
-        self.present_skill = PresentSkillModule()
-        self.process_feedback = ProcessFeedbackModule()
-        self.suggest_tests = SuggestTestsModule()
-        self.verify_tdd = VerifyTDDModule()
-        self.enhance_skill = EnhanceSkillModule()
-
-        # Initialize Phase modules for creation workflow
-        self.phase1 = Phase1UnderstandingModule()
-        self.phase2 = Phase2GenerationModule()
-        self.phase3 = Phase3ValidationModule()
+        # TODO: Re-enable when modules are refactored
+        # # Initialize conversational modules
+        # self.interpret_intent = InterpretIntentModule()
+        # self.detect_multi_skill = DetectMultiSkillModule()
+        # self.generate_question = GenerateQuestionModule()
+        # self.assess_readiness = AssessReadinessModule()
+        # self.deep_understanding_module = DeepUnderstandingModule()
+        # self.understanding_summary = UnderstandingSummaryModule()
+        # self.confirm_understanding = ConfirmUnderstandingModule()
+        # self.present_skill = PresentSkillModule()
+        # self.process_feedback = ProcessFeedbackModule()
+        # self.suggest_tests = SuggestTestsModule()
+        # self.verify_tdd = VerifyTDDModule()
+        # self.enhance_skill = EnhanceSkillModule()
+        #
+        # # Initialize Phase modules for creation workflow
+        # self.phase1 = Phase1UnderstandingModule()
+        # self.phase2 = Phase2GenerationModule()
+        # self.phase3 = Phase3ValidationModule()
 
     async def _execute_with_streaming(
         self,

@@ -71,7 +71,7 @@ class JobStore:
         # Evict by count (LRU - evict least recently accessed)
         while len(self._jobs) > self.MAX_JOBS and self._access_times:
             # Find oldest access
-            oldest_job = min(self._access_times, key=self._access_times.get)
+            oldest_job = min(self._access_times, key=lambda job_id: self._access_times[job_id])
             self._evict_job(oldest_job)
 
     def _evict_job(self, job_id: str):
@@ -168,6 +168,27 @@ def get_job(job_id: str) -> JobState | None:
 
     # Fallback to disk loading for persistence
     return load_job_session(job_id)
+
+
+def update_job(job_id: str, updates: dict[str, Any]) -> JobState | None:
+    """
+    Update a job with the provided updates.
+
+    Args:
+        job_id: Job identifier
+        updates: Dictionary of fields to update
+
+    Returns:
+        Updated JobState if found, None otherwise
+
+    """
+    from .job_manager import get_job_manager
+
+    manager = get_job_manager()
+    updated_job = manager.update_job(job_id, updates)
+    if updated_job:
+        JOBS[job_id] = updated_job
+    return updated_job
 
 
 async def wait_for_hitl_response(job_id: str, timeout: float = 3600.0) -> dict[str, Any]:

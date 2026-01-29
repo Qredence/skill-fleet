@@ -18,12 +18,12 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal
+from typing import Any, Literal
 
 import dspy
 
-if TYPE_CHECKING:
-    from ..dspy.programs import LegacySkillCreationProgram
+# TODO: LegacySkillCreationProgram has been removed - update optimizer
+LegacySkillCreationProgram = Any
 
 logger = logging.getLogger(__name__)
 
@@ -626,44 +626,11 @@ def main():
         help="Only run evaluation, don't optimize",
     )
 
-    args = parser.parse_args()
+    parser.parse_args()
 
-    # Import program
-    from ..dspy.programs import LegacySkillCreationProgram
-
-    program = LegacySkillCreationProgram()
-
-    if args.evaluate_only:
-        quick_evaluate(program, args.trainset, args.model)
-        return
-
-    output_path = Path(args.output) / args.optimizer
-
-    if args.track:
-        optimize_with_tracking(
-            program,
-            args.trainset,
-            output_path,
-            optimizer_type=args.optimizer,
-            model=args.model,
-            auto=args.auto,
-        )
-    elif args.optimizer == "miprov2":
-        optimize_with_miprov2(
-            program,
-            args.trainset,
-            output_path,
-            model=args.model,
-            auto=args.auto,
-        )
-    else:
-        optimize_with_gepa(
-            program,
-            args.trainset,
-            output_path,
-            model=args.model,
-            auto=args.auto,
-        )
+    # TODO: LegacySkillCreationProgram has been removed - update optimizer
+    # from ..dspy.programs import LegacySkillCreationProgram
+    raise NotImplementedError("Optimizer needs to be updated to use new workflow architecture")
 
 
 if __name__ == "__main__":

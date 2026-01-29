@@ -54,9 +54,7 @@ def _sanitize_for_log(value: str) -> str:
 
     # Remove remaining control characters (0x00-0x1f and 0x7f).
     # Keep printable characters; this prevents log injection via other control codes.
-    value = "".join(
-        char for char in value if char.isprintable() and ord(char) != 127
-    )
+    value = "".join(char for char in value if char.isprintable() and ord(char) != 127)
 
     return value
 

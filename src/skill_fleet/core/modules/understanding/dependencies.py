@@ -46,12 +46,14 @@ class AnalyzeDependenciesModule(BaseModule):
         super().__init__()
         self.analyze = dspy.ChainOfThought(AnalyzeDependencies)
 
-    def forward(  # type: ignore[override]
+    def forward(
         self,
-        task_description: str,
+        task_description: str | None = None,
         intent_analysis: dict | None = None,
         taxonomy_path: str = "",
         existing_skills: list[str] | None = None,
+        *args: Any,
+        **kwargs: Any,
     ) -> dict[str, Any]:
         """
         Analyze dependencies for skill.
@@ -67,6 +69,15 @@ class AnalyzeDependenciesModule(BaseModule):
             - prerequisite_skills: Hard prerequisites
             - complementary_skills: Optional enhancements
             - conflicting_skills: Incompatible skills
+        # Support BaseModule.forward-style calls where task_description may be
+        # passed positionally and this override must remain compatible.
+        if task_description is None and args:
+            # Use the first positional argument as the task description.
+            task_description = str(args[0])
+
+        if task_description is None:
+            raise ValueError("task_description must be provided")
+
             - missing_prerequisites: Skills that need creation
             - dependency_rationale: Explanation
 

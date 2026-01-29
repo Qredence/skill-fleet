@@ -31,44 +31,17 @@ class TestCreateSkillCommand:
 
         assert callable(create_skill)
 
-    @patch("skill_fleet.cli.main.configure_dspy")
-    @patch("skill_fleet.cli.main.TaxonomySkillCreator")
-    @patch("skill_fleet.cli.main.TaxonomyManager")
-    def test_create_skill_callable(self, mock_taxonomy_class, mock_creator_class, mock_configure):
-        """Test create-skill is callable with args."""
-        # Note: load_fleet_config is no longer patched as it is no longer used in skill_fleet.cli.main.py
-
-        mock_taxonomy_instance = MagicMock()
-        mock_taxonomy_class.return_value = mock_taxonomy_instance
-
-        mock_creator_instance = MagicMock()
-        mock_creator_instance.return_value = {
-            "status": "approved",
-            "skill_id": "test-skill",
-            "path": "/tmp/test-skill",
-        }
-        mock_creator_class.return_value = mock_creator_instance
-
+    def test_create_skill_returns_error(self):
+        """Test create-skill returns error (deprecated)."""
+        """Test that create_skill returns error code (deprecated function)."""
         args = MagicMock()
         args.task = "Create a test skill"
-        args.auto_approve = True
-        args.user_id = "test-user"
-        args.config = "config.yaml"
-        args.skills_root = "/tmp/skills"
-        args.feedback_type = "auto"
-        args.max_iterations = 3
-        args.min_rounds = 1
-        args.max_rounds = 4
-        args.cache_dir = None
-        args.reasoning = "none"
-        args.json = False
-        args.is_training_run = False
 
         # Act
         result = create_skill(args)
 
-        # Assert
-        assert result == 0
+        # Assert - should return 1 (error) since it's deprecated
+        assert result == 1
 
     @patch("skill_fleet.cli.main.SkillValidator")
     def test_validate_valid_skill(self, mock_validator_class):
@@ -101,12 +74,12 @@ class TestCreateSkillCommand:
         mock_validator_class.return_value = mock_validator
         mock_validator.validate_complete.return_value = {
             "passed": False,
-            "errors": ["Missing YAML frontmatter"],
+            "errors": ["Missing frontmatter"],
             "warnings": [],
         }
 
         args = MagicMock()
-        args.skill_path = "skills/invalid/skill"
+        args.skill_path = "skills/general/testing"
         args.skills_root = "/tmp/skills"
         args.json = False
 
@@ -114,7 +87,7 @@ class TestCreateSkillCommand:
         result = validate_skill(args)
 
         # Assert
-        assert result == 2  # Exit code for validation failure
+        assert result == 2
 
 
 class TestTyperApp:

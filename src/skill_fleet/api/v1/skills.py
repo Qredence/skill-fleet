@@ -87,6 +87,7 @@ async def create_skill(
             job = get_job(job_id)
             if job:
                 from ..services.jobs import update_job
+
                 update_job(job_id, {"status": "failed", "error": str(e)})
 
     # Add workflow to background tasks and return immediately
@@ -161,10 +162,7 @@ async def update_skill(
         skill_service.get_skill_by_path(skill_id)
 
         # Resolve the actual filesystem path
-        from skill_fleet.taxonomy.manager import TaxonomyManager
-
-        taxonomy_manager = TaxonomyManager(skill_service.skills_root)
-        relative_path = taxonomy_manager.resolve_skill_location(skill_id)
+        relative_path = skill_service.taxonomy_manager.resolve_skill_location(skill_id)
         skill_path = skill_service.skills_root / relative_path
 
         # Update skill if content provided

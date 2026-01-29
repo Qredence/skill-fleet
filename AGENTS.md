@@ -109,6 +109,8 @@ lm = configure_dspy(default_task="skill_understand")
 edit_lm = get_task_lm("skill_edit")
 ```
 
+**Note:** DSPy configuration moved from `skill_fleet.core.dspy` to `skill_fleet.dspy`. The old import path is no longer available.
+
 ### FastAPI Patterns
 
 - Use dependency injection: `Depends(get_skill_service)`
@@ -172,15 +174,21 @@ Import from `skill_fleet.common.utils`: `safe_json_loads()`, `safe_float()`
   - `paths.py` - Path utilities
   
 - **`core/`** - Domain logic + DSPy integration
-  - `dspy/` - DSPy modules, signatures, workflows
+  - `modules/` - DSPy modules (understanding, generation, validation, hitl)
+  - `signatures/` - DSPy signature definitions
+  - `workflows/` - Workflow orchestration layer
   - `models.py` - Domain models
-  - `services/` - Domain services
+  - `hitl/` - Human-in-the-loop handlers
+  - `optimization/` - Optimization and evaluation
+
+- **`dspy/`** - Centralized DSPy configuration (new location)
 
 - **`infrastructure/`** - Technical infrastructure
   - `db/` - Database layer (models, repositories)
-  - `llm/` - LLM configuration (DSPy, LiteLLM)
   - `monitoring/` - MLflow setup
   - `tracing/` - Distributed tracing
+
+**Note:** `infrastructure/llm/` was removed. Use `skill_fleet.dspy` for LLM configuration.
 
 - **`taxonomy/`** - Taxonomy management
 

@@ -1,454 +1,504 @@
 # Import Path Guide
 
-**Last Updated**: 2026-01-25
+**Last Updated**: 2026-01-29
+**Status**: Post-DSPy Architecture Migration
 
 ## Overview
 
-After the FastAPI-centric restructure, Skills Fleet uses a **facade pattern** with clean public import paths. This guide provides canonical import paths for all modules.
+After the DSPy workflow architecture migration, Skills Fleet uses a clean three-layer pattern: **Signatures → Modules → Workflows**. This guide provides canonical import paths for all modules.
 
-`★ Insight ─────────────────────────────────────`
-The facade pattern separates public API from implementation. Import from `skill_fleet.domain` for domain entities and `skill_fleet.app` for FastAPI application. Direct imports from `skill_fleet.core` or `skill_fleet.db` are for internal use.
-`─────────────────────────────────────────────────`
+## Current Architecture
+
+```
+src/skill_fleet/
+├── dspy/                  # Centralized DSPy configuration ⭐
+├── core/
+│   ├── modules/          # DSPy modules
+│   ├── signatures/       # DSPy signatures
+│   ├── workflows/        # Workflow orchestration
+│   └── models.py         # Domain models
+├── api/                  # FastAPI application
+├── cli/                  # CLI commands
+├── common/               # Shared utilities
+├── infrastructure/       # Technical infrastructure
+├── taxonomy/             # Taxonomy management
+└── validators/           # Skill validation
+```
 
 ## Recommended Import Patterns
 
-### 1. Domain Layer (DDD Patterns)
+### 1. DSPy Configuration ⭐
+
+**Primary Location**: `skill_fleet.dspy`
 
 ```python
-# Domain Models
-from skill_fleet.domain import (
-    Skill,
-    SkillMetadata,
-    Job,
-    JobStatus,
-    SkillType,
-    SkillWeight,
-    LoadPriority,
-    TaxonomyPath,
+# DSPy setup (NEW location - preferred)
+from skill_fleet.dspy import configure_dspy, get_task_lm
+
+# Configure DSPy globally
+configure_dspy()
+
+# Get language model for specific task
+lm = get_task_lm("skill_understand")
+edit_lm = get_task_lm("skill_edit")
+```
+
+**Note**: Old imports from `infrastructure/llm/` and `core/dspy/` no longer work.
+
+### 2. Workflow Layer
+
+**Primary Location**: `skill_fleet.core.workflows`
+
+```python
+# Skill creation workflows
+from skill_fleet.core.workflows.skill_creation import (
+    UnderstandingWorkflow,
+    GenerationWorkflow,
+    ValidationWorkflow,
 )
 
-# Domain Events
-from skill_fleet.domain import (
-    DomainEvent,
-    SkillCreatedEvent,
-    JobCompletedEvent,
-)
-
-# Domain Repositories (interfaces)
-from skill_fleet.domain import (
-    SkillRepository,
-    JobRepository,
-    TaxonomyRepository,
-)
-
-# Domain Services
-from skill_fleet.domain import (
-    SkillDomainService,
-    JobDomainService,
-    TaxonomyDomainService,
-)
-
-# Domain Specifications
-from skill_fleet.domain import (
-    Specification,
-    AndSpecification,
-    SkillIsReadyForPublication,
-    JobCanBeStarted,
-    JobRequiresHITL,
+# Use workflows
+understanding = UnderstandingWorkflow()
+result = await understanding.execute(
+    task_description="Build a REST API",
+    user_context={},
+    taxonomy_structure={},
+    existing_skills=[],
 )
 ```
 
-### 2. Service Layer
+### 3. Module Layer (Direct Use)
+
+**Primary Location**: `skill_fleet.core.modules`
 
 ```python
-# Base Service Classes
-from skill_fleet.core.services import (
-    BaseService,
-    ServiceError,
-    ValidationError,
-    ConfigurationError,
+# Understanding modules
+from skill_fleet.core.modules.understanding import (
+    GatherRequirementsModule,
+    AnalyzeIntentModule,
+    FindTaxonomyPathModule,
+    AnalyzeDependenciesModule,
 )
 
-# Conversation Service (from core/services)
-from skill_fleet.core.services import (
-    ConversationSession,
-    ConversationMessage,
-    ConversationState,
-    MessageRole,
-    AgentResponse,
+# Generation modules
+from skill_fleet.core.modules.generation import SkillContentGeneratorModule
+
+# Validation modules
+from skill_fleet.core.modules.validation import (
+    ComplianceCheckerModule,
+    QualityAssessorModule,
+    SkillRefinerModule,
 )
 
-# Cross-cutting Services (new services/ directory)
-from skill_fleet.services import (
-    BaseService,  # Re-exported from core.services
-)
+# HITL modules
+from skill_fleet.core.modules.hitl import GenerateClarifyingQuestionsModule
 ```
 
-### 3. Application Layer
+### 4. Signature Layer (Type Definitions)
+
+**Primary Location**: `skill_fleet.core.signatures`
 
 ```python
-# FastAPI Application
-from skill_fleet.app import create_app, get_app, app
-
-# Application Dependencies
-from skill_fleet.app.dependencies import (
-    SkillsRoot,
-    DraftsRoot,
-    TaxonomyManagerDep,
-)
-
-# Application Schemas
-from skill_fleet.app.api.schemas import (
-    CreateSkillRequest,
-    CreateSkillResponse,
-    HitlPromptResponse,
-    HitlResponseRequest,
-)
-```
-
-### 4. DSPy Integration
-
-```python
-# Task-based Signatures (from dspy/ facade)
-from skill_fleet.dspy.signatures import (
+# Understanding signatures
+from skill_fleet.core.signatures.understanding import (
     GatherRequirements,
     AnalyzeIntent,
-    GenerateContent,
-    ValidateSkill,
+    FindTaxonomyPath,
+    AnalyzeDependencies,
+    SynthesizePlan,
 )
 
-# DSPy Modules
-from skill_fleet.dspy.modules import (
-    Phase1UnderstandingModule,
-    Phase2ContentModule,
-    Phase3ValidationModule,
+# Generation signatures
+from skill_fleet.core.signatures.generation import (
+    GenerateSkillContent,
+    GenerateSkillSection,
 )
 
-# DSPy Programs
-from skill_fleet.dspy.programs import (
-    SkillCreationProgram,
+# Validation signatures
+from skill_fleet.core.signatures.validation import (
+    ValidateCompliance,
+    AssessQuality,
+    RefineSkill,
 )
 
-# Streaming Support
-from skill_fleet.core.dspy.streaming import (
-    StreamingAssistant,
-    stream_events_to_sse,
-)
+# HITL signatures
+from skill_fleet.core.signatures.hitl import GenerateClarifyingQuestions
 ```
 
-### 5. CLI Layer
+### 5. API Layer
+
+**Primary Location**: `skill_fleet.api`
 
 ```python
-# CLI Commands
-from skill_fleet.cli.app import app as cli_app
+# FastAPI application
+from skill_fleet.api.factory import create_app
 
-# CLI Client
-from skill_fleet.cli.client import SkillFleetClient
-```
+# Services
+from skill_fleet.api.services.skill_service import SkillService
+from skill_fleet.api.services.job_manager import get_job_manager
 
-### 6. LLM Configuration
-
-```python
-# DSPy Configuration
-from skill_fleet.llm.dspy_config import (
-    configure_dspy,
-    get_lm_for_task,
+# Schemas
+from skill_fleet.api.schemas.skills import (
+    CreateSkillRequest,
+    CreateSkillResponse,
 )
 
-# Provider Configuration
-from skill_fleet.llm.fleet_config import (
-    ProviderConfig,
-    ModelConfig,
-)
+# Dependencies
+from skill_fleet.api.dependencies import get_skill_service
 ```
 
-### 7. Taxonomy Management
+### 6. Domain Models
+
+**Primary Location**: `skill_fleet.core.models`
 
 ```python
-# Taxonomy Manager
-from skill_fleet.taxonomy.manager import TaxonomyManager
-
-# Taxonomy Models
-from skill_fleet.taxonomy.models import (
-    TaxonomyMetadata,
-    SkillLocation,
-)
-```
-
-### 8. Validation
-
-```python
-# Skill Validator
-from skill_fleet.validators.skill_validator import (
-    SkillValidator,
+from skill_fleet.core.models import (
+    # Skill creation
+    SkillCreationResult,
+    SkillMetadata,
+    PlanResult,
+    
+    # HITL
+    HITLSession,
+    ClarifyingQuestion,
+    
+    # Validation
     ValidationReport,
-    ValidationError as SkillValidationError,
+    QualityAssessment,
 )
 ```
 
-### 9. Common Utilities
+### 7. Common Utilities
+
+**Primary Location**: `skill_fleet.common`
 
 ```python
-# Security (path sanitization)
+# Security
 from skill_fleet.common.security import (
     sanitize_taxonomy_path,
+    resolve_path_within_root,
     is_safe_path,
 )
 
 # Utilities
 from skill_fleet.common.utils import (
     safe_json_loads,
-    parse_skill_id,
+    safe_float,
 )
 
-# Path Utilities
+# Paths
 from skill_fleet.common.paths import (
     get_skills_root,
     get_drafts_root,
 )
 ```
 
-## Module Organization
+### 8. Taxonomy
 
-### Public API Surface (Facade)
-
-```
-skill_fleet/
-├── domain/           # Domain-driven design layer
-│   ├── models/       # Domain entities and value objects
-│   ├── repositories/ # Repository interfaces
-│   ├── services/     # Domain services
-│   └── specifications/ # Business rules
-│
-├── services/         # Cross-cutting services
-│   └── __init__.py   # Re-exports from core.services
-│
-├── dspy/             # DSPy integration facade
-│   ├── signatures/   # Task-based signatures
-│   ├── modules/      # DSPy modules
-│   └── programs/     # DSPy programs
-│
-├── api/              # FastAPI application
-│   ├── app.py        # Application factory
-│   ├── routes/       # API endpoints
-│   ├── schemas/      # Pydantic models
-│   └── dependencies.py # Dependency injection
-│
-├── cli/              # Command-line interface
-│   ├── app.py        # Typer application
-│   └── client.py     # API client
-│
-└── infrastructure/   # Technical infrastructure
-    └── database/     # Database layer re-exports
-```
-
-### Internal Implementation
-
-```
-skill_fleet/
-├── core/             # Core business logic
-│   ├── dspy/         # DSPy implementation
-│   ├── services/     # Service implementations
-│   ├── models.py     # Pydantic models
-│   └── config.py     # Configuration
-│
-├── db/               # Database implementation
-│   ├── models.py     # SQLAlchemy models
-│   ├── repositories.py # Repository implementations
-│   └── database.py   # Connection management
-│
-├── llm/              # LLM configuration
-│   ├── dspy_config.py # DSPy setup
-│   └── fleet_config.py # Provider config
-│
-└── common/           # Shared utilities
-    ├── utils.py      # Utilities
-    ├── paths.py      # Path helpers
-    └── security.py   # Security functions
-```
-
-## Import Path Examples
-
-### Example 1: Creating a Custom Domain Service
+**Primary Location**: `skill_fleet.taxonomy`
 
 ```python
-# services/custom_skill_service.py
-from skill_fleet.domain import (
-    Skill,
-    SkillRepository,
-    SkillDomainService,
-    SkillIsReadyForPublication,
-)
-from skill_fleet.core.services import BaseService
+from skill_fleet.taxonomy.manager import TaxonomyManager
+```
 
-class CustomSkillService(BaseService):
-    def __init__(self, skill_repo: SkillRepository):
+### 9. Validation
+
+**Primary Location**: `skill_fleet.validators`
+
+```python
+from skill_fleet.validators.skill_validator import SkillValidator
+```
+
+### 10. CLI
+
+**Primary Location**: `skill_fleet.cli`
+
+```python
+from skill_fleet.cli.app import app as cli_app
+```
+
+## Deprecated Import Patterns ❌
+
+These import paths **no longer work** after the migration:
+
+```python
+# ❌ Deleted directories
+from skill_fleet.core.dspy import ...              # Directory deleted
+from skill_fleet.infrastructure.llm import ...     # Directory deleted
+from skill_fleet.onboarding import ...             # Directory deleted
+
+# ❌ Deleted orchestrators
+from skill_fleet.core.dspy.modules.workflows import TaskAnalysisOrchestrator  # Deleted
+from skill_fleet.core.dspy.modules.workflows import ContentGenerationOrchestrator  # Deleted
+from skill_fleet.core.dspy.modules.workflows import QualityAssuranceOrchestrator  # Deleted
+
+# ❌ Old creator
+from skill_fleet.core.creator import TaxonomySkillCreator  # Deleted
+```
+
+## Architecture Pattern: Signatures → Modules → Workflows
+
+### Layer 1: Signatures (Type Definitions)
+
+```python
+# src/skill_fleet/core/signatures/understanding/requirements.py
+import dspy
+
+class GatherRequirements(dspy.Signature):
+    """Gather and structure requirements from task description."""
+    
+    task_description = dspy.InputField(desc="Task description from user")
+    user_context = dspy.InputField(desc="Additional user context")
+    
+    domain = dspy.OutputField(desc="Primary domain")
+    category = dspy.OutputField(desc="Category within domain")
+    target_level = dspy.OutputField(desc="Target skill level")
+```
+
+### Layer 2: Modules (Business Logic)
+
+```python
+# src/skill_fleet/core/modules/understanding/requirements.py
+import dspy
+from skill_fleet.core.modules.base import BaseModule
+from skill_fleet.core.signatures.understanding import GatherRequirements
+
+class GatherRequirementsModule(BaseModule):
+    """Module for gathering requirements from task descriptions."""
+    
+    def __init__(self):
         super().__init__()
-        self.skill_repo = skill_repo
-        self.domain_service = SkillDomainService(skill_repo)
-
-    async def publish_skill(self, skill_id: str) -> Skill:
-        """Publish a skill if it's ready."""
-        skill = await self.skill_repo.get(skill_id)
-
-        # Use specification pattern
-        spec = SkillIsReadyForPublication(require_content=True)
-        if not spec.is_satisfied_by(skill):
-            raise ValidationError("Skill is not ready for publication")
-
-        return await self.domain_service.publish(skill)
+        self.gather = dspy.ChainOfThought(GatherRequirements)
+    
+    def forward(self, task_description: str, user_context: str | None = None) -> dict:
+        # Sanitize inputs
+        task_description = self._sanitize_input(task_description)
+        user_context = user_context or ""
+        
+        # Execute
+        result = self.gather(
+            task_description=task_description,
+            user_context=user_context,
+        )
+        
+        return self._parse_result(result)
 ```
 
-### Example 2: FastAPI Route with Application Layer
+### Layer 3: Workflows (Orchestration)
 
 ```python
-# app/api/v1/custom.py
+# src/skill_fleet/core/workflows/skill_creation/understanding.py
+from skill_fleet.core.modules.understanding import (
+    GatherRequirementsModule,
+    AnalyzeIntentModule,
+    FindTaxonomyPathModule,
+    AnalyzeDependenciesModule,
+)
+
+class UnderstandingWorkflow:
+    """Orchestrates understanding phase modules with HITL support."""
+    
+    def __init__(self):
+        self.requirements_module = GatherRequirementsModule()
+        self.intent_module = AnalyzeIntentModule()
+        self.taxonomy_module = FindTaxonomyPathModule()
+        self.dependencies_module = AnalyzeDependenciesModule()
+    
+    async def execute(self, task_description, user_context, ...) -> dict:
+        # Run modules in parallel
+        results = await asyncio.gather(
+            self._run_requirements(task_description, user_context),
+            self._run_intent(task_description, ...),
+            self._run_taxonomy(task_description, ...),
+        )
+        
+        # Check for HITL checkpoint
+        if needs_clarification(results):
+            return {"status": "pending_user_input", ...}
+        
+        # Synthesize results
+        return self._synthesize(results)
+```
+
+## Usage Examples
+
+### Example 1: Creating a Skill via API
+
+```python
+# FastAPI route
 from fastapi import APIRouter, Depends
-from skill_fleet.app.dependencies import SkillsRoot
-from skill_fleet.domain import Job, JobStatus
-from skill_fleet.core.dspy import SkillCreationProgram
+from skill_fleet.api.services.skill_service import SkillService
+from skill_fleet.api.schemas.skills import CreateSkillRequest, CreateSkillResponse
 
-router = APIRouter(prefix="/api/v2/custom", tags=["custom"])
+router = APIRouter()
 
-@router.post("/create")
-async def create_custom_skill(
-    task_description: str,
-    skills_root: SkillsRoot = Depends(),
+@router.post("/skills/", response_model=CreateSkillResponse)
+async def create_skill(
+    request: CreateSkillRequest,
+    skill_service: SkillService = Depends(get_skill_service),
 ):
-    """Create a skill using the workflow orchestrator."""
-
-    # Use DSPy program directly
-    program = SkillCreationProgram()
-    result = await program.aforward(
-        task_description=task_description,
-        user_context={"user_id": "api_user"},
-        taxonomy_structure="{}",
-        existing_skills="[]",
-        hitl_callback=None,
-        progress_callback=None,
-    )
-
-    return {"status": result.status, "skill_id": result.metadata.skill_id}
+    """Create a new skill."""
+    result = await skill_service.create_skill(request)
+    return result
 ```
 
-### Example 3: CLI Command Using API Client
+### Example 2: Using Workflows Directly
 
 ```python
-# cli/commands/custom.py
+# Custom script or service
+import asyncio
+from skill_fleet.core.workflows.skill_creation import (
+    UnderstandingWorkflow,
+    GenerationWorkflow,
+    ValidationWorkflow,
+)
+
+async def create_skill_workflow(task_description: str):
+    """Run complete skill creation workflow."""
+    
+    # Phase 1: Understanding
+    understanding = UnderstandingWorkflow()
+    phase1_result = await understanding.execute(
+        task_description=task_description,
+        user_context={},
+        taxonomy_structure={},
+        existing_skills=[],
+    )
+    
+    # Phase 2: Generation
+    generation = GenerationWorkflow()
+    phase2_result = await generation.execute(
+        plan=phase1_result["plan"],
+        understanding=phase1_result,
+    )
+    
+    # Phase 3: Validation
+    validation = ValidationWorkflow()
+    phase3_result = await validation.execute(
+        skill_content=phase2_result["skill_content"],
+        plan=phase1_result["plan"],
+    )
+    
+    return phase3_result
+
+# Run it
+result = asyncio.run(create_skill_workflow("Build a REST API"))
+```
+
+### Example 3: Using Individual Modules
+
+```python
+# For custom workflows or testing
+from skill_fleet.core.modules.understanding import GatherRequirementsModule
+
+# Create module
+module = GatherRequirementsModule()
+
+# Use it directly
+result = module.forward(
+    task_description="Build a React component library",
+    user_context="{"experience": "intermediate"}",
+)
+
+print(result["domain"])       # "technical"
+print(result["category"])     # "frontend"
+print(result["topics"])       # ["react", "components"]
+```
+
+### Example 4: CLI Command
+
+```python
+# CLI using API client
 import typer
 from skill_fleet.cli.client import SkillFleetClient
-from skill_fleet.domain import JobStatus
 
 app = typer.Typer()
 
 @app.command()
-def create_custom_skill(task: str):
+def create_skill(task: str):
     """Create a skill via the API."""
     client = SkillFleetClient()
-
-    # Create skill
+    
     response = client.create_skill(task_description=task)
-    job_id = response["job_id"]
-
-    # Poll for completion
-    while True:
-        job = client.get_job(job_id)
-        status = job["status"]
-
-        if status == JobStatus.COMPLETED:
-            typer.echo(f"Skill created: {job['result']['skill_id']}")
-            break
-        elif status == JobStatus.FAILED:
-            typer.error(f"Job failed: {job['error']}")
-            break
-        elif status == JobStatus.PENDING_HITL:
-            typer.echo("Waiting for HITL response...")
-
-        time.sleep(2)
-```
-
-## Before vs After Restructure
-
-### Before (Old Import Paths)
-
-```python
-# Old: Direct imports from core
-from skill_fleet.core.programs.skill_creator import SkillCreationProgram
-from skill_fleet.core.models import SkillMetadata
-from skill_fleet.taxonomy import TaxonomyManager
-```
-
-### After (New Import Paths)
-
-```python
-# New: Facade-based imports
-from skill_fleet.dspy.programs import SkillCreationProgram
-from skill_fleet.domain import SkillMetadata
-from skill_fleet.taxonomy.manager import TaxonomyManager
+    typer.echo(f"Job created: {response['job_id']}")
+    typer.echo(f"Status: {response['status']}")
 ```
 
 ## Migration Checklist
 
 If you have code using old import paths:
 
-- [ ] Update `skill_fleet.core.programs` → `skill_fleet.dspy.programs`
-- [ ] Update `skill_fleet.core.models` → `skill_fleet.domain`
-- [ ] Update `skill_fleet.core.services` → `skill_fleet.services` or keep as `skill_fleet.core.services`
-- [ ] Update validator imports to use `skill_fleet.validators`
+### From `core/dspy/` (Deleted)
 
-## Best Practices
+- [ ] `from skill_fleet.core.dspy import configure_dspy` → `from skill_fleet.dspy import configure_dspy`
+- [ ] `from skill_fleet.core.dspy.modules import ...` → `from skill_fleet.core.modules import ...`
+- [ ] `from skill_fleet.core.dspy.signatures import ...` → `from skill_fleet.core.signatures import ...`
+- [ ] `from skill_fleet.core.dspy.modules.workflows import TaskAnalysisOrchestrator` → `from skill_fleet.core.workflows.skill_creation import UnderstandingWorkflow`
 
-1. **Use facade imports** from `skill_fleet.domain`, `skill_fleet.app`, `skill_fleet.services`
-2. **Avoid internal imports** from `skill_fleet.core`, `skill_fleet.db` unless necessary
-3. **Import specific classes** rather than using `from module import *`
-4. **Use type hints** with imported domain models
-5. **Dependency injection** for services, not direct instantiation
+### From `infrastructure/llm/` (Deleted)
+
+- [ ] `from skill_fleet.infrastructure.llm import configure_dspy` → `from skill_fleet.dspy import configure_dspy`
+- [ ] `from skill_fleet.infrastructure.llm.dspy_config import ...` → `from skill_fleet.dspy import ...`
+
+### From `core/creator.py` (Deleted)
+
+- [ ] `from skill_fleet.core.creator import TaxonomySkillCreator` → Use `SkillService` from `skill_fleet.api.services`
+
+### From `onboarding/` (Deleted)
+
+- [ ] `from skill_fleet.onboarding import SkillBootstrapper` → Feature removed, use API directly
 
 ## Troubleshooting
 
-### Import Error: "No module named 'skill_fleet.domain'"
+### Import Error: "No module named 'skill_fleet.core.dspy'"
 
-The domain layer was introduced in the restructure. Ensure you're using the latest version:
-
-```bash
-git pull origin main
-uv sync
-```
-
-### Import Error: "Cannot import 'X' from 'skill_fleet.api'"
-
-The `skill_fleet.api` module has been removed. Use `skill_fleet.app` instead:
+The `core/dspy/` directory was deleted in the migration. Update your imports:
 
 ```python
-# Wrong (old)
-from skill_fleet.api import CreateSkillRequest
+# ❌ Wrong (old)
+from skill_fleet.core.dspy import configure_dspy
 
-# Correct (new)
-from skill_fleet.app.api.schemas import CreateSkillRequest
-
-# For FastAPI application
-from skill_fleet.app import create_app, get_app, app
-
-# For application dependencies
-from skill_fleet.app.dependencies import (
-    SkillsRoot,
-    DraftsRoot,
-    TaxonomyManagerDep,
-)
+# ✅ Correct (new)
+from skill_fleet.dspy import configure_dspy
 ```
 
-### Multiple Import Paths Work
+### Import Error: "No module named 'skill_fleet.infrastructure.llm'"
 
-Both facade and direct imports work during the migration period. Prefer facade imports for new code.
+The `infrastructure/llm/` directory was deleted. Use the new location:
 
 ```python
-# Both work, prefer the first
-from skill_fleet.domain import Skill  # Facade (recommended)
-from skill_fleet.domain.models import Skill  # Direct (also works)
+# ❌ Wrong (old)
+from skill_fleet.infrastructure.llm import configure_dspy
+
+# ✅ Correct (new)
+from skill_fleet.dspy import configure_dspy
 ```
+
+### Import Error: "cannot import name 'TaskAnalysisOrchestrator'"
+
+Orchestrators were replaced with Workflow classes:
+
+```python
+# ❌ Wrong (old)
+from skill_fleet.core.dspy.modules.workflows import TaskAnalysisOrchestrator
+orchestrator = TaskAnalysisOrchestrator()
+
+# ✅ Correct (new)
+from skill_fleet.core.workflows.skill_creation import UnderstandingWorkflow
+workflow = UnderstandingWorkflow()
+```
+
+## Best Practices
+
+1. **Use `skill_fleet.dspy`** for DSPy configuration
+2. **Use workflows** for high-level operations
+3. **Use modules directly** only when you need fine-grained control
+4. **Use signatures** for type definitions, not business logic
+5. **Import specific classes** rather than using `from module import *`
+6. **Use type hints** with imported models
 
 ## See Also
 
-- **[Architecture: Domain Layer](../architecture/DOMAIN_LAYER.md)** - DDD patterns and entities
-- **[Architecture: Service Layer](../architecture/SERVICE_LAYER.md)** - Service architecture
+- **[Architecture Status](../architecture/restructuring-status.md)** - Current architecture overview
+- **[AGENTS.md](../../AGENTS.md)** - Developer working guide
 - **[Contributing Guide](CONTRIBUTING.md)** - Development workflow

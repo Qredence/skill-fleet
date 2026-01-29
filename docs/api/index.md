@@ -1,7 +1,7 @@
 # API Documentation
 
 **Last Updated**: 2026-01-26
-**Location**: `src/skill_fleet/app/`
+**Location**: `src/skill_fleet/api/`
 
 ## Overview
 

@@ -170,7 +170,9 @@ async def run_hitl_job(
             else:
                 spinner.update(message)
             await asyncio.sleep(current_interval)
-            current_interval = min(max(poll_interval, 0.5) * 5.0, current_interval * 1.25)
+            # Only increase interval for slow polling mode
+            if poll_interval >= 1.0:
+                current_interval = min(max(poll_interval, 0.5) * 5.0, current_interval * 1.25)
             continue
 
         if spinner is not None:

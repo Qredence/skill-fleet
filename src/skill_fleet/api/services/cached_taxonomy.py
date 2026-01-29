@@ -39,6 +39,16 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _sanitize_for_log(value: Any) -> str:
+    """
+    Sanitize a value for safe inclusion in log messages.
+
+    Removes newline and carriage return characters to mitigate log injection.
+    """
+    text = str(value)
+    return text.replace("\r", "").replace("\n", "")
+
+
 class CachedTaxonomyService:
     """
     Cached wrapper for TaxonomyManager operations.
@@ -106,11 +116,13 @@ class CachedTaxonomyService:
         # Try cache first
         cached = get_cache().get(cache_key_val)
         if cached is not None:
-            logger.debug(f"Cache hit: user taxonomy for {user_id}")
+            safe_user_id = _sanitize_for_log(user_id)
+            logger.debug(f"Cache hit: user taxonomy for {safe_user_id}")
             return cached
 
         # Get from taxonomy manager
-        logger.debug(f"Cache miss: user taxonomy for {user_id}")
+        safe_user_id = _sanitize_for_log(user_id)
+        logger.debug(f"Cache miss: user taxonomy for {safe_user_id}")
         mounted_skills = self.taxonomy_manager.get_mounted_skills(user_id)
         taxonomy_meta = self.taxonomy_manager.meta
         global_taxonomy = taxonomy_meta.get("taxonomy", {})

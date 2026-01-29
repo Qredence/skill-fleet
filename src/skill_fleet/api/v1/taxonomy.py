@@ -33,6 +33,16 @@ from ..services.cached_taxonomy import get_cached_taxonomy_service
 
 logger = logging.getLogger(__name__)
 
+
+def _sanitize_for_log(value: str) -> str:
+    """
+    Remove characters that could be used for log injection (e.g., newlines).
+    """
+    if not isinstance(value, str):
+        return value
+    return value.replace("\r", "").replace("\n", "")
+
+
 router = APIRouter()
 
 
@@ -137,7 +147,8 @@ async def update_taxonomy(
 
             except Exception as update_err:
                 errors.append(f"Failed to update {path}: {update_err}")
-                logger.warning(f"Taxonomy update failed for {path}: {update_err}")
+                safe_path = _sanitize_for_log(path)
+                logger.warning(f"Taxonomy update failed for {safe_path}: {update_err}")
 
         # Update taxonomy meta timestamp
         meta_path = taxonomy_manager.skills_root / "taxonomy_meta.json"

@@ -28,9 +28,7 @@ class ValidateComplianceModule(BaseModule):
         super().__init__()
         self.validate = dspy.ChainOfThought(ValidateCompliance)
 
-    async def aforward(  # type: ignore[override]
-        self, skill_content: str, taxonomy_path: str
-    ) -> dict[str, Any]:
+    async def aforward(self, **kwargs: Any) -> dict[str, Any]:
         """
         Validate skill compliance.
 
@@ -42,6 +40,9 @@ class ValidateComplianceModule(BaseModule):
             Validation results with score and issues
 
         """
+        skill_content: str = kwargs["skill_content"]
+        taxonomy_path: str = kwargs["taxonomy_path"]
+
         start_time = time.time()
 
         result = await self.validate.acall(skill_content=skill_content, taxonomy_path=taxonomy_path)

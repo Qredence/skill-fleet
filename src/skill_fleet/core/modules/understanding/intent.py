@@ -47,9 +47,7 @@ class AnalyzeIntentModule(BaseModule):
         super().__init__()
         self.analyze = dspy.ChainOfThought(AnalyzeIntent)
 
-    def forward(  # type: ignore[override]
-        self, task_description: str, requirements: dict | None = None
-    ) -> dict[str, Any]:
+    def forward(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
         """
         Analyze intent from task description.
 
@@ -68,6 +66,22 @@ class AnalyzeIntentModule(BaseModule):
             - success_criteria: Measurable success criteria
 
         """
+        # Support both keyword and positional arguments to remain compatible
+        # with BaseModule.forward while preserving existing behavior.
+        if "task_description" in kwargs:
+            task_description = kwargs["task_description"]
+        elif args:
+            task_description = args[0]
+        else:
+            raise TypeError("forward() missing required argument: 'task_description'")
+
+        if "requirements" in kwargs:
+            requirements = kwargs["requirements"]
+        elif len(args) > 1:
+            requirements = args[1]
+        else:
+            requirements = None
+
         start_time = time.time()
 
         # Sanitize inputs

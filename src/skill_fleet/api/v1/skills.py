@@ -66,7 +66,7 @@ async def create_skill(
 
     """
     # Import here to avoid circular dependency with job system
-    from ..services.jobs import create_job
+    from ..services.jobs import create_job, get_job
 
     job_id = create_job(
         task_description=request.task_description,
@@ -78,20 +78,21 @@ async def create_skill(
         try:
             result = await skill_service.create_skill(
                 request,
-                existing_job_id=job_id,  # Pass the job_id so HITL data is stored in the same job
+                existing_job_id=job_id,
             )
-            # For now, we'll return the result synchronously
-            # In production, this would update job state
             logger.info(f"Skill creation job {job_id} completed with status: {result.status}")
-            return result
         except Exception as e:
             logger.error(f"Skill creation job {job_id} failed: {e}")
-            return None
+            # Update job status to failed
+            job = get_job(job_id)
+            if job:
+                from ..services.jobs import update_job
+                update_job(job_id, {"status": "failed", "error": str(e)})
 
-    # For now, run synchronously (background tasks can be added later)
-    result = await run_workflow()
+    # Add workflow to background tasks and return immediately
+    background_tasks.add_task(run_workflow)
 
-    return CreateSkillResponse(job_id=job_id, status=result.status if result else "completed")
+    return CreateSkillResponse(job_id=job_id, status="pending")
 
 
 @router.get("/{skill_id}", response_model=SkillDetailResponse)

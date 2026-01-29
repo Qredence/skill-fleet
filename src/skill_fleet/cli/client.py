@@ -16,7 +16,8 @@ class SkillFleetClient:
     def __init__(self, base_url: str = "http://localhost:8000"):
         """Initialize the client."""
         self.base_url = base_url.rstrip("/")
-        self.client = httpx.AsyncClient(base_url=self.base_url, timeout=30.0)
+        # Increase timeout for long-running operations (5 minutes)
+        self.client = httpx.AsyncClient(base_url=self.base_url, timeout=300.0)
 
     async def close(self):
         """Close the HTTP client."""

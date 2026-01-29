@@ -116,3 +116,6 @@ htmlcov/
 # Development/temporary files (not for commit)
 .github/agents/rlm-subcall.md
 .github/skills/
+
+# Frontend (WIP - not ready for commit)
+src/frontend/

@@ -119,3 +119,7 @@ htmlcov/
 
 # Frontend (WIP - not ready for commit)
 src/frontend/
+.opencode/skills/ai-sdk
+.opencode/skills/skill-creator
+.opencode/skills/skill-judge
+.agent/skills/ai-sdk

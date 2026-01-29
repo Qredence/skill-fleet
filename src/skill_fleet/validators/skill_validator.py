@@ -125,13 +125,18 @@ class SkillValidator:
         if candidate.is_symlink():
             return None, f"{label} must not be a symlink"
 
+        # Security: verify containment BEFORE resolving to satisfy static analysis
+        base_str = os.fspath(base_dir_resolved)
+        candidate_str = os.fspath(candidate)
+        if os.path.commonpath([base_str, candidate_str]) != base_str:
+            return None, f"{label} path not allowed"
+
         try:
             resolved = candidate.resolve(strict=True)
         except FileNotFoundError:
             return None, f"{label} not found"
 
-        # Explicit containment checks recognized by static analyzers
-        base_str = os.fspath(base_dir_resolved)
+        # Final containment check after resolution (defense in depth)
         resolved_str = os.fspath(resolved)
         if os.path.commonpath([base_str, resolved_str]) != base_str:
             return None, f"{label} path not allowed"
@@ -305,11 +310,14 @@ class SkillValidator:
         elif len(capabilities) == 0:
             warnings.append("capabilities list is empty")
 
-        if isinstance(capabilities, list) and weight in self._WEIGHT_ENUM:
-            if not self._validate_weight_capabilities(weight, capabilities):
-                warnings.append(
-                    f"Weight '{weight}' may not match capability count ({len(capabilities)})"
-                )
+        if (
+            isinstance(capabilities, list)
+            and weight in self._WEIGHT_ENUM
+            and not self._validate_weight_capabilities(weight, capabilities)
+        ):
+            warnings.append(
+                f"Weight '{weight}' may not match capability count ({len(capabilities)})"
+            )
 
         return ValidationResult(len(errors) == 0, errors, warnings)
 
@@ -534,9 +542,8 @@ class SkillValidator:
             if len(compat) > 500:
                 warnings.append(f"Compatibility field exceeds 500 characters ({len(compat)})")
 
-        if "metadata" in frontmatter:
-            if not isinstance(frontmatter["metadata"], dict):
-                warnings.append("metadata field should be a key-value mapping")
+        if "metadata" in frontmatter and not isinstance(frontmatter["metadata"], dict):
+            warnings.append("metadata field should be a key-value mapping")
 
         return ValidationResult(len(errors) == 0, errors, warnings)
 
@@ -613,13 +620,11 @@ class SkillValidator:
                 else:
                     # Check depth - only 1 level allowed (e.g., references/file.md, not references/sub/file.md)
                     for item in files:
-                        if item.is_dir() and not item.name.startswith("."):
-                            # examples/ is allowed to have subdirectories (demo projects)
-                            if subdir != "examples":
-                                warnings.append(
-                                    f"Nested subdirectory not recommended: {subdir}/{item.name}/ "
-                                    f"(use flat structure in {subdir}/)"
-                                )
+                        if item.is_dir() and not item.name.startswith(".") and subdir != "examples":
+                            warnings.append(
+                                f"Nested subdirectory not recommended: {subdir}/{item.name}/ "
+                                f"(use flat structure in {subdir}/)"
+                            )
             elif subdir in LEGACY_SUBDIRECTORIES:
                 warnings.append(
                     f"Legacy subdirectory '{subdir}/' is deprecated. "
@@ -923,9 +928,7 @@ class SkillValidator:
             return False
         if weight == "medium" and (cap_count < 3 or cap_count > 10):
             return False
-        if weight == "heavyweight" and cap_count < 8:
-            return False
-        return True
+        return not (weight == "heavyweight" and cap_count < 8)
 
     def _is_safe_path_component(self, component: str) -> bool:
         """

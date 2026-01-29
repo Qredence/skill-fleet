@@ -108,7 +108,7 @@ def serve_command(
     """
     import uvicorn
 
-    from skill_fleet.db.database import init_db
+    from skill_fleet.infrastructure.db.database import init_db
 
     # Initialize database unless skipped
     if not skip_db_init:
@@ -133,4 +133,4 @@ def serve_command(
         f"[bold green]🔥 Starting Skill Fleet API on {final_host}:{final_port}...[/bold green]"
     )
     console.print("[dim]Press Ctrl+C to stop[/dim]\n")
-    uvicorn.run("skill_fleet.api.app:app", host=final_host, port=final_port, reload=final_reload)
+    uvicorn.run("skill_fleet.api.main:app", host=final_host, port=final_port, reload=final_reload)

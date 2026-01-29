@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 
-class SkillFleetAPIException(Exception):
+class SkillFleetAPIError(Exception):
     """Base exception for all Skill Fleet API errors."""
 
     status_code: int = 500
@@ -38,7 +38,7 @@ class SkillFleetAPIException(Exception):
         super().__init__(detail)
 
 
-class NotFoundException(SkillFleetAPIException):
+class NotFoundException(SkillFleetAPIError):
     """Resource not found exception."""
 
     status_code: int = 404
@@ -58,7 +58,7 @@ class NotFoundException(SkillFleetAPIException):
         super().__init__(detail=message, status_code=404)
 
 
-class BadRequestException(SkillFleetAPIException):
+class BadRequestException(SkillFleetAPIError):
     """Bad request exception for invalid input."""
 
     status_code: int = 400
@@ -74,7 +74,7 @@ class BadRequestException(SkillFleetAPIException):
         super().__init__(detail=detail, status_code=400)
 
 
-class UnauthorizedException(SkillFleetAPIException):
+class UnauthorizedException(SkillFleetAPIError):
     """Unauthorized exception for missing or invalid authentication."""
 
     status_code: int = 401
@@ -90,7 +90,7 @@ class UnauthorizedException(SkillFleetAPIException):
         super().__init__(detail=detail, status_code=401)
 
 
-class ForbiddenException(SkillFleetAPIException):
+class ForbiddenException(SkillFleetAPIError):
     """Forbidden exception for valid authentication but insufficient permissions."""
 
     status_code: int = 403
@@ -106,7 +106,7 @@ class ForbiddenException(SkillFleetAPIException):
         super().__init__(detail=detail, status_code=403)
 
 
-class ConflictException(SkillFleetAPIException):
+class ConflictException(SkillFleetAPIError):
     """Conflict exception for resource conflicts."""
 
     status_code: int = 409
@@ -122,7 +122,7 @@ class ConflictException(SkillFleetAPIException):
         super().__init__(detail=detail, status_code=409)
 
 
-class UnprocessableEntityException(SkillFleetAPIException):
+class UnprocessableEntityException(SkillFleetAPIError):
     """Unprocessable entity exception for valid syntax but semantic errors."""
 
     status_code: int = 422
@@ -138,7 +138,7 @@ class UnprocessableEntityException(SkillFleetAPIException):
         super().__init__(detail=detail, status_code=422)
 
 
-class TooManyRequestsException(SkillFleetAPIException):
+class TooManyRequestsException(SkillFleetAPIError):
     """Too many requests exception for rate limiting."""
 
     status_code: int = 429
@@ -158,7 +158,7 @@ class TooManyRequestsException(SkillFleetAPIException):
         super().__init__(detail=detail, status_code=429, headers=headers)
 
 
-class InternalServerErrorException(SkillFleetAPIException):
+class InternalServerErrorException(SkillFleetAPIError):
     """Internal server error for unexpected errors."""
 
     status_code: int = 500
@@ -174,7 +174,7 @@ class InternalServerErrorException(SkillFleetAPIException):
         super().__init__(detail=detail, status_code=500)
 
 
-class ServiceUnavailableException(SkillFleetAPIException):
+class ServiceUnavailableException(SkillFleetAPIError):
     """Service unavailable for temporary maintenance or dependency failures."""
 
     status_code: int = 503
@@ -198,7 +198,7 @@ class ServiceUnavailableException(SkillFleetAPIException):
         super().__init__(detail=detail, status_code=503, headers=headers)
 
 
-class JobException(SkillFleetAPIException):
+class JobException(SkillFleetAPIError):
     """Exception for job-related errors."""
 
     status_code: int = 400
@@ -222,7 +222,7 @@ class JobException(SkillFleetAPIException):
         super().__init__(detail=message, status_code=status_code)
 
 
-class HITLException(SkillFleetAPIException):
+class HITLException(SkillFleetAPIError):
     """Exception for Human-in-the-Loop interaction errors."""
 
     status_code: int = 400
@@ -246,7 +246,7 @@ class HITLException(SkillFleetAPIException):
         super().__init__(detail=message, status_code=400)
 
 
-class ValidationException(SkillFleetAPIException):
+class ValidationException(SkillFleetAPIError):
     """Exception for skill validation failures."""
 
     status_code: int = 400
@@ -276,7 +276,7 @@ class ValidationException(SkillFleetAPIException):
 
 
 __all__ = [
-    "SkillFleetAPIException",
+    "SkillFleetAPIError",
     "NotFoundException",
     "BadRequestException",
     "UnauthorizedException",

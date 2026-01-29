@@ -6,8 +6,9 @@ from pathlib import Path
 
 import typer
 
+from skill_fleet.taxonomy.manager import TaxonomyManager
+
 from ...common.paths import default_skills_root, ensure_skills_root_initialized
-from ...taxonomy.manager import TaxonomyManager
 
 
 def generate_xml_command(

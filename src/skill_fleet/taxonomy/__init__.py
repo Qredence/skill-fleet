@@ -2,9 +2,30 @@
 
 from __future__ import annotations
 
-from .manager import SkillMetadata, TaxonomyManager
+# Export submodules for direct access if needed
+from . import (
+    discovery,
+    metadata,
+    naming,
+    path_resolver,
+    skill_loader,
+    skill_registration,
+)
+from .manager import TaxonomyManager
+from .metadata import SkillMetadata
+from .naming import name_to_skill_id, skill_id_to_name, validate_skill_name
 
 __all__ = [
-    "SkillMetadata",
     "TaxonomyManager",
+    "SkillMetadata",
+    "skill_id_to_name",
+    "name_to_skill_id",
+    "validate_skill_name",
+    # Submodules
+    "discovery",
+    "metadata",
+    "naming",
+    "path_resolver",
+    "skill_loader",
+    "skill_registration",
 ]

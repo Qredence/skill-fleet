@@ -102,6 +102,7 @@ class FindTaxonomyPath(dspy.Signature):
 | `confidence` | `float` | Confidence 0-1. <0.7 means may need user confirmation |
 
 **Rules:**
+
 - Prefer deeper paths (more specific is better)
 - Consider existing skills in similar categories
 - Follow taxonomy naming conventions
@@ -204,6 +205,7 @@ class GenerateSkillContent(dspy.Signature):
 | `estimated_reading_time` | `int` | Estimated reading time in minutes |
 
 **Requirements:**
+
 - YAML frontmatter at top (name in kebab-case, description)
 - Clear sections with headers
 - Code examples with explanations
@@ -305,6 +307,7 @@ class ValidateSkill(dspy.Signature):
 | `overall_score` | `float` | Overall quality score 0-1. >0.8 means high quality |
 
 **Validates:**
+
 1. agentskills.io Compliance (YAML frontmatter, naming)
 2. Content Quality (sections, examples, code validity)
 3. Structural Integrity (markdown formatting, links)
@@ -374,13 +377,17 @@ class AssessSkillQuality(dspy.Signature):
 
 ---
 
-## Chat Signatures
+## Chat Signatures (DEPRECATED)
 
-**File**: `src/skill_fleet/core/signatures/chat.py`
+> **Note**: The `chat.py` signatures and `GuidedCreatorProgram` have been replaced by the
+> `ConversationalOrchestrator` in `src/skill_fleet/workflows/conversational_interface/`.
+> See the `conversational_interface` signatures for current implementations.
+
+~~**File**: `src/skill_fleet/core/signatures/chat.py`~~
 
 Signatures for the interactive chat mode skill creation.
 
-### GuidedResponseSignature
+### GuidedResponseSignature (DEPRECATED)
 
 Generate the next agent response in a guided skill creation conversation.
 

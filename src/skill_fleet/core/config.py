@@ -75,11 +75,13 @@ class ModelConfig(BaseModel):
     @model_validator(mode="after")
     def validate_thinking_config(self) -> ModelConfig:
         """Validate thinking_level is properly configured."""
-        if self.parameters.thinking_level is not None:
-            # Thinking level should be used with temperature=1.0
-            if self.parameters.temperature is not None and self.parameters.temperature != 1.0:
-                # This is a warning - we allow it but document the issue
-                pass
+        if (
+            self.parameters.thinking_level is not None
+            and self.parameters.temperature is not None
+            and self.parameters.temperature != 1.0
+        ):
+            # This is a warning - we allow it but document the issue
+            pass
         return self
 
 

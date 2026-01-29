@@ -5,13 +5,17 @@ from __future__ import annotations
 import logging
 import time
 import uuid
-from collections.abc import Callable
+from typing import TYPE_CHECKING
 
-from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from ..config import get_settings
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from fastapi import Request, Response
 
 settings = get_settings()
 logger = logging.getLogger(__name__)

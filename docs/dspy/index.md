@@ -292,6 +292,43 @@ with dspy.context(lm=edit_lm):
     result = await module.aforward(...)
 ```
 
+## MLflow Integration
+
+Skills Fleet includes automatic MLflow tracking for DSPy 3.1.2+ workflows using `mlflow.dspy.autolog()`.
+
+### Quick Setup
+
+```bash
+# Start MLflow UI (port 5001 to avoid AirPlay conflict)
+./scripts/start-mlflow-public.sh
+
+# Open UI at http://localhost:5001
+```
+
+### Usage
+
+```python
+from skill_fleet.services.monitoring import setup_dspy_autologging, MLflowContext
+
+# Enable DSPy autologging
+setup_dspy_autologging(experiment_name="skill-creation")
+
+# Track a workflow run
+with MLflowContext(run_name="my-skill-creation"):
+    result = await program.aforward(...)
+```
+
+### What Gets Tracked
+
+- **Module calls**: Every DSPy module invocation
+- **Signatures**: Input/output for each signature
+- **LM calls**: Language model requests and responses
+- **Parameters**: Model settings, temperature, max_tokens
+- **Metrics**: Performance metrics and evaluation scores
+- **Optimization**: MIPROv2, GEPA iterations
+
+**See [MLflow Setup Guide](../MLFLOW_SETUP.md)** for complete documentation.
+
 ## Next Steps
 
 - **[Signatures Documentation](signatures.md)** - All DSPy signatures
@@ -305,6 +342,7 @@ with dspy.context(lm=edit_lm):
 - **[LLM Configuration](../llm/dspy-config.md)** - Centralized DSPy configuration
 - **[HITL System](../hitl/)** - Human-in-the-Loop interactions
 - **[API Endpoints](../api/endpoints.md)** - REST API usage (includes evaluation & optimization)
+- **[MLflow Setup Guide](../MLFLOW_SETUP.md)** - DSPy autologging and tracking
 
 ## External DSPy Resources
 

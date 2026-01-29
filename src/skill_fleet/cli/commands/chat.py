@@ -2,9 +2,10 @@
 CLI command for interactive chat sessions.
 
 Features:
-- Try to launch interactive Ink TUI with streaming support
-- Fallback to simple terminal chat if TUI unavailable
-- Support for agentic intent detection and command execution
+- Real-time streaming with live updates (100ms polling)
+- Immediate thinking/reasoning display
+- Arrow key navigation for multi-choice questions
+- Fallback to simple terminal chat if needed
 """
 
 from __future__ import annotations
@@ -46,18 +47,27 @@ def chat_command(
         "--no-tui",
         help="Disable Ink TUI and use simple terminal chat",
     ),
+    fast: bool = typer.Option(
+        True,
+        "--fast/--slow",
+        help="Use fast polling (100ms) for real-time updates",
+    ),
 ):
     """
     Start an interactive guided session to build a skill (job + HITL).
 
-    Try to launch interactive Ink TUI with real-time streaming responses,
-    thinking/reasoning display, and agentic suggestions. Falls back to
-    simple terminal chat if TUI is unavailable.
+    Features real-time streaming with:
+    - Live progress updates (100ms refresh)
+    - Thinking/reasoning display
+    - Arrow key navigation for questions
+    - Immediate response to user input
+
+    Try to launch interactive Ink TUI first, fallback to terminal chat.
     """
     config = ctx.obj
 
     # Try to spawn TUI first (if available and not disabled)
-    if not no_tui and not force_plain_text:
+    if not no_tui and not force_plain_text and not fast:
         try:
             exit_code = spawn_tui(
                 api_url=config.api_url, user_id=config.user_id, force_no_tui=False
@@ -79,28 +89,30 @@ def chat_command(
         try:
             console.print(
                 Panel.fit(
-                    "[bold cyan]Skill Fleet — Guided Creator[/bold cyan]\n"
-                    "This command uses the FastAPI job + HITL workflow.\n"
+                    "[bold cyan]Skill Fleet — Interactive Creator[/bold cyan]\n"
+                    "Real-time streaming with live thinking display\n"
                     "Commands: /help, /exit",
                     border_style="cyan",
                 )
             )
 
-            def _print_help() -> None:
+            def _print_help():
                 console.print(
                     Panel.fit(
                         "[bold]Commands[/bold]\n"
                         "- /help: show this message\n"
                         "- /exit: quit\n\n"
-                        "[bold]Tips[/bold]\n"
-                        '- Use [dim]create[/dim] for one-shot runs: `uv run skill-fleet create "..."`\n'
-                        "- Run the server first: `uv run skill-fleet serve`",
+                        "[bold]Features[/bold]\n"
+                        "- Real-time progress updates (100ms)\n"
+                        "- Live thinking/reasoning display\n"
+                        "- Arrow key navigation for choices\n"
+                        "- Immediate response to questions",
                         title="Help",
                         border_style="cyan",
                     )
                 )
 
-            pending_task: str | None = task
+            pending_task = task
             while True:
                 if pending_task is not None:
                     task_description = pending_task
@@ -109,6 +121,7 @@ def chat_command(
                     task_description = Prompt.ask(
                         "\n[bold green]What capability would you like to build?[/bold green]"
                     )
+
                 if task_description.lower() in {"/exit", "/quit"}:
                     return
                 if task_description.lower() in {"/help"}:
@@ -133,6 +146,9 @@ def chat_command(
 
                 console.print(f"[bold green]🚀 Skill creation job started: {job_id}[/bold green]")
 
+                # Use fast polling for real-time updates
+                poll_interval = 0.1 if fast else 2.0
+
                 prompt_data = await run_hitl_job(
                     console=console,
                     client=config.client,
@@ -140,6 +156,7 @@ def chat_command(
                     auto_approve=auto_approve,
                     show_thinking=show_thinking,
                     force_plain_text=force_plain_text,
+                    poll_interval=poll_interval,
                 )
 
                 status = prompt_data.get("status")
@@ -190,7 +207,8 @@ def chat_command(
                     if content is None:
                         content = prompt_data.get("skill_content") or "No content generated."
 
-                    console.print(Panel(Text(content), title="Final Skill Content"))
+                    console.print(Panel(content, title="Final Skill Content"))
+
                 elif status == "failed":
                     console.print(Text(f"❌ Job failed: {prompt_data.get('error')}", style="red"))
                 elif status == "cancelled":

@@ -12,15 +12,15 @@ The **one-size-fits-all** approach to LLM selection is inefficient. Understandin
 
 ## Task Mappings
 
-| Task | Phase | Purpose | Recommended Model | Temperature | Reasoning |
-|------|-------|---------|-------------------|-------------|-----------|
-| **skill_gather_examples** | Phase 0 | Example gathering | Conversational model | 0.4 | Focused questioning, conversational |
-| **skill_understand** | Phase 1 | Task analysis | High reasoning model | 0.7 | Complex analysis needs creativity |
-| **skill_plan** | Phase 1 | Structure planning | Medium reasoning model | 0.5 | Structured planning needs precision |
-| **skill_initialize** | Phase 2 | Directory setup | Fast model | 0.1 | Simple operation, deterministic |
-| **skill_edit** | Phase 2 | Content generation | Creative model | 0.6 | Content creation needs creativity |
-| **skill_package** | Phase 3 | Validation | Precise model | 0.1 | Validation needs consistency |
-| **skill_validate** | Phase 3 | Compliance check | Precise model | 0.0 | Strict checking, no variance |
+| Task                      | Phase   | Purpose            | Recommended Model      | Temperature | Reasoning                           |
+| ------------------------- | ------- | ------------------ | ---------------------- | ----------- | ----------------------------------- |
+| **skill_gather_examples** | Phase 0 | Example gathering  | Conversational model   | 0.4         | Focused questioning, conversational |
+| **skill_understand**      | Phase 1 | Task analysis      | High reasoning model   | 0.7         | Complex analysis needs creativity   |
+| **skill_plan**            | Phase 1 | Structure planning | Medium reasoning model | 0.5         | Structured planning needs precision |
+| **skill_initialize**      | Phase 2 | Directory setup    | Fast model             | 0.1         | Simple operation, deterministic     |
+| **skill_edit**            | Phase 2 | Content generation | Creative model         | 0.6         | Content creation needs creativity   |
+| **skill_package**         | Phase 3 | Validation         | Precise model          | 0.1         | Validation needs consistency        |
+| **skill_validate**        | Phase 3 | Compliance check   | Precise model          | 0.0         | Strict checking, no variance        |
 
 ## Task Details
 
@@ -30,115 +30,48 @@ The **one-size-fits-all** approach to LLM selection is inefficient. Understandin
 **Purpose:** Collect concrete usage examples through focused questioning
 
 **Requirements:**
+
 - Conversational ability
 - Focused questioning
 - Example extraction
 
 **Model Characteristics:**
+
 - **Temperature:** 0.4 (conversational, focused)
 - **Max Tokens:** 2048
 - **Reasoning:** Low-Medium
 
 **Used by:**
+
 - `GatherExamplesModule`
 
-**Why Medium-Low Temperature:**
-Example gathering requires focused questioning without excessive randomness. Temperature 0.4 strikes a balance between generating diverse clarifying questions and maintaining focus on the task at hand.
+```markdown
+# Moved: Task-specific model mapping (archived)
 
-**How it works:**
-1. Generates 1-3 clarifying questions per round
-2. Extracts UserExample objects from responses
-3. Builds domain terminology dictionary
-4. Scores readiness based on diversity, clarity, and coverage
+The detailed task-model mapping content has been consolidated into the canonical reference: `docs/reference/llm-config.md`.
 
----
+An archived copy of the original detailed page is available at `docs/archive/legacy_llm/task-models.md`.
 
-### skill_understand
-
-**Phase:** Phase 1 - Understanding & Planning
-**Purpose:** Deep analysis of user requirements and intent
-
-**Requirements:**
-- High reasoning capability
-- Complex comprehension
-- Nuanced understanding
-
-**Model Characteristics:**
-- **Temperature:** 0.7 (higher for diverse analysis)
-- **Max Tokens:** 4096
-- **Reasoning:** High
-
-**Used by:**
-- `IntentAnalyzerModule`
-- `TaxonomyPathFinderModule`
-
-**Why High Temperature:**
-Understanding user intent often requires exploring multiple interpretations. Higher temperature allows the model to consider diverse possibilities before settling on the best approach.
-
----
-
-### skill_plan
-
-**Phase:** Phase 1 - Understanding & Planning
-**Purpose:** Synthesize plan from all analyses
-
-**Requirements:**
-- Structured output
-- Logical organization
-- Consistency
-
-**Model Characteristics:**
-- **Temperature:** 0.5 (medium for balance)
-- **Max Tokens:** 4096
-- **Reasoning:** Medium
-
-**Used by:**
-- `PlanSynthesizerModule`
-
-**Why Medium Temperature:**
-Planning requires both creativity (to design good plans) and consistency (to produce structured output). Temperature 0.5 balances these needs.
-
----
-
-### skill_initialize
-
-**Phase:** Phase 2 - Content Generation
-**Purpose:** Initialize directory structure
-
-**Requirements:**
-- Fast execution
-- Deterministic output
-- Minimal reasoning
-
-**Model Characteristics:**
-- **Temperature:** 0.1 (low for determinism)
-- **Max Tokens:** 2048
-- **Reasoning:** Low
-
-**Used by:**
-- Directory creation operations
-
-**Why Low Temperature:**
-Directory initialization is a mechanical task. Low temperature ensures consistent, predictable output with minimal variance.
-
----
-
-### skill_edit
+For recommended task-to-model mappings and configuration guidance, see `docs/reference/llm-config.md`.
+```
 
 **Phase:** Phase 2 - Content Generation
 **Purpose:** Generate skill content
 
 **Requirements:**
+
 - Creative writing
 - High quality
 - Engaging explanations
 
 **Model Characteristics:**
+
 - **Temperature:** 0.6 (higher for creativity)
 - **Max Tokens:** 8192
 - **Reasoning:** Medium-High
 
 **Used by:**
+
 - `ContentGeneratorModule`
 - `FeedbackIncorporatorModule`
 
@@ -153,16 +86,19 @@ Content generation is the most creative phase. Higher temperature allows for var
 **Purpose:** Package and format skill
 
 **Requirements:**
+
 - Consistent formatting
 - Accurate metadata
 - Reliable validation
 
 **Model Characteristics:**
+
 - **Temperature:** 0.1 (low for determinism)
 - **Max Tokens:** 2048
 - **Reasoning:** Low
 
 **Used by:**
+
 - Packaging operations
 - Final formatting
 
@@ -177,16 +113,19 @@ Packaging requires consistency and accuracy. Low temperature ensures the same in
 **Purpose:** Validate compliance and quality
 
 **Requirements:**
+
 - Strict validation
 - No variance
 - Precise checking
 
 **Model Characteristics:**
+
 - **Temperature:** 0.0 (no variance)
 - **Max Tokens:** 2048
 - **Reasoning:** Low
 
 **Used by:**
+
 - `SkillValidatorModule`
 - `QualityAssessorModule`
 
@@ -219,6 +158,7 @@ graph LR
 ```
 
 **Key Insight:**
+
 - **Creative tasks** (understanding, editing) → Higher temperature (0.6-0.7)
 - **Balanced tasks** (planning, example gathering) → Medium temperature (0.4-0.5)
 - **Deterministic tasks** (initialization, validation) → Low/zero temperature (0.0-0.1)
@@ -314,11 +254,11 @@ assert edit_lm.kwargs["temperature"] == 0.6
 
 ## Cost Optimization
 
-| Strategy | Description | Savings |
-|----------|-------------|---------|
-| **Fast model for initialization** | Use flash models for simple tasks | ~50% |
-| **Zero temp for validation** | No need for creativity in validation | More consistent |
-| **Cache enabled** | Enable `DSPY_CACHEDIR` | Variable |
+| Strategy                          | Description                          | Savings         |
+| --------------------------------- | ------------------------------------ | --------------- |
+| **Fast model for initialization** | Use flash models for simple tasks    | ~50%            |
+| **Zero temp for validation**      | No need for creativity in validation | More consistent |
+| **Cache enabled**                 | Enable `DSPY_CACHEDIR`               | Variable        |
 
 **Example Cost-Optimized Config:**
 
@@ -347,12 +287,12 @@ tasks:
 
 ## Quality vs Speed Tradeoffs
 
-| Configuration | Quality | Speed | Cost |
-|---------------|---------|-------|------|
-| **All Flash** | Medium | Fast | Low |
-| **Edit = Pro** | High | Medium | Medium |
-| **All Pro** | Very High | Slow | High |
-| **Mixed** | High | Medium | Medium |
+| Configuration  | Quality   | Speed  | Cost   |
+| -------------- | --------- | ------ | ------ |
+| **All Flash**  | Medium    | Fast   | Low    |
+| **Edit = Pro** | High      | Medium | Medium |
+| **All Pro**    | Very High | Slow   | High   |
+| **Mixed**      | High      | Medium | Medium |
 
 **Recommended:** Mixed configuration (default)
 

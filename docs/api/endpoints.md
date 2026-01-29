@@ -1,15 +1,18 @@
-# API Endpoints Reference
+# API Endpoints Reference (v2)
 
-**Last Updated**: 2026-01-15
+**Last Updated**: 2026-01-25
 **Base URL**: `http://localhost:8000/api/v2`
+**API Status**: v2 is the current, stable API. See [Migration Guide](MIGRATION_V1_TO_V2.md) for version details.
 
 ## Overview
 
-This document provides detailed reference for all API endpoints, including request/response formats, status codes, and usage examples.
+This document provides detailed reference for all v2 API endpoints, including request/response formats, status codes, and usage examples.
 
 `★ Insight ─────────────────────────────────────`
 Skill creation is asynchronous because it involves multiple LLM calls and HITL checkpoints. The job-based pattern allows the API to return immediately while the skill is created in the background. Clients poll for status and respond to HITL prompts as needed.
 `─────────────────────────────────────────────────`
+
+**Note**: For the experimental v1 chat API (streaming endpoints), see [Migration Guide](MIGRATION_V1_TO_V2.md#v1-api-experimental).
 
 ## Health Check
 

@@ -73,7 +73,7 @@ def sanitize_relative_file_path(path: str) -> str | None:
     - Is not empty
     - Is not absolute
     - Does not contain Windows-style separators
-    - Contains only safe path components (alphanumeric, dot, hyphen, underscore)
+    - Contains only safe path components (alphanumeric, hyphen, underscore)
     - Does not contain "." or ".." components
 
     This is intended for user-controlled paths that are later joined onto a fixed
@@ -86,7 +86,7 @@ def sanitize_relative_file_path(path: str) -> str | None:
     if path.startswith("/") or "\\" in path or ".." in path:
         return None
 
-    segments = []
+    segments: list[str] = []
     for segment in path.split("/"):
         s = segment.strip()
         if not s or s == ".":
@@ -114,16 +114,20 @@ def resolve_path_within_root(root: Path, relative_path: str) -> Path:
     if not sanitized:
         raise ValueError("Invalid relative path")
 
+    # Security: resolve root and enforce containment before using candidate
     root_resolved = root.resolve()
-    candidate = root_resolved.joinpath(sanitized).resolve(strict=False)
+    root_real = os.path.realpath(os.fspath(root_resolved))
 
-    # Use os.path.commonpath for maximum robustness against CodeQL false positives.
-    root_str = os.fspath(root_resolved)
-    candidate_str = os.fspath(candidate)
-    if os.path.commonpath([root_str, candidate_str]) != root_str:
+    candidate = root_resolved.joinpath(sanitized)
+    # Normalize candidate path (follow symlinks, collapse ".." etc.)
+    candidate_str = os.path.realpath(os.fspath(candidate))
+
+    # Verify that the normalized candidate is contained within the normalized root
+    if os.path.commonpath([root_real, candidate_str]) != root_real:
         raise ValueError(f"Path escapes root: {candidate_str}")
 
-    return candidate
+    # Now safe to use the normalized candidate path
+    return Path(candidate_str)
 
 
 def is_safe_path_component(component: str) -> bool:
@@ -135,7 +139,7 @@ def is_safe_path_component(component: str) -> bool:
     - Does not contain path separators (/ or \\)
     - Does not contain null bytes
     - Is not "." or ".."
-    - Contains only alphanumeric characters, dots, hyphens, and underscores
+    - Contains only alphanumeric characters, hyphens, and underscores
 
     Args:
         component: A single path component (filename or directory name)
@@ -144,7 +148,7 @@ def is_safe_path_component(component: str) -> bool:
         True if the component is safe, False otherwise
 
     Examples:
-        >>> is_safe_path_component("valid_name.py")
+        >>> is_safe_path_component("valid_name")
         True
         >>> is_safe_path_component("..")
         False
@@ -167,8 +171,56 @@ def is_safe_path_component(component: str) -> bool:
     if ".." in component:
         return False
 
-    # Allow alphanumeric, dot, hyphen, underscore
-    return all(c.isalnum() or c in "._-" for c in component)
+    # Allow alphanumeric, hyphen, underscore
+    return all(c.isalnum() or c in "-_" for c in component)
+
+
+def resolve_skill_md_path(skills_root: Path, taxonomy_path: str) -> Path:
+    """
+    Resolve the path to a skill's SKILL.md file atomically.
+
+    This function is TOCTOU (time-of-check-time-of-use) safe and
+    prevents symlink-based path traversal attacks.
+
+    Args:
+        skills_root: Root directory for skills
+        taxonomy_path: The taxonomy path to the skill (e.g., "python/fastapi")
+
+    Returns:
+        The absolute path to the SKILL.md file
+
+    Raises:
+        ValueError: If the path is invalid or escapes the skills root
+        FileNotFoundError: If the SKILL.md file doesn't exist
+
+    """
+    # Sanitize and validate taxonomy path
+    safe_taxonomy_path = sanitize_taxonomy_path(taxonomy_path)
+    if safe_taxonomy_path is None:
+        raise ValueError("Invalid path")
+
+    skills_root_resolved = skills_root.resolve()
+
+    # Resolve path atomically to prevent TOCTOU attacks
+    # resolve(strict=True) raises FileNotFoundError if path doesn't exist
+    # and resolves symlinks automatically while preserving safety
+    skill_dir = skills_root_resolved / safe_taxonomy_path
+    candidate_md = skill_dir / "SKILL.md"
+
+    # Atomic check: verify SKILL.md exists
+    # Using resolve(strict=True) is safe against TOCTOU
+    try:
+        resolved_md = candidate_md.resolve(strict=True)
+    except FileNotFoundError:
+        raise FileNotFoundError(candidate_md.as_posix()) from None
+
+    # Verify resolved path is within skills root (prevents symlink escapes)
+    try:
+        resolved_md.relative_to(skills_root_resolved)
+    except ValueError as e:
+        raise ValueError("Invalid path") from e
+
+    return resolved_md
 
 
 __all__ = [
@@ -176,4 +228,5 @@ __all__ = [
     "resolve_path_within_root",
     "sanitize_relative_file_path",
     "sanitize_taxonomy_path",
+    "resolve_skill_md_path",
 ]

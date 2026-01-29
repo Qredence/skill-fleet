@@ -20,8 +20,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import os as python_os
 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
 
 # Import models and repositories
 from skill_fleet.db.models import (
@@ -32,6 +30,8 @@ from skill_fleet.db.models import (
     skill_weight_enum,
 )
 from skill_fleet.db.repositories import SkillRepository, TaxonomyRepository
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
 
 load_dotenv()
 DATABASE_URL = python_os.getenv("DATABASE_URL", "")
@@ -240,10 +240,12 @@ class SkillImporter:
         skills = []
 
         for skill_path in self.skills_dir.rglob("*"):
-            if skill_path.is_dir() and (skill_path / "SKILL.md").exists():
-                # Skip hidden directories
-                if not any(part.startswith(".") for part in skill_path.parts):
-                    skills.append(skill_path)
+            if (
+                skill_path.is_dir()
+                and (skill_path / "SKILL.md").exists()
+                and not any(part.startswith(".") for part in skill_path.parts)
+            ):
+                skills.append(skill_path)
 
         return sorted(skills)
 

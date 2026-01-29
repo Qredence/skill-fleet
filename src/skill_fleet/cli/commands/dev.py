@@ -99,7 +99,7 @@ def dev_command(
         sys.executable,
         "-m",
         "uvicorn",
-        "skill_fleet.api.app:app",
+        "skill_fleet.api.main:app",
         "--host",
         host,
         "--port",

@@ -73,12 +73,13 @@ docs/
 1. **Getting Started**: Read [`docs/getting-started/index.md`](../getting-started/) for installation and basic usage
 2. **DSPy Deep Dive**: Explore [`docs/dspy/`](../dspy/) to understand the 3-phase workflow architecture
 3. **API Usage**: Check [`docs/api/`](../api/) for REST API integration
-4. **CLI Reference**: See [`docs/cli/`](../cli/) for command details
-5. **Advanced Topics**: Visit [`docs/llm/`](../llm/), [`docs/hitl/`](../hitl/) for configuration details
+4. **CLI Guide**: See [`docs/guides/cli.md`](../guides/cli.md) for command details
+5. **Advanced Topics**: Visit [`docs/reference/llm-config.md`](../reference/llm-config.md), [`docs/hitl/`](../hitl/) for configuration details
 
 **New Documentation** 📚:
+
 - [`docs/dspy/`](../dspy/) - Comprehensive DSPy guide (signatures, modules, programs, optimization)
 - [`docs/api/`](../api/) - Complete REST API documentation (endpoints, schemas, jobs)
 - [`docs/cli/`](../cli/) - CLI reference with interactive chat mode
-- [`docs/llm/`](../llm/) - LLM configuration and task-specific models
+- [`docs/reference/llm-config.md`](../reference/llm-config.md) - LLM configuration and task-specific models (consolidated)
 - [`docs/hitl/`](../hitl/) - Human-in-the-Loop system documentation

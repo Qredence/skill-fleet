@@ -1,21 +1,10 @@
 """
-Technical infrastructure for Skills Fleet.
+Infrastructure layer for skill-fleet.
 
-This package contains technical concerns:
+This package contains technical infrastructure:
+- db/: Database layer with models and repositories
+- monitoring/: MLflow integration and monitoring
+- tracing/: Distributed tracing and telemetry
 
-- config/: Configuration management
-  - settings.py: Pydantic settings
-  - profiles/: Configuration profiles
-  - templates/: Configuration templates
-
-- database/: Database layer (migrated from db/)
-  - models.py: SQLAlchemy ORM models
-  - repositories.py: Repository pattern implementations
-  - database.py: Connection management
-
-- messaging/: Event bus and messaging (future)
+Note: LLM configuration has moved to skill_fleet.dspy
 """
-
-from __future__ import annotations
-
-__all__: list[str] = []

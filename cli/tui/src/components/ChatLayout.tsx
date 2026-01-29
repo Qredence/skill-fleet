@@ -31,6 +31,7 @@ interface ChatLayoutProps {
 }
 
 interface MainMenuOption {
+  key: string;
   label: string;
   value: string;
   description: string;
@@ -38,21 +39,25 @@ interface MainMenuOption {
 
 const MAIN_MENU_OPTIONS: MainMenuOption[] = [
   {
+    key: "create",
     label: "🎯 Create Skill",
     value: "create",
     description: "Create a new skill with guided workflow",
   },
   {
+    key: "list",
     label: "📚 List Skills",
     value: "list",
     description: "Browse existing skills in the taxonomy",
   },
   {
+    key: "optimize",
     label: "🚀 Optimize",
     value: "optimize",
     description: "Optimize DSPy workflow prompts",
   },
   {
+    key: "evaluate",
     label: "📊 Evaluate",
     value: "evaluate",
     description: "Evaluate skill quality",
@@ -74,7 +79,6 @@ function formatThinkingChunk(chunk: ThinkingChunk): string {
 
 export const ChatLayout: React.FC<ChatLayoutProps> = ({ apiUrl }) => {
   const [input, setInput] = useState("");
-  const [messageIdCounter, setMessageIdCounter] = useState(1);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showMainMenu, setShowMainMenu] = useState(true);
@@ -146,16 +150,25 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({ apiUrl }) => {
     },
   });
 
-  const getNextMessageId = useCallback(() => {
-    const id = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    return id;
+  const getNextMessageId = useCallback((prefix: string = "msg") => {
+    const hasCryptoRandomUUID =
+      typeof globalThis !== "undefined" &&
+      typeof (globalThis as any).crypto !== "undefined" &&
+      typeof (globalThis as any).crypto.randomUUID === "function";
+
+    const uniquePart = hasCryptoRandomUUID
+      ? (globalThis as any).crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+    return `${prefix}-${uniquePart}`;
   }, []);
 
   const addMessage = (role: Message["role"], content: string) => {
+    const id = getNextMessageId(role === "thinking" ? "think" : "msg");
     setMessages((prev) => [
       ...prev,
       {
-        id: getNextMessageId(),
+        id,
         role,
         content,
         timestamp: new Date().toLocaleTimeString(),
@@ -325,7 +338,7 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({ apiUrl }) => {
         addMessage("system", "🚀 Starting skill creation workflow...");
 
         try {
-          const response = await fetch(`${apiUrl}/api/v2/skills/create`, {
+          const response = await fetch(`${apiUrl}/api/v1/skills/`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -370,16 +383,19 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({ apiUrl }) => {
         apiUrl,
         message,
         onThinking: (chunk: ThinkingChunk) => {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: `think-${Date.now()}-${Math.random()}`,
-              role: "thinking",
-              content: chunk.content, // Raw content for parser
-              thinking_type: chunk.type,
-              timestamp: new Date().toLocaleTimeString(),
-            },
-          ]);
+          setMessages((prev) => {
+            const newId = getNextMessageId("think");
+            return [
+              ...prev,
+              {
+                id: newId,
+                role: "thinking",
+                content: chunk.content, // Raw content for parser
+                thinking_type: chunk.type,
+                timestamp: new Date().toLocaleTimeString(),
+              },
+            ];
+          });
         },
         onResponse: (chunk: ResponseChunk) => {
           assistantMessage += chunk.content;

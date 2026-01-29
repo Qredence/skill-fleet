@@ -2,9 +2,9 @@
 Shared HITL job runner for CLI commands.
 
 The Skill Fleet API uses a background job + HITL (Human-in-the-Loop) prompt model:
-- CLI starts a job via `/api/v2/skills/create`
-- API exposes the current prompt via `/api/v2/hitl/{job_id}/prompt`
-- CLI responds via `/api/v2/hitl/{job_id}/response`
+- CLI starts a job via `/api/v1/skills/`
+- API exposes the current prompt via `/api/v1/hitl/{job_id}/prompt`
+- CLI responds via `/api/v1/hitl/{job_id}/response`
 
 This module centralizes the polling + interaction handling so `create` and `chat`
 commands stay consistent.
@@ -153,7 +153,7 @@ async def run_hitl_job(
                 spinner.stop()
             return prompt_data
 
-        if status != "pending_hitl":
+        if status not in {"pending_hitl", "pending_user_input"}:
             # Build progress message from API response
             current_phase = prompt_data.get("current_phase", "")
             progress_message = prompt_data.get("progress_message", "")
@@ -170,7 +170,9 @@ async def run_hitl_job(
             else:
                 spinner.update(message)
             await asyncio.sleep(current_interval)
-            current_interval = min(max(poll_interval, 0.5) * 5.0, current_interval * 1.25)
+            # Only increase interval for slow polling mode
+            if poll_interval >= 1.0:
+                current_interval = min(max(poll_interval, 0.5) * 5.0, current_interval * 1.25)
             continue
 
         if spinner is not None:

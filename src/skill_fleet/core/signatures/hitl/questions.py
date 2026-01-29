@@ -1,0 +1,56 @@
+"""
+DSPy signature for generating clarifying questions.
+
+This signature generates focused questions to resolve ambiguities
+and better understand user requirements during HITL checkpoints.
+"""
+
+import dspy
+
+
+class GenerateClarifyingQuestions(dspy.Signature):
+    """
+    Generate focused clarifying questions to better understand user intent.
+
+    Ask 2-3 focused questions to:
+    - Clarify ambiguous requirements
+    - Understand edge cases
+    - Confirm taxonomy placement
+    - Verify dependencies
+
+    Each question should include:
+    - question_type: 'boolean' (Yes/No), 'single' (pick one), 'multi' (pick many), or 'text' (free form)
+    - options: list of {id, label} choices for boolean/single/multi types
+    - allows_other: whether to show "Other: type your own" option
+
+    Keep questions specific and actionable.
+    """
+
+    # Inputs
+    task_description: str = dspy.InputField(desc="User's initial task description")
+    initial_analysis: str = dspy.InputField(
+        desc="Initial analysis of the task (intent, taxonomy guess, etc.)", default=""
+    )
+    ambiguities: list[str] = dspy.InputField(
+        desc="List of detected ambiguities that need clarification"
+    )
+    previous_answers: str = dspy.InputField(
+        desc="JSON of previous Q&A context to incorporate (empty string if first round)",
+        default="",
+    )
+
+    # Outputs
+    questions: list[dict] = dspy.OutputField(
+        desc="""List of 2-3 structured questions. Each dict has:
+        - text: the question text
+        - question_type: 'boolean' | 'single' | 'multi' | 'text'
+        - options: list of {id, label} for choice questions
+        - rationale: why this question helps
+        - allows_other: true to show 'Other' option"""
+    )
+    priority: str = dspy.OutputField(
+        desc="Priority level: 'critical' (must answer), 'important' (should answer), 'optional' (nice to have)"
+    )
+    rationale: str = dspy.OutputField(
+        desc="Overall rationale for why these specific questions are being asked"
+    )

@@ -23,7 +23,7 @@ interface UseHitlConfigResult {
  * Fetch HITL configuration from the API
  *
  * Falls back to bundled defaults if API fetch fails.
- * Caches result in local storage to minimize API calls.
+ * Caches result in local storage to minimize API calls (only in browser).
  */
 export function useHitlConfig({
   apiUrl,
@@ -38,13 +38,22 @@ export function useHitlConfig({
   useEffect(() => {
     if (!enabled) return;
 
-    // Try local storage first (cache)
-    const cached = localStorage.getItem("hitl_config");
-    if (cached) {
+    // Check if localStorage is available (browser-only API)
+    const hasLocalStorage = typeof localStorage !== 'undefined';
+
+    // Try local storage first (cache) - only in browser
+    if (hasLocalStorage) {
       try {
-        const config = JSON.parse(cached);
-        setKeywords(config.action_keywords);
-        return;
+        const cached = localStorage.getItem("hitl_config");
+        if (cached) {
+          const config = JSON.parse(cached);
+          // Check cache age (1 hour)
+          const cacheAge = Date.now() - (config.cached_at || 0);
+          if (cacheAge < 3600000) { // 1 hour in ms
+            setKeywords(config.action_keywords);
+            return;
+          }
+        }
       } catch (_err) {
         // Invalid cache, proceed to fetch
       }
@@ -56,7 +65,7 @@ export function useHitlConfig({
       setError(null);
 
       try {
-        const response = await fetch(`${apiUrl}/api/v2/hitl/config`);
+        const response = await fetch(`${apiUrl}/api/v1/hitl/config`);
 
         if (!response.ok) {
           throw new Error(`API error: ${response.status}`);
@@ -68,14 +77,20 @@ export function useHitlConfig({
 
         setKeywords(data.action_keywords);
 
-        // Cache in local storage for 1 hour
-        localStorage.setItem(
-          "hitl_config",
-          JSON.stringify({
-            action_keywords: data.action_keywords,
-            cached_at: Date.now(),
-          })
-        );
+        // Cache in local storage for 1 hour (only in browser)
+        if (hasLocalStorage) {
+          try {
+            localStorage.setItem(
+              "hitl_config",
+              JSON.stringify({
+                action_keywords: data.action_keywords,
+                cached_at: Date.now(),
+              })
+            );
+          } catch (_err) {
+            // Ignore storage errors (e.g., quota exceeded, private browsing)
+          }
+        }
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "Failed to fetch HITL config";

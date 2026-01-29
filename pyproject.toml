@@ -1,6 +1,6 @@
 [project]
 name = "skill-fleet"
-version = "0.3.0"
+version = "0.3.5"
 description = "Hierarchical skills taxonomy + DSPy workflow prototype"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -9,6 +9,7 @@ license = { text = "Apache-2.0" }
 keywords = ["agents", "skills", "dspy", "fastapi", "cli", "workflow"]
 dependencies = [
   "asyncpg>=0.31.0",
+  "aiosqlite>=0.17.0",
   "click>=8.3.1",
   "datasets>=4.4.2",
   "dspy>=3.1.2,<4",
@@ -32,6 +33,7 @@ dependencies = [
   "ty>=0.0.12",
   "gepa>=0.0.24",
   "questionary>=2.0.0",
+  "greenlet>=3.3.0",
 ]
 classifiers = [
   "Development Status :: 3 - Alpha",

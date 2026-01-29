@@ -17,14 +17,12 @@ from .commands.chat import chat_command
 from .commands.create import create_command
 from .commands.db import db_app
 from .commands.dev import dev_command
-from .commands.evaluate import evaluate_batch_command, evaluate_command
 from .commands.generate_xml import generate_xml_command
 from .commands.list_skills import list_command
 from .commands.migrate import migrate_command
-from .commands.onboard import onboard_command
-from .commands.optimize import optimize_command
 from .commands.promote import promote_command
 from .commands.serve import serve_command
+from .commands.terminal import terminal_command
 from .commands.validate import validate_command
 
 # Initialize Typer app
@@ -114,15 +112,12 @@ app.command(name="list")(list_command)
 app.command(name="serve")(serve_command)
 app.command(name="dev")(dev_command)
 app.command(name="chat")(chat_command)
+app.command(name="terminal")(terminal_command)
 app.command(name="validate")(validate_command)
-app.command(name="onboard")(onboard_command)
 app.command(name="analytics")(analytics_command)
 app.command(name="migrate")(migrate_command)
 app.command(name="generate-xml")(generate_xml_command)
-app.command(name="optimize")(optimize_command)
 app.command(name="promote")(promote_command)
-app.command(name="evaluate")(evaluate_command)
-app.command(name="evaluate-batch")(evaluate_batch_command)
 
 # Register database command group
 app.add_typer(db_app, name="db")

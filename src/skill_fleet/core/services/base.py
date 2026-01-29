@@ -8,7 +8,7 @@ for all service classes in the skill-fleet architecture.
 from __future__ import annotations
 
 import logging
-from abc import ABC
+from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any
@@ -225,6 +225,10 @@ class BaseService(ABC):
             detail_str = ", ".join(f"{k}={v}" for k, v in details.items())
             msg = f"{msg}: {detail_str}"
         self._logger.log(level, msg)
+
+    @abstractmethod
+    def process(self) -> None:
+        """Abstract method to ensure subclasses implement processing logic."""
 
     def validate_taxonomy_available(self) -> TaxonomyManager:
         """

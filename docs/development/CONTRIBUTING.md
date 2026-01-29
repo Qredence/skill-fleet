@@ -9,6 +9,7 @@ Thank you for your interest in contributing to Skills Fleet! This document provi
 - Python 3.13+
 - [uv](https://github.com/astral-sh/uv) package manager
 - Git
+- MLflow 3.8.1+ (for DSPy tracking)
 
 ### Setup Steps
 
@@ -30,6 +31,17 @@ uv sync
 ```bash
 uv run pytest tests/
 ```
+
+4. (Optional) Start MLflow UI for DSPy tracking:
+
+```bash
+# Start MLflow server on port 5001 (avoids macOS AirPlay port 5000 conflict)
+./scripts/start-mlflow-public.sh
+
+# Open MLflow UI at http://localhost:5001
+```
+
+**Note:** See [MLflow Setup Guide](../MLFLOW_SETUP.md) for complete MLflow integration documentation.
 
 ## Code Style
 

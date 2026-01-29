@@ -3,7 +3,7 @@ Interactive demonstration of PATCH endpoint behavior
 Shows exactly how partial updates work step by step
 """
 
-from typing import Optional
+
 from pydantic import BaseModel, EmailStr
 
 
@@ -16,9 +16,9 @@ class User(BaseModel):
 
 
 class UserUpdate(BaseModel):
-    name: Optional[str] = None
-    email: Optional[EmailStr] = None
-    age: Optional[int] = None
+    name: str | None = None
+    email: EmailStr | None = None
+    age: int | None = None
 
 
 def demonstrate_update_scenario(scenario_name: str, request_json: dict, existing_user: User):
@@ -35,11 +35,11 @@ def demonstrate_update_scenario(scenario_name: str, request_json: dict, existing
     # Step 2: Parse with Pydantic
     user_update = UserUpdate(**request_json)
     print("\n2. PYDANTIC PARSED MODEL:")
-    print(f"   UserUpdate(")
+    print("   UserUpdate(")
     print(f"     name={repr(user_update.name)},")
     print(f"     email={repr(user_update.email)},")
     print(f"     age={repr(user_update.age)}")
-    print(f"   )")
+    print("   )")
 
     # Step 3: Extract with exclude_unset
     update_data = user_update.model_dump(exclude_unset=True)
@@ -62,7 +62,7 @@ def demonstrate_update_scenario(scenario_name: str, request_json: dict, existing
     else:
         updated_user = existing_user
         print("\n5. NO UPDATE NEEDED:")
-        print(f"   Returning existing user unchanged")
+        print("   Returning existing user unchanged")
 
     # Step 6: Show result
     print("\n6. RESULT:")
@@ -84,7 +84,7 @@ def demonstrate_update_scenario(scenario_name: str, request_json: dict, existing
             print(f"   - {field}: unchanged")
 
     if not changes_found:
-        print(f"   (no changes)")
+        print("   (no changes)")
 
     return updated_user
 
@@ -102,7 +102,7 @@ def main():
     print("\n" + "="*70)
     print("INITIAL STATE")
     print("="*70)
-    print(f"\nStarting user:")
+    print("\nStarting user:")
     print(f"  {user.model_dump()}")
 
     # Scenario 1: Update only name
@@ -143,7 +143,7 @@ def main():
     print("\n" + "="*70)
     print("FINAL STATE")
     print("="*70)
-    print(f"\nFinal user:")
+    print("\nFinal user:")
     print(f"  {user.model_dump()}")
 
     print("\n" + "="*70)

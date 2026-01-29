@@ -45,11 +45,16 @@ class TrainingDataConfig:
 
 
 class TrainingDataManager:
-    """
-    Manages the lifecycle, quality, and selection of training examples for DSPy.
-    """
+    """Manages the lifecycle, quality, and selection of training examples for DSPy."""
 
-    def __init__(self, data_root: Path | str = "config/training"):
+    def __init__(self, data_root: Path | str = "config/training") -> None:
+        """
+        Initialize the training data manager.
+
+        Args:
+            data_root: Path to training data directory.
+
+        """
         self.data_root = Path(data_root)
         self.metadata_file = self.data_root / "example_metadata.json"
         self.trainset_file = self.data_root / "trainset.json"
@@ -216,6 +221,7 @@ class TrainingDataManager:
     def score_examples(self) -> None:
         """
         Run static analysis to score all examples (placeholder).
+
         In a real implementation, this would use a 'judge' LM to rate examples.
         """
         # Placeholder logic

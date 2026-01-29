@@ -79,9 +79,12 @@ class ExplorationHandlers:
                 session.task_description = extracted_task
             else:
                 session.task_description = str(extracted_task)
-            if previous_task and previous_task != session.task_description:
-                if session.deep_understanding:
-                    session.deep_understanding.pop("scoping_complete", None)
+            if (
+                previous_task
+                and previous_task != session.task_description
+                and session.deep_understanding
+            ):
+                session.deep_understanding.pop("scoping_complete", None)
 
             # Deep Understanding
             if not session.deep_understanding or not session.deep_understanding.get("complete"):
@@ -245,6 +248,17 @@ class ExplorationHandlers:
         )
 
     def handle_multi_skill(self, user_message: str, session: ConversationSession) -> AgentResponse:
+        """
+        Handle multi-skill detection state.
+
+        Args:
+            user_message: The user's response message.
+            session: The current conversation session.
+
+        Returns:
+            AgentResponse with appropriate state transition.
+
+        """
         # Plan Selection Logic: Check if user selected one of the alternative plans
         if session.multi_skill_queue and user_message in session.multi_skill_queue:
             session.task_description = user_message
@@ -260,19 +274,21 @@ class ExplorationHandlers:
             )
 
         user_message_lower = user_message.strip().lower()
-        if user_message_lower in ("yes", "y", "ok", "proceed", "continue"):
-            if session.multi_skill_queue:
-                current_skill_name = session.multi_skill_queue[session.current_skill_index]
-                session.task_description = f"Create a skill for: {current_skill_name}"
-                # Must signal transition to Exploring/Deep Understanding for the new single task
-                session.state = ConversationState.DEEP_UNDERSTANDING
-                # Return instructions to caller to re-route immediately or prompt user
-                return AgentResponse(
-                    message=f"Starting creation for: **{current_skill_name}**.\nLet's understand the requirements.",
-                    state=ConversationState.DEEP_UNDERSTANDING,
-                    action="start_single_skill",
-                    requires_user_input=False,
-                )
+        if (
+            user_message_lower in ("yes", "y", "ok", "proceed", "continue")
+            and session.multi_skill_queue
+        ):
+            current_skill_name = session.multi_skill_queue[session.current_skill_index]
+            session.task_description = f"Create a skill for: {current_skill_name}"
+            # Must signal transition to Exploring/Deep Understanding for the new single task
+            session.state = ConversationState.DEEP_UNDERSTANDING
+            # Return instructions to caller to re-route immediately or prompt user
+            return AgentResponse(
+                message=f"Starting creation for: **{current_skill_name}**.\nLet's understand the requirements.",
+                state=ConversationState.DEEP_UNDERSTANDING,
+                action="start_single_skill",
+                requires_user_input=False,
+            )
 
         return AgentResponse(
             message="Please respond with 'yes' to proceed or 'no' to revise.",
@@ -284,6 +300,18 @@ class ExplorationHandlers:
     async def handle_confirmation(
         self, user_message: str, session: ConversationSession, thinking_callback
     ) -> AgentResponse:
+        """
+        Handle user confirmation response.
+
+        Args:
+            user_message: The user's response message.
+            session: The current conversation session.
+            thinking_callback: Callback for streaming thinking content.
+
+        Returns:
+            AgentResponse with state transition based on user confirmation.
+
+        """
         user_message_lower = user_message.strip().lower()
         if user_message_lower in ("yes", "y", "ok", "correct", "proceed", "create"):
             session.state = ConversationState.CREATING
@@ -309,6 +337,18 @@ class ExplorationHandlers:
     async def handle_deep_understanding(
         self, user_message: str, session: ConversationSession, thinking_callback
     ) -> AgentResponse:
+        """
+        Handle deep understanding phase.
+
+        Args:
+            user_message: The user's response message.
+            session: The current conversation session.
+            thinking_callback: Callback for streaming thinking content.
+
+        Returns:
+            AgentResponse with next question or completion status.
+
+        """
         if not session.deep_understanding:
             session.deep_understanding = {"questions_asked": [], "answers": []}
 
@@ -331,6 +371,17 @@ class ExplorationHandlers:
     async def execute_deep_understanding(
         self, session: ConversationSession, thinking_callback
     ) -> AgentResponse:
+        """
+        Execute deep understanding logic.
+
+        Args:
+            session: The current conversation session.
+            thinking_callback: Callback for streaming thinking content.
+
+        Returns:
+            AgentResponse with understanding summary or next question.
+
+        """
         if not session.deep_understanding:
             session.deep_understanding = {
                 "questions_asked": [],
@@ -411,8 +462,20 @@ class ExplorationHandlers:
     async def generate_confirmation(
         self, session: ConversationSession, thinking_content: str, thinking_callback
     ) -> AgentResponse:
+        """
+        Generate confirmation summary for the user.
+
+        Args:
+            session: The current conversation session.
+            thinking_content: Accumulated thinking content.
+            thinking_callback: Callback for streaming thinking content.
+
+        Returns:
+            AgentResponse with confirmation question and summary.
+
+        """
         existing_skills = self.taxonomy.get_mounted_skills("default")
-        p1_result = await self.phase1.aforward(
+        p1_result = await self.phase1.acall(
             task_description=session.task_description,
             user_context="Interactive session",
             taxonomy_structure=json.dumps(

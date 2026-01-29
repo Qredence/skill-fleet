@@ -2,6 +2,75 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.5] - 2026-01-29
+
+### Breaking Changes
+- **Architecture Restructure**: Complete FastAPI-centric directory restructure
+  - `src/skill_fleet/app/` → `src/skill_fleet/api/` (API layer flattening)
+  - `src/skill_fleet/db/` → `src/skill_fleet/infrastructure/db/`
+  - `src/skill_fleet/llm/` → `src/skill_fleet/dspy/` (centralized DSPy config)
+  - New `src/skill_fleet/common/` top-level module for shared utilities
+  - All imports converted from relative to absolute
+- **Removed deprecated modules**:
+  - `skill_fleet.core.creator` (use `api.services` instead)
+  - `skill_fleet.onboarding.bootstrap`
+  - `skill_fleet.agent` (entire agent package)
+  - Old DSPy phase-based organization
+
+### Added
+- **FastAPI v1 API**: New clean API structure
+  - Background task support for async skill creation
+  - HITL (Human-in-the-Loop) integration with question types
+  - Real-time streaming endpoints
+  - Job management with polling
+- **Workflow Architecture**: Task-based DSPy organization
+  - `core/workflows/skill_creation/` with orchestrators
+  - Understanding, Generation, and Validation workflows
+  - Hierarchical MLflow tracking (parent + child runs)
+- **Real-time CLI Chat** (`skill-fleet chat`):
+  - Streaming updates with 100ms polling
+  - Live thinking/reasoning display
+  - Arrow key navigation for multi-choice questions
+  - Immediate response to HITL prompts
+- **Taxonomy improvements**:
+  - `TaxonomyManager` with agentskills.io compliance
+  - YAML frontmatter parsing for SKILL.md
+  - Path resolution with alias support
+  - Dependency validation and circular detection
+- **Documentation**:
+  - API migration guide (`docs/api/MIGRATION_V1_TO_V2.md`)
+  - Import path guide (`docs/development/IMPORT_PATH_GUIDE.md`)
+  - Service extension guide (`docs/development/SERVICE_EXTENSION_GUIDE.md`)
+
+### Changed
+- **DSPy Configuration**: Moved to centralized `skill_fleet.dspy` module
+  - Task-specific LM instances via `get_task_lm()`
+  - Environment variable support for `DSPY_CACHEDIR`, `DSPY_TEMPERATURE`
+- **CLI improvements**:
+  - New `terminal` command for Python-only interface
+  - Fast polling for real-time updates (`--fast` flag)
+- **Testing**: Restructured test directory to match source structure
+  - `tests/api/` for API-specific tests
+  - `tests/unit/` and `tests/integration/` separation
+
+### Removed
+- **Obsolete files** (from root directory):
+  - `RE_STRUCTURE_SUMMARY.md`
+  - `IMPLEMENTATION_SUMMARY.md`
+  - `TASKLIST_PROGRESS.md`
+- **Deprecated code**:
+  - Legacy agent package (`src/skill_fleet/agent/`)
+  - Old CLI onboarding modules
+  - Outdated test files with broken imports
+
+### Fixed
+- All import paths updated to use absolute imports
+- Circular dependency issues resolved
+- Lifespan startup errors fixed
+- Monitoring module import issues resolved
+
+---
+
 ## [0.2.0] - 2026-01-16
 
 ### Breaking Changes
@@ -181,7 +250,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI interface for skill operations
 - Memory block skills for agent memory management
 
-[Unreleased]: https://github.com/Qredence/skill-fleet/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Qredence/skill-fleet/compare/v0.3.5...HEAD
+[0.3.5]: https://github.com/Qredence/skill-fleet/compare/v0.2.0...v0.3.5
 [0.2.0]: https://github.com/Qredence/skill-fleet/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/Qredence/skill-fleet/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Qredence/skill-fleet/releases/tag/v0.1.0

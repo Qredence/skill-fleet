@@ -13,11 +13,12 @@ Programs are the "glue code" of the workflow. They handle orchestration logic li
 
 ## Available Programs
 
-| Program | Purpose | File |
-|---------|---------|------|
-| `SkillCreationProgram` | New 3-phase orchestrator (current default) | `skill_creator.py` |
-| `LegacySkillCreationProgram` | Legacy 4-phase skill creation workflow | `programs.py` |
-| `GuidedCreatorProgram` | Chat-based guided skill creation | `conversational.py` |
+| Program                      | Purpose                                           | File                                                 |
+| ---------------------------- | ------------------------------------------------- | ---------------------------------------------------- |
+| `SkillCreationProgram`       | New 3-phase orchestrator (current default)        | `skill_creator.py`                                   |
+| `LegacySkillCreationProgram` | Legacy 4-phase skill creation workflow            | `programs.py`                                        |
+| ~~`GuidedCreatorProgram`~~   | ~~Chat-based guided skill creation~~ (DEPRECATED) | ~~`conversational.py`~~                              |
+| `ConversationalOrchestrator` | Current chat-based workflow                       | `workflows/conversational_interface/orchestrator.py` |
 
 ## SkillCreationProgram
 
@@ -51,6 +52,7 @@ def __init__(self, quality_assured: bool = True, hitl_enabled: bool = True):
 | `hitl_enabled` | `bool` | `True` | Enable HITL checkpoints |
 
 **Initialized Modules:**
+
 ```python
 self.phase0 = GatherExamplesModule()  # Example gathering (Step 0)
 self.phase1 = Phase1UnderstandingModule()
@@ -92,6 +94,7 @@ async def aforward(
 | `**kwargs` | `Any` | Additional parameters |
 
 **Returns:**
+
 ```python
 SkillCreationResult(
     status="completed",  # completed/cancelled/failed
@@ -163,6 +166,7 @@ flowchart TD
 **Steps:**
 
 1. **Generate Clarifying Questions**
+
    ```python
    result = await self.phase0.aforward(
        task_description=task_description,
@@ -178,6 +182,7 @@ flowchart TD
    ```
 
 2. **Iterative Questioning Loop**
+
    ```python
    while not result["proceed"]:
        # Present clarifying questions to user
@@ -197,6 +202,7 @@ flowchart TD
    ```
 
 3. **Generate Refined Task**
+
    ```python
    refined_task = result["session"]["refined_task"]
    terminology = result["session"]["terminology"]
@@ -206,12 +212,12 @@ flowchart TD
 
 **Configuration Options:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `min_examples` | `int` | `3` | Minimum examples before proceeding |
-| `readiness_threshold` | `float` | `0.8` | Score threshold to advance (0.0-1.0) |
-| `max_questions` | `int` | `10` | Maximum clarifying questions |
-| `max_rounds` | `int` | `3` | Maximum feedback rounds |
+| Parameter             | Type    | Default | Description                          |
+| --------------------- | ------- | ------- | ------------------------------------ |
+| `min_examples`        | `int`   | `3`     | Minimum examples before proceeding   |
+| `readiness_threshold` | `float` | `0.8`   | Score threshold to advance (0.0-1.0) |
+| `max_questions`       | `int`   | `10`    | Maximum clarifying questions         |
+| `max_rounds`          | `int`   | `3`     | Maximum feedback rounds              |
 
 **Output**: `ExampleGatheringResult` with session state, refined task, and terminology
 
@@ -222,6 +228,7 @@ flowchart TD
 **Steps:**
 
 1. **HITL 1.1: Clarification** (if ambiguities detected)
+
    ```python
    if self.hitl_enabled and hitl_callback and requirements["ambiguities"]:
        clarifications = await hitl_callback("clarify", {
@@ -231,6 +238,7 @@ flowchart TD
    ```
 
 2. **Parallel Analysis**
+
    ```python
    # Intent and Taxonomy run in parallel
    intent_result, taxonomy_result = await asyncio.gather(
@@ -243,6 +251,7 @@ flowchart TD
    ```
 
 3. **HITL 1.2: Confirmation**
+
    ```python
    confirmation = await hitl_callback("confirm", {
        "summary": summary["summary"],
@@ -262,6 +271,7 @@ flowchart TD
 **Steps:**
 
 1. **Load Template** (optional)
+
    ```python
    skill_md_template = _load_skill_md_template()
    if skill_md_template:
@@ -273,6 +283,7 @@ flowchart TD
    ```
 
 2. **Generate Content**
+
    ```python
    p2_result = await self.phase2.aforward(
        skill_metadata=plan["skill_metadata"],
@@ -284,6 +295,7 @@ flowchart TD
    ```
 
 3. **HITL 2.1: Preview & Feedback**
+
    ```python
    preview = await self.preview_generator.aforward(...)
    feedback = await hitl_callback("preview", {
@@ -304,6 +316,7 @@ flowchart TD
 **Steps:**
 
 1. **Validate**
+
    ```python
    p3_result = await self.phase3.aforward(
        skill_content=p2_result["skill_content"],
@@ -315,6 +328,7 @@ flowchart TD
    ```
 
 2. **HITL 3.1: Final Review**
+
    ```python
    report = await self.validation_formatter.aforward(...)
    final_decision = await hitl_callback("validate", {
@@ -353,15 +367,16 @@ async def hitl_callback(
 
 **Checkpoint Types:**
 
-| Checkpoint | Payload | Expected Response |
-|------------|--------|-------------------|
+| Checkpoint          | Payload                        | Expected Response                       |
+| ------------------- | ------------------------------ | --------------------------------------- | --------------------------- |
 | `example_gathering` | `{questions, readiness_score}` | `{responses: [...]} or {proceed: true}` |
-| `clarify` | `{questions, rationale}` | `{response: "..."} or {answers: {...}}` |
-| `confirm` | `{summary, path}` | `{action: "proceed"|"revise", feedback: "..."}` |
-| `preview` | `{content, highlights}` | `{action: "proceed"|"refine", feedback: "..."}` |
-| `validate` | `{report, passed}` | `{action: "accept"|"refine", feedback: "..."}` |
+| `clarify`           | `{questions, rationale}`       | `{response: "..."} or {answers: {...}}` |
+| `confirm`           | `{summary, path}`              | `{action: "proceed"                     | "revise", feedback: "..."}` |
+| `preview`           | `{content, highlights}`        | `{action: "proceed"                     | "refine", feedback: "..."}` |
+| `validate`          | `{report, passed}`             | `{action: "accept"                      | "refine", feedback: "..."}` |
 
 **Actions:**
+
 - **`proceed`**: Continue to next phase
 - **`revise`**: Restart current phase with feedback
 - **`refine`**: Run refinement with feedback
@@ -429,9 +444,14 @@ result = await program.aforward(
 
 ---
 
-## GuidedCreatorProgram
+## GuidedCreatorProgram (DEPRECATED)
 
-**File**: `src/skill_fleet/core/programs/conversational.py`
+> **Note**: `GuidedCreatorProgram` has been replaced by `ConversationalOrchestrator`
+> in `src/skill_fleet/workflows/conversational_interface/orchestrator.py`.
+> This section is kept for historical reference. New implementations should use
+> the workflow orchestrator pattern.
+
+~~**File**: `src/skill_fleet/core/programs/conversational.py`~~
 
 A chat-based guided skill creation experience. Users interact naturally while the program guides them through understanding requirements, proposing a plan, and initiating generation.
 
@@ -461,12 +481,12 @@ class ChatSessionState(BaseModel):
 
 ### Phases
 
-| Phase | Description | Entry Condition |
-|-------|-------------|-----------------|
-| **GATHERING** | Collect requirements via clarifying questions | Start |
-| **PROPOSING** | Present taxonomy path and name for approval | Confidence > 0.9 OR 6 questions asked |
-| **GENERATING** | Execute SkillCreationProgram | User approves proposal |
-| **COMPLETED** | Skill created successfully | Generation finishes |
+| Phase          | Description                                   | Entry Condition                       |
+| -------------- | --------------------------------------------- | ------------------------------------- |
+| **GATHERING**  | Collect requirements via clarifying questions | Start                                 |
+| **PROPOSING**  | Present taxonomy path and name for approval   | Confidence > 0.9 OR 6 questions asked |
+| **GENERATING** | Execute SkillCreationProgram                  | User approves proposal                |
+| **COMPLETED**  | Skill created successfully                    | Generation finishes                   |
 
 ### Main Entry Point
 
@@ -485,6 +505,7 @@ async def aforward(
 | `state` | `ChatSessionState` | Current conversation state |
 
 **Returns:**
+
 ```python
 {
     "agent_message": str,
@@ -535,6 +556,7 @@ while state.current_phase != "COMPLETED":
 ### Transition Logic
 
 **GATHERING → PROPOSING:**
+
 ```python
 if action == "propose_plan":
     if state.current_phase == "GATHERING":
@@ -544,6 +566,7 @@ if action == "propose_plan":
 ```
 
 **PROPOSING → GENERATING:**
+
 ```python
 elif action == "start_generation":
     if state.current_phase == "PROPOSING":
@@ -555,10 +578,10 @@ elif action == "start_generation":
 
 ## Program Selection Guide
 
-| Program | Use Case | HITL | Interaction Style |
-|---------|----------|------|-------------------|
-| `SkillCreationProgram` | Direct skill creation | Configurable | Checkpoint-based |
-| `GuidedCreatorProgram` | Chat-based creation | Always | Conversational |
+| Program                | Use Case              | HITL         | Interaction Style |
+| ---------------------- | --------------------- | ------------ | ----------------- |
+| `SkillCreationProgram` | Direct skill creation | Configurable | Checkpoint-based  |
+| `GuidedCreatorProgram` | Chat-based creation   | Always       | Conversational    |
 
 `★ Insight ─────────────────────────────────────`
 The `GuidedCreatorProgram` uses a simplified HITL model—continuous conversation with fewer formal checkpoints. This lowers friction for users who prefer a more natural chat interface while still gathering all necessary requirements.
@@ -579,6 +602,7 @@ class SkillCreationResult(BaseModel):
 ```
 
 **Handling Errors:**
+
 ```python
 result = await program.aforward(...)
 

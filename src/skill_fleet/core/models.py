@@ -341,9 +341,30 @@ class SkillMetadata(BaseModel):
 
     # Allow dict-like access for deprecated code using .get()
     def get(self, key: str, default: Any = None) -> Any:
+        """
+        Get attribute by key with optional default.
+
+        Args:
+            key: Attribute name to retrieve.
+            default: Default value if attribute not found.
+
+        Returns:
+            The attribute value or default.
+
+        """
         return getattr(self, key, default)
 
     def __getitem__(self, key: str) -> Any:
+        """
+        Enable dict-like access to attributes.
+
+        Args:
+            key: Attribute name to retrieve.
+
+        Returns:
+            The attribute value.
+
+        """
         return getattr(self, key)
 
 
@@ -555,9 +576,30 @@ class ValidationReport(BaseModel):
 
     # Allow dict-like access for deprecated code using .get()
     def get(self, key: str, default: Any = None) -> Any:
+        """
+        Get attribute by key with optional default.
+
+        Args:
+            key: Attribute name to retrieve.
+            default: Default value if attribute not found.
+
+        Returns:
+            The attribute value or default.
+
+        """
         return getattr(self, key, default)
 
     def __getitem__(self, key: str) -> Any:
+        """
+        Enable dict-like access to attributes.
+
+        Args:
+            key: Attribute name to retrieve.
+
+        Returns:
+            The attribute value.
+
+        """
         return getattr(self, key)
 
 
@@ -643,7 +685,12 @@ class SkillCreationResult(BaseModel):
     # Core version fields (status-based)
     status: str = Field(
         default="completed",
-        description="Status: 'completed', 'failed', 'cancelled', 'pending_review'",
+        description="Status: 'completed', 'failed', 'cancelled', 'pending_review', 'pending_user_input'",
+    )
+    job_id: str | None = Field(default=None, description="Job identifier")
+    message: str | None = Field(default=None, description="Status message or prompt")
+    hitl_context: dict[str, Any] | None = Field(
+        default=None, description="HITL context (e.g., questions)"
     )
     skill_content: str | None = Field(default=None, description="Generated SKILL.md content")
     metadata: SkillMetadata | None = Field(default=None, description="Skill metadata")

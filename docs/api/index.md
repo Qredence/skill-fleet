@@ -1,6 +1,6 @@
 # API Documentation
 
-**Last Updated**: 2026-01-12
+**Last Updated**: 2026-01-26
 **Location**: `src/skill_fleet/api/`
 
 ## Overview
@@ -11,6 +11,16 @@ The Skills Fleet FastAPI REST API provides programmatic access to the skill crea
 The API uses a **job-based pattern** for long-running skill creation. Instead of blocking HTTP requests, skills are created in background jobs. Clients poll for status and respond to HITL checkpoints via separate endpoints, making the API suitable for web UIs and webhooks.
 `─────────────────────────────────────────────────`
 
+## API Version
+
+Skills Fleet has a single API version:
+
+| Version | Status | Base Path | Documentation |
+|---------|--------|-----------|---------------|
+| **v1** | ✅ Current/Stable | `/api/v1/` | [Endpoints](endpoints.md) |
+
+The v1 API provides the complete skill creation, taxonomy management, validation, and HITL workflow functionality.
+
 ## Quick Start
 
 ```bash
@@ -18,7 +28,7 @@ The API uses a **job-based pattern** for long-running skill creation. Instead of
 uv run skill-fleet serve --port 8000
 
 # Or using uvicorn directly
-uvicorn skill_fleet.api:app --reload --port 8000
+uvicorn skill_fleet.api.main:app --reload --port 8000
 ```
 
 The API will be available at `http://localhost:8000`
@@ -49,21 +59,20 @@ flowchart LR
 
 | Component | Description | File |
 |-----------|-------------|------|
-| **FastAPI App** | Main application with CORS, route registration | `app.py` |
-| **Skills Routes** | Skill creation endpoints | `routes/skills.py` |
-| **HITL Routes** | Human-in-the-Loop endpoints | `routes/hitl.py` |
-| **Taxonomy Routes** | Taxonomy management endpoints | `routes/taxonomy.py` |
-| **Validation Routes** | Skill validation endpoints | `routes/validation.py` |
-| **Job System** | Background job management | `jobs.py` |
-| **Discovery** | Auto-exposure of DSPy modules | `discovery.py` |
+| **FastAPI App** | Application factory with CORS, route registration | `factory.py` + `main.py` |
+| **Skills Routes** | Skill creation endpoints | `api/v1/skills/router.py` |
+| **HITL Routes** | Human-in-the-Loop endpoints | `api/v1/hitl/router.py` |
+| **Taxonomy Routes** | Taxonomy management endpoints | `api/v1/taxonomy/router.py` |
+| **Quality Routes** | Skill validation endpoints | `api/v1/quality/router.py` |
+| **Job System** | Background job management | `services/job_manager.py` |
 
 ## Base URL
 
 ```
-http://localhost:8000/api/v2
+http://localhost:8000/api/v1
 ```
 
-All endpoints are prefixed with `/api/v2` for versioning.
+All endpoints are prefixed with `/api/v1` for versioning.
 
 ## Authentication
 
@@ -127,29 +136,25 @@ All responses follow a consistent format:
 | Route | Methods | Description |
 |-------|---------|-------------|
 | `/health` | GET | Health check |
-| `/api/v2/skills` | POST | Create skill (async) |
-| `/api/v2/hitl/{job_id}/prompt` | GET | Get HITL prompt for job |
-| `/api/v2/hitl/{job_id}/response` | POST | Submit HITL response |
-| `/api/v2/taxonomy` | GET | Get taxonomy structure |
-| `/api/v2/taxonomy/xml` | GET | Generate agentskills.io XML |
-| `/api/v2/validation/skill` | POST | Validate a skill |
-| `/api/v2/validation/frontmatter` | POST | Validate YAML frontmatter |
+| `/api/v1/chat` | POST | Conversational skill creation |
+| `/api/v1/skills` | POST | Create skill |
+| `/api/v1/skills/{skill_id}` | GET | Get skill details |
+| `/api/v1/skills/{skill_id}/validate` | POST | Validate a skill |
+| `/api/v1/skills/{skill_id}/refine` | POST | Refine a skill |
+| `/api/v1/taxonomy` | GET | Get taxonomy structure |
+| `/api/v1/taxonomy/xml` | GET | Generate agentskills.io XML |
+| `/api/v1/quality/validate` | POST | Validate skill content |
+| `/api/v1/quality/assess` | POST | Assess skill quality |
+| `/api/v1/quality/fix` | POST | Fix skill issues |
+| `/api/v1/optimization/start` | POST | Start DSPy optimization |
+| `/api/v1/optimization/status/{job_id}` | GET | Get optimization status |
+| `/api/v1/hitl/{job_id}/prompt` | GET | Get HITL prompt for job |
+| `/api/v1/hitl/{job_id}/response` | POST | Submit HITL response |
+| `/api/v1/jobs` | GET | List all jobs |
+| `/api/v1/jobs/{job_id}` | GET | Get job status |
+| `/api/v1/drafts/{job_id}/promote` | POST | Promote draft to taxonomy |
 
-## Auto-Discovery
-
-The API automatically discovers and exposes DSPy modules:
-
-```python
-# Auto-exposed endpoints
-/api/v2/programs/{module_name}  # All DSPy programs
-/api/v2/modules/{module_name}   # All DSPy modules
-```
-
-Modules are discovered from:
-- `skill_fleet.core.programs`
-- `skill_fleet.core.modules`
-
-## Next Steps
+## Related Documentation
 
 - **[Endpoints Documentation](endpoints.md)** - Detailed endpoint reference
 - **[Schemas Documentation](schemas.md)** - Request/response models
@@ -160,4 +165,4 @@ Modules are discovered from:
 
 - **[DSPy Overview](../dspy/)** - DSPy architecture and modules
 - **[HITL System](../hitl/)** - Human-in-the-Loop interactions
-- **[CLI Reference](../cli-reference.md)** - Command-line interface
+- **[CLI Reference](../cli/)** - Command-line interface

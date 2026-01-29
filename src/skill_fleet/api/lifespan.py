@@ -11,10 +11,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
+from typing import TYPE_CHECKING
 
-from fastapi import FastAPI
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
+
+    from fastapi import FastAPI
 
 logger = logging.getLogger(__name__)
 
@@ -38,9 +41,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # STARTUP
     # =========================================================================
 
-    from ..db.database import SessionLocal, init_db
-    from ..db.repositories import JobRepository
-    from .job_manager import initialize_job_manager
+    from ..infrastructure.db.database import SessionLocal, init_db
+    from ..infrastructure.db.repositories import JobRepository
+    from .services.job_manager import initialize_job_manager
 
     try:
         # Initialize database tables
@@ -55,6 +58,24 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         # Initialize JobManager with database backing
         initialize_job_manager(job_repo)
         logger.info("✅ JobManager initialized with database persistence")
+
+        # Initialize MLflow DSPy autologging
+        from ..infrastructure.monitoring.mlflow_setup import setup_dspy_autologging
+        from .config import get_settings
+
+        settings = get_settings()
+        if settings.mlflow_enabled:
+            try:
+                setup_dspy_autologging(
+                    tracking_uri=settings.mlflow_tracking_uri,
+                    experiment_name=settings.mlflow_experiment_name,
+                )
+                logger.info(
+                    f"✅ MLflow DSPy autologging enabled "
+                    f"(experiment: {settings.mlflow_experiment_name})"
+                )
+            except Exception as e:
+                logger.warning(f"⚠️ MLflow autologging failed: {e}")
 
         # Resume any pending jobs from database
         pending_jobs = job_repo.get_by_status("pending")
@@ -84,13 +105,25 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         # =====================================================================
 
         # Cancel cleanup task
-        cleanup_task.cancel()
         try:
-            await cleanup_task
-        except asyncio.CancelledError:
-            pass
+            cleanup_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await cleanup_task
+            logger.info("✓ Cleanup task cancelled")
+        except Exception as e:
+            logger.error(f"✗ Failed to cancel cleanup task: {e}")
 
-        logger.info("✅ Cleanup task stopped")
+        # Close database connections
+        try:
+            from ..infrastructure.db.database import close_async_db, close_db
+
+            close_db()
+            await close_async_db()
+            logger.info("✓ Database connections closed")
+        except Exception as e:
+            logger.error(f"✗ Failed to close database: {e}")
+
+        logger.info("Shutdown complete")
 
 
 async def _cleanup_expired_jobs() -> None:
@@ -100,7 +133,7 @@ async def _cleanup_expired_jobs() -> None:
     Runs every 5 minutes. Removes jobs from memory that are older than the
     TTL (default: 60 minutes). These jobs remain in the database for durability.
     """
-    from .job_manager import get_job_manager
+    from .services.job_manager import get_job_manager
 
     while True:
         try:

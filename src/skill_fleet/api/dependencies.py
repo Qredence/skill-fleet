@@ -22,8 +22,10 @@ from typing import Annotated
 
 from fastapi import Depends
 
+from skill_fleet.taxonomy.manager import TaxonomyManager
+
 from ..common.paths import ensure_skills_root_initialized
-from ..taxonomy.manager import TaxonomyManager
+from .services.skill_service import SkillService
 
 
 @lru_cache(maxsize=1)
@@ -114,10 +116,19 @@ def clear_taxonomy_manager_cache() -> None:
     _get_cached_taxonomy_manager.cache_clear()
 
 
+def get_skill_service(
+    skills_root: Annotated[Path, Depends(get_skills_root)],
+    drafts_root: Annotated[Path, Depends(get_drafts_root)],
+) -> SkillService:
+    """Get a SkillService instance."""
+    return SkillService(skills_root=skills_root, drafts_root=drafts_root)
+
+
 # Type aliases for cleaner route signatures
 SkillsRoot = Annotated[Path, Depends(get_skills_root)]
 DraftsRoot = Annotated[Path, Depends(get_drafts_root)]
 TaxonomyManagerDep = Annotated[TaxonomyManager, Depends(get_taxonomy_manager)]
+SkillServiceDep = Annotated[SkillService, Depends(get_skill_service)]
 
 
 __all__ = [
@@ -125,7 +136,9 @@ __all__ = [
     "get_drafts_root",
     "get_taxonomy_manager",
     "clear_taxonomy_manager_cache",
+    "get_skill_service",
     "SkillsRoot",
     "DraftsRoot",
     "TaxonomyManagerDep",
+    "SkillServiceDep",
 ]

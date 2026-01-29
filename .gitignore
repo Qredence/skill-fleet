@@ -9,7 +9,7 @@ __pycache__/
 .ruff_cache/
 .mypy_cache/
 .dspy_cache/
-.skill_fleet_logs/
+
 # =============================================================================
 # Environment & Secrets
 # =============================================================================
@@ -33,37 +33,31 @@ node_modules/
 .bun-tmp/
 
 # =============================================================================
-# Project-Specific
+# Runtime Data (moved from root)
 # =============================================================================
-.skills/
-skills/_drafts/
-.skill_fleet_sessions/
-.context/
-.skill_fleet_logs/
-reports/
-cli/tui/dist/
-
-# =============================================================================
-# Plans & Documentation
-# =============================================================================
-docs/plans/
-plans/
-plans/archive/
-
-# =============================================================================
-# AI & MCP
-# =============================================================================
-.claude/
-.ai/
-.junie/
-.factory/
-.letta/
-
-# =============================================================================
-# Logs
-# =============================================================================
+data/
+mlruns/
+mlartifacts/
+mlflow.db
 server.log
 *.log
+
+# =============================================================================
+# Agent Configurations (consolidated under .fleet/)
+# =============================================================================
+.fleet/
+.claude/
+.factory/
+.letta/
+.skills/
+.ai/
+.junie/
+opencode.jsonc
+.agents/
+# =============================================================================
+# Skills
+# =============================================================================
+skills/_drafts/
 
 # =============================================================================
 # Build Artifacts
@@ -71,4 +65,61 @@ server.log
 *.egg-info/
 dist/
 build/
-.skill_fleet_logs/api-dev.log
+
+# =============================================================================
+# Legacy/Project-Specific
+# =============================================================================
+.context/
+cli/tui/dist/
+.skill_fleet_logs/
+.skill_fleet_sessions/
+fixes.fixes/
+
+# =============================================================================
+# Internal Documentation (now in docs/internal/)
+# =============================================================================
+docs/internal/plans/
+docs/internal/reports/
+
+# =============================================================================
+# Misc
+# =============================================================================
+skills/practices/rlm/scripts/rlm_repl.py
+skills/python/fastapi-production/examples/02-partial-updates/interactive_demo.py
+skills/python/fastapi-production/examples/02-partial-updates/patch_endpoint_example.py
+skills/python/fastapi-production/examples/02-partial-updates/test_patch_endpoint.py
+
+# =============================================================================
+# Coverage & Testing
+# =============================================================================
+.coverage
+htmlcov/
+.pytest_cache/
+*.cover
+*.py,cover
+.hypothesis/
+
+# =============================================================================
+# Python Compiled
+# =============================================================================
+*.pyo
+*.pyd
+.Python
+*.so
+
+# =============================================================================
+# Jupyter Notebook
+# =============================================================================
+.ipynb_checkpoints
+
+
+# Development/temporary files (not for commit)
+.github/agents/rlm-subcall.md
+.github/skills/
+
+# Frontend (WIP - not ready for commit)
+src/frontend/
+.opencode/skills/ai-sdk
+.opencode/skills/skill-creator
+.opencode/skills/skill-judge
+.agent/skills/ai-sdk

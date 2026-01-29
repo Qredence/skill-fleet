@@ -10,7 +10,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -79,6 +79,20 @@ class APISettings(BaseSettings):
         description="Directory for persisting job sessions",
     )
 
+    # MLflow configuration
+    mlflow_tracking_uri: str | None = Field(
+        default=None,
+        description="MLflow tracking server URI (e.g., sqlite:///mlflow.db, http://localhost:5000)",
+    )
+    mlflow_experiment_name: str = Field(
+        default="skill-fleet",
+        description="MLflow experiment name for DSPy tracing",
+    )
+    mlflow_enabled: bool = Field(
+        default=True,
+        description="Enable MLflow DSPy autologging",
+    )
+
     @field_validator("environment", mode="before")
     @classmethod
     def validate_environment(cls, v: str) -> str:
@@ -108,6 +122,22 @@ class APISettings(BaseSettings):
         if v_lower not in allowed:
             raise ValueError(f"Log format must be one of {allowed}, got '{v}'")
         return v_lower
+
+    @model_validator(mode="after")
+    def validate_api_key(self) -> APISettings:
+        """
+        Ensure api_key is set when require_api_key is True.
+
+        Validates that api_key is not None or empty string when require_api_key is True.
+        This model_validator runs after all fields are parsed, allowing access to
+        both require_api_key and api_key values.
+        """
+        if self.require_api_key and not self.api_key:
+            raise ValueError(
+                "api_key must be set when require_api_key=True. "
+                "Set SKILL_FLEET_API_KEY environment variable."
+            )
+        return self
 
     @property
     def is_development(self) -> bool:

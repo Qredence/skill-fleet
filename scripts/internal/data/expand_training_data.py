@@ -72,10 +72,12 @@ def get_subdirectories(skill_path: Path) -> list[str]:
     skill_dir = skill_path.parent
 
     for potential_subdir in ["references", "guides", "templates", "scripts", "examples"]:
-        if (skill_dir / potential_subdir).exists() and (skill_dir / potential_subdir).is_dir():
-            # Check if directory has content
-            if list((skill_dir / potential_subdir).glob("*")):
-                subdirs.append(potential_subdir)
+        if (
+            (skill_dir / potential_subdir).exists()
+            and (skill_dir / potential_subdir).is_dir()
+            and list((skill_dir / potential_subdir).glob("*"))
+        ):
+            subdirs.append(potential_subdir)
 
     return subdirs
 

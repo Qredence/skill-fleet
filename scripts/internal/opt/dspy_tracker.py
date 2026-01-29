@@ -395,9 +395,9 @@ def demo_tracking():
 
     tracker = DSPyTracker(output_path="config/dspy_tracking/demo")
 
-    # Configure DSPy
+    # Configure DSPy with usage tracking
     lm = get_lm("gemini-3-flash-preview", temperature=1.0)
-    dspy.configure(lm=lm)
+    dspy.configure(lm=lm, track_usage=True)
 
     # Create test program
     from skill_fleet.core.dspy.signatures.phase1_understanding import GatherRequirements

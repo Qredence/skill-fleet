@@ -309,10 +309,13 @@ async def refine_skill(
 
     try:
         # Run validation with feedback (which triggers refinement in the workflow)
+        plan = {
+            "skill_metadata": metadata,
+            "enable_auto_refinement": True,
+        }
         result = await workflow.execute(
             skill_content=content,
-            plan={"skill_metadata": metadata},
-            enable_auto_refinement=True,
+            plan=plan,
             user_feedback=request.feedback,
         )
 

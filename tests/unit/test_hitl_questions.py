@@ -4,7 +4,6 @@
 import asyncio
 import json
 import sys
-import time
 
 import httpx
 
@@ -54,7 +53,7 @@ async def test_hitl_clarifying_questions():
 
                 # Check if we have clarifying questions
                 if status in ["pending_hitl", "pending_user_input"]:
-                    print(f"\n   ✅ Job reached HITL state!")
+                    print("\n   ✅ Job reached HITL state!")
                     print(f"   Status: {status}")
                     print(f"   Type: {hitl_type}")
 
@@ -64,7 +63,7 @@ async def test_hitl_clarifying_questions():
                             print(f"      {i}. {q.get('text', q)[:100]}...")
                         return True
                     else:
-                        print(f"   ⚠️  No questions in prompt data")
+                        print("   ⚠️  No questions in prompt data")
                         print(f"   Full prompt data: {json.dumps(prompt_data, indent=2)}")
                         return False
 

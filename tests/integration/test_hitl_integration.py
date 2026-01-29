@@ -8,7 +8,6 @@ import asyncio
 import json
 import subprocess
 import sys
-import time
 from pathlib import Path
 
 import httpx
@@ -27,7 +26,7 @@ async def wait_for_server(timeout=30):
                 if response.status_code == 200:
                     print("✅ Server is ready!")
                     return True
-        except:
+        except Exception:
             pass
         await asyncio.sleep(1)
         if i % 5 == 0:
@@ -81,7 +80,7 @@ async def poll_for_hitl_prompt(client, job_id, max_attempts=60):
             # Check if we have reached HITL state with questions
             if status in ["pending_hitl", "pending_user_input"]:
                 print(f"\n{'=' * 70}")
-                print(f"🎉 SUCCESS! Job reached HITL state!")
+                print("🎉 SUCCESS! Job reached HITL state!")
                 print(f"{'=' * 70}")
                 print(f"Status: {status}")
                 print(f"Type: {hitl_type}")
@@ -95,7 +94,7 @@ async def poll_for_hitl_prompt(client, job_id, max_attempts=60):
                         print(f"  {text}")
 
                         if q.get("options"):
-                            print(f"\n  Options:")
+                            print("\n  Options:")
                             for opt in q["options"]:
                                 label = opt.get("label", opt.get("text", str(opt)))
                                 print(f"    • {label}")
@@ -106,7 +105,7 @@ async def poll_for_hitl_prompt(client, job_id, max_attempts=60):
                     print(f"{'─' * 70}")
                     return True
                 else:
-                    print(f"\n⚠️  No questions found in hitl_data!")
+                    print("\n⚠️  No questions found in hitl_data!")
                     print(f"Full prompt data:\n{json.dumps(prompt_data, indent=2)}")
                     return False
 
@@ -175,7 +174,7 @@ async def main():
         server_process.terminate()
         try:
             server_process.wait(timeout=5)
-        except:
+        except Exception:
             server_process.kill()
 
 

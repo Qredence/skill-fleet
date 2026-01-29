@@ -4,9 +4,9 @@
 This script tests the UnderstandingWorkflow with mock LM responses
 to verify it generates proper follow-up questions and synthesizes plans.
 """
+
 import asyncio
-import json
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import Mock
 
 import dspy
 from dspy import LM
@@ -14,13 +14,13 @@ from dspy import LM
 
 class MockLM(LM):
     """Mock LM that returns predictable responses."""
-    
+
     def __init__(self):
         super().__init__(model="mock/model")
-    
+
     def __call__(self, prompt=None, messages=None, **kwargs):
         """Mock LLM responses based on prompt content.
-        
+
         Accepts both prompt (string) and messages (list) formats.
         """
         # Use prompt if provided, otherwise extract from messages
@@ -30,34 +30,34 @@ class MockLM(LM):
             prompt_str = str(messages).lower()
         else:
             prompt_str = ""
-        
+
         # Requirements gathering response
         if "requirements" in prompt_str or "domain" in prompt_str:
             return self._mock_requirements_response()
-        
+
         # Intent analysis response
         if "intent" in prompt_str or "purpose" in prompt_str:
             return self._mock_intent_response()
-        
+
         # Taxonomy path response
         if "taxonomy" in prompt_str or "path" in prompt_str:
             return self._mock_taxonomy_response()
-        
+
         # Dependencies response
         if "depend" in prompt_str or "prerequisite" in prompt_str:
             return self._mock_dependencies_response()
-        
+
         # Plan synthesis response
         if "plan" in prompt_str or "synthesize" in prompt_str:
             return self._mock_plan_response()
-        
+
         # HITL questions response
         if "question" in prompt_str or "clarif" in prompt_str:
             return self._mock_questions_response()
-        
+
         # Default response
         return self._mock_default_response()
-    
+
     def _mock_requirements_response(self):
         return """domain: technical
 category: frontend
@@ -65,7 +65,7 @@ target_level: intermediate
 topics: ["react", "components", "typescript", "testing"]
 constraints: ["TypeScript", "production-ready"]
 ambiguities: []"""
-    
+
     def _mock_requirements_with_ambiguities_response(self):
         return """domain: technical
 category: general
@@ -73,7 +73,7 @@ target_level: intermediate
 topics: ["general-programming"]
 constraints: []
 ambiguities: ["Unclear what specific technology or framework", "Scope not well-defined - could be web, mobile, or desktop"]"""
-    
+
     def _mock_intent_response(self):
         return """purpose: Help developers build reusable React components
 problem_statement: Teams struggle with inconsistent UI and duplicated component code across projects
@@ -82,21 +82,21 @@ value_proposition: Provides production-ready, tested component patterns with Typ
 skill_type: how_to
 scope: Covers component design, implementation, testing, and documentation. Does NOT cover backend integration or deployment.
 success_criteria: ["Can create reusable components", "Implements proper TypeScript types", "Writes component tests", "Documents component API"]"""
-    
+
     def _mock_taxonomy_response(self):
         return """recommended_path: technical/frontend/react-components
 alternative_paths: ["web/react-patterns", "javascript/react-advanced"]
 path_rationale: React components fit best in frontend category. Follows existing structure of technical/frontend path.
 new_directories: []
 confidence: 0.85"""
-    
+
     def _mock_dependencies_response(self):
         return """prerequisite_skills: ["javascript: JavaScript fundamentals required", "react-basics: Basic React concepts needed"]
 complementary_skills: ["testing: Useful for component testing", "typescript: Enhances type safety"]
 conflicting_skills: []
 missing_prerequisites: []
 dependency_rationale: JavaScript and basic React are essential. Testing and TypeScript enhance but aren't required."""
-    
+
     def _mock_plan_response(self):
         return """skill_name: react-component-library
 skill_description: Use when you need to build a reusable React component library with TypeScript. Helps when: your team has inconsistent UI patterns, you're starting a new design system, or you need production-ready components.
@@ -107,7 +107,7 @@ success_criteria: ["All code examples are TypeScript-typed", "Includes 5+ compon
 estimated_length: medium
 tags: ["react", "typescript", "components", "frontend", "design-system"]
 rationale: This plan covers the full lifecycle of building a component library, from setup to publishing."""
-    
+
     def _mock_questions_response(self):
         return """questions: [
     {"text": "What type of application are you building?", "question_type": "single", "options": [{"id": "web", "label": "Web Application"}, {"id": "mobile", "label": "Mobile App"}, {"id": "desktop", "label": "Desktop App"}], "rationale": "Determines technology stack and constraints", "allows_other": true},
@@ -115,7 +115,7 @@ rationale: This plan covers the full lifecycle of building a component library, 
 ]
 priority: critical
 rationale: Need to clarify technology stack and scope before proceeding with skill creation"""
-    
+
     def _mock_default_response(self):
         return "Default mock response"
 

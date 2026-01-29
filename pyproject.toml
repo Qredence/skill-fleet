@@ -124,6 +124,7 @@ select = [
 ignore = [
   "E501", # Line length handled by formatter
   "D212", # Alternative to D213 (multi-line docstring style)
+  "D213", # Multi-line docstring summary should start at the second line
   "D203", # Alternative to D211 (blank line before class)
 ]
 

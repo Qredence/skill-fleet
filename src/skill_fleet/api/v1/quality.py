@@ -17,7 +17,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from skill_fleet.core.dspy.modules.workflows.quality_assurance import QualityAssuranceOrchestrator
+from skill_fleet.core.workflows.skill_creation.validation import ValidationWorkflow
 
 from ..dependencies import get_skill_service
 from ..exceptions import NotFoundException
@@ -94,41 +94,29 @@ async def validate(
     else:
         raise HTTPException(status_code=400, detail="Either skill_id or content must be provided")
 
-    # Initialize orchestrator
-    orchestrator = QualityAssuranceOrchestrator()
+    # Initialize workflow and run validation
+    workflow = ValidationWorkflow()
 
     try:
         # Run validation workflow
-        result = await orchestrator.validate_and_refine(
+        result = await workflow.execute(
             skill_content=content,
-            skill_metadata=metadata,
-            content_plan="",
-            validation_rules="agentskills.io compliance",
-            target_level="intermediate",
-            enable_mlflow=False,  # Don't track individual API validations
+            plan={"skill_metadata": metadata},
+            enable_auto_refinement=False,  # Just validate, don't refine
         )
 
         # Extract validation report
         validation_report = result.get("validation_report", {})
-        critical_issues = result.get("critical_issues", [])
-        warnings = result.get("warnings", [])
+        issues = validation_report.get("issues", [])
 
         # Build issues list for response
-        issues = []
-        for issue in critical_issues:
-            issues.append(
+        formatted_issues = []
+        for issue in issues:
+            formatted_issues.append(
                 {
-                    "severity": "error",
+                    "severity": issue.get("severity", "warning"),
                     "message": issue.get("message", str(issue)),
                     "location": issue.get("location", "unknown"),
-                }
-            )
-        for warning in warnings:
-            issues.append(
-                {
-                    "severity": "warning",
-                    "message": warning.get("message", str(warning)),
-                    "location": warning.get("location", "unknown"),
                 }
             )
 
@@ -140,7 +128,7 @@ async def validate(
             passed=validation_report.get("passed", False),
             status="passed" if validation_report.get("passed", False) else "failed",
             score=validation_report.get("score", 0.0),
-            issues=issues,
+            issues=formatted_issues,
             recommendations=recommendations,
         )
 
@@ -178,18 +166,15 @@ async def assess_quality(
     else:
         raise HTTPException(status_code=400, detail="Either skill_id or content must be provided")
 
-    # Initialize orchestrator
-    orchestrator = QualityAssuranceOrchestrator()
+    # Initialize workflow
+    workflow = ValidationWorkflow()
 
     try:
         # Run quality assessment workflow
-        result = await orchestrator.validate_and_refine(
+        result = await workflow.execute(
             skill_content=content,
-            skill_metadata=metadata,
-            content_plan="",
-            validation_rules="agentskills.io compliance",
-            target_level="intermediate",
-            enable_mlflow=False,
+            plan={"skill_metadata": metadata},
+            enable_auto_refinement=False,
         )
 
         # Extract quality assessment
@@ -255,8 +240,8 @@ async def auto_fix(
     else:
         raise HTTPException(status_code=400, detail="Either skill_id or content must be provided")
 
-    # Initialize orchestrator
-    orchestrator = QualityAssuranceOrchestrator()
+    # Initialize workflow
+    workflow = ValidationWorkflow()
 
     # Build user feedback from issues
     user_feedback_items = []
@@ -271,28 +256,18 @@ async def auto_fix(
 
     try:
         # Run refinement workflow
-        result = await orchestrator.validate_and_refine(
+        result = await workflow.execute(
             skill_content=content,
-            skill_metadata=metadata,
-            content_plan="",
-            validation_rules="agentskills.io compliance",
+            plan={"skill_metadata": metadata},
+            enable_auto_refinement=True,
             user_feedback=user_feedback,
-            target_level="intermediate",
-            enable_mlflow=False,
         )
 
         # Extract refined content
         fixed_content = result.get("refined_content", content)
 
-        # Build fixes applied list from validation report
-        result.get("validation_report", {})
+        # Build fixes applied list
         fixes_applied = []
-
-        # Add issues that were resolved
-        critical_issues = result.get("critical_issues", [])
-        warnings = result.get("warnings", [])
-
-        # If we have refined content, consider issues fixed
         if "refined_content" in result:
             for issue in request.issues:
                 fixes_applied.append(
@@ -303,21 +278,15 @@ async def auto_fix(
                 )
 
         # Get remaining issues from the result
-        remaining_issues = []
-        for issue in critical_issues:
-            remaining_issues.append(
+        validation_report = result.get("validation_report", {})
+        remaining_issues = validation_report.get("issues", [])
+        formatted_remaining = []
+        for issue in remaining_issues:
+            formatted_remaining.append(
                 {
-                    "severity": "error",
+                    "severity": issue.get("severity", "warning"),
                     "message": issue.get("message", str(issue)),
                     "location": issue.get("location", "unknown"),
-                }
-            )
-        for warning in warnings:
-            remaining_issues.append(
-                {
-                    "severity": "warning",
-                    "message": warning.get("message", str(warning)),
-                    "location": warning.get("location", "unknown"),
                 }
             )
 
@@ -328,7 +297,7 @@ async def auto_fix(
         return AutoFixResponse(
             fixed_content=fixed_content,
             fixes_applied=fixes_applied,
-            remaining_issues=remaining_issues,
+            remaining_issues=formatted_remaining,
             confidence=confidence,
         )
 

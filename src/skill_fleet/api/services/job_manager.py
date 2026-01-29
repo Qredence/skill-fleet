@@ -47,7 +47,16 @@ def _sanitize_for_log(value: Any) -> str:
 logger = logging.getLogger(__name__)
 
 # Valid job status values for validation
-VALID_STATUSES = {"pending", "running", "completed", "failed", "cancelled"}
+VALID_STATUSES = {
+    "pending",
+    "running",
+    "pending_hitl",
+    "pending_user_input",
+    "pending_review",
+    "completed",
+    "failed",
+    "cancelled",
+}
 
 
 class JobMemoryStore:
@@ -411,6 +420,8 @@ class JobManager:
                 "error_stack": getattr(job, "error_stack", None),
                 "progress_message": getattr(job, "progress_message", None),
                 "current_phase": getattr(job, "current_phase", None),
+                "hitl_type": getattr(job, "hitl_type", None),
+                "hitl_data": self._serialize_json(getattr(job, "hitl_data", None)),
                 "updated_at": job.updated_at or datetime.now(UTC),
                 "started_at": getattr(job, "started_at", None),
                 "completed_at": getattr(job, "completed_at", None),
@@ -477,6 +488,10 @@ class JobManager:
         job_state.result = getattr(db_job, "result", None)
         job_state.error = getattr(db_job, "error", None)
         job_state.updated_at = getattr(db_job, "updated_at", None) or datetime.now(UTC)
+
+        # Restore HITL fields
+        job_state.hitl_type = getattr(db_job, "hitl_type", None)
+        job_state.hitl_data = getattr(db_job, "hitl_data", None)
 
         # Restore nested state objects if present
         if hasattr(db_job, "deep_understanding_state") and db_job.deep_understanding_state:

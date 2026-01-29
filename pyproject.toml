@@ -33,6 +33,7 @@ dependencies = [
   "ty>=0.0.12",
   "gepa>=0.0.24",
   "questionary>=2.0.0",
+  "greenlet>=3.3.0",
 ]
 classifiers = [
   "Development Status :: 3 - Alpha",

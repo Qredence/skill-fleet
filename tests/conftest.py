@@ -163,3 +163,31 @@ def mock_skills_root(temp_skills_root):
     with patch("skill_fleet.api.dependencies.get_skills_root") as mock:
         mock.return_value = temp_skills_root
         yield temp_skills_root
+
+
+# =============================================================================
+# DSPy Configuration
+# =============================================================================
+
+
+@pytest.fixture(scope="session", autouse=True)
+def configure_dspy_for_tests():
+    """Configure DSPy with a dummy LM for unit tests."""
+    import dspy
+
+    # Create a dummy LM that returns predictable responses
+    # This follows DSPy's LM interface
+    class DummyLM(dspy.LM):
+        def __init__(self):
+            super().__init__(model="dummy/test")
+
+        def __call__(self, prompt=None, messages=None, **kwargs):
+            # Return a list of mock responses (DSPy expects a list)
+            response_text = '{"domain": "technical", "category": "web", "target_level": "intermediate", "topics": ["test"], "constraints": [], "ambiguities": []}'
+            return [type("Choice", (), {"text": response_text, "finish_reason": "stop"})()]
+
+    # Configure DSPy with dummy LM
+    dspy.configure(lm=DummyLM())
+    yield
+    # Cleanup - reset to default
+    dspy.settings.configure(lm=None)

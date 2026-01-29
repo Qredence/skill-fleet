@@ -1,16 +1,6 @@
-"""Human-in-the-loop feedback handlers and DSPy modules."""
+"""Human-in-the-loop feedback handlers."""
 
-# Re-export DSPy HITL modules for unified access
-from skill_fleet.core.dspy.modules.hitl import (
-    ClarifyingQuestionsModule,
-    ConfirmUnderstandingModule,
-    FeedbackAnalyzerModule,
-    HITLStrategyModule,
-    PreviewGeneratorModule,
-    ReadinessAssessorModule,
-    RefinementPlannerModule,
-    ValidationFormatterModule,
-)
+from skill_fleet.core.modules.hitl.questions import GenerateClarifyingQuestionsModule
 
 from .handlers import (
     AutoApprovalHandler,
@@ -30,12 +20,5 @@ __all__ = [
     "WebhookFeedbackHandler",
     "create_feedback_handler",
     # DSPy Modules (re-exported for unified access)
-    "ClarifyingQuestionsModule",
-    "ConfirmUnderstandingModule",
-    "FeedbackAnalyzerModule",
-    "HITLStrategyModule",
-    "PreviewGeneratorModule",
-    "ReadinessAssessorModule",
-    "RefinementPlannerModule",
-    "ValidationFormatterModule",
+    "GenerateClarifyingQuestionsModule",
 ]

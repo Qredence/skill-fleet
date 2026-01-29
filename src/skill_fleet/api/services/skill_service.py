@@ -22,6 +22,9 @@ import logging
 import uuid
 from typing import TYPE_CHECKING, Any
 
+from skill_fleet.core.workflows.skill_creation.generation import GenerationWorkflow
+from skill_fleet.core.workflows.skill_creation.understanding import UnderstandingWorkflow
+from skill_fleet.core.workflows.skill_creation.validation import ValidationWorkflow
 from skill_fleet.infrastructure.tracing.mlflow import (
     end_parent_run,
     log_quality_metrics,
@@ -33,12 +36,6 @@ from skill_fleet.infrastructure.tracing.mlflow import (
 )
 from skill_fleet.taxonomy.manager import TaxonomyManager
 
-from ...core.dspy.modules.workflows import (
-    ContentGenerationOrchestrator,
-    QualityAssuranceOrchestrator,
-    TaskAnalysisOrchestrator,
-)
-from ...core.dspy.modules.workflows.hitl_checkpoint import HITLCheckpointManager
 from ...core.models import SkillCreationResult
 from ..schemas.models import JobState
 from .job_manager import get_job_manager
@@ -70,7 +67,9 @@ class SkillService:
         self.skills_root = skills_root
         self.drafts_root = drafts_root
         self.taxonomy_manager = TaxonomyManager(skills_root)
-        self.hitl_manager = HITLCheckpointManager()
+        self.understanding_workflow = UnderstandingWorkflow()
+        self.generation_workflow = GenerationWorkflow()
+        self.validation_workflow = ValidationWorkflow()
 
     async def create_skill(
         self,
@@ -140,10 +139,10 @@ class SkillService:
         taxonomy_structure = self.taxonomy_manager.get_relevant_branches(request.task_description)
         mounted_skills = self.taxonomy_manager.get_mounted_skills(request.user_id)
 
-        # Initialize orchestrators
-        task_orchestrator = TaskAnalysisOrchestrator()
-        content_orchestrator = ContentGenerationOrchestrator()
-        qa_orchestrator = QualityAssuranceOrchestrator()
+        # Initialize workflows
+        understanding_workflow = UnderstandingWorkflow()
+        generation_workflow = GenerationWorkflow()
+        validation_workflow = ValidationWorkflow()
 
         # Start MLflow parent run for hierarchical tracking
         parent_run_id = None
@@ -164,57 +163,45 @@ class SkillService:
                 progress_callback("phase1", "Analyzing requirements and planning skill structure")
 
             if enable_mlflow:
-                # Use child run for phase 1 - orchestrator will skip setup_mlflow_experiment
+                # Use child run for phase 1
                 with start_child_run("phase1_task_analysis"):
-                    phase1_result = await task_orchestrator.analyze(
+                    phase1_result = await understanding_workflow.execute(
                         task_description=request.task_description,
                         user_context=request.user_id + previous_answers_context,
                         taxonomy_structure=json.dumps(taxonomy_structure),
                         existing_skills=mounted_skills,
-                        enable_mlflow=False,  # Don't start separate run, we're in child run
                     )
             else:
-                phase1_result = await task_orchestrator.analyze(
+                phase1_result = await understanding_workflow.execute(
                     task_description=request.task_description,
                     user_context=request.user_id + previous_answers_context,
                     taxonomy_structure=json.dumps(taxonomy_structure),
                     existing_skills=mounted_skills,
-                    enable_mlflow=False,
                 )
 
-            # Check for ambiguities and trigger HITL if needed
-            requirements = phase1_result.get("requirements", {})
-            ambiguities = requirements.get("ambiguities", [])
-
-            if ambiguities and len(ambiguities) > 0:
-                # Generate clarifying questions
-                questions = await self.hitl_manager.generate_clarifying_questions(
-                    task_description=request.task_description,
-                    initial_analysis=json.dumps(requirements),
-                    ambiguities=ambiguities,
-                    previous_answers=previous_answers_context,
-                )
-
-                if questions:
-                    # Suspend job
-                    job = job_manager.get_job(job_id)
-                    if job:
-                        job.status = "pending_user_input"
-                        job.deep_understanding.questions_asked = questions
-                        job_manager.update_job(
-                            job_id,
-                            {
-                                "status": "pending_user_input",
-                                "deep_understanding": job.deep_understanding,
-                            },
-                        )
-
-                    return SkillCreationResult(
-                        job_id=job_id,
-                        status="pending_user_input",
-                        message="Clarification needed from user",
-                        hitl_context={"questions": questions},
+            # Check for HITL checkpoint
+            if phase1_result.get("status") == "pending_user_input":
+                # Suspend job for HITL
+                job = job_manager.get_job(job_id)
+                if job:
+                    job.status = "pending_user_input"
+                    job.hitl_data = phase1_result.get("hitl_data", {})
+                    job.hitl_type = phase1_result.get("hitl_type", "clarify")
+                    job_manager.update_job(
+                        job_id,
+                        {
+                            "status": "pending_user_input",
+                            "hitl_data": job.hitl_data,
+                            "hitl_type": job.hitl_type,
+                        },
                     )
+
+                return SkillCreationResult(
+                    job_id=job_id,
+                    status="pending_user_input",
+                    message="Clarification needed from user",
+                    hitl_context=phase1_result.get("hitl_data", {}),
+                )
 
             # Phase 2: Content Generation
             if progress_callback:
@@ -222,18 +209,16 @@ class SkillService:
 
             if enable_mlflow:
                 with start_child_run("phase2_content_generation"):
-                    phase2_result = await content_orchestrator.generate(
-                        understanding=phase1_result,
+                    phase2_result = await generation_workflow.execute(
                         plan=phase1_result.get("plan", {}),
-                        skill_style="comprehensive",
-                        enable_mlflow=False,
+                        understanding=phase1_result,
+                        enable_hitl=False,
                     )
             else:
-                phase2_result = await content_orchestrator.generate(
-                    understanding=phase1_result,
+                phase2_result = await generation_workflow.execute(
                     plan=phase1_result.get("plan", {}),
-                    skill_style="comprehensive",
-                    enable_mlflow=False,
+                    understanding=phase1_result,
+                    enable_hitl=False,
                 )
 
             # Phase 3: Quality Assurance
@@ -242,28 +227,22 @@ class SkillService:
 
             if enable_mlflow:
                 with start_child_run("phase3_quality_assurance"):
-                    phase3_result = await qa_orchestrator.validate_and_refine(
+                    phase3_result = await validation_workflow.execute(
                         skill_content=phase2_result.get("skill_content", ""),
-                        skill_metadata=phase1_result.get("plan", {}).get("skill_metadata", {}),
-                        content_plan=phase1_result.get("plan", {}),
-                        validation_rules="agentskills.io compliance",
-                        target_level="intermediate",
-                        enable_mlflow=False,
+                        plan=phase1_result.get("plan", {}),
+                        enable_auto_refinement=True,
                     )
             else:
-                phase3_result = await qa_orchestrator.validate_and_refine(
+                phase3_result = await validation_workflow.execute(
                     skill_content=phase2_result.get("skill_content", ""),
-                    skill_metadata=phase1_result.get("plan", {}).get("skill_metadata", {}),
-                    content_plan=phase1_result.get("plan", {}),
-                    validation_rules="agentskills.io compliance",
-                    target_level="intermediate",
-                    enable_mlflow=False,
+                    plan=phase1_result.get("plan", {}),
+                    enable_auto_refinement=True,
                 )
 
-            # Construct result from orchestrator outputs
+            # Construct result from workflow outputs
             result = SkillCreationResult(
                 status="completed"
-                if phase3_result["validation_report"]["passed"]
+                if phase3_result.get("validation_report", {}).get("passed", False)
                 else "pending_review",
                 skill_content=phase2_result.get("skill_content"),
                 metadata=phase1_result.get("plan", {}).get("skill_metadata"),

@@ -228,7 +228,7 @@ The system learns and improves:
 
 **Without ASS**:
 - Generic coding assistant
-- Same knowledge for all languages
+- Same knowlMakedge for all languages
 - No project-specific context
 - Forgets between sessions
 

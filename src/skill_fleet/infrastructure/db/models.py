@@ -96,6 +96,8 @@ class JobStatusEnum:
     PENDING = "pending"
     RUNNING = "running"
     PENDING_HITL = "pending_hitl"
+    PENDING_USER_INPUT = "pending_user_input"
+    PENDING_REVIEW = "pending_review"
     COMPLETED = "completed"
     FAILED = "failed"
     CANCELLED = "cancelled"
@@ -792,6 +794,8 @@ class Job(Base):
             JobStatusEnum.PENDING,
             JobStatusEnum.RUNNING,
             JobStatusEnum.PENDING_HITL,
+            JobStatusEnum.PENDING_USER_INPUT,
+            JobStatusEnum.PENDING_REVIEW,
             JobStatusEnum.COMPLETED,
             JobStatusEnum.FAILED,
             JobStatusEnum.CANCELLED,
@@ -837,6 +841,10 @@ class Job(Base):
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     job_metadata: Mapped[dict] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
+
+    # HITL fields
+    hitl_type: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    hitl_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     # Relationships
     hitl_interactions: Mapped[list["HITLInteraction"]] = relationship(

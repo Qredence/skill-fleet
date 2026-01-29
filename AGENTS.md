@@ -103,7 +103,7 @@ from skill_fleet.common.security import (
 ### DSPy Integration
 
 ```python
-from skill_fleet.infrastructure.llm.dspy_config import configure_dspy, get_task_lm
+from skill_fleet.dspy import configure_dspy, get_task_lm
 
 lm = configure_dspy(default_task="skill_understand")
 edit_lm = get_task_lm("skill_edit")

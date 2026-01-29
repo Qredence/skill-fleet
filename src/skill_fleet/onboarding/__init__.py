@@ -1,7 +1,10 @@
-"""Onboarding module for skill-fleet."""
+"""
+Onboarding module for skill-fleet.
+
+.. deprecated::
+    This module is temporarily unavailable during migration to new workflow architecture.
+"""
 
 from __future__ import annotations
 
-from .bootstrap import SkillBootstrapper
-
-__all__ = ["SkillBootstrapper"]
+__all__ = []

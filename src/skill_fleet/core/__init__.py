@@ -4,7 +4,9 @@ Unified core logic for Skill Fleet.
 This module consolidates the workflow and core packages into a unified architecture.
 
 Directory Structure:
-- dspy/: DSPy components (signatures, modules, programs)
+- signatures/: DSPy signature definitions
+- modules/: DSPy module implementations
+- workflows/: Workflow orchestration layer
 - hitl/: Human-in-the-loop handlers
 - tools/: External tools and integrations
 - optimization/: Optimization and evaluation logic
@@ -16,8 +18,9 @@ Directory Structure:
 Import Guidelines:
 - For config: from skill_fleet.core.config import ...
 - For models: from skill_fleet.core.models import ...
-- For DSPy components: from skill_fleet.core.dspy import ...
+- For DSPy components: from skill_fleet.dspy import ...
 - For HITL: from skill_fleet.core.hitl import ...
+- For workflows: from skill_fleet.core.workflows import ...
 """
 
 from skill_fleet.core.config import (

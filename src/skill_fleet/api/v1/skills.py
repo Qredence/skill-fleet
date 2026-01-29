@@ -21,7 +21,7 @@ from typing import Annotated
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 
-from skill_fleet.core.dspy.modules.workflows.quality_assurance import QualityAssuranceOrchestrator
+from skill_fleet.core.workflows.skill_creation.validation import ValidationWorkflow
 
 from ..dependencies import get_skill_service
 from ..exceptions import NotFoundException
@@ -76,17 +76,22 @@ async def create_skill(
     async def run_workflow():
         """Run the skill creation workflow in background."""
         try:
-            result = await skill_service.create_skill(request)
+            result = await skill_service.create_skill(
+                request,
+                existing_job_id=job_id,  # Pass the job_id so HITL data is stored in the same job
+            )
             # For now, we'll return the result synchronously
             # In production, this would update job state
             logger.info(f"Skill creation job {job_id} completed with status: {result.status}")
+            return result
         except Exception as e:
             logger.error(f"Skill creation job {job_id} failed: {e}")
+            return None
 
     # For now, run synchronously (background tasks can be added later)
-    await run_workflow()
+    result = await run_workflow()
 
-    return CreateSkillResponse(job_id=job_id, status="completed")
+    return CreateSkillResponse(job_id=job_id, status=result.status if result else "completed")
 
 
 @router.get("/{skill_id}", response_model=SkillDetailResponse)
@@ -226,37 +231,26 @@ async def validate_skill(
     except FileNotFoundError as err:
         raise NotFoundException("Skill", skill_id) from err
 
-    # Initialize orchestrator and run validation
-    orchestrator = QualityAssuranceOrchestrator()
+    # Initialize workflow and run validation
+    workflow = ValidationWorkflow()
 
     try:
-        result = await orchestrator.validate_and_refine(
+        result = await workflow.execute(
             skill_content=content,
-            skill_metadata=metadata,
-            content_plan="",
-            validation_rules="agentskills.io compliance",
-            target_level="intermediate",
-            enable_mlflow=False,
+            plan={"skill_metadata": metadata},
+            enable_auto_refinement=False,  # Just validate, don't refine
         )
 
         validation_report = result.get("validation_report", {})
-        critical_issues = result.get("critical_issues", [])
-        warnings = result.get("warnings", [])
+        issues = validation_report.get("issues", [])
 
         # Build issues list
-        issues = []
-        for issue in critical_issues:
-            issues.append(
+        formatted_issues = []
+        for issue in issues:
+            formatted_issues.append(
                 {
-                    "severity": "error",
+                    "severity": issue.get("severity", "warning"),
                     "message": issue.get("message", str(issue)),
-                }
-            )
-        for warning in warnings:
-            issues.append(
-                {
-                    "severity": "warning",
-                    "message": warning.get("message", str(warning)),
                 }
             )
 
@@ -264,7 +258,7 @@ async def validate_skill(
             passed=validation_report.get("passed", False),
             status="passed" if validation_report.get("passed", False) else "failed",
             score=validation_report.get("score", 0.0),
-            issues=issues,
+            issues=formatted_issues,
         )
 
     except Exception as e:
@@ -311,19 +305,16 @@ async def refine_skill(
     except FileNotFoundError as err:
         raise NotFoundException("Skill", skill_id) from err
 
-    # Initialize orchestrator
-    orchestrator = QualityAssuranceOrchestrator()
+    # Initialize workflow
+    workflow = ValidationWorkflow()
 
     try:
-        # Run refinement with user feedback
-        result = await orchestrator.validate_and_refine(
+        # Run validation with feedback (which triggers refinement in the workflow)
+        result = await workflow.execute(
             skill_content=content,
-            skill_metadata=metadata,
-            content_plan="",
-            validation_rules="agentskills.io compliance",
+            plan={"skill_metadata": metadata},
+            enable_auto_refinement=True,
             user_feedback=request.feedback,
-            target_level="intermediate",
-            enable_mlflow=False,
         )
 
         # Check if refinement was successful

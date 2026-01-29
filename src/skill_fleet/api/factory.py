@@ -10,7 +10,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from ..core.dspy import configure_dspy
+from skill_fleet.dspy import configure_dspy
+
 from .config import get_settings
 from .exceptions import SkillFleetAPIError
 from .lifespan import lifespan

@@ -153,7 +153,7 @@ async def run_hitl_job(
                 spinner.stop()
             return prompt_data
 
-        if status != "pending_hitl":
+        if status not in {"pending_hitl", "pending_user_input"}:
             # Build progress message from API response
             current_phase = prompt_data.get("current_phase", "")
             progress_message = prompt_data.get("progress_message", "")

@@ -4,17 +4,18 @@ Compatibility CLI entrypoints used by tests and scripts.
 Provides simple, programmatic `create_skill(args)` and `validate_skill(args)`
 functions that wrap existing library components. The implementations are
 intentionally small and easy to patch in unit tests.
+
+.. deprecated::
+    These entrypoints are temporarily unavailable during migration to
+    new workflow architecture.
 """
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from typing import Any
 
-from skill_fleet.taxonomy.manager import TaxonomyManager
-
-from ..core.creator import TaxonomySkillCreator
-from ..core.dspy import configure_dspy
 from ..validators.skill_validator import SkillValidator
 
 
@@ -22,34 +23,19 @@ def create_skill(args: Any) -> int:
     """
     Programmatic entrypoint for creating a skill.
 
-    Args is an object with attributes used by the tests:
-    - task: str
-    - auto_approve: bool
-    - config: str (path to fleet config)
-    - skills_root: str
-    - max_iterations, feedback_type, etc. are accepted but optional
+    .. deprecated::
+        This function is temporarily unavailable during migration to
+        new workflow architecture.
     """
-    # Load fleet config (tests patch this)
-    config_path_arg = Path(args.config) if getattr(args, "config", None) else None
-
-    # Configure DSPy (tests patch configure_dspy)
-    configure_dspy(config_path_arg)
-
-    # Taxonomy manager
-    skills_root = Path(getattr(args, "skills_root", "./skills"))
-    taxonomy = TaxonomyManager(skills_root)
-
-    # Creator
-    creator = TaxonomySkillCreator(taxonomy_manager=taxonomy)
-
-    # Call the creator with a simple contract; tests mock the creator
-    task = getattr(args, "task", "")
-    result = creator(task)
-
-    status = (result or {}).get("status")
-    if status in {"approved", "exists", "completed"}:
-        return 0
-    return 2
+    print(
+        "Error: The create_skill function is temporarily unavailable.",
+        file=sys.stderr,
+    )
+    print(
+        "The skill creation feature is being migrated to the new workflow architecture.",
+        file=sys.stderr,
+    )
+    return 1
 
 
 def validate_skill(args: Any) -> int:

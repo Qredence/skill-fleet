@@ -28,7 +28,7 @@ The v1 API provides the complete skill creation, taxonomy management, validation
 uv run skill-fleet serve --port 8000
 
 # Or using uvicorn directly
-uvicorn skill_fleet.app.main:app --reload --port 8000
+uvicorn skill_fleet.api.main:app --reload --port 8000
 ```
 
 The API will be available at `http://localhost:8000`

@@ -117,6 +117,32 @@ edit_lm = get_task_lm("skill_edit")
 - Return Pydantic models from endpoints
 - Use `BackgroundTasks` for async work
 - Handle errors with `skill_fleet.api.exceptions`
+- **Return immediately with job_id for long-running operations** - Don't block until completion
+
+### Background Tasks & Job System
+
+For long-running operations like skill creation:
+
+```python
+from fastapi import BackgroundTasks
+
+@router.post("/skills/")
+async def create_skill(
+    request: CreateSkillRequest,
+    background_tasks: BackgroundTasks,
+) -> CreateSkillResponse:
+    # Create job and return immediately
+    job_id = create_job(...)
+    
+    # Run workflow in background
+    background_tasks.add_task(run_workflow, job_id, request)
+    
+    return CreateSkillResponse(job_id=job_id, status="pending")
+```
+
+- Jobs are tracked via `/api/v1/jobs/{job_id}` and HITL endpoints
+- CLI polls for status and HITL prompts
+- Job state is in-memory (restarts clear pending jobs)
 
 ### agentskills.io Compliance
 
@@ -223,6 +249,6 @@ Optional: `DSPY_CACHEDIR`, `DSPY_TEMPERATURE`, `LOG_LEVEL`
 4. Use migration tools (`uv run skill-fleet migrate`) instead of manual skill edits
 5. Job state is in-memory - restart clears pending jobs
 6. Some integration tests fail without `GOOGLE_API_KEY` (expected: 2 failures)
-Fast Apply: IMPORTANT: Use `edit_file` over `str_replace` or full file writes. It works with partial code snippets—no need for full file content.
-
-Warp Grep: warp-grep is a subagent that takes in a search string and tries to find relevant context. Best practice is to use it at the beginning of codebase explorations to fast track finding relevant files/lines. Do not use it to pin point keywords, but use it for broader semantic queries. "Find the XYZ flow", "How does XYZ work", "Where is XYZ handled?", "Where is <error message> coming from?"
+7. **API endpoints return immediately** - Long operations run in `BackgroundTasks`, client polls HITL endpoint
+8. **CLI chat uses fast polling (100ms)** - For real-time updates, use `uv run skill-fleet chat --fast`
+9. **Frontend is work-in-progress** - `src/frontend/` is in .gitignore, don't commit yet

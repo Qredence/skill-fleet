@@ -36,18 +36,23 @@ logger = logging.getLogger(__name__)
 
 def _sanitize_for_log(value: str) -> str:
     """Remove characters that could be used for log injection (e.g., newlines, control chars, ANSI escapes)."""
-    if not isinstance(value, str):
-        return value
-    # Remove all control characters except tab (0x09) and keep printable ASCII and valid Unicode
-    # Also remove null bytes and other potentially problematic characters
     import re
 
-    # Remove ANSI escape sequences
+    # Ensure we are always working with a string; this avoids type surprises in logging.
+    if not isinstance(value, str):
+        try:
+            value = str(value)
+        except Exception:
+            # Fallback to a generic placeholder if conversion fails for any reason.
+            return "<unloggable-value>"
+
+    # Remove ANSI escape sequences (e.g., color codes) which could affect log display.
     value = re.sub(r"\x1b\[[0-9;]*m", "", value)
 
-    # Remove control characters (0x00-0x1f except \t, and 0x7f)
+    # Remove control characters (0x00-0x1f and 0x7f), including newlines and carriage returns.
+    # Keep printable characters; this prevents log injection via line breaks or other control codes.
     value = "".join(
-        char for char in value if (ord(char) >= 32 or char == "\t") and ord(char) != 127
+        char for char in value if 32 <= ord(char) <= 126 or ord(char) > 127
     )
 
     return value

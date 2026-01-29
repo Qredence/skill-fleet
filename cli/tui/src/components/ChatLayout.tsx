@@ -151,7 +151,16 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({ apiUrl }) => {
   });
 
   const getNextMessageId = useCallback((prefix: string = "msg") => {
-    return `${prefix}-${crypto.randomUUID()}`;
+    const hasCryptoRandomUUID =
+      typeof globalThis !== "undefined" &&
+      typeof (globalThis as any).crypto !== "undefined" &&
+      typeof (globalThis as any).crypto.randomUUID === "function";
+
+    const uniquePart = hasCryptoRandomUUID
+      ? (globalThis as any).crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+    return `${prefix}-${uniquePart}`;
   }, []);
 
   const addMessage = (role: Message["role"], content: string) => {
@@ -375,7 +384,7 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({ apiUrl }) => {
         message,
         onThinking: (chunk: ThinkingChunk) => {
           setMessages((prev) => {
-            const newId = `think-${Date.now()}-${prev.length}-${Math.random().toString(36).substr(2, 9)}`;
+            const newId = getNextMessageId("think");
             return [
               ...prev,
               {

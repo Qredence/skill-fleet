@@ -3,11 +3,12 @@
 
 import asyncio
 import sys
+from pathlib import Path
 
-sys.path.insert(
-    0,
-    "/Volumes/Samsung-SSD-T7/Workspaces/Github/qredence/agent-framework/v0.5/_WORLD/skills-fleet/src",
-)
+# Ensure the project src directory is on the Python path when running this script directly.
+# This resolves the path relative to this file instead of using a hardcoded absolute path.
+project_root = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(project_root / "src"))
 
 from skill_fleet.api.services.job_manager import get_job_manager
 

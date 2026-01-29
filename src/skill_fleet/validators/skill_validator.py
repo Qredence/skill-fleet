@@ -305,11 +305,14 @@ class SkillValidator:
         elif len(capabilities) == 0:
             warnings.append("capabilities list is empty")
 
-        if isinstance(capabilities, list) and weight in self._WEIGHT_ENUM:
-            if not self._validate_weight_capabilities(weight, capabilities):
-                warnings.append(
-                    f"Weight '{weight}' may not match capability count ({len(capabilities)})"
-                )
+        if (
+            isinstance(capabilities, list)
+            and weight in self._WEIGHT_ENUM
+            and not self._validate_weight_capabilities(weight, capabilities)
+        ):
+            warnings.append(
+                f"Weight '{weight}' may not match capability count ({len(capabilities)})"
+            )
 
         return ValidationResult(len(errors) == 0, errors, warnings)
 
@@ -612,13 +615,16 @@ class SkillValidator:
                 else:
                     # Check depth - only 1 level allowed (e.g., references/file.md, not references/sub/file.md)
                     for item in files:
-                        if item.is_dir() and not item.name.startswith("."):
+                        if (
+                            item.is_dir()
+                            and not item.name.startswith(".")
+                            and subdir != "examples"
+                        ):
                             # examples/ is allowed to have subdirectories (demo projects)
-                            if subdir != "examples":
-                                warnings.append(
-                                    f"Nested subdirectory not recommended: {subdir}/{item.name}/ "
-                                    f"(use flat structure in {subdir}/)"
-                                )
+                            warnings.append(
+                                f"Nested subdirectory not recommended: {subdir}/{item.name}/ "
+                                f"(use flat structure in {subdir}/)"
+                            )
             elif subdir in LEGACY_SUBDIRECTORIES:
                 warnings.append(
                     f"Legacy subdirectory '{subdir}/' is deprecated. "

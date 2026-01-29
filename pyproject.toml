@@ -166,8 +166,10 @@ ignore = [
 ]
 "src/skill_fleet/api/**/*.py" = ["TC001", "TC002", "TC003", "D417", "SIM110"]
 "src/skill_fleet/api/exceptions.py" = ["N818"] # Allow APIException naming
+"src/skill_fleet/agent/**/*.py" = ["TC001", "D107"] # Agent modules need runtime imports for DSPy
 "src/skill_fleet/analytics/*.py" = ["D107", "N803", "N806"]
 "src/skill_fleet/core/**/*.py" = [
+  "TC001",
   "TC003",
   "SIM105",
   "D401",

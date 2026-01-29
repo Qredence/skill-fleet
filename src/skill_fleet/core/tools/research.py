@@ -140,18 +140,17 @@ def _parse_search_response(response, max_results: int) -> list[dict[str, Any]]:
                 # If accessing .text fails (e.g., streaming response), skip
                 pass
 
-        if text:
+        if text and not results:
             # Extract URLs and content (basic parsing)
             # More sophisticated parsing can be added based on actual API response format
-            if not results:
-                # If no results from grounding metadata, create a simple result from text
-                results.append(
-                    {
-                        "url": "",
-                        "title": "Search results summary",
-                        "snippet": text[:500] if len(text) > 500 else text,
-                    }
-                )
+            # If no results from grounding metadata, create a simple result from text
+            results.append(
+                {
+                    "url": "",
+                    "title": "Search results summary",
+                    "snippet": text[:500] if len(text) > 500 else text,
+                }
+            )
 
     except Exception as e:
         logger.warning(f"Failed to parse search response: {e}")

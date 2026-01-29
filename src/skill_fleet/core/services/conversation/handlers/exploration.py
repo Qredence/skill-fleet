@@ -79,9 +79,12 @@ class ExplorationHandlers:
                 session.task_description = extracted_task
             else:
                 session.task_description = str(extracted_task)
-            if previous_task and previous_task != session.task_description:
-                if session.deep_understanding:
-                    session.deep_understanding.pop("scoping_complete", None)
+            if (
+                previous_task
+                and previous_task != session.task_description
+                and session.deep_understanding
+            ):
+                session.deep_understanding.pop("scoping_complete", None)
 
             # Deep Understanding
             if not session.deep_understanding or not session.deep_understanding.get("complete"):
@@ -260,16 +263,21 @@ class ExplorationHandlers:
             )
 
         user_message_lower = user_message.strip().lower()
-        if user_message_lower in ("yes", "y", "ok", "proceed", "continue"):
-            if session.multi_skill_queue:
-                current_skill_name = session.multi_skill_queue[session.current_skill_index]
-                session.task_description = f"Create a skill for: {current_skill_name}"
-                # Must signal transition to Exploring/Deep Understanding for the new single task
-                session.state = ConversationState.DEEP_UNDERSTANDING
-                # Return instructions to caller to re-route immediately or prompt user
-                return AgentResponse(
-                    message=f"Starting creation for: **{current_skill_name}**.\nLet's understand the requirements.",
-                    state=ConversationState.DEEP_UNDERSTANDING,
+        if user_message_lower in (
+            "yes",
+            "y",
+            "ok",
+            "proceed",
+            "continue",
+        ) and session.multi_skill_queue:
+            current_skill_name = session.multi_skill_queue[session.current_skill_index]
+            session.task_description = f"Create a skill for: {current_skill_name}"
+            # Must signal transition to Exploring/Deep Understanding for the new single task
+            session.state = ConversationState.DEEP_UNDERSTANDING
+            # Return instructions to caller to re-route immediately or prompt user
+            return AgentResponse(
+                message=f"Starting creation for: **{current_skill_name}**.\nLet's understand the requirements.",
+                state=ConversationState.DEEP_UNDERSTANDING,
                     action="start_single_skill",
                     requires_user_input=False,
                 )

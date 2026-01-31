@@ -118,7 +118,8 @@ htmlcov/
 # Frontend (WIP - not ready for commit)
 
 
-.agents/skills/
+.agents/skills
 src/frontend/fleetui/.agents/skills/agentation/SKILL.md
-docs/archive/
+docs/archive
 docs/archive/README.md
+docs/internal

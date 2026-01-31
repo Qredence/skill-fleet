@@ -36,7 +36,10 @@ class TestGenerateClarifyingQuestions:
     def test_priority_has_expected_values(self):
         """Priority field should describe level enum."""
         field = GenerateClarifyingQuestions.fields["priority"]
-        desc = field.json_schema_extra.get("desc", "").lower() if field.json_schema_extra else ""
+        json_extra = getattr(field, "json_schema_extra", None)
+        desc = ""
+        if isinstance(json_extra, dict):
+            desc = str(json_extra.get("desc", "")).lower()
         if not desc:
             desc = str(field).lower()
         assert "critical" in desc or "important" in desc or "optional" in desc
@@ -49,5 +52,5 @@ class TestHITLSignatureConsistency:
         """HITL signatures should focus on user interaction."""
         # This test ensures we're creating the right type of signatures
         sig = GenerateClarifyingQuestions
-        desc = sig.__doc__.lower()
+        desc = (sig.__doc__ or "").lower()
         assert any(word in desc for word in ["question", "clarify", "user", "interaction"])

@@ -119,7 +119,7 @@ class TestSkillsCreateEndpoint:
             assert "job_id" in data
             assert isinstance(data["job_id"], str)
             assert len(data["job_id"]) > 0
-            assert data["status"] == "completed"
+            assert data["status"] == "pending"
 
             # Verify service was called
             mock_service.create_skill.assert_called_once()

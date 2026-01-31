@@ -6,7 +6,6 @@ to verify it generates proper follow-up questions and synthesizes plans.
 """
 
 import asyncio
-from unittest.mock import Mock
 
 import dspy
 from dspy import LM
@@ -33,30 +32,30 @@ class MockLM(LM):
 
         # Requirements gathering response
         if "requirements" in prompt_str or "domain" in prompt_str:
-            return self._mock_requirements_response()
+            return [self._mock_requirements_response()]
 
         # Intent analysis response
         if "intent" in prompt_str or "purpose" in prompt_str:
-            return self._mock_intent_response()
+            return [self._mock_intent_response()]
 
         # Taxonomy path response
         if "taxonomy" in prompt_str or "path" in prompt_str:
-            return self._mock_taxonomy_response()
+            return [self._mock_taxonomy_response()]
 
         # Dependencies response
         if "depend" in prompt_str or "prerequisite" in prompt_str:
-            return self._mock_dependencies_response()
+            return [self._mock_dependencies_response()]
 
         # Plan synthesis response
         if "plan" in prompt_str or "synthesize" in prompt_str:
-            return self._mock_plan_response()
+            return [self._mock_plan_response()]
 
         # HITL questions response
         if "question" in prompt_str or "clarif" in prompt_str:
-            return self._mock_questions_response()
+            return [self._mock_questions_response()]
 
         # Default response
-        return self._mock_default_response()
+        return [self._mock_default_response()]
 
     def _mock_requirements_response(self):
         return """domain: technical
@@ -69,7 +68,7 @@ ambiguities: []"""
     def _mock_requirements_with_ambiguities_response(self):
         return """domain: technical
 category: general
-target_level: intermediate  
+target_level: intermediate
 topics: ["general-programming"]
 constraints: []
 ambiguities: ["Unclear what specific technology or framework", "Scope not well-defined - could be web, mobile, or desktop"]"""
@@ -122,9 +121,7 @@ rationale: Need to clarify technology stack and scope before proceeding with ski
 
 def setup_mock_lm():
     """Setup mock LM for testing."""
-    mock_lm = MockLM()
-    dspy.configure(lm=mock_lm)
-    return mock_lm
+    return MockLM()
 
 
 def mock_requirements_response():
@@ -141,7 +138,7 @@ def mock_requirements_with_ambiguities_response():
     """Mock response for requirements with ambiguities."""
     return """domain: technical
 category: general
-target_level: intermediate  
+target_level: intermediate
 topics: ["general-programming"]
 constraints: []
 ambiguities: ["Unclear what specific technology or framework", "Scope not well-defined - could be web, mobile, or desktop"]"""
@@ -212,14 +209,13 @@ async def test_clear_task():
 
     from skill_fleet.core.workflows.skill_creation.understanding import UnderstandingWorkflow
 
-    setup_mock_lm()
-
     workflow = UnderstandingWorkflow()
 
-    result = await workflow.execute(
-        task_description="Build a React component library with TypeScript for our design system",
-        user_context={"experience": "intermediate", "team_size": 5},
-    )
+    with dspy.context(lm=setup_mock_lm()):
+        result = await workflow.execute(
+            task_description="Build a React component library with TypeScript for our design system",
+            user_context={"experience": "intermediate", "team_size": 5},
+        )
 
     print(f"\nStatus: {result.get('status')}")
 
@@ -257,20 +253,22 @@ async def test_ambiguous_task():
 
     from skill_fleet.core.workflows.skill_creation.understanding import UnderstandingWorkflow
 
-    # Override mock to return ambiguities
-    def mock_with_ambiguities(prompt, **kwargs):
-        prompt_str = str(prompt).lower()
-        if "requirements" in prompt_str or "domain" in prompt_str:
-            return mock_requirements_with_ambiguities_response()
-        return mock_default_response()
+    class AmbiguitiesLM(LM):
+        """LM that forces ambiguities in requirements gathering."""
 
-    mock_lm = Mock()
-    mock_lm.side_effect = mock_with_ambiguities
-    dspy.configure(lm=mock_lm)
+        def __init__(self):
+            super().__init__(model="mock/model")
+
+        def __call__(self, prompt=None, messages=None, **kwargs):
+            prompt_str = str(prompt or messages or "").lower()
+            if "requirements" in prompt_str or "domain" in prompt_str:
+                return [mock_requirements_with_ambiguities_response()]
+            return [mock_default_response()]
 
     workflow = UnderstandingWorkflow()
 
-    result = await workflow.execute(task_description="Help me build something", user_context={})
+    with dspy.context(lm=AmbiguitiesLM()):
+        result = await workflow.execute(task_description="Help me build something", user_context={})
 
     print(f"\nStatus: {result.get('status')}")
     print(f"HITL Type: {result.get('hitl_type')}")

@@ -14,6 +14,8 @@ from fastapi.testclient import TestClient
 # This must happen before any imports that use settings
 os.environ["SKILL_FLEET_ENV"] = "development"
 os.environ["SKILL_FLEET_CORS_ORIGINS"] = "*"
+# Allow deterministic fallbacks when LMs are not configured (tests run offline).
+os.environ.setdefault("SKILL_FLEET_ALLOW_LLM_FALLBACK", "1")
 
 # Use in-memory SQLite for tests unless DATABASE_URL is explicitly set
 if "DATABASE_URL" not in os.environ:
@@ -175,16 +177,22 @@ def configure_dspy_for_tests():
     """Configure DSPy with a dummy LM for unit tests."""
     import dspy
 
-    # Create a dummy LM that returns predictable responses
-    # This follows DSPy's LM interface
+    # Create a dummy LM that returns predictable, parseable text outputs.
     class DummyLM(dspy.LM):
         def __init__(self):
             super().__init__(model="dummy/test")
 
         def __call__(self, prompt=None, messages=None, **kwargs):
-            # Return a list of mock responses (DSPy expects a list)
-            response_text = '{"domain": "technical", "category": "web", "target_level": "intermediate", "topics": ["test"], "constraints": [], "ambiguities": []}'
-            return [type("Choice", (), {"text": response_text, "finish_reason": "stop"})()]
+            # DSPy v3 adapters expect a list of strings (or dicts with "text").
+            response_text = (
+                "domain: technical\n"
+                "category: web\n"
+                "target_level: intermediate\n"
+                'topics: ["test"]\n'
+                "constraints: []\n"
+                "ambiguities: []\n"
+            )
+            return [response_text]
 
     # Configure DSPy with dummy LM
     dspy.configure(lm=DummyLM())

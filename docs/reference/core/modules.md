@@ -397,4 +397,3 @@ if not self._validate_result(output, required=["skill_content"]):
 - [Signatures Reference](signatures.md) - DSPy signature definitions
 - [Workflows Reference](workflows.md) - Workflow orchestration
 - [Architecture](../../explanation/architecture/workflow-engine.md) - System design
-

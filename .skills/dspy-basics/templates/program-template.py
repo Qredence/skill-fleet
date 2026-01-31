@@ -29,14 +29,13 @@ class SimpleModule(dspy.Module):
 
         Returns:
             dspy.Prediction with output fields from signature
+
         """
         # Call the signature
         result = self.predict(input=input_data)
 
         # Return prediction (always use dspy.Prediction)
-        return dspy.Prediction(
-            output=result.output
-        )
+        return dspy.Prediction(output=result.output)
 
 
 class MultiStepModule(dspy.Module):
@@ -63,27 +62,21 @@ class MultiStepModule(dspy.Module):
 
         Returns:
             dspy.Prediction with final output
+
         """
         # Step 1
         result1 = self.step1(input=input_data)
 
         # Step 2 (uses output from step 1)
-        result2 = self.step2(
-            intermediate=result1.output
-        )
+        result2 = self.step2(intermediate=result1.output)
 
         # Step 3 (uses output from step 2)
-        result3 = self.step3(
-            intermediate=result2.output
-        )
+        result3 = self.step3(intermediate=result2.output)
 
         # Return final result
         return dspy.Prediction(
             final_output=result3.output,
-            intermediate={
-                'step1': result1.output,
-                'step2': result2.output
-            }
+            intermediate={"step1": result1.output, "step2": result2.output},
         )
 
 
@@ -109,6 +102,7 @@ class ChainOfThoughtModule(dspy.Module):
 
         Returns:
             dspy.Prediction with output and reasoning
+
         """
         # Call reasoning signature
         result = self.reason(input=input_data)
@@ -116,7 +110,7 @@ class ChainOfThoughtModule(dspy.Module):
         # Return prediction with reasoning
         return dspy.Prediction(
             output=result.output,
-            reasoning=result.rationale  # Access chain of thought
+            reasoning=result.rationale,  # Access chain of thought
         )
 
 
@@ -143,6 +137,7 @@ class ConditionalModule(dspy.Module):
 
         Returns:
             dspy.Prediction with appropriate output
+
         """
         # Classify input
         classification = self.classify(input=input_data)
@@ -154,10 +149,7 @@ class ConditionalModule(dspy.Module):
             result = self.process_b(input=input_data)
 
         # Return prediction
-        return dspy.Prediction(
-            output=result.output,
-            classification=classification.type
-        )
+        return dspy.Prediction(output=result.output, classification=classification.type)
 
 
 class ParallelModule(dspy.Module):
@@ -184,6 +176,7 @@ class ParallelModule(dspy.Module):
 
         Returns:
             dspy.Prediction with combined output
+
         """
         # Process in parallel
         result1 = self.process1(input=input_data)
@@ -192,19 +185,17 @@ class ParallelModule(dspy.Module):
 
         # Combine results
         combined = self.combine(
-            result1=result1.output,
-            result2=result2.output,
-            result3=result3.output
+            result1=result1.output, result2=result2.output, result3=result3.output
         )
 
         # Return combined prediction
         return dspy.Prediction(
             output=combined.output,
             components={
-                'result1': result1.output,
-                'result2': result2.output,
-                'result3': result3.output
-            }
+                "result1": result1.output,
+                "result2": result2.output,
+                "result3": result3.output,
+            },
         )
 
 
@@ -222,10 +213,7 @@ class ConfigurableModule(dspy.Module):
         self.temperature = temperature
 
         # Configure predictor with parameters
-        self.predict = dspy.Predict(
-            MySignature,
-            temperature=temperature
-        )
+        self.predict = dspy.Predict(MySignature, temperature=temperature)
 
     def forward(self, input_data: str, max_length: int = None) -> dspy.Prediction:
         """
@@ -237,20 +225,15 @@ class ConfigurableModule(dspy.Module):
 
         Returns:
             dspy.Prediction with output
+
         """
         # Use provided max_length or default
         length = max_length if max_length else self.max_length
 
         # Call signature with parameters
-        result = self.predict(
-            input=input_data,
-            max_length=length
-        )
+        result = self.predict(input=input_data, max_length=length)
 
-        return dspy.Prediction(
-            output=result.output,
-            max_length=length
-        )
+        return dspy.Prediction(output=result.output, max_length=length)
 
 
 class RobustModule(dspy.Module):
@@ -274,24 +257,17 @@ class RobustModule(dspy.Module):
 
         Returns:
             dspy.Prediction with output or error information
+
         """
         try:
             # Process input
             result = self.process(input=input_data)
 
-            return dspy.Prediction(
-                output=result.output,
-                success=True,
-                error=None
-            )
+            return dspy.Prediction(output=result.output, success=True, error=None)
 
         except Exception as e:
             # Handle error
-            return dspy.Prediction(
-                output=None,
-                success=False,
-                error=str(e)
-            )
+            return dspy.Prediction(output=None, success=False, error=str(e))
 
 
 class RefinementModule(dspy.Module):
@@ -318,6 +294,7 @@ class RefinementModule(dspy.Module):
 
         Returns:
             dspy.Prediction with refined output
+
         """
         # Initial generation
         current = self.generate(input=input_data)
@@ -325,10 +302,7 @@ class RefinementModule(dspy.Module):
         # Iterative refinement
         for i in range(self.max_iterations):
             # Assess quality
-            assessment = self.assess(
-                input=input_data,
-                current=current.output
-            )
+            assessment = self.assess(input=input_data, current=current.output)
 
             # Check if good enough
             if assessment.quality_score >= 0.9:
@@ -336,25 +310,21 @@ class RefinementModule(dspy.Module):
 
             # Refine
             refined = self.refine(
-                input=input_data,
-                current=current.output,
-                feedback=assessment.feedback
+                input=input_data, current=current.output, feedback=assessment.feedback
             )
 
             current = refined
 
         return dspy.Prediction(
-            output=current.output,
-            iterations=i + 1,
-            final_quality=assessment.quality_score
+            output=current.output, iterations=i + 1, final_quality=assessment.quality_score
         )
 
 
 # Example usage
 
+
 def example_usage():
     """Example of how to use these modules."""
-
     # Simple module
     simple = SimpleModule()
     result = simple.forward(input_data="test input")

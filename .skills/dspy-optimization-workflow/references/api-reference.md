@@ -151,31 +151,31 @@ async def optimize_program():
                 "save_path": "my_optimized_v1.pkl",
             }
         )
-        
+
         if response.status_code != 200:
             print(f"Failed to start: {response.text}")
             return
-        
+
         job_id = response.json()["job_id"]
         print(f"Job started: {job_id}")
-        
+
         # Poll for completion
         while True:
             status_response = await client.get(
                 f"http://localhost:8000/api/v1/optimization/status/{job_id}"
             )
-            
+
             data = status_response.json()
             print(f"Status: {data['status']} ({data['progress']:.0%})")
-            
+
             if data["status"] == "completed":
                 print(f"✅ Complete! Result: {data['result']}")
                 break
-            
+
             if data["status"] == "failed":
                 print(f"❌ Failed: {data['error']}")
                 break
-            
+
             await asyncio.sleep(5)  # Check every 5 seconds
 
 # Run
@@ -227,16 +227,16 @@ configure_mlflow(experiment_name="skill-optimization")
 with MLflowLogger(run_name="miprov2_v1") as logger:
     # Trigger API optimization
     response = await start_optimization(...)
-    
+
     # Log parameters
     logger.log_params({
         "optimizer": "miprov2",
         "auto": "medium",
         "trainset_size": 50,
     })
-    
+
     # ... wait for completion ...
-    
+
     # Log results
     logger.log_metrics({
         "quality_score": result["quality_score"],

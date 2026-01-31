@@ -155,3 +155,4 @@ scripts/internal/tests/test_repository.py
 .skills/dspy-optimization-workflow/scripts/quick_optimize.py
 .skills/frontend-ui-integration/SKILL.md
 .skills/product-management/SKILL.md
+PLANS.md

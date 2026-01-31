@@ -4,8 +4,8 @@ This is a quick reference for repository administrators to set up branch protect
 
 ## Prerequisites
 
-✅ Repository administrator access  
-✅ GitHub CLI installed (`gh`) - [Install guide](https://cli.github.com/)  
+✅ Repository administrator access
+✅ GitHub CLI installed (`gh`) - [Install guide](https://cli.github.com/)
 ✅ Authenticated with GitHub (`gh auth login`)
 
 ## Quick Setup (Recommended)

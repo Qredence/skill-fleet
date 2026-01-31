@@ -6,17 +6,17 @@ interface HeaderProps {
   explainMode?: boolean;
 }
 
-export const Header: React.FC<HeaderProps> = ({ 
-  model = "Gemini 3 Flash Preview (gemini)", 
-  explainMode = false 
+export const Header: React.FC<HeaderProps> = ({
+  model = "Gemini 3 Flash Preview (gemini)",
+  explainMode = false
 }) => {
   return (
-    <Box 
-      borderStyle="single" 
-      borderColor="blue" 
-      paddingX={1} 
-      paddingY={0} 
-      flexDirection="row" 
+    <Box
+      borderStyle="single"
+      borderColor="blue"
+      paddingX={1}
+      paddingY={0}
+      flexDirection="row"
       justifyContent="space-between"
       marginBottom={1}
     >

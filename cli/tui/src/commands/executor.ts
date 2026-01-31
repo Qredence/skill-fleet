@@ -1,6 +1,6 @@
 /**
  * Command Executor - Parses and executes explicit commands
- * 
+ *
  * Supports:
  * - /optimize [optimizer] [trainset] - Run optimization
  * - /list [--filter category] - List skills
@@ -51,7 +51,7 @@ export class CommandExecutor {
    */
   async execute(input: string): Promise<CommandResult> {
     const parsed = this.parseCommand(input);
-    
+
     if (!parsed) {
       return {
         success: false,
@@ -113,7 +113,7 @@ export class CommandExecutor {
     }
 
     const data = await response.json() as any;
-    
+
     return {
       success: true,
       message: `✅ Optimization started!\n\nJob ID: ${data.job_id}\nOptimizer: ${optimizer}\nTrainset: ${trainset}\n\nCheck status with: /status ${data.job_id}`,
@@ -136,14 +136,14 @@ export class CommandExecutor {
       : `${this.apiUrl}/api/v1/taxonomy/`;
 
     const response = await fetch(url);
-    
+
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
 
     const skills = await response.json() as any;
-    
-    const skillList = Array.isArray(skills) 
+
+    const skillList = Array.isArray(skills)
       ? skills.map((s: any) => `  • ${s.path || s.name}`).join('\n')
       : `  • ${(skills as any).length || 0} skills found`;
 
@@ -181,7 +181,7 @@ export class CommandExecutor {
 
     const status = result.passed ? '✅ PASS' : '❌ FAIL';
     const score = result.score ? ` (score: ${result.score})` : '';
-    
+
     return {
       success: result.passed,
       message: `${status}${score}\n\nSkill: ${skillPath}\n${result.message || ''}`,
@@ -245,7 +245,7 @@ export class CommandExecutor {
     const job = await response.json() as any;
 
     const statusIcon = job.status === 'completed' ? '✅' : job.status === 'failed' ? '❌' : '⏳';
-    
+
     return {
       success: true,
       message: `${statusIcon} Job Status\n\nID: ${jobId}\nStatus: ${job.status}\nProgress: ${job.progress || 'N/A'}`,

@@ -30,7 +30,7 @@ def setup_dspy_autologging(
     mlflow.set_experiment(experiment_name)
 
     try:
-        mlflow.dspy.autolog()  # type: ignore[attr-defined]
+        mlflow.dspy.autolog()
     except AttributeError:
         import warnings
 
@@ -44,7 +44,7 @@ def setup_dspy_autologging(
 def get_current_run_id() -> str | None:
     """Get the current MLflow run ID if an active run exists."""
     try:
-        run = mlflow.active_run()  # type: ignore[attr-defined]
+        run = mlflow.active_run()
         return run.info.run_id if run else None
     except Exception:
         return None
@@ -75,7 +75,11 @@ class MLflowContext:
 
     def __enter__(self):
         """Enter context manager and start MLflow run."""
-        self._run = mlflow.start_run(
+        start_run = getattr(mlflow, "start_run", None)
+        if start_run is None:
+            raise RuntimeError("mlflow.start_run is not available")
+
+        self._run = start_run(
             run_name=self.run_name,
             tags=self.tags,
             description=self.description,

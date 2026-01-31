@@ -10,6 +10,7 @@ from typing import Any
 
 import dspy
 
+from skill_fleet.common.llm_fallback import llm_fallback_enabled
 from skill_fleet.core.modules.base import BaseModule
 from skill_fleet.core.signatures.understanding.dependencies import AnalyzeDependencies
 
@@ -46,6 +47,90 @@ class AnalyzeDependenciesModule(BaseModule):
         super().__init__()
         self.analyze = dspy.ChainOfThought(AnalyzeDependencies)
 
+    async def aforward(  # type: ignore[override]
+        self,
+        task_description: str,
+        intent_analysis: dict | None = None,
+        taxonomy_path: str = "",
+        existing_skills: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Async dependency analysis using DSPy `acall`."""
+        start_time = time.time()
+
+        clean_task = self._sanitize_input(task_description)
+        clean_intent = self._sanitize_input(str(intent_analysis or {}))
+        clean_path = self._sanitize_input(taxonomy_path)
+        clean_existing = existing_skills if existing_skills else []
+
+        try:
+            result = await self.analyze.acall(
+                task_description=clean_task,
+                intent_analysis=clean_intent,
+                taxonomy_path=clean_path,
+                existing_skills=clean_existing,
+            )
+        except Exception as e:
+            if not llm_fallback_enabled():
+                raise
+            self.logger.warning(f"Dependency analysis failed: {e}. Using fallback dependencies.")
+            result = None
+
+        output = (
+            {
+                "prerequisite_skills": result.prerequisite_skills
+                if isinstance(result.prerequisite_skills, list)
+                else [],
+                "complementary_skills": result.complementary_skills
+                if isinstance(result.complementary_skills, list)
+                else [],
+                "conflicting_skills": result.conflicting_skills
+                if isinstance(result.conflicting_skills, list)
+                else [],
+                "missing_prerequisites": result.missing_prerequisites
+                if isinstance(result.missing_prerequisites, list)
+                else [],
+                "dependency_rationale": result.dependency_rationale,
+            }
+            if result is not None
+            else {
+                "prerequisite_skills": [],
+                "complementary_skills": [],
+                "conflicting_skills": [],
+                "missing_prerequisites": [],
+                "dependency_rationale": "Fallback dependencies due to analysis failure.",
+                "fallback": True,
+            }
+        )
+
+        required = ["prerequisite_skills", "complementary_skills", "dependency_rationale"]
+        if not self._validate_result(output, required):
+            self.logger.warning("Result missing required fields, using defaults")
+            output.setdefault("prerequisite_skills", [])
+            output.setdefault("complementary_skills", [])
+            output.setdefault("dependency_rationale", "No dependency analysis available")
+
+        prerequisite_skills = output.get("prerequisite_skills", [])
+        if not isinstance(prerequisite_skills, list):
+            prerequisite_skills = []
+        complementary_skills = output.get("complementary_skills", [])
+        if not isinstance(complementary_skills, list):
+            complementary_skills = []
+
+        duration_ms = (time.time() - start_time) * 1000
+        self._log_execution(
+            inputs={
+                "task_description": clean_task[:100],
+                "taxonomy_path": clean_path,
+            },
+            outputs={
+                "prerequisites_count": len(prerequisite_skills),
+                "complementary_count": len(complementary_skills),
+            },
+            duration_ms=duration_ms,
+        )
+
+        return output
+
     def forward(
         self,
         task_description: str | None = None,
@@ -63,12 +148,18 @@ class AnalyzeDependenciesModule(BaseModule):
             intent_analysis: Intent analysis from AnalyzeIntentModule
             taxonomy_path: Selected taxonomy path
             existing_skills: List of existing skill identifiers
+            *args: Positional arguments for BaseModule compatibility.
+            **kwargs: Additional keyword arguments for compatibility.
 
         Returns:
             Dictionary with dependency analysis:
             - prerequisite_skills: Hard prerequisites
             - complementary_skills: Optional enhancements
             - conflicting_skills: Incompatible skills
+            - missing_prerequisites: Skills that need creation
+            - dependency_rationale: Explanation
+
+        """
         # Support BaseModule.forward-style calls where task_description may be
         # passed positionally and this override must remain compatible.
         if task_description is None and args:
@@ -77,11 +168,6 @@ class AnalyzeDependenciesModule(BaseModule):
 
         if task_description is None:
             raise ValueError("task_description must be provided")
-
-            - missing_prerequisites: Skills that need creation
-            - dependency_rationale: Explanation
-
-        """
         start_time = time.time()
 
         # Sanitize inputs
@@ -91,29 +177,44 @@ class AnalyzeDependenciesModule(BaseModule):
         clean_existing = existing_skills if existing_skills else []
 
         # Execute signature
-        result = self.analyze(
-            task_description=clean_task,
-            intent_analysis=clean_intent,
-            taxonomy_path=clean_path,
-            existing_skills=clean_existing,
-        )
+        try:
+            result = self.analyze(
+                task_description=clean_task,
+                intent_analysis=clean_intent,
+                taxonomy_path=clean_path,
+                existing_skills=clean_existing,
+            )
+        except Exception as e:
+            if not llm_fallback_enabled():
+                raise
+            self.logger.warning(f"Dependency analysis failed: {e}. Using fallback dependencies.")
+            result = None
 
         # Transform to structured output
-        output = {
-            "prerequisite_skills": result.prerequisite_skills
-            if isinstance(result.prerequisite_skills, list)
-            else [],
-            "complementary_skills": result.complementary_skills
-            if isinstance(result.complementary_skills, list)
-            else [],
-            "conflicting_skills": result.conflicting_skills
-            if isinstance(result.conflicting_skills, list)
-            else [],
-            "missing_prerequisites": result.missing_prerequisites
-            if isinstance(result.missing_prerequisites, list)
-            else [],
-            "dependency_rationale": result.dependency_rationale,
-        }
+        if result is None:
+            output = {
+                "prerequisite_skills": [],
+                "complementary_skills": [],
+                "conflicting_skills": [],
+                "missing_prerequisites": [],
+                "dependency_rationale": "Fallback dependencies due to analysis failure.",
+            }
+        else:
+            output = {
+                "prerequisite_skills": result.prerequisite_skills
+                if isinstance(result.prerequisite_skills, list)
+                else [],
+                "complementary_skills": result.complementary_skills
+                if isinstance(result.complementary_skills, list)
+                else [],
+                "conflicting_skills": result.conflicting_skills
+                if isinstance(result.conflicting_skills, list)
+                else [],
+                "missing_prerequisites": result.missing_prerequisites
+                if isinstance(result.missing_prerequisites, list)
+                else [],
+                "dependency_rationale": result.dependency_rationale,
+            }
 
         # Validate
         required = ["prerequisite_skills", "complementary_skills", "dependency_rationale"]
@@ -123,6 +224,13 @@ class AnalyzeDependenciesModule(BaseModule):
             output.setdefault("complementary_skills", [])
             output.setdefault("dependency_rationale", "No dependency analysis available")
 
+        prerequisite_skills = output.get("prerequisite_skills", [])
+        if not isinstance(prerequisite_skills, list):
+            prerequisite_skills = []
+        complementary_skills = output.get("complementary_skills", [])
+        if not isinstance(complementary_skills, list):
+            complementary_skills = []
+
         # Log execution
         duration_ms = (time.time() - start_time) * 1000
         self._log_execution(
@@ -131,8 +239,8 @@ class AnalyzeDependenciesModule(BaseModule):
                 "taxonomy_path": clean_path,
             },
             outputs={
-                "prerequisites_count": len(output["prerequisite_skills"]),
-                "complementary_count": len(output["complementary_skills"]),
+                "prerequisites_count": len(prerequisite_skills),
+                "complementary_count": len(complementary_skills),
             },
             duration_ms=duration_ms,
         )

@@ -100,7 +100,7 @@ filterwarnings = [
 src = ["src", "skills"]
 target-version = "py312"
 line-length = 100
-exclude = ["skills/**"]
+exclude = ["skills/**", ".skills/**"]
 
 [tool.ruff.lint]
 # Enable comprehensive rule set for 2026 best practices
@@ -213,7 +213,7 @@ skip-magic-trailing-comma = false
 
 [tool.bandit]
 # Bandit security linter configuration
-exclude_dirs = ["tests", ".venv", "venv", ".git"]
+exclude_dirs = ["tests", ".venv", "venv", ".git", "src/frontend", "node_modules", ".pnpm"]
 skips = [
   # Skip assert_used - we use assertions for internal consistency checks
   "B101",

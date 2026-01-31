@@ -71,8 +71,22 @@ class BaseModule(dspy.Module):
         """
         import asyncio
 
+        import dspy
+
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, lambda: self.forward(**kwargs))
+
+        # Propagate the current DSPy settings context (especially LM) into the worker thread.
+        # DSPy stores settings in context-local state; without this, tests/workflows that use
+        # `dspy.context(lm=...)` won't apply inside run_in_executor threads.
+        current_lm = dspy.settings.lm
+        current_adapter = dspy.settings.adapter
+        current_rm = dspy.settings.rm
+
+        def _run_with_dspy_context():
+            with dspy.context(lm=current_lm, adapter=current_adapter, rm=current_rm):
+                return self.forward(**kwargs)
+
+        return await loop.run_in_executor(None, _run_with_dspy_context)
 
     def _validate_result(self, result: Any, required_fields: list[str]) -> bool:
         """

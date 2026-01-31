@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-import subprocess
+import subprocess  # nosec B404
 import sys
 import time
 from pathlib import Path
@@ -52,7 +52,7 @@ def _derive_api_url(host: str, port: int, configured_api_url: str | None) -> str
         return configured_api_url
 
     resolved_host = host
-    if host in {"0.0.0.0", "::"}:
+    if host in {"0.0.0.0", "::"}:  # nosec B104
         resolved_host = "127.0.0.1"
     return f"http://{resolved_host}:{port}"
 
@@ -120,7 +120,7 @@ def dev_command(
     console.print(f"[dim]API logs → {api_log_path}[/dim]")
 
     try:
-        api_proc = subprocess.Popen(
+        api_proc = subprocess.Popen(  # nosec B603
             api_cmd,
             cwd=repo_root,
             env=api_env,
@@ -147,7 +147,7 @@ def dev_command(
         tui_cmd = ["npm", "run", tui_script]
 
         try:
-            tui_proc = subprocess.Popen(tui_cmd, cwd=tui_dir, env=tui_env)
+            tui_proc = subprocess.Popen(tui_cmd, cwd=tui_dir, env=tui_env)  # nosec B603
         except FileNotFoundError as exc:
             console.print(
                 "[bold red]npm is required to run the TUI. Install Node.js/npm and try again.[/bold red]"

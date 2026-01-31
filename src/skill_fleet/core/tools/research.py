@@ -136,9 +136,9 @@ def _parse_search_response(response, max_results: int) -> list[dict[str, Any]]:
         if hasattr(response, "text"):
             try:
                 text = response.text
-            except Exception:
+            except Exception as exc:
                 # If accessing .text fails (e.g., streaming response), skip
-                pass
+                logger.debug("Failed to read response text: %s", exc)
 
         if text and not results:
             # Extract URLs and content (basic parsing)
@@ -265,9 +265,9 @@ def _simple_file_search(query: str, workspace_path: Path, max_results: int) -> d
                                     }
                                 )
                                 break
-                    except Exception:
+                    except Exception as exc:
                         # Skip files that cannot be read or parsed
-                        pass
+                        logger.debug("Failed to read file %s: %s", file_path, exc)
 
         # Also search for Markdown files
         for search_dir in search_dirs:

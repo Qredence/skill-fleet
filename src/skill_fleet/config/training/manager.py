@@ -160,7 +160,7 @@ class TrainingDataManager:
         content = example.get("task_description") or example.get("user_intent") or str(example)
         import hashlib
 
-        return hashlib.md5(content.encode()).hexdigest()
+        return hashlib.md5(content.encode(), usedforsecurity=False).hexdigest()
 
     def _update_usage_stats(self, examples: list[dict]) -> None:
         """Update last_used timestamp and usage count."""

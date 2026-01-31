@@ -145,7 +145,7 @@ def safe_float(value: Any, default: float = 0.0) -> float:
         Float value
 
     """
-    if isinstance(value, (int, float)):
+    if isinstance(value, int | float):
         return float(value)
     if isinstance(value, str):
         try:
@@ -194,7 +194,7 @@ def json_serialize(
         # Handle lists of Pydantic models
         return [item.model_dump() if hasattr(item, "model_dump") else item for item in value]
 
-    if isinstance(value, (list, dict)):
+    if isinstance(value, list | dict):
         return json.dumps(value, indent=indent)
 
     return value

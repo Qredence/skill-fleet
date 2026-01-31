@@ -9,7 +9,7 @@ TOKEN BUDGET (Critical for agent context efficiency)
 ═══════════════════════════════════════════════════════════════════
 
 Frontmatter: ~100 tokens (name + description injected into XML prompt)
-Body by skill type: - Getting-started/frequent: <150 words - Standard skills: <500 words  
+Body by skill type: - Getting-started/frequent: <150 words - Standard skills: <500 words
  - Complex technical: <5000 tokens (~500 lines max)
 
 Use references/ and guides/ for deep dives that load on demand.

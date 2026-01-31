@@ -3,6 +3,9 @@ Skill content generation module.
 
 Uses GenerateSkillContent signature to create complete SKILL.md
 with YAML frontmatter and structured content.
+
+Now supports category-specific templates for document creation,
+workflow automation, MCP enhancement, and analysis skills.
 """
 
 import time
@@ -11,6 +14,10 @@ from typing import Any
 import dspy
 
 from skill_fleet.core.modules.base import BaseModule
+from skill_fleet.core.modules.generation.templates import (
+    get_template_for_category,
+    validate_against_template,
+)
 from skill_fleet.core.signatures.generation.content import GenerateSkillContent
 
 
@@ -23,6 +30,9 @@ class GenerateSkillContentModule(BaseModule):
     - Structured markdown content
     - Code examples
     - Based on plan and understanding
+
+    Now supports category-specific templates to ensure generated skills
+    follow best practices for their intended use case.
 
     Example:
         module = GenerateSkillContentModule()
@@ -50,19 +60,39 @@ class GenerateSkillContentModule(BaseModule):
             skill_style: Content style preference
 
         Returns:
-            Dictionary with generated content
+            Dictionary with generated content and template compliance
 
         """
         start_time = time.time()
 
-        # Execute signature
+        # Get category-specific template
+        skill_category = understanding.get("skill_category", "other")
+        template = get_template_for_category(skill_category)
+
+        # Enhance plan with template information
+        enhanced_plan = {
+            **plan,
+            "skill_category": skill_category,
+            "required_sections": template["sections"],
+            "required_elements": template["required_elements"],
+            "example_skills": template["example_skills"],
+        }
+
+        # Execute signature with enhanced plan
         result = await self.generate.acall(
-            plan=str(plan), understanding=str(understanding), skill_style=skill_style
+            plan=str(enhanced_plan),
+            understanding=str(understanding),
+            skill_style=skill_style,
         )
 
         # Transform output
+        skill_content = result.skill_content
+
+        # Validate against template
+        template_validation = validate_against_template(skill_content, template)
+
         output = {
-            "skill_content": result.skill_content,
+            "skill_content": skill_content,
             "sections_generated": result.sections_generated
             if isinstance(result.sections_generated, list)
             else [],
@@ -72,6 +102,10 @@ class GenerateSkillContentModule(BaseModule):
             "estimated_reading_time": int(result.estimated_reading_time)
             if hasattr(result, "estimated_reading_time")
             else 10,
+            # NEW: Template compliance data
+            "category": skill_category,
+            "template_compliance": template_validation,
+            "missing_sections": template_validation.get("missing_sections", []),
         }
 
         # Validate
@@ -86,8 +120,12 @@ class GenerateSkillContentModule(BaseModule):
             sections_list = []
         duration_ms = (time.time() - start_time) * 1000
         self._log_execution(
-            inputs={"plan": str(plan)[:50], "style": skill_style},
-            outputs={"sections": len(sections_list), "examples": output["code_examples_count"]},
+            inputs={"plan": str(plan)[:50], "style": skill_style, "category": skill_category},
+            outputs={
+                "sections": len(sections_list),
+                "examples": output["code_examples_count"],
+                "template_compliance": template_validation.get("compliance_score", 0.0),
+            },
             duration_ms=duration_ms,
         )
 

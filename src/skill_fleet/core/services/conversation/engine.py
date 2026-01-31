@@ -265,7 +265,7 @@ class ConversationService(ConversationHandlers):
 
         # Only include if parseable; keep user-facing formatting stable.
         readiness_str = ""
-        if isinstance(readiness_score, (int, float)):
+        if isinstance(readiness_score, int | float):
             readiness_str = f"{float(readiness_score):.2f}"
 
         # Multi-skill progress, if relevant.

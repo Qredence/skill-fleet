@@ -17,6 +17,7 @@ from skill_fleet.core.modules.understanding.intent import AnalyzeIntentModule
 from skill_fleet.core.modules.understanding.plan import SynthesizePlanModule
 from skill_fleet.core.modules.understanding.requirements import GatherRequirementsModule
 from skill_fleet.core.modules.understanding.taxonomy import FindTaxonomyPathModule
+from skill_fleet.core.modules.validation.structure import ValidateStructureModule
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +50,7 @@ class UnderstandingWorkflow:
         self.dependencies = AnalyzeDependenciesModule()
         self.plan = SynthesizePlanModule()
         self.hitl_questions = GenerateClarifyingQuestionsModule()
+        self.structure_validator = ValidateStructureModule()
 
     async def execute(
         self,
@@ -79,6 +81,23 @@ class UnderstandingWorkflow:
         requirements = await self.requirements.aforward(
             task_description=task_description, user_context=user_context or {}
         )
+
+        # Step 1b: Validate structure early to catch common errors
+        logger.debug("Step 1b: Validating skill structure")
+        structure_validation = self.structure_validator(
+            skill_name=requirements.get("suggested_skill_name", ""),
+            description=requirements.get("description", ""),
+            skill_content="",
+        )
+
+        if not structure_validation["overall_valid"]:
+            logger.info("Structure validation failed, suspending for fixes")
+            return await self._suspend_for_structure_fix(
+                task_description=task_description,
+                requirements=requirements,
+                user_context=user_context or {},
+                validation=structure_validation,
+            )
 
         # Check if clarification needed
         if self._needs_clarification(requirements):
@@ -244,3 +263,108 @@ class UnderstandingWorkflow:
             "questions_asked": len(questions_result.get("questions", [])),
             "critical_gaps": requirements.get("ambiguities", [])[:3],  # Top 3 gaps
         }
+
+    async def _suspend_for_structure_fix(
+        self,
+        task_description: str,
+        requirements: dict,
+        user_context: dict,
+        validation: dict,
+    ) -> dict[str, Any]:
+        """
+        Suspend workflow for structure fixes.
+
+        Args:
+            task_description: Original task description
+            requirements: Current requirements
+            user_context: User context
+            validation: Structure validation results with errors
+
+        Returns:
+            HITL checkpoint with structure issues and suggested fixes
+
+        """
+        logger.info("Suspending for structure fix HITL")
+
+        # Combine all errors
+        all_issues = (
+            validation.get("name_errors", [])
+            + validation.get("description_errors", [])
+            + validation.get("security_issues", [])
+        )
+
+        # Generate suggested fixes
+        suggested_fixes = self._generate_structure_fixes(validation, requirements)
+
+        return {
+            "status": "pending_user_input",
+            "hitl_type": "structure_fix",
+            "hitl_data": {
+                "issues": all_issues,
+                "warnings": validation.get("description_warnings", []),
+                "suggested_fixes": suggested_fixes,
+                "current_values": {
+                    "skill_name": requirements.get("suggested_skill_name", ""),
+                    "description": requirements.get("description", ""),
+                },
+            },
+            "context": {
+                "requirements": requirements,
+                "user_context": user_context,
+                "validation": validation,
+                "can_proceed": validation["overall_valid"],
+            },
+        }
+
+    def _generate_structure_fixes(self, validation: dict, requirements: dict) -> list[dict]:
+        """
+        Generate suggested fixes for structure issues.
+
+        Args:
+            validation: Structure validation results
+            requirements: Current requirements
+
+        Returns:
+            List of fix suggestions with before/after examples
+
+        """
+        fixes = []
+
+        # Name fixes
+        if not validation.get("name_valid"):
+            current_name = requirements.get("suggested_skill_name", "")
+            # Convert to kebab-case suggestion
+            suggested_name = current_name.lower().replace(" ", "-").replace("_", "-")
+            fixes.append(
+                {
+                    "field": "skill_name",
+                    "issue": "Invalid naming",
+                    "current": current_name,
+                    "suggested": suggested_name,
+                    "explanation": "Use kebab-case: lowercase with hyphens",
+                }
+            )
+
+        # Description fixes
+        if not validation.get("description_valid"):
+            current_desc = requirements.get("description", "")
+            trigger_phrases = requirements.get("trigger_phrases", [])
+
+            if not validation.get("has_trigger_conditions"):
+                suggested_desc = current_desc
+                if trigger_phrases:
+                    suggested_desc += f" Use when user asks to {trigger_phrases[0]}."
+                else:
+                    suggested_desc += " Use when user asks to [specific task]."
+
+                fixes.append(
+                    {
+                        "field": "description",
+                        "issue": "Missing trigger conditions",
+                        "current": current_desc,
+                        "suggested": suggested_desc,
+                        "explanation": "Add 'Use when...' clause with specific trigger phrases",
+                    }
+                )
+
+        return fixes

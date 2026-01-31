@@ -7,7 +7,7 @@ across both in-memory cache (hot, fast) and database (durable, multi-instance).
 Architecture:
     Memory Layer    -> Fast cache for in-flight jobs (<1 hour old)
     Database Layer  -> Source of truth for all job history
-    JobManager      -> Coordinates between both layers
+    JobManager      -> Coordinates between both layers using transactional sessions
 """
 
 from __future__ import annotations
@@ -19,15 +19,12 @@ from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
-if TYPE_CHECKING:
-    from collections.abc import Callable
-
-    from sqlalchemy.ext.asyncio import async_sessionmaker
-    from sqlalchemy.orm import Session
-
-    from ...infrastructure.db.repositories import JobRepository
-
+from ...infrastructure.db.repositories import JobRepository
+from ...infrastructure.db.session import transactional_session
 from ..schemas.models import DeepUnderstandingState, JobState, TDDWorkflowState
+
+if TYPE_CHECKING:
+    pass
 
 
 def _sanitize_for_log(value: Any) -> str:
@@ -188,42 +185,30 @@ class JobManager:
     - Persisting to database
     """
 
-    def __init__(self, memory_store: JobMemoryStore | None = None, db_session_factory=None):
+    def __init__(self, memory_store: JobMemoryStore | None = None):
         """
         Initialize job manager.
 
         Args:
             memory_store: Optional JobMemoryStore instance
-            db_session_factory: Optional SQLAlchemy session factory for async DB operations
 
         """
         self.memory = memory_store or JobMemoryStore(ttl_minutes=60)
-        self.db_repo: JobRepository | None = None
-        self.db_session_factory = db_session_factory
+        self.persistence_enabled = False
 
-    def set_db_repo(self, db_repo: JobRepository) -> None:
+    def enable_persistence(self) -> None:
+        """Enable database persistence using transactional sessions."""
+        self.persistence_enabled = True
+        logger.info("JobManager persistence enabled (using transactional sessions)")
+
+    def set_db_repo(self, db_repo: Any) -> None:
         """
-        Set database repository (call at API startup).
+        Deprecated: Enable persistence.
 
-        Args:
-            db_repo: JobRepository instance
-
+        Kept for backward compatibility. The db_repo argument is ignored
+        as we now use transactional sessions created on demand.
         """
-        self.db_repo = db_repo
-        logger.info("JobManager database repository configured")
-
-    def set_db_session_factory(
-        self, factory: async_sessionmaker[Any] | Callable[[], Session] | None
-    ) -> None:
-        """
-        Set database session factory for async operations.
-
-        Args:
-            factory: SQLAlchemy AsyncSessionLocal or SessionLocal factory
-
-        """
-        self.db_session_factory = factory
-        logger.debug("JobManager database session factory configured")
+        self.enable_persistence()
 
     def get_job(self, job_id: str) -> JobState | None:
         """
@@ -249,17 +234,19 @@ class JobManager:
             return job
 
         # Fall back to database
-        if self.db_repo:
+        if self.persistence_enabled:
             try:
-                db_job = self.db_repo.get_by_id(UUID(job_id))
-                if db_job:
-                    # Reconstruct JobState from DB model
-                    job_state = self._db_to_memory(db_job)
-                    # Double-check not already added by another thread/routine
-                    if not self.memory.get(job_id):
-                        self.memory.set(job_id, job_state)
-                    logger.info(f"Job {safe_job_id} loaded from database and cached")
-                    return job_state
+                with transactional_session() as db:
+                    repo = JobRepository(db)
+                    db_job = repo.get_by_id(UUID(job_id))
+                    if db_job:
+                        # Reconstruct JobState from DB model
+                        job_state = self._db_to_memory(db_job)
+                        # Double-check not already added by another thread/routine
+                        if not self.memory.get(job_id):
+                            self.memory.set(job_id, job_state)
+                        logger.info(f"Job {safe_job_id} loaded from database and cached")
+                        return job_state
             except ValueError as e:
                 logger.warning(f"Invalid UUID for job {safe_job_id}: {e}")
             except Exception as e:
@@ -286,7 +273,7 @@ class JobManager:
         logger.debug(f"Job {safe_job_id} stored in memory")
 
         # Persist to DB
-        if self.db_repo:
+        if self.persistence_enabled:
             try:
                 self._save_job_to_db(job_state)
                 logger.info(f"Job {safe_job_id} created (memory + database)")
@@ -335,7 +322,7 @@ class JobManager:
         logger.debug(f"Job {safe_job_id} updated in memory")
 
         # Attempt DB update with explicit failure handling
-        if self.db_repo:
+        if self.persistence_enabled:
             try:
                 self._save_job_to_db(job)
                 logger.debug(f"Job {safe_job_id} updated in database")
@@ -362,7 +349,7 @@ class JobManager:
         safe_job_id = _sanitize_for_log(job.job_id)
         self.memory.set(job.job_id, job)
 
-        if self.db_repo:
+        if self.persistence_enabled:
             try:
                 self._save_job_to_db(job)
                 logger.info(f"Job {safe_job_id} explicitly saved to database")
@@ -414,48 +401,53 @@ class JobManager:
             Exception: If database operation fails
 
         """
-        if not self.db_repo:
+        if not self.persistence_enabled:
             return
 
         # Validate status before saving
         if job.status not in VALID_STATUSES:
             raise ValueError(f"Invalid job status: {job.status}. Must be one of {VALID_STATUSES}")
 
-        try:
-            # Build job data for database
-            job_data = {
-                "job_id": UUID(job.job_id),
-                "status": job.status,
-                "task_description": getattr(job, "task_description", ""),
-                "progress_percent": getattr(job, "progress_percent", 0.0),
-                "result": self._serialize_json(job.result),
-                "error": job.error,
-                "error_stack": getattr(job, "error_stack", None),
-                "progress_message": getattr(job, "progress_message", None),
-                "current_phase": getattr(job, "current_phase", None),
-                "hitl_type": getattr(job, "hitl_type", None),
-                "hitl_data": self._serialize_json(getattr(job, "hitl_data", None)),
-                "updated_at": job.updated_at or datetime.now(UTC),
-                "started_at": getattr(job, "started_at", None),
-                "completed_at": getattr(job, "completed_at", None),
-            }
+        # Use short-lived transaction
+        with transactional_session() as db:
+            repo = JobRepository(db)
+            try:
+                # Build job data for database
+                job_data = {
+                    "job_id": UUID(job.job_id),
+                    "status": job.status,
+                    "task_description": getattr(job, "task_description", ""),
+                    "progress_percent": getattr(job, "progress_percent", 0.0),
+                    "result": self._serialize_json(job.result),
+                    "error": job.error,
+                    "error_stack": getattr(job, "error_stack", None),
+                    "progress_message": getattr(job, "progress_message", None),
+                    "current_phase": getattr(job, "current_phase", None),
+                    "hitl_type": getattr(job, "hitl_type", None),
+                    "hitl_data": self._serialize_json(getattr(job, "hitl_data", None)),
+                    "updated_at": job.updated_at or datetime.now(UTC),
+                    "started_at": getattr(job, "started_at", None),
+                    "completed_at": getattr(job, "completed_at", None),
+                }
 
-            # Filter out None values for optional fields
-            job_data = {
-                k: v for k, v in job_data.items() if v is not None or k in ["error", "error_stack"]
-            }
+                # Filter out None values for optional fields
+                job_data = {
+                    k: v
+                    for k, v in job_data.items()
+                    if v is not None or k in ["error", "error_stack"]
+                }
 
-            # Try to fetch existing job
-            existing = self.db_repo.get_by_id(UUID(job.job_id))
-            if existing:
-                self.db_repo.update(db_obj=existing, obj_in=job_data)
-                logger.debug(f"Job {job.job_id} updated in database")
-            else:
-                self.db_repo.create(obj_in=job_data)
-                logger.debug(f"Job {job.job_id} created in database")
-        except Exception as e:
-            logger.error(f"Database upsert failed for job {job.job_id}: {e}")
-            raise
+                # Try to fetch existing job
+                existing = repo.get_by_id(UUID(job.job_id))
+                if existing:
+                    repo.update(db_obj=existing, obj_in=job_data)
+                    logger.debug(f"Job {job.job_id} updated in database")
+                else:
+                    repo.create(obj_in=job_data)
+                    logger.debug(f"Job {job.job_id} created in database")
+            except Exception as e:
+                logger.error(f"Database upsert failed for job {job.job_id}: {e}")
+                raise
 
     def _serialize_json(self, obj: Any) -> dict | None:
         """
@@ -562,12 +554,12 @@ def get_job_manager() -> JobManager:
     return _job_manager
 
 
-def initialize_job_manager(db_repo: JobRepository) -> JobManager:
+def initialize_job_manager(db_repo: Any = None) -> JobManager:
     """
-    Initialize job manager with database repo (call at API startup).
+    Initialize job manager with database persistence (call at API startup).
 
     Args:
-        db_repo: JobRepository instance for database access
+        db_repo: Ignored (kept for compatibility), persistence is enabled via transactional sessions.
 
     Returns:
         Initialized JobManager instance
@@ -575,6 +567,6 @@ def initialize_job_manager(db_repo: JobRepository) -> JobManager:
     """
     global _job_manager
     _job_manager = JobManager()
-    _job_manager.set_db_repo(db_repo)
+    _job_manager.enable_persistence()
     logger.info("JobManager initialized with database persistence")
     return _job_manager

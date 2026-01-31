@@ -343,7 +343,7 @@ def write_extra_files(skill_dir: Path, extra_files: dict[str, Any]) -> None:
         guides_dir.mkdir(exist_ok=True)
         filename = (
             "requirements.json"
-            if isinstance(res, (dict, list))
+            if isinstance(res, dict | list)
             or (isinstance(res, str) and res.strip().startswith(("{", "[")))
             else "requirements.md"
         )

@@ -25,7 +25,7 @@ repos:
 
       - id: bandit
         name: bandit (security)
-        entry: uv run bandit -c pyproject.toml -r src/
+        entry: uv run bandit -c pyproject.toml -r src/ -x src/frontend
         language: system
         types: [python]
         pass_filenames: false

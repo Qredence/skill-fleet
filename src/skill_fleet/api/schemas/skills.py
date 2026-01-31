@@ -22,7 +22,7 @@ class CreateSkillResponse(BaseModel):
     """Response model for skill creation."""
 
     job_id: str = Field(..., description="Unique identifier for the background job")
-    status: str = Field(default="accepted", description="Initial job status")
+    status: str = Field(default="pending", description="Initial job status")
 
 
 class SkillDetailResponse(BaseModel):
@@ -37,13 +37,6 @@ class SkillDetailResponse(BaseModel):
     content: str | None = None
 
 
-class ValidateSkillRequest(BaseModel):
-    """Request body for validating a skill."""
-
-    skill_id: str = Field(..., description="Skill ID to validate")
-    user_id: str = Field(default="default", description="User ID for context")
-
-
 class ValidateSkillResponse(BaseModel):
     """Response model for skill validation."""
 
@@ -56,8 +49,11 @@ class ValidateSkillResponse(BaseModel):
 class RefineSkillRequest(BaseModel):
     """Request body for refining a skill."""
 
-    skill_id: str = Field(..., description="Skill ID to refine")
     feedback: str = Field(..., description="User feedback for refinement")
+    focus_areas: list[str] = Field(
+        default_factory=list,
+        description="Optional focus areas (e.g., examples, clarity, structure)",
+    )
     user_id: str = Field(default="default", description="User ID for context")
 
 

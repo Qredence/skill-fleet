@@ -227,7 +227,7 @@ def hash_key(value: str | dict | BaseModel) -> str:
     elif isinstance(value, dict):
         value = json.dumps(value, sort_keys=True)
 
-    return hashlib.md5(value.encode()).hexdigest()[:16]
+    return hashlib.md5(value.encode(), usedforsecurity=False).hexdigest()[:16]
 
 
 def cached(ttl: int = 300, key_prefix: str = ""):

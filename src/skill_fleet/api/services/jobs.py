@@ -441,12 +441,12 @@ def cleanup_old_sessions(max_age_hours: float = 24.0) -> int:
                 try:
                     session_file.unlink()
                     cleaned += 1
-                except Exception:
-                    # Ignore errors when deleting individual files
-                    pass
-    except Exception:
-        # Ignore errors during cleanup (e.g., directory doesn't exist)
-        pass
+                except Exception as exc:
+                    # Ignore errors when deleting individual files, but log for debugging.
+                    logger.debug("Failed to delete session file %s: %s", session_file, exc)
+    except Exception as exc:
+        # Ignore errors during cleanup (e.g., directory doesn't exist), but log for debugging.
+        logger.debug("Failed to cleanup session files: %s", exc)
 
     # Also trigger memory eviction
     JOBS._evict_if_needed()

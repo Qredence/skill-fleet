@@ -10,6 +10,7 @@ from typing import Any
 
 import dspy
 
+from skill_fleet.common.llm_fallback import llm_fallback_enabled
 from skill_fleet.core.modules.base import BaseModule
 from skill_fleet.core.signatures.understanding.intent import AnalyzeIntent
 
@@ -47,13 +48,80 @@ class AnalyzeIntentModule(BaseModule):
         super().__init__()
         self.analyze = dspy.ChainOfThought(AnalyzeIntent)
 
+    async def aforward(
+        self, task_description: str, requirements: dict | None = None
+    ) -> dict[str, Any]:  # type: ignore[override]
+        """Async intent analysis using DSPy `acall`."""
+        start_time = time.time()
+
+        clean_task = self._sanitize_input(task_description)
+        clean_requirements = self._sanitize_input(str(requirements or {}))
+
+        try:
+            result = await self.analyze.acall(
+                task_description=clean_task,
+                requirements=clean_requirements,
+            )
+        except Exception as e:
+            if not llm_fallback_enabled():
+                raise
+            self.logger.warning(f"Intent analysis failed: {e}. Using heuristic fallback.")
+            result = None
+
+        output = (
+            {
+                "purpose": result.purpose,
+                "problem_statement": result.problem_statement,
+                "target_audience": result.target_audience,
+                "value_proposition": result.value_proposition,
+                "skill_type": result.skill_type,
+                "scope": result.scope,
+                "success_criteria": result.success_criteria
+                if isinstance(result.success_criteria, list)
+                else [],
+            }
+            if result is not None
+            else {
+                "purpose": f"Help with: {clean_task[:80]}",
+                "problem_statement": f"User needs guidance on: {clean_task[:80]}",
+                "target_audience": "Developers",
+                "value_proposition": "Provides a clear, actionable workflow.",
+                "skill_type": "how_to",
+                "scope": "Focuses on practical steps and best practices.",
+                "success_criteria": ["User can complete the task"],
+                "fallback": True,
+            }
+        )
+
+        required = ["purpose", "problem_statement", "target_audience", "skill_type"]
+        if not self._validate_result(output, required):
+            self.logger.warning("Result missing required fields, using defaults")
+            output.setdefault("purpose", "Learn " + clean_task[:50])
+            output.setdefault("problem_statement", "Need to " + clean_task[:50])
+            output.setdefault("target_audience", "Developers")
+            output.setdefault("skill_type", "how_to")
+
+        purpose = str(output.get("purpose", ""))
+        skill_type = str(output.get("skill_type", ""))
+
+        duration_ms = (time.time() - start_time) * 1000
+        self._log_execution(
+            inputs={"task_description": clean_task[:100]},
+            outputs={"skill_type": skill_type, "purpose": purpose[:50]},
+            duration_ms=duration_ms,
+        )
+
+        return output
+
     def forward(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
         """
         Analyze intent from task description.
 
         Args:
+            *args: Positional arguments for BaseModule compatibility.
             task_description: User's task description
             requirements: Optional requirements from GatherRequirementsModule
+            **kwargs: Additional keyword arguments for compatibility.
 
         Returns:
             Dictionary with intent analysis:
@@ -89,23 +157,40 @@ class AnalyzeIntentModule(BaseModule):
         clean_requirements = self._sanitize_input(str(requirements or {}))
 
         # Execute signature
-        result = self.analyze(
-            task_description=clean_task,
-            requirements=clean_requirements,
-        )
+        try:
+            result = self.analyze(
+                task_description=clean_task,
+                requirements=clean_requirements,
+            )
+        except Exception as e:
+            if not llm_fallback_enabled():
+                raise
+            self.logger.warning(f"Intent analysis failed: {e}. Using heuristic fallback.")
+            result = None
 
         # Transform to structured output
-        output = {
-            "purpose": result.purpose,
-            "problem_statement": result.problem_statement,
-            "target_audience": result.target_audience,
-            "value_proposition": result.value_proposition,
-            "skill_type": result.skill_type,
-            "scope": result.scope,
-            "success_criteria": result.success_criteria
-            if isinstance(result.success_criteria, list)
-            else [],
-        }
+        if result is None:
+            output = {
+                "purpose": f"Help with: {clean_task[:80]}",
+                "problem_statement": f"User needs guidance on: {clean_task[:80]}",
+                "target_audience": "Developers",
+                "value_proposition": "Provides a clear, actionable workflow.",
+                "skill_type": "how_to",
+                "scope": "Focuses on practical steps and best practices.",
+                "success_criteria": ["User can complete the task"],
+            }
+        else:
+            output = {
+                "purpose": result.purpose,
+                "problem_statement": result.problem_statement,
+                "target_audience": result.target_audience,
+                "value_proposition": result.value_proposition,
+                "skill_type": result.skill_type,
+                "scope": result.scope,
+                "success_criteria": result.success_criteria
+                if isinstance(result.success_criteria, list)
+                else [],
+            }
 
         # Validate
         required = ["purpose", "problem_statement", "target_audience", "skill_type"]

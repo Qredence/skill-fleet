@@ -13,7 +13,7 @@ from __future__ import annotations
 import logging
 import os
 import shutil
-import subprocess
+import subprocess  # nosec B404
 import sys
 from pathlib import Path
 
@@ -73,7 +73,7 @@ class TUISpawner:
             if not npm_bin:
                 raise RuntimeError("npm not found in PATH. Install Node.js 18+ to use TUI mode.")
 
-            result = subprocess.run(
+            result = subprocess.run(  # nosec B603
                 [npm_bin, "run", "build"],
                 cwd=self.tui_dir,
                 capture_output=True,
@@ -111,7 +111,7 @@ class TUISpawner:
 
         # Start the TUI process
         try:
-            self.process = subprocess.Popen(
+            self.process = subprocess.Popen(  # nosec B603
                 [self.node_bin, str(self.tui_dir / "dist" / "index.js")],
                 env=env,
                 stdin=sys.stdin,

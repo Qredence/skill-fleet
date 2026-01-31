@@ -41,8 +41,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # STARTUP
     # =========================================================================
 
-    from ..infrastructure.db.database import SessionLocal, init_db
+    from ..infrastructure.db.database import init_db
     from ..infrastructure.db.repositories import JobRepository
+    from ..infrastructure.db.session import transactional_session
     from .services.job_manager import initialize_job_manager
 
     try:
@@ -51,12 +52,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         init_db()
         logger.info("✅ Database tables created/verified")
 
-        # Create a session and initialize JobManager with DB repo
-        db_session = SessionLocal()
-        job_repo = JobRepository(db_session)
-
-        # Initialize JobManager with database backing
-        initialize_job_manager(job_repo)
+        # Initialize JobManager with database backing (no persistent session)
+        initialize_job_manager()
         logger.info("✅ JobManager initialized with database persistence")
 
         # Initialize MLflow DSPy autologging
@@ -77,17 +74,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             except Exception as e:
                 logger.warning(f"⚠️ MLflow autologging failed: {e}")
 
-        # Resume any pending jobs from database
-        pending_jobs = job_repo.get_by_status("pending")
-        running_jobs = job_repo.get_by_status("running")
-        pending_hitl_jobs = job_repo.get_by_status("pending_hitl")
+        # Resume any pending jobs from database using a short-lived session
+        with transactional_session() as db:
+            job_repo = JobRepository(db)
+            pending_jobs = job_repo.get_by_status("pending")
+            running_jobs = job_repo.get_by_status("running")
+            pending_hitl_jobs = job_repo.get_by_status("pending_hitl")
 
-        total_resumed = len(pending_jobs) + len(running_jobs) + len(pending_hitl_jobs)
-        if total_resumed > 0:
-            logger.info(f"📋 Resuming {total_resumed} jobs from database")
-            logger.info(f"   - {len(pending_jobs)} pending")
-            logger.info(f"   - {len(running_jobs)} running")
-            logger.info(f"   - {len(pending_hitl_jobs)} waiting for human input")
+            total_resumed = len(pending_jobs) + len(running_jobs) + len(pending_hitl_jobs)
+            if total_resumed > 0:
+                logger.info(f"📋 Resuming {total_resumed} jobs from database")
+                logger.info(f"   - {len(pending_jobs)} pending")
+                logger.info(f"   - {len(running_jobs)} running")
+                logger.info(f"   - {len(pending_hitl_jobs)} waiting for human input")
 
     except Exception as e:
         logger.error(f"❌ Failed to initialize database/JobManager: {e}")

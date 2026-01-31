@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
@@ -31,7 +31,6 @@ from ..schemas.skills import (
     RefineSkillRequest,
     RefineSkillResponse,
     SkillDetailResponse,
-    ValidateSkillRequest,
     ValidateSkillResponse,
 )
 from ..services.skill_service import SkillService
@@ -40,6 +39,46 @@ logger = logging.getLogger(__name__)
 
 
 router = APIRouter()
+
+
+@router.get("/", response_model=list[dict[str, Any]])
+async def list_skills(
+    skill_service: Annotated[SkillService, Depends(get_skill_service)],
+    status: str | None = None,
+    search: str | None = None,
+) -> list[dict[str, Any]]:
+    """
+    List skills in the taxonomy.
+
+    Query params are best-effort filters; currently they are applied client-side.
+    """
+    # Load all skills (metadata_cache may be incomplete until discovery runs).
+    try:
+        from skill_fleet.taxonomy.discovery import ensure_all_skills_loaded
+
+        ensure_all_skills_loaded(
+            skill_service.taxonomy_manager.skills_root,
+            skill_service.taxonomy_manager.metadata_cache,
+            skill_service.taxonomy_manager._load_skill_dir_metadata,
+        )
+    except Exception as exc:
+        # If discovery fails, fall back to whatever is already cached.
+        logger.debug("Skill discovery failed; using cached metadata: %s", exc)
+
+    items = [
+        {"skill_id": skill_id, "name": meta.name, "description": meta.description}
+        for skill_id, meta in skill_service.taxonomy_manager.metadata_cache.items()
+    ]
+
+    # Apply simple filters.
+    if search:
+        q = search.lower()
+        items = [i for i in items if q in (i.get("name", "") or "").lower()]
+    if status:
+        # Status isn't tracked in metadata today; keep placeholder behavior.
+        items = items
+
+    return sorted(items, key=lambda x: x.get("skill_id", ""))
 
 
 @router.post("/", response_model=CreateSkillResponse)
@@ -80,6 +119,22 @@ async def create_skill(
                 request,
                 existing_job_id=job_id,
             )
+
+            # Update job status and result upon completion
+            # This ensures the job moves to a terminal state (completed or pending_review)
+            if result.status in ("completed", "pending_review"):
+                from ..services.jobs import update_job
+
+                update_job(
+                    job_id,
+                    {
+                        "status": result.status,
+                        "result": result.model_dump(),
+                        "progress_percent": 100.0,
+                        "progress_message": "Skill creation completed",
+                    },
+                )
+
             logger.info(f"Skill creation job {job_id} completed with status: {result.status}")
         except Exception as e:
             logger.error(f"Skill creation job {job_id} failed: {e}")
@@ -199,7 +254,6 @@ async def update_skill(
 @router.post("/{skill_id}/validate", response_model=ValidateSkillResponse)
 async def validate_skill(
     skill_id: str,
-    request: ValidateSkillRequest,
     skill_service: Annotated[SkillService, Depends(get_skill_service)],
 ) -> ValidateSkillResponse:
     """
@@ -207,7 +261,6 @@ async def validate_skill(
 
     Args:
         skill_id: Unique skill identifier
-        request: Validation request
         skill_service: Injected SkillService for data access
 
     Returns:

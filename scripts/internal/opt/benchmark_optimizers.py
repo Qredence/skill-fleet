@@ -129,7 +129,7 @@ def evaluate_program(
 
     score = evaluator(program)
 
-    if hasattr(score, "__float__") or isinstance(score, (int, float)):
+    if hasattr(score, "__float__") or isinstance(score, int | float):
         return float(score)
     else:
         try:

@@ -245,7 +245,7 @@ def evaluate_program(
     score = evaluator(program)
 
     # Convert to float if needed (DSPy may return EvaluationResult)
-    if hasattr(score, "__float__") or isinstance(score, (int, float)):
+    if hasattr(score, "__float__") or isinstance(score, int | float):
         score_float = float(score)
     else:
         # Default to string representation and extract number

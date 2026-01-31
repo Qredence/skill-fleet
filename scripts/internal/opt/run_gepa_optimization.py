@@ -18,7 +18,7 @@ Budget comparison:
 Usage:
     # Run with default settings (light auto, Gemini reflection)
     uv run python scripts/run_gepa_optimization.py
-    
+
     # Or with custom settings
     GEPA_AUTO_LEVEL=medium GEPA_REFLECTION_MODEL=gpt-4o \\
         uv run python scripts/run_gepa_optimization.py
@@ -301,7 +301,7 @@ def evaluate_program(
     score = evaluator(program)
 
     # Convert to float
-    if hasattr(score, "__float__") or isinstance(score, (int, float)):
+    if hasattr(score, "__float__") or isinstance(score, int | float):
         score_float = float(score)
     else:
         try:

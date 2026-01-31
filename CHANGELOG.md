@@ -125,6 +125,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Enhanced validation pipeline** (January 31, 2026)
+  - Structure validation (kebab-case + description trigger requirements + basic security checks)
+  - Automated test-case generation and trigger-coverage scoring
+  - Expanded validation report fields (structure + test cases + size/verbosity metrics + summary)
+- **HITL structure-fix flow** (January 31, 2026)
+  - New `structure_fix` HITL prompt fields + request models for accepting suggested fixes
+  - New API v1 skills list endpoint: `GET /api/v1/skills`
+
 - **Interactive Chat CLI with Auto-Save** (January 12, 2026)
   - Interactive chat interface for guided skill creation via `uv run python -m skill_fleet.cli.app chat`
   - Full Phase 1, 2, and 3 HITL (Human-in-the-Loop) support in chat CLI
@@ -153,6 +161,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **DSPy 3.1.2 alignment + best practices** (January 31, 2026)
+  - Project now targets `dspy>=3.1.2,<4` via `uv`/lockfile
+  - Prefer `module(...)` / `await module.acall(...)` over calling `.forward(...)` directly
+  - Async-safe LM scoping in tests via `dspy.context(lm=...)`
+  - Deterministic fallback mode gated behind `SKILL_FLEET_ALLOW_LLM_FALLBACK=1` (tests/offline only)
+- API v1 schemas and endpoints updated for background-job semantics (create returns `status=pending`)
+
 - CLI help and examples now use the new `skill-fleet` Typer entrypoint (`uv run python -m skill_fleet.cli.app ...`) instead of the removed single-file CLI.
 - API bootstrapping centralizes DSPy configuration and exposes v2 endpoints, replacing the previous monolithic application wiring.
 - Dependency versions for LLM stack and TUI stack bumped in README and lockfiles to reflect current environment.
@@ -161,6 +176,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Legacy CLI entrypoints (`src/skill_fleet/cli/main.py`, `interactive_typer.py`) and the old conversational reward pipeline were removed in favor of the new API + modular CLI flow.
 - Outdated planning documents under `plans/` were retired/archived to reduce noise and align with the new workflow documentation.
+
+### Fixed
+
+- Test suite stability improvements (collection errors, DSPy async configuration gotchas)
+- Path sanitization now allows dots in safe filename components (e.g., `file.name.txt`)
 
 ---
 

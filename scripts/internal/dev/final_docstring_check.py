@@ -14,7 +14,7 @@ class ComprehensiveFunctionVisitor(ast.NodeVisitor):
         self.functions: list[dict] = []
         self.current_class = None
 
-    def visit_FunctionDef(self, node):
+    def visit_FunctionDef(self, node):  # noqa: N802
         """Visit function definition nodes and collect metadata."""
         # Skip private functions (starting with underscore)
         if not node.name.startswith("_"):
@@ -32,7 +32,7 @@ class ComprehensiveFunctionVisitor(ast.NodeVisitor):
             )
         self.generic_visit(node)
 
-    def visit_AsyncFunctionDef(self, node):
+    def visit_AsyncFunctionDef(self, node):  # noqa: N802
         """Visit async function definition nodes and collect metadata."""
         # Handle async functions the same way
         if not node.name.startswith("_"):
@@ -50,7 +50,7 @@ class ComprehensiveFunctionVisitor(ast.NodeVisitor):
             )
         self.generic_visit(node)
 
-    def visit_ClassDef(self, node):
+    def visit_ClassDef(self, node):  # noqa: N802
         """Visit class definition nodes and set current class context."""
         old_class = self.current_class
         self.current_class = node.name

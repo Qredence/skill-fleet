@@ -120,9 +120,23 @@ htmlcov/
 
 .agents/skills
 src/frontend/fleetui/.agents/skills/agentation/SKILL.md
-docs/archive
+docs/archive/
 docs/archive/README.md
 docs/internal
 docs/archive/README.md
 docs/archive
 docs/archive/README.md
+plans/
+migrations/
+scripts/internal/dev/check_docstrings.py
+scripts/internal/dev/cleanup-technical-debt.sh
+scripts/internal/dev/final_docstring_check.py
+scripts/internal/migration/cleanup_legacy.py
+scripts/internal/opt/benchmark_optimizers.py
+scripts/internal/opt/run_gepa_optimization.py
+scripts/internal/opt/run_optimization.py
+scripts/internal/setup/setup_branch_protection.sh
+scripts/internal/tests/test_repository.py
+
+.skills/
+.agents/

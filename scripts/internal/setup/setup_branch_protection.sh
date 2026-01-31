@@ -54,7 +54,7 @@ check_gh_auth() {
 # Display current branch protection rules
 show_current_rules() {
     print_info "Fetching current branch protection rules for '${BRANCH_NAME}'..."
-    
+
     if gh api "repos/${REPO_OWNER}/${REPO_NAME}/branches/${BRANCH_NAME}/protection" 2>/dev/null; then
         print_info "Current rules retrieved successfully"
     else
@@ -65,7 +65,7 @@ show_current_rules() {
 # Apply branch protection rules
 apply_protection_rules() {
     print_info "Applying branch protection rules to '${BRANCH_NAME}'..."
-    
+
     # Create the protection rule using gh CLI
     gh api \
         --method PUT \
@@ -91,7 +91,7 @@ apply_protection_rules() {
         -F required_conversation_resolution=true \
         -F lock_branch=false \
         -F allow_fork_syncing=false
-    
+
     if [ $? -eq 0 ]; then
         print_info "Branch protection rules applied successfully!"
     else
@@ -103,28 +103,28 @@ apply_protection_rules() {
 # Verify the configuration
 verify_configuration() {
     print_info "Verifying branch protection configuration..."
-    
+
     # Get the current protection rules
     PROTECTION_DATA=$(gh api "repos/${REPO_OWNER}/${REPO_NAME}/branches/${BRANCH_NAME}/protection" 2>/dev/null)
-    
+
     if [ $? -eq 0 ]; then
         print_info "✓ Branch protection is enabled"
-        
+
         # Check for required status checks
         if echo "$PROTECTION_DATA" | grep -q "required_status_checks"; then
             print_info "✓ Required status checks are configured"
         fi
-        
+
         # Check for PR reviews
         if echo "$PROTECTION_DATA" | grep -q "required_pull_request_reviews"; then
             print_info "✓ Pull request reviews are required"
         fi
-        
+
         # Check for linear history
         if echo "$PROTECTION_DATA" | grep -q "\"required_linear_history\""; then
             print_info "✓ Linear history is enforced"
         fi
-        
+
         print_info "Configuration verification complete!"
     else
         print_error "Unable to verify configuration"
@@ -147,7 +147,7 @@ show_menu() {
     echo "4. Exit"
     echo ""
     read -p "Select an option (1-4): " choice
-    
+
     case $choice in
         1)
             show_current_rules
@@ -178,18 +178,18 @@ main() {
     echo "Skill Fleet - Branch Protection Setup"
     echo "========================================"
     echo ""
-    
+
     # Check prerequisites
     if ! check_gh_cli; then
         print_error "Please install GitHub CLI: https://cli.github.com/"
         exit 1
     fi
-    
+
     if ! check_gh_auth; then
         print_error "Please authenticate with GitHub: gh auth login"
         exit 1
     fi
-    
+
     # Check if user has admin access
     print_info "Checking repository access..."
     if gh api "repos/${REPO_OWNER}/${REPO_NAME}" &> /dev/null; then
@@ -198,7 +198,7 @@ main() {
         print_error "Unable to access repository. Check your permissions."
         exit 1
     fi
-    
+
     # Show interactive menu
     show_menu
 }

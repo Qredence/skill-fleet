@@ -49,11 +49,11 @@ server.log
 .claude/
 .factory/
 .letta/
-.skills/
+
 .ai/
 .junie/
 opencode.jsonc
-.agents/
+.agents/ski/
 # =============================================================================
 # Skills
 # =============================================================================
@@ -84,10 +84,8 @@ docs/internal/reports/
 # =============================================================================
 # Misc
 # =============================================================================
-skills/practices/rlm/scripts/rlm_repl.py
-skills/python/fastapi-production/examples/02-partial-updates/interactive_demo.py
-skills/python/fastapi-production/examples/02-partial-updates/patch_endpoint_example.py
-skills/python/fastapi-production/examples/02-partial-updates/test_patch_endpoint.py
+skills/p
+
 
 # =============================================================================
 # Coverage & Testing
@@ -118,8 +116,9 @@ htmlcov/
 .github/skills/
 
 # Frontend (WIP - not ready for commit)
-src/frontend/
-.opencode/skills/ai-sdk
-.opencode/skills/skill-creator
-.opencode/skills/skill-judge
-.agent/skills/ai-sdk
+
+
+.agents/skills/
+src/frontend/fleetui/.agents/skills/agentation/SKILL.md
+docs/archive/
+docs/archive/README.md

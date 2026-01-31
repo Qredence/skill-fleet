@@ -140,3 +140,18 @@ scripts/internal/tests/test_repository.py
 
 .skills/
 .agents/
+.skills/dspy-basics/templates/program-template.py
+.skills/dspy-basics/templates/signature-template.py
+.skills/dspy-configuration/scripts/compile-dspy.py
+.skills/dspy-optimization/scripts/optimize-dspy.py
+.skills/dspy-optimization/scripts/test-signature.py
+.skills/dspy-optimization-workflow/SKILL.md
+.skills/dspy-optimization-workflow/examples/example_metric.py
+.skills/dspy-optimization-workflow/examples/example_signature.py
+.skills/dspy-optimization-workflow/references/api-reference.md
+.skills/dspy-optimization-workflow/references/best-practices.md
+.skills/dspy-optimization-workflow/references/phase1-implementation.md
+.skills/dspy-optimization-workflow/references/troubleshooting.md
+.skills/dspy-optimization-workflow/scripts/quick_optimize.py
+.skills/frontend-ui-integration/SKILL.md
+.skills/product-management/SKILL.md

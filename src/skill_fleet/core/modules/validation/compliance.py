@@ -136,9 +136,7 @@ class AssessQualityModule(BaseModule):
         )
 
     @timed_execution()
-    async def aforward(
-        self, skill_content: str, plan: dict, success_criteria: list[str] | None = None
-    ) -> dspy.Prediction:
+    async def aforward(self, **kwargs) -> dspy.Prediction:
         """
         Assess skill quality.
 
@@ -155,6 +153,11 @@ class AssessQualityModule(BaseModule):
             dspy.Prediction with quality assessment (scores and metrics)
 
         """
+        # Extract expected arguments from kwargs for compatibility with BaseModule.aforward
+        skill_content: str = kwargs.get("skill_content", "")
+        plan: dict = kwargs.get("plan", {})
+        success_criteria = kwargs.get("success_criteria")
+
         # Rule-based size and conciseness checks (always available, even if LLM fails)
         word_count = len(skill_content.split())
         size_assessment = self._assess_size(word_count)

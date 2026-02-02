@@ -40,9 +40,10 @@ data/
 mlruns/
 mlartifacts/
 mlflow.db
+skill_fleet_dev.db
 server.log
 *.log
-
+docs/internal/
 # =============================================================================
 # Agent Configurations (consolidated under .fleet/)
 # =============================================================================
@@ -50,7 +51,7 @@ server.log
 .claude/
 .factory/
 .letta/
-
+.opencode/
 .ai/
 .junie/
 opencode.jsonc
@@ -157,3 +158,4 @@ scripts/internal/tests/test_repository.py
 .skills/frontend-ui-integration/SKILL.md
 .skills/product-management/SKILL.md
 PLANS.md
+TODOS.md

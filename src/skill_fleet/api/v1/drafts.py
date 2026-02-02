@@ -86,7 +86,7 @@ async def promote_draft(
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid skills root: {e}") from e
 
-    job = get_job(job_id)
+    job = await get_job(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
 

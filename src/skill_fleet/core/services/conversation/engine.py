@@ -13,24 +13,8 @@ from ....common.streaming import create_streaming_module
 from .handlers import ConversationHandlers
 from .models import AgentResponse, ConversationSession, ConversationState
 
-# TODO: These modules have been refactored - update or remove conversation service
-# from ...dspy.modules.conversation import (
-#     AssessReadinessModule,
-#     ConfirmUnderstandingModule,
-#     DeepUnderstandingModule,
-#     DetectMultiSkillModule,
-#     EnhanceSkillModule,
-#     GenerateQuestionModule,
-#     InterpretIntentModule,
-#     PresentSkillModule,
-#     ProcessFeedbackModule,
-#     SuggestTestsModule,
-#     UnderstandingSummaryModule,
-#     VerifyTDDModule,
-# )
-# from ...dspy.modules.generation import Phase2GenerationModule
-# from ...dspy.modules.understanding import Phase1UnderstandingModule
-# from ...dspy.modules.validation import Phase3ValidationModule
+# NOTE: Conversation modules were refactored out of core.dspy.modules.*
+# TODO(2026-03): Re-implement conversational modules or remove this service.
 
 if TYPE_CHECKING:
     from ....taxonomy.manager import TaxonomyManager
@@ -62,25 +46,9 @@ class ConversationService(ConversationHandlers):
         self.taxonomy = taxonomy_manager
         self.skills_root = skills_root
 
-        # TODO: Re-enable when modules are refactored
-        # # Initialize conversational modules
-        # self.interpret_intent = InterpretIntentModule()
-        # self.detect_multi_skill = DetectMultiSkillModule()
-        # self.generate_question = GenerateQuestionModule()
-        # self.assess_readiness = AssessReadinessModule()
-        # self.deep_understanding_module = DeepUnderstandingModule()
-        # self.understanding_summary = UnderstandingSummaryModule()
-        # self.confirm_understanding = ConfirmUnderstandingModule()
-        # self.present_skill = PresentSkillModule()
-        # self.process_feedback = ProcessFeedbackModule()
-        # self.suggest_tests = SuggestTestsModule()
-        # self.verify_tdd = VerifyTDDModule()
-        # self.enhance_skill = EnhanceSkillModule()
-        #
-        # # Initialize Phase modules for creation workflow
-        # self.phase1 = Phase1UnderstandingModule()
-        # self.phase2 = Phase2GenerationModule()
-        # self.phase3 = Phase3ValidationModule()
+        # NOTE: Conversational DSPy modules were removed during refactoring.
+        # This service currently operates in a degraded mode without module support.
+        # TODO(2026-03): Re-implement modules or deprecate this service.
 
     async def _execute_with_streaming(
         self,
@@ -265,7 +233,7 @@ class ConversationService(ConversationHandlers):
 
         # Only include if parseable; keep user-facing formatting stable.
         readiness_str = ""
-        if isinstance(readiness_score, (int, float)):
+        if isinstance(readiness_score, int | float):
             readiness_str = f"{float(readiness_score):.2f}"
 
         # Multi-skill progress, if relevant.

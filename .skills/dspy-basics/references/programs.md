@@ -21,10 +21,10 @@ import dspy
 class SimpleProgram(dspy.Module):
     def __init__(self):
         super().__init__()
-        self.signature = MySignature
+        self.predictor = dspy.Predict(MySignature)
 
     def forward(self, **kwargs):
-        return self.signature(**kwargs)
+        return self.predictor(**kwargs)
 ```
 
 ### Key Components
@@ -232,15 +232,15 @@ class MultiStepReasoner(dspy.Module):
 class CustomReasoner(dspy.Module):
     def __init__(self):
         super().__init__()
-        self.reason = dspy.ChainOfThought(
-            MySignature,
-            max_tokens=1000,  # Limit reasoning tokens
-            temperature=0.7   # Control creativity
-        )
+        self.reason = dspy.ChainOfThought(MySignature)
 
     def forward(self, input_data: str):
-        return self.reason(input=input_data)
+        # Configure LM parameters via context or LM configuration
+        with dspy.context(lm=dspy.LM("gemini/gemini-3-flash-preview", temperature=0.7)):
+            return self.reason(input=input_data)
 ```
+
+**References**: [DSPy ChainOfThought API](https://github.com/stanfordnlp/dspy/blob/main/docs/docs/api/modules/ChainOfThought.md) | [RAG Tutorial](https://github.com/stanfordnlp/dspy/blob/main/docs/docs/tutorials/rag/index.ipynb)
 
 ## Program Patterns
 
@@ -391,3 +391,56 @@ class ConfigurableModule(dspy.Module):
         result = self.process(input=input_data, max_length=self.max_length)
         return dspy.Prediction(output=result.output)
 ```
+
+## Module Introspection Methods
+
+DSPy modules provide methods for introspection and configuration:
+
+### named_predictors()
+
+Get all Predict instances in a module with their names:
+
+```python
+module = MyComplexModule()
+for name, predictor in module.named_predictors():
+    print(f"{name}: {predictor.signature}")
+```
+
+### set_lm() and get_lm()
+
+Configure the language model for all predictors in a module:
+
+```python
+# Set LM for all predictors in module
+module.set_lm(dspy.LM("openai/gpt-4o"))
+
+# Get the LM (raises error if multiple LMs are used)
+lm = module.get_lm()
+```
+
+### batch()
+
+Process multiple examples efficiently:
+
+```python
+examples = [
+    dspy.Example(input="Example 1").with_inputs("input"),
+    dspy.Example(input="Example 2").with_inputs("input"),
+]
+
+results = module.batch(examples, num_threads=4)
+```
+
+## Important: forward() vs __call__()
+
+**Always call modules via `__call__()`**, not `forward()` directly:
+
+```python
+# CORRECT: Uses __call__ which adds callbacks and usage tracking
+result = module(input_data)
+
+# WRONG: Bypasses callbacks, usage tracking, and warnings
+result = module.forward(input_data)  # DSPy will warn about this
+```
+
+The `forward()` method is for implementation; `__call__()` is for invocation.

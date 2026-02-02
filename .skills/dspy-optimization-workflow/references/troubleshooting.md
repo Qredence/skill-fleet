@@ -40,10 +40,10 @@ jq '[.[].expected_taxonomy_path] | group_by(.) | map({category: .[0], count: len
 def test_metric():
     from skill_fleet.core.dspy.metrics.enhanced_metrics import comprehensive_metric
     import dspy
-    
+
     # Load examples
     examples = load_trainset("config/training/trainset_v4.json")
-    
+
     # Test metric on first 10
     for ex in examples[:10]:
         # Create mock prediction matching example
@@ -52,7 +52,7 @@ def test_metric():
             skill_metadata=MockMetadata(),
             skill_style=ex.expected_skill_style,
         )
-        
+
         score = comprehensive_metric(ex, pred)
         print(f"Example score: {score:.3f}")
 ```
@@ -125,7 +125,7 @@ top  # or htop
 # Optimization is memory-intensive (can use 4-8GB RAM)
 ```
 
-✅ **Solution**: 
+✅ **Solution**:
 - Close other applications
 - Reduce `num_candidate_programs` (16 → 8)
 - Use `auto="light"` instead of "medium"

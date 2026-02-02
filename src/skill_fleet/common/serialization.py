@@ -55,7 +55,7 @@ def serialize_pydantic_object(
     elif isinstance(obj, BaseModel):
         # Fallback for Pydantic v1 or older code
         serialized = obj.dict(exclude_none=True, by_alias=True)
-    elif isinstance(obj, (dict, list, str, int, float, bool)):
+    elif isinstance(obj, dict | list | str | int | float | bool):
         # Primitives are already JSON-serializable
         serialized = obj
     else:

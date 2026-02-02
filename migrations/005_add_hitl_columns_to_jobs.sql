@@ -4,15 +4,15 @@
 -- =============================================================================
 
 -- Add hitl_type column to jobs table
-ALTER TABLE jobs 
+ALTER TABLE jobs
 ADD COLUMN IF NOT EXISTS hitl_type VARCHAR(32) DEFAULT NULL;
 
 -- Add hitl_data column to jobs table (JSONB for flexibility)
-ALTER TABLE jobs 
+ALTER TABLE jobs
 ADD COLUMN IF NOT EXISTS hitl_data JSONB DEFAULT NULL;
 
 -- Create index for hitl_type lookups
-CREATE INDEX IF NOT EXISTS idx_jobs_hitl_type ON jobs(hitl_type) 
+CREATE INDEX IF NOT EXISTS idx_jobs_hitl_type ON jobs(hitl_type)
 WHERE hitl_type IS NOT NULL;
 
 -- Add comment explaining columns

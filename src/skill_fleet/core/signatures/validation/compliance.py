@@ -27,6 +27,7 @@ class ValidateCompliance(dspy.Signature):
     critical_issues: list[str] = dspy.OutputField(desc="Issues that MUST be fixed (blocking)")
     warnings: list[str] = dspy.OutputField(desc="Non-blocking issues that should be addressed")
     auto_fixable: list[str] = dspy.OutputField(desc="Issues that can be automatically fixed")
+    reasoning: dspy.Reasoning = dspy.OutputField(desc="Reasoning process for compliance validation")
 
 
 class AssessQuality(dspy.Signature):
@@ -56,6 +57,7 @@ class AssessQuality(dspy.Signature):
     missing_success_criteria: list[str] = dspy.OutputField(
         desc="Which success criteria are not met"
     )
+    reasoning: dspy.Reasoning = dspy.OutputField(desc="Reasoning process for quality assessment")
 
 
 class RefineSkill(dspy.Signature):
@@ -78,6 +80,7 @@ class RefineSkill(dspy.Signature):
         desc="Estimated new quality score after refinements"
     )
     requires_another_pass: bool = dspy.OutputField(desc="Whether another refinement pass is needed")
+    reasoning: dspy.Reasoning = dspy.OutputField(desc="Reasoning process for skill refinement")
 
 
 class SuggestValidationTests(dspy.Signature):
@@ -104,3 +107,4 @@ class SuggestValidationTests(dspy.Signature):
     manual_verification_needed: list[str] = dspy.OutputField(
         desc="Examples that need manual testing (can't be automated)"
     )
+    reasoning: dspy.Reasoning = dspy.OutputField(desc="Reasoning process for test suggestion")

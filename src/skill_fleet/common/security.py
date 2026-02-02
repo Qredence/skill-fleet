@@ -139,7 +139,7 @@ def is_safe_path_component(component: str) -> bool:
     - Does not contain path separators (/ or \\)
     - Does not contain null bytes
     - Is not "." or ".."
-    - Contains only alphanumeric characters, hyphens, and underscores
+    - Contains only alphanumeric characters, dots, hyphens, and underscores
 
     Args:
         component: A single path component (filename or directory name)
@@ -171,8 +171,8 @@ def is_safe_path_component(component: str) -> bool:
     if ".." in component:
         return False
 
-    # Allow alphanumeric, hyphen, underscore
-    return all(c.isalnum() or c in "-_" for c in component)
+    # Allow alphanumeric, dot, hyphen, underscore (common safe filename chars)
+    return all(c.isalnum() or c in "._-" for c in component)
 
 
 def resolve_skill_md_path(skills_root: Path, taxonomy_path: str) -> Path:

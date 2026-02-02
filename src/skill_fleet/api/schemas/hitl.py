@@ -191,9 +191,34 @@ def _dict_to_structured_question(data: dict[str, Any]) -> StructuredQuestion:
     )
 
 
+class StructureFixSuggestion(BaseModel):
+    """A suggested fix for a structure validation issue."""
+
+    field: str = Field(..., description="Field to fix (skill_name, description, etc.)")
+    issue: str = Field(..., description="Description of the issue")
+    current: str = Field(..., description="Current value")
+    suggested: str = Field(..., description="Suggested fix")
+    explanation: str = Field(..., description="Why this fix is needed")
+
+
+class StructureFixRequest(BaseModel):
+    """Request body for submitting structure fix responses."""
+
+    skill_name: str | None = Field(default=None, description="Corrected skill name (kebab-case)")
+    description: str | None = Field(
+        default=None, description="Corrected description with trigger conditions"
+    )
+    accept_suggestions: bool = Field(
+        default=False, description="Whether to accept all suggested fixes"
+    )
+    feedback: str | None = Field(default=None, description="Additional user feedback")
+
+
 __all__ = [
     "QuestionType",
     "QuestionOption",
     "StructuredQuestion",
+    "StructureFixSuggestion",
+    "StructureFixRequest",
     "normalize_questions",
 ]

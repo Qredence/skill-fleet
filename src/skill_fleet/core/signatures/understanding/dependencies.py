@@ -51,3 +51,4 @@ class AnalyzeDependencies(dspy.Signature):
     dependency_rationale: str = dspy.OutputField(
         desc="2-4 sentences explaining key dependencies. Why are these specific skills required/recommended?"
     )
+    reasoning: dspy.Reasoning = dspy.OutputField(desc="Reasoning process for dependency analysis")

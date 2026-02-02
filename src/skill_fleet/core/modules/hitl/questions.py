@@ -49,7 +49,7 @@ class GenerateClarifyingQuestionsModule(BaseModule):
         super().__init__()
         self.generate = dspy.ChainOfThought(GenerateClarifyingQuestions)
 
-    def forward(  # type: ignore[override]
+    def forward(
         self,
         *args: Any,
         task_description: str | None = None,
@@ -57,87 +57,48 @@ class GenerateClarifyingQuestionsModule(BaseModule):
         initial_analysis: str = "",
         previous_answers: dict | None = None,
         **kwargs: Any,
-    ) -> dict[str, Any]:
+    ) -> dspy.Prediction:
         """
         Generate clarifying questions.
 
         Args:
+            *args: Positional arguments for BaseModule compatibility.
             task_description: Original user task description
             ambiguities: List of detected ambiguities to clarify
             initial_analysis: Optional initial analysis context
             previous_answers: Optional previous Q&A for follow-up
+            **kwargs: Additional keyword arguments for compatibility.
 
         Returns:
-            Dictionary with:
+            dspy.Prediction with:
             - questions: List of structured questions
             - priority: Priority level (critical/important/optional)
             - rationale: Overall rationale for questions
-        # Normalize inputs to support both explicit keyword usage and
-        # potential BaseModule-style positional calls.
-        effective_task_description: str
-        effective_ambiguities: list[str]
-        effective_initial_analysis: str
-        effective_previous_answers: dict | None
-
-        # Derive task_description from positional args if not provided explicitly.
-        if task_description is None and len(args) >= 1:
-            possible_task = args[0]
-            effective_task_description = str(possible_task)
-        elif task_description is not None:
-            effective_task_description = task_description
-        else:
-            # Fallback to an empty description if nothing was provided.
-            effective_task_description = ""
-
-        # Derive ambiguities from positional args if not provided explicitly.
-        if ambiguities is None and len(args) >= 2:
-            possible_ambiguities = args[1]
-            if isinstance(possible_ambiguities, list):
-                effective_ambiguities = [str(a) for a in possible_ambiguities]
-            else:
-                effective_ambiguities = []
-        elif ambiguities is not None:
-            effective_ambiguities = ambiguities
-        else:
-            effective_ambiguities = []
-
-        effective_initial_analysis = initial_analysis
-        effective_previous_answers = previous_answers
-
-        # Normalize inputs to support both explicit keyword usage and
-        # potential BaseModule-style positional calls.
-        effective_task_description: str
-        effective_ambiguities: list[str]
-        effective_initial_analysis: str
-        effective_previous_answers: dict | None
-
-        # Derive task_description from positional args if not provided explicitly.
-        if task_description is None and len(args) >= 1:
-            possible_task = args[0]
-            effective_task_description = str(possible_task)
-        elif task_description is not None:
-            effective_task_description = task_description
-        else:
-            # Fallback to an empty description if nothing was provided.
-            effective_task_description = ""
-
-        # Derive ambiguities from positional args if not provided explicitly.
-        if ambiguities is None and len(args) >= 2:
-            possible_ambiguities = args[1]
-            if isinstance(possible_ambiguities, list):
-                effective_ambiguities = [str(a) for a in possible_ambiguities]
-            else:
-                effective_ambiguities = []
-        elif ambiguities is not None:
-            effective_ambiguities = ambiguities
-        else:
-            effective_ambiguities = []
-
-        effective_initial_analysis = initial_analysis
-        effective_previous_answers = previous_answers
-
 
         """
+        # Normalize inputs to support both explicit keyword usage and
+        # potential BaseModule-style positional calls.
+        if task_description is None and args:
+            effective_task_description = str(args[0])
+        elif task_description is not None:
+            effective_task_description = task_description
+        else:
+            effective_task_description = ""
+
+        if ambiguities is None and len(args) >= 2:
+            possible_ambiguities = args[1]
+            if isinstance(possible_ambiguities, list):
+                effective_ambiguities = [str(a) for a in possible_ambiguities]
+            else:
+                effective_ambiguities = []
+        elif ambiguities is not None:
+            effective_ambiguities = ambiguities
+        else:
+            effective_ambiguities = []
+
+        effective_initial_analysis = initial_analysis
+        effective_previous_answers = previous_answers
+
         start_time = time.time()
 
         # Sanitize inputs
@@ -195,4 +156,4 @@ class GenerateClarifyingQuestionsModule(BaseModule):
             duration_ms=duration_ms,
         )
 
-        return output
+        return self._to_prediction(**output)

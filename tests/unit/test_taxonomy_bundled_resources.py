@@ -25,7 +25,8 @@ def temp_taxonomy(tmp_path: Path) -> Path:
     return skills_root
 
 
-def test_bundled_resources_registration(temp_taxonomy: Path) -> None:
+@pytest.mark.asyncio
+async def test_bundled_resources_registration(temp_taxonomy: Path) -> None:
     """Verify that bundled resources (scripts, assets, resources) are saved correctly.
 
     Note: v2 standard maps legacy `resources/` payloads to `guides/`.
@@ -55,7 +56,7 @@ def test_bundled_resources_registration(temp_taxonomy: Path) -> None:
         },
     }
 
-    success = manager.register_skill(
+    success = await manager.register_skill(
         path=skill_path,
         metadata=metadata,
         content=content,
@@ -87,7 +88,8 @@ def test_bundled_resources_registration(temp_taxonomy: Path) -> None:
     assert (skill_dir / "guides" / "dataset.csv").read_text() == "col1,col2\n1,2"
 
 
-def test_bundled_resources_binary_assets(temp_taxonomy: Path) -> None:
+@pytest.mark.asyncio
+async def test_bundled_resources_binary_assets(temp_taxonomy: Path) -> None:
     """Verify that binary assets are saved correctly."""
     manager = TaxonomyManager(temp_taxonomy)
 
@@ -100,7 +102,7 @@ def test_bundled_resources_binary_assets(temp_taxonomy: Path) -> None:
 
     extra_files = {"assets": {"image.png": binary_content}}
 
-    success = manager.register_skill(
+    success = await manager.register_skill(
         path=skill_path,
         metadata=metadata,
         content=content,

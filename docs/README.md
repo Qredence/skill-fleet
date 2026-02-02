@@ -56,7 +56,7 @@ flowchart LR
   Workflow --> LLM[LLM Provider]
 ```
 
-This system is local-first: the taxonomy lives on disk and is updated by the workflow. The only external dependency is the LLM provider (Google Gemini 3 by default) defined in `config/config.yaml`.
+This system is local-first: the taxonomy lives on disk and is updated by the workflow. The only external dependency is the LLM provider (Google Gemini 3 by default) defined in `src/skill_fleet/config/config.yaml`.
 
 ## Conceptual Components
 
@@ -125,7 +125,7 @@ See [agentskills.io Compliance Guide](concepts/agentskills-compliance.md) for de
 
 Skills Fleet provides centralized DSPy configuration through `src/skill_fleet/llm/dspy_config.py`. This module ensures consistent language model settings across all workflow steps:
 
-- **`configure_dspy()`** — One-time initialization that sets up DSPy's global LM from `config/config.yaml`
+- **`configure_dspy()`** — One-time initialization that sets up DSPy's global LM from `src/skill_fleet/config/config.yaml`
 - **`get_task_lm(task_name)`** — Returns task-specific LM instances without changing global settings
 - **Environment variables** — Supports `DSPY_CACHEDIR` and `DSPY_TEMPERATURE` for overrides
 - **Configuration priority** — Environment variables → config.yaml → defaults
@@ -152,6 +152,7 @@ Skills track their evolution through proper metadata in `metadata.json`:
 - **`previous_versions`** — List of prior version references (future enhancement)
 
 This enables:
+
 - **Skill versioning** — Track changes over time
 - **Rollback support** — Revert to previous versions if needed
 - **Change history** — Audit trail for compliance and debugging
@@ -161,16 +162,16 @@ This enables:
 
 The system uses different LM configurations for different workflow phases:
 
-| Task | Purpose | Configuration |
-|------|---------|---------------|
-| `skill_understand` | Task analysis and understanding | High temperature for creativity |
-| `skill_plan` | Structure planning | Medium temperature |
-| `skill_initialize` | Directory and metadata initialization | Minimal temperature |
-| `skill_edit` | Content generation | Medium temperature |
-| `skill_package` | Validation and packaging | Low temperature for precision |
-| `skill_validate` | Compliance checking | Minimal temperature |
+| Task               | Purpose                               | Configuration                   |
+| ------------------ | ------------------------------------- | ------------------------------- |
+| `skill_understand` | Task analysis and understanding       | High temperature for creativity |
+| `skill_plan`       | Structure planning                    | Medium temperature              |
+| `skill_initialize` | Directory and metadata initialization | Minimal temperature             |
+| `skill_edit`       | Content generation                    | Medium temperature              |
+| `skill_package`    | Validation and packaging              | Low temperature for precision   |
+| `skill_validate`   | Compliance checking                   | Minimal temperature             |
 
-These are configured in `config/config.yaml` under the `model_tasks` section.
+These are configured in `src/skill_fleet/config/config.yaml` under the `model_tasks` section.
 
 ## Hierarchical Skills Taxonomy for Agentic Systems
 
@@ -223,6 +224,7 @@ Directory skills must include:
 - `SKILL.md`
 
 **Optional subdirectories** (v2 Golden Standard):
+
 - `references/` — reference documentation (replaces `capabilities/`)
 - `guides/` — how-to guides (replaces `resources/`)
 - `templates/` — boilerplate code
@@ -335,7 +337,7 @@ skills/_core/reasoning.json
 5. **Package** — validate and produce a packaging manifest
 6. **Iterate** — human‑in‑the‑loop approval and evolution metadata
 
-These steps are implemented in `src/skill_fleet/workflow/` and use task‑scoped LLMs configured in `config/config.yaml`.
+These steps are implemented in `src/skill_fleet/workflow/` and use task‑scoped LLMs configured in `src/skill_fleet/config/config.yaml`.
 
 ## Caching and Validation
 
@@ -368,7 +370,7 @@ bun run tui
 
 ## Key Configurations
 
-- `config/config.yaml`: LLM configuration for workflow steps
+- `src/skill_fleet/config/config.yaml`: LLM configuration for workflow steps
 - `skills/_templates/skill_template.json`: structure template
 
 ## What This System Is Not
@@ -389,6 +391,7 @@ bun run tui
 ## Getting Started with Skill Creation
 
 For practical, hands-on guidance on creating skills, see **[Skill Creation Guidelines](getting-started/skill-creation-guidelines.md)**, which provides:
+
 - Comprehensive skill creation interrogations (discovery questions)
 - Structure and format requirements
 - Content guidelines and best practices
@@ -404,14 +407,14 @@ For workflow internals, see [`architecture/skill-creation-workflow.md`](architec
 
 ### Core System Documentation
 
-| Topic | Description |
-|-------|-------------|
-| **[Project README](../README.md)** | Project overview, quick start, and differentiation |
-| **[DSPy Documentation](dspy/)** | 3-phase workflow, signatures, modules, programs, optimization |
-| **[API Documentation](api/)** | REST API endpoints, schemas, jobs, middleware |
-| **[CLI Documentation](cli/)** | Command reference, interactive chat, architecture |
-| **[LLM Configuration](llm/)** | Provider setup, DSPy config, task-specific models |
-| **[HITL System](hitl/)** | Callbacks, interactions, runner implementation |
+| Topic                              | Description                                                   |
+| ---------------------------------- | ------------------------------------------------------------- |
+| **[Project README](../README.md)** | Project overview, quick start, and differentiation            |
+| **[DSPy Documentation](dspy/)**    | 3-phase workflow, signatures, modules, programs, optimization |
+| **[API Documentation](api/)**      | REST API endpoints, schemas, jobs, middleware                 |
+| **[CLI Documentation](cli/)**      | Command reference, interactive chat, architecture             |
+| **[LLM Configuration](llm/)**      | Provider setup, DSPy config, task-specific models             |
+| **[HITL System](hitl/)**           | Callbacks, interactions, runner implementation                |
 
 ### Concept Guides
 

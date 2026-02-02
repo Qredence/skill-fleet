@@ -47,6 +47,8 @@ class MyProgram(dspy.Module):
         return dspy.Prediction(final_output=result2.output)
 ```
 
+**Important**: Implement `forward()` in subclasses, but always call via `__call__()` (i.e., `module(input)`). Never call `forward()` directly—DSPy warns against this and it bypasses callbacks/usage tracking.
+
 ## When to Use This Skill
 
 Use this skill when:

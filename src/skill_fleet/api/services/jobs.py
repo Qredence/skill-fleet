@@ -11,16 +11,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from skill_fleet.common.logging_utils import sanitize_for_log
+
 from ...common.security import resolve_path_within_root
 from ..schemas.models import DeepUnderstandingState, JobState, TDDWorkflowState
 
 logger = logging.getLogger(__name__)
-
-
-def _sanitize_for_log(value: Any) -> str:
-    """Remove newline characters from values before logging to prevent log injection."""
-    text = str(value)
-    return text.replace("\r", "").replace("\n", "")
 
 
 def _is_safe_job_id(job_id: str) -> bool:
@@ -131,46 +127,40 @@ class JobStore:
 JOBS: JobStore = JobStore()
 
 
-def create_job(task_description: str = "", user_id: str = "default") -> str:
-    """
-    Create a new job and return its unique ID.
-
-    Args:
-        task_description: The task description for this job
-        user_id: The user ID creating this job
-
-    Returns:
-        The unique job ID
-
-    """
+async def create_job(task_description: str, user_id: str | None = None) -> str:
+    """Create a new job and return its ID."""
     from .job_manager import get_job_manager
 
     job_id = str(uuid.uuid4())
     job_state = JobState(
         job_id=job_id,
+        status="pending",
         task_description=task_description,
-        user_id=user_id,
+        user_id=user_id or "default",
     )
 
     # Register in both JOBS dict (for backward compat) and JobManager
     JOBS[job_id] = job_state
     manager = get_job_manager()
-    manager.create_job(job_state)
+    await manager.create_job(job_state)
 
     return job_id
 
 
-def get_job(job_id: str) -> JobState | None:
+async def get_job(job_id: str) -> JobState | None:
     """Retrieve a job by its ID, loading from disk if necessary."""
     job = JOBS.get(job_id)
     if job:
         return job
 
-    # Fallback to disk loading for persistence
-    return load_job_session(job_id)
+    # Fallback to JobManager for persistence
+    from .job_manager import get_job_manager
+
+    manager = get_job_manager()
+    return await manager.get_job(job_id)
 
 
-def update_job(job_id: str, updates: dict[str, Any]) -> JobState | None:
+async def update_job(job_id: str, updates: dict[str, Any]) -> JobState | None:
     """
     Update a job with the provided updates.
 
@@ -185,7 +175,7 @@ def update_job(job_id: str, updates: dict[str, Any]) -> JobState | None:
     from .job_manager import get_job_manager
 
     manager = get_job_manager()
-    updated_job = manager.update_job(job_id, updates)
+    updated_job = await manager.update_job(job_id, updates)
     if updated_job:
         JOBS[job_id] = updated_job
     return updated_job
@@ -230,7 +220,7 @@ async def wait_for_hitl_response(job_id: str, timeout: float = 3600.0) -> dict[s
     return response
 
 
-def notify_hitl_response(job_id: str, response: dict[str, Any]) -> None:
+async def notify_hitl_response(job_id: str, response: dict[str, Any]) -> None:
     """
     Notify the in-flight HITL waiter that a response arrived.
 
@@ -240,7 +230,7 @@ def notify_hitl_response(job_id: str, response: dict[str, Any]) -> None:
     from .job_manager import get_job_manager
 
     manager = get_job_manager()
-    job = manager.get_job(job_id)
+    job = await manager.get_job(job_id)
     if job is None:
         return
 
@@ -254,7 +244,7 @@ def notify_hitl_response(job_id: str, response: dict[str, Any]) -> None:
     job.updated_at = datetime.now(UTC)
 
     # Update both memory and database
-    manager.update_job(job_id, {"updated_at": job.updated_at, "hitl_response": response})
+    await manager.update_job(job_id, {"updated_at": job.updated_at, "hitl_response": response})
 
 
 # =============================================================================
@@ -279,32 +269,32 @@ def save_job_session(job_id: str) -> bool:
 
     """
     if not _is_safe_job_id(job_id):
-        logger.warning("Cannot save session: unsafe job id %s", _sanitize_for_log(job_id))
+        logger.warning("Cannot save session: unsafe job id %s", sanitize_for_log(job_id))
         return False
 
     job = JOBS.get(job_id)
     if not job:
-        logger.warning("Cannot save session: job %s not found", _sanitize_for_log(job_id))
+        logger.warning("Cannot save session: job %s not found", sanitize_for_log(job_id))
         return False
 
     try:
         session_file = resolve_path_within_root(SESSION_DIR, f"{job_id}.json")
         session_data = job.model_dump(mode="json", exclude_none=True)
         session_file.write_text(json.dumps(session_data, indent=2, default=str), encoding="utf-8")
-        logger.debug("Saved session for job %s", _sanitize_for_log(job_id))
+        logger.debug("Saved session for job %s", sanitize_for_log(job_id))
         return True
     except ValueError as e:
         logger.warning(
             "Cannot save session for job %s: %s",
-            _sanitize_for_log(job_id),
-            _sanitize_for_log(e),
+            sanitize_for_log(job_id),
+            sanitize_for_log(e),
         )
         return False
     except Exception as e:
         logger.error(
             "Failed to save session for job %s: %s",
-            _sanitize_for_log(job_id),
-            _sanitize_for_log(e),
+            sanitize_for_log(job_id),
+            sanitize_for_log(e),
         )
         return False
 
@@ -321,7 +311,7 @@ def load_job_session(job_id: str) -> JobState | None:
 
     """
     if not _is_safe_job_id(job_id):
-        logger.warning("Cannot load session: unsafe job id %s", _sanitize_for_log(job_id))
+        logger.warning("Cannot load session: unsafe job id %s", sanitize_for_log(job_id))
         return None
 
     try:
@@ -349,22 +339,22 @@ def load_job_session(job_id: str) -> JobState | None:
         job.hitl_lock = asyncio.Lock()
 
         JOBS[job_id] = job
-        logger.info("Loaded session for job %s", _sanitize_for_log(job_id))
+        logger.info("Loaded session for job %s", sanitize_for_log(job_id))
         return job
 
     except ValueError as e:
         logger.warning(
             "Cannot load session for job %s: %s",
-            _sanitize_for_log(job_id),
-            _sanitize_for_log(e),
+            sanitize_for_log(job_id),
+            sanitize_for_log(e),
         )
         return None
 
     except Exception as e:
         logger.error(
             "Failed to load session for job %s: %s",
-            _sanitize_for_log(job_id),
-            _sanitize_for_log(e),
+            sanitize_for_log(job_id),
+            sanitize_for_log(e),
         )
         return None
 
@@ -395,7 +385,7 @@ def delete_job_session(job_id: str) -> bool:
 
     """
     if not _is_safe_job_id(job_id):
-        logger.warning("Cannot delete session: unsafe job id %s", _sanitize_for_log(job_id))
+        logger.warning("Cannot delete session: unsafe job id %s", sanitize_for_log(job_id))
         return False
 
     try:
@@ -407,15 +397,15 @@ def delete_job_session(job_id: str) -> bool:
     except ValueError as e:
         logger.warning(
             "Cannot delete session for job %s: %s",
-            _sanitize_for_log(job_id),
-            _sanitize_for_log(e),
+            sanitize_for_log(job_id),
+            sanitize_for_log(e),
         )
         return False
     except Exception as e:
         logger.error(
             "Failed to delete session for job %s: %s",
-            _sanitize_for_log(job_id),
-            _sanitize_for_log(e),
+            sanitize_for_log(job_id),
+            sanitize_for_log(e),
         )
         return False
 
@@ -441,12 +431,12 @@ def cleanup_old_sessions(max_age_hours: float = 24.0) -> int:
                 try:
                     session_file.unlink()
                     cleaned += 1
-                except Exception:
-                    # Ignore errors when deleting individual files
-                    pass
-    except Exception:
-        # Ignore errors during cleanup (e.g., directory doesn't exist)
-        pass
+                except Exception as exc:
+                    # Ignore errors when deleting individual files, but log for debugging.
+                    logger.debug("Failed to delete session file %s: %s", session_file, exc)
+    except Exception as exc:
+        # Ignore errors during cleanup (e.g., directory doesn't exist), but log for debugging.
+        logger.debug("Failed to cleanup session files: %s", exc)
 
     # Also trigger memory eviction
     JOBS._evict_if_needed()

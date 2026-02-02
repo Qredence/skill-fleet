@@ -29,9 +29,9 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
 phase1_ruff_fix() {
     log_info "Phase 1: Fixing unused imports/variables with ruff..."
-    
+
     cd "$PROJECT_ROOT"
-    
+
     if command -v uv &> /dev/null; then
         uv run ruff check src/skill_fleet --select F401,F841 --fix 2>/dev/null || true
         log_success "Ruff auto-fix complete (28 issues)"
@@ -46,7 +46,7 @@ phase1_ruff_fix() {
 
 phase2_delete_orphaned() {
     log_info "Phase 2: Deleting orphaned files..."
-    
+
     # CASCADE: conversational_program.py imports chat.py
     # Deleting conversational_program.py orphans chat.py
     # Both should be deleted together
@@ -54,7 +54,7 @@ phase2_delete_orphaned() {
         "$SRC_DIR/core/dspy/conversational_program.py"      # GuidedCreatorProgram (never imported)
         "$SRC_DIR/core/dspy/signatures/chat.py"             # Only used by conversational_program.py
     )
-    
+
     for file in "${orphaned_files[@]}"; do
         if [[ -f "$file" ]]; then
             rm -v "$file"
@@ -63,7 +63,7 @@ phase2_delete_orphaned() {
             log_warn "Already deleted: $(basename "$file")"
         fi
     done
-    
+
     log_info "Justification: conversational_program.py is the only consumer of chat.py"
     log_info "              Both are safe to delete - conversational.py is the active alternative"
 }
@@ -74,9 +74,9 @@ phase2_delete_orphaned() {
 
 phase3_integrate_enhanced_metrics() {
     log_info "Phase 3: Integrating enhanced_metrics into __init__.py..."
-    
+
     local init_file="$SRC_DIR/core/dspy/metrics/__init__.py"
-    
+
     if [[ -f "$init_file" ]]; then
         # Check if already integrated
         if grep -q "enhanced_metrics" "$init_file" 2>/dev/null; then
@@ -118,9 +118,9 @@ EOF
 
 phase4_integrate_advanced_modules() {
     log_info "Phase 4: Integrating advanced modules into exports..."
-    
+
     local init_file="$SRC_DIR/core/dspy/modules/__init__.py"
-    
+
     if [[ -f "$init_file" ]]; then
         # Check if already integrated
         if grep -q "EnsembleModule" "$init_file" 2>/dev/null; then
@@ -164,9 +164,9 @@ EOF
 
 phase5_rename_legacy_program() {
     log_info "Phase 5: Checking for duplicate SkillCreationProgram..."
-    
+
     local programs_file="$SRC_DIR/core/dspy/programs.py"
-    
+
     if [[ -f "$programs_file" ]]; then
         if grep -q "class SkillCreationProgram" "$programs_file" 2>/dev/null; then
             log_warn "MANUAL ACTION REQUIRED:"
@@ -194,9 +194,9 @@ phase5_rename_legacy_program() {
 
 phase6_verify_chat_deleted() {
     log_info "Phase 6: Verifying chat.py was deleted (CASCADE from Phase 2)..."
-    
+
     local chat_file="$SRC_DIR/core/dspy/signatures/chat.py"
-    
+
     if [[ -f "$chat_file" ]]; then
         log_warn "chat.py still exists - should have been deleted in Phase 2"
         echo ""
@@ -217,17 +217,17 @@ phase6_verify_chat_deleted() {
 
 phase7_clean_training_data() {
     log_info "Phase 7: Archiving old training data..."
-    
+
     local training_dir="$PROJECT_ROOT/config/training"
     local archive_dir="$training_dir/archive"
-    
+
     mkdir -p "$archive_dir"
-    
+
     local old_files=(
         "$training_dir/trainset_v2.json"
         "$training_dir/trainset_v3.json"
     )
-    
+
     for file in "${old_files[@]}"; do
         if [[ -f "$file" ]]; then
             mv -v "$file" "$archive_dir/"
@@ -242,21 +242,21 @@ phase7_clean_training_data() {
 
 verify_cleanup() {
     log_info "Verifying cleanup..."
-    
+
     cd "$PROJECT_ROOT"
-    
+
     # Run ruff check
     if command -v uv &> /dev/null; then
         local issues
         issues=$(uv run ruff check src/skill_fleet --select F401,F841 2>/dev/null | wc -l || echo "0")
-        
+
         if [[ "$issues" -eq 0 ]]; then
             log_success "No remaining unused imports/variables"
         else
             log_warn "$issues unused import issues remain"
         fi
     fi
-    
+
     # Run pytest (quick sanity check)
     log_info "Running quick test sanity check..."
     if command -v uv &> /dev/null; then
@@ -275,9 +275,9 @@ main() {
     echo "   Generated: 2026-01-20"
     echo "============================================="
     echo ""
-    
+
     local mode="${1:-all}"
-    
+
     case "$mode" in
         quick)
             log_info "Running quick fixes only..."
@@ -325,7 +325,7 @@ main() {
             exit 1
             ;;
     esac
-    
+
     echo ""
     log_success "Cleanup phase complete!"
     echo ""

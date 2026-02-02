@@ -7,7 +7,7 @@ across both in-memory cache (hot, fast) and database (durable, multi-instance).
 Architecture:
     Memory Layer    -> Fast cache for in-flight jobs (<1 hour old)
     Database Layer  -> Source of truth for all job history
-    JobManager      -> Coordinates between both layers
+    JobManager      -> Coordinates between both layers using transactional sessions
 """
 
 from __future__ import annotations
@@ -19,42 +19,14 @@ from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
-if TYPE_CHECKING:
-    from collections.abc import Callable
+from skill_fleet.common.logging_utils import sanitize_for_log
 
-    from sqlalchemy.ext.asyncio import async_sessionmaker
-    from sqlalchemy.orm import Session
-
-    from ...infrastructure.db.repositories import JobRepository
-
+from ...infrastructure.db.repositories import JobRepository
+from ...infrastructure.db.session import transactional_session
 from ..schemas.models import DeepUnderstandingState, JobState, TDDWorkflowState
 
-
-def _sanitize_for_log(value: Any) -> str:
-    """
-    Make a string safe for single-line log messages by removing line breaks.
-
-    This helps prevent log injection via user-controlled values that may
-    contain newline characters. Also masks potential secrets.
-    """
-    if value is None:
-        return ""
-    text = str(value)
-    # Replace CR and LF characters with spaces to preserve readability
-    text = text.replace("\r", " ").replace("\n", " ")
-    # Mask potential secrets (API keys, tokens, passwords)
-    import re
-
-    text = re.sub(
-        r"(api[_-]?key|token|password|secret|auth)[\s]*[=:]\s*\S+",
-        r"\1=***",
-        text,
-        flags=re.IGNORECASE,
-    )
-    # Truncate very long values
-    if len(text) > 500:
-        text = text[:497] + "..."
-    return text
+if TYPE_CHECKING:
+    pass
 
 
 logger = logging.getLogger(__name__)
@@ -90,8 +62,9 @@ class JobMemoryStore:
         """
         self.ttl_minutes = ttl_minutes
         self.store: dict[str, tuple[JobState, datetime]] = {}
+        self._lock = asyncio.Lock()
 
-    def set(self, job_id: str, job: JobState) -> None:
+    async def set(self, job_id: str, job: JobState) -> None:
         """
         Store job in memory with timestamp.
 
@@ -100,9 +73,10 @@ class JobMemoryStore:
             job: JobState instance
 
         """
-        self.store[job_id] = (job, datetime.now(UTC))
+        async with self._lock:
+            self.store[job_id] = (job, datetime.now(UTC))
 
-    def get(self, job_id: str) -> JobState | None:
+    async def get(self, job_id: str) -> JobState | None:
         """
         Get job from memory if not expired.
 
@@ -113,21 +87,22 @@ class JobMemoryStore:
             JobState if found and not expired, None otherwise
 
         """
-        if job_id not in self.store:
-            return None
+        async with self._lock:
+            if job_id not in self.store:
+                return None
 
-        job, created_at = self.store[job_id]
-        age = datetime.now(UTC) - created_at
+            job, created_at = self.store[job_id]
+            age = datetime.now(UTC) - created_at
 
-        if age > timedelta(minutes=self.ttl_minutes):
-            # Expired: remove from memory
-            del self.store[job_id]
-            logger.debug(f"Job {job_id} expired from memory cache (age: {age})")
-            return None
+            if age > timedelta(minutes=self.ttl_minutes):
+                # Expired: remove from memory
+                del self.store[job_id]
+                logger.debug(f"Job {job_id} expired from memory cache (age: {age})")
+                return None
 
-        return job
+            return job
 
-    def delete(self, job_id: str) -> bool:
+    async def delete(self, job_id: str) -> bool:
         """
         Remove job from memory.
 
@@ -138,12 +113,13 @@ class JobMemoryStore:
             True if job was deleted, False if not found
 
         """
-        if job_id in self.store:
-            del self.store[job_id]
-            return True
-        return False
+        async with self._lock:
+            if job_id in self.store:
+                del self.store[job_id]
+                return True
+            return False
 
-    def cleanup_expired(self) -> int:
+    async def cleanup_expired(self) -> int:
         """
         Remove all expired entries.
 
@@ -153,18 +129,19 @@ class JobMemoryStore:
             Number of jobs removed
 
         """
-        expired_ids = [
-            job_id
-            for job_id, (_, created_at) in self.store.items()
-            if datetime.now(UTC) - created_at > timedelta(minutes=self.ttl_minutes)
-        ]
+        async with self._lock:
+            expired_ids = [
+                job_id
+                for job_id, (_, created_at) in self.store.items()
+                if datetime.now(UTC) - created_at > timedelta(minutes=self.ttl_minutes)
+            ]
 
-        for job_id in expired_ids:
-            del self.store[job_id]
+            for job_id in expired_ids:
+                del self.store[job_id]
 
-        return len(expired_ids)
+            return len(expired_ids)
 
-    def clear(self) -> int:
+    async def clear(self) -> int:
         """
         Clear all entries from memory.
 
@@ -172,9 +149,10 @@ class JobMemoryStore:
             Number of jobs cleared
 
         """
-        count = len(self.store)
-        self.store.clear()
-        return count
+        async with self._lock:
+            count = len(self.store)
+            self.store.clear()
+            return count
 
 
 class JobManager:
@@ -188,48 +166,37 @@ class JobManager:
     - Persisting to database
     """
 
-    def __init__(self, memory_store: JobMemoryStore | None = None, db_session_factory=None):
+    def __init__(self, memory_store: JobMemoryStore | None = None):
         """
         Initialize job manager.
 
         Args:
             memory_store: Optional JobMemoryStore instance
-            db_session_factory: Optional SQLAlchemy session factory for async DB operations
 
         """
         self.memory = memory_store or JobMemoryStore(ttl_minutes=60)
-        self.db_repo: JobRepository | None = None
-        self.db_session_factory = db_session_factory
+        self.persistence_enabled = False
+        self._lock = asyncio.Lock()
 
-    def set_db_repo(self, db_repo: JobRepository) -> None:
+    def enable_persistence(self) -> None:
+        """Enable database persistence using transactional sessions."""
+        self.persistence_enabled = True
+        logger.info("JobManager persistence enabled (using transactional sessions)")
+
+    def set_db_repo(self, db_repo: Any) -> None:
         """
-        Set database repository (call at API startup).
+        Deprecated: Enable persistence.
 
-        Args:
-            db_repo: JobRepository instance
-
+        Kept for backward compatibility. The db_repo argument is ignored
+        as we now use transactional sessions created on demand.
         """
-        self.db_repo = db_repo
-        logger.info("JobManager database repository configured")
+        self.enable_persistence()
 
-    def set_db_session_factory(
-        self, factory: async_sessionmaker[Any] | Callable[[], Session] | None
-    ) -> None:
-        """
-        Set database session factory for async operations.
-
-        Args:
-            factory: SQLAlchemy AsyncSessionLocal or SessionLocal factory
-
-        """
-        self.db_session_factory = factory
-        logger.debug("JobManager database session factory configured")
-
-    def get_job(self, job_id: str) -> JobState | None:
+    async def get_job(self, job_id: str) -> JobState | None:
         """
         Retrieve job from memory (fast), fall back to DB (durable).
 
-        Implements two-tier lookup:
+        Implements two-tier lookup with proper locking to prevent race conditions:
         1. Check memory cache first (fastest)
         2. Fall back to database (durable)
         3. Warm memory cache on DB hit
@@ -241,34 +208,44 @@ class JobManager:
             JobState if found, None otherwise
 
         """
-        safe_job_id = _sanitize_for_log(job_id)
-        # Try memory first (hot cache, no I/O)
-        job = self.memory.get(job_id)
+        safe_job_id = sanitize_for_log(job_id)
+
+        # Fast path: try memory first (no lock needed for read)
+        job = await self.memory.get(job_id)
         if job:
             logger.debug(f"Job {safe_job_id} retrieved from memory cache")
             return job
 
-        # Fall back to database
-        if self.db_repo:
-            try:
-                db_job = self.db_repo.get_by_id(UUID(job_id))
-                if db_job:
-                    # Reconstruct JobState from DB model
-                    job_state = self._db_to_memory(db_job)
-                    # Double-check not already added by another thread/routine
-                    if not self.memory.get(job_id):
-                        self.memory.set(job_id, job_state)
-                    logger.info(f"Job {safe_job_id} loaded from database and cached")
-                    return job_state
-            except ValueError as e:
-                logger.warning(f"Invalid UUID for job {safe_job_id}: {e}")
-            except Exception as e:
-                logger.error(f"Unexpected error loading job {safe_job_id} from database: {e}")
+        # Slow path: need to check DB and potentially cache result
+        # Acquire lock to prevent TOCTOU race condition
+        if self.persistence_enabled:
+            async with self._lock:
+                # Re-check memory after acquiring lock
+                job = await self.memory.get(job_id)
+                if job:
+                    logger.debug(f"Job {safe_job_id} retrieved from memory cache (after lock)")
+                    return job
+
+                try:
+                    with transactional_session() as db:
+                        repo = JobRepository(db)
+                        db_job = repo.get_by_id(UUID(job_id))
+                        if db_job:
+                            # Reconstruct JobState from DB model
+                            job_state = self._db_to_memory(db_job)
+                            # Cache result (safe because we hold the lock)
+                            await self.memory.set(job_id, job_state)
+                            logger.info(f"Job {safe_job_id} loaded from database and cached")
+                            return job_state
+                except ValueError as e:
+                    logger.warning(f"Invalid UUID for job {safe_job_id}: {e}")
+                except Exception as e:
+                    logger.error(f"Unexpected error loading job {safe_job_id} from database: {e}")
 
         logger.warning(f"Job {safe_job_id} not found in memory or database")
         return None
 
-    def create_job(self, job_state: JobState) -> None:
+    async def create_job(self, job_state: JobState) -> None:
         """
         Create a new job (memory + DB).
 
@@ -281,12 +258,12 @@ class JobManager:
 
         """
         # Store in memory immediately (fast)
-        self.memory.set(job_state.job_id, job_state)
-        safe_job_id = _sanitize_for_log(job_state.job_id)
+        await self.memory.set(job_state.job_id, job_state)
+        safe_job_id = sanitize_for_log(job_state.job_id)
         logger.debug(f"Job {safe_job_id} stored in memory")
 
         # Persist to DB
-        if self.db_repo:
+        if self.persistence_enabled:
             try:
                 self._save_job_to_db(job_state)
                 logger.info(f"Job {safe_job_id} created (memory + database)")
@@ -296,7 +273,7 @@ class JobManager:
         else:
             logger.warning(f"Job {safe_job_id} created (memory only, no database backing)")
 
-    def update_job(self, job_id: str, updates: dict[str, Any]) -> JobState | None:
+    async def update_job(self, job_id: str, updates: dict[str, Any]) -> JobState | None:
         """
         Update job in both layers.
 
@@ -312,14 +289,14 @@ class JobManager:
             Updated JobState if successful, None otherwise
 
         """
-        safe_job_id = _sanitize_for_log(job_id)
+        safe_job_id = sanitize_for_log(job_id)
 
         # Try to get from memory first
-        job = self.memory.get(job_id)
+        job = await self.memory.get(job_id)
 
         # If not in memory, try database
         if not job:
-            job = self.get_job(job_id)
+            job = await self.get_job(job_id)
 
         if not job:
             logger.error(f"Cannot update: job {safe_job_id} not found")
@@ -331,11 +308,11 @@ class JobManager:
                 setattr(job, key, value)
 
         # Update memory first (always succeeds)
-        self.memory.set(job_id, job)
+        await self.memory.set(job_id, job)
         logger.debug(f"Job {safe_job_id} updated in memory")
 
         # Attempt DB update with explicit failure handling
-        if self.db_repo:
+        if self.persistence_enabled:
             try:
                 self._save_job_to_db(job)
                 logger.debug(f"Job {safe_job_id} updated in database")
@@ -348,7 +325,7 @@ class JobManager:
 
         return job
 
-    def save_job(self, job: JobState) -> bool:
+    async def save_job(self, job: JobState) -> bool:
         """
         Explicit save to database (for completed/important jobs).
 
@@ -359,10 +336,10 @@ class JobManager:
             True if save succeeded, False otherwise
 
         """
-        safe_job_id = _sanitize_for_log(job.job_id)
-        self.memory.set(job.job_id, job)
+        safe_job_id = sanitize_for_log(job.job_id)
+        await self.memory.set(job.job_id, job)
 
-        if self.db_repo:
+        if self.persistence_enabled:
             try:
                 self._save_job_to_db(job)
                 logger.info(f"Job {safe_job_id} explicitly saved to database")
@@ -373,7 +350,7 @@ class JobManager:
 
         return True
 
-    def delete_job(self, job_id: str) -> bool:
+    async def delete_job(self, job_id: str) -> bool:
         """
         Delete job from memory (database deletion TBD).
 
@@ -384,9 +361,9 @@ class JobManager:
             True if deleted from memory, False otherwise
 
         """
-        return self.memory.delete(job_id)
+        return await self.memory.delete(job_id)
 
-    def cleanup_expired(self) -> int:
+    async def cleanup_expired(self) -> int:
         """
         Clean up expired memory entries.
 
@@ -396,9 +373,34 @@ class JobManager:
             Number of jobs cleaned up
 
         """
-        return self.memory.cleanup_expired()
+        return await self.memory.cleanup_expired()
 
     # Private methods
+
+    def _coerce_job_result(self, result: Any) -> Any:
+        """
+        Coerce persisted result payloads back into richer in-memory objects.
+
+        The database stores `Job.result` as JSON. In-memory code frequently expects
+        Pydantic models (e.g., `SkillCreationResult`) for ergonomic attribute access.
+        """
+        if not isinstance(result, dict):
+            return result
+
+        # Heuristic: skill creation result payloads include at least one of these fields.
+        looks_like_skill_creation = any(
+            key in result
+            for key in ("skill_content", "validation_report", "hitl_context", "metadata")
+        )
+        if not looks_like_skill_creation:
+            return result
+
+        try:
+            from skill_fleet.core.models import SkillCreationResult
+
+            return SkillCreationResult.model_validate(result)
+        except Exception:
+            return result
 
     def _save_job_to_db(self, job: JobState) -> None:
         """
@@ -414,48 +416,53 @@ class JobManager:
             Exception: If database operation fails
 
         """
-        if not self.db_repo:
+        if not self.persistence_enabled:
             return
 
         # Validate status before saving
         if job.status not in VALID_STATUSES:
             raise ValueError(f"Invalid job status: {job.status}. Must be one of {VALID_STATUSES}")
 
-        try:
-            # Build job data for database
-            job_data = {
-                "job_id": UUID(job.job_id),
-                "status": job.status,
-                "task_description": getattr(job, "task_description", ""),
-                "progress_percent": getattr(job, "progress_percent", 0.0),
-                "result": self._serialize_json(job.result),
-                "error": job.error,
-                "error_stack": getattr(job, "error_stack", None),
-                "progress_message": getattr(job, "progress_message", None),
-                "current_phase": getattr(job, "current_phase", None),
-                "hitl_type": getattr(job, "hitl_type", None),
-                "hitl_data": self._serialize_json(getattr(job, "hitl_data", None)),
-                "updated_at": job.updated_at or datetime.now(UTC),
-                "started_at": getattr(job, "started_at", None),
-                "completed_at": getattr(job, "completed_at", None),
-            }
+        # Use short-lived transaction
+        with transactional_session() as db:
+            repo = JobRepository(db)
+            try:
+                # Build job data for database
+                job_data = {
+                    "job_id": UUID(job.job_id),
+                    "status": job.status,
+                    "task_description": getattr(job, "task_description", ""),
+                    "progress_percent": getattr(job, "progress_percent", 0.0),
+                    "result": self._serialize_json(job.result),
+                    "error": job.error,
+                    "error_stack": getattr(job, "error_stack", None),
+                    "progress_message": getattr(job, "progress_message", None),
+                    "current_phase": getattr(job, "current_phase", None),
+                    "hitl_type": getattr(job, "hitl_type", None),
+                    "hitl_data": self._serialize_json(getattr(job, "hitl_data", None)),
+                    "updated_at": job.updated_at or datetime.now(UTC),
+                    "started_at": getattr(job, "started_at", None),
+                    "completed_at": getattr(job, "completed_at", None),
+                }
 
-            # Filter out None values for optional fields
-            job_data = {
-                k: v for k, v in job_data.items() if v is not None or k in ["error", "error_stack"]
-            }
+                # Filter out None values for optional fields
+                job_data = {
+                    k: v
+                    for k, v in job_data.items()
+                    if v is not None or k in ["error", "error_stack"]
+                }
 
-            # Try to fetch existing job
-            existing = self.db_repo.get_by_id(UUID(job.job_id))
-            if existing:
-                self.db_repo.update(db_obj=existing, obj_in=job_data)
-                logger.debug(f"Job {job.job_id} updated in database")
-            else:
-                self.db_repo.create(obj_in=job_data)
-                logger.debug(f"Job {job.job_id} created in database")
-        except Exception as e:
-            logger.error(f"Database upsert failed for job {job.job_id}: {e}")
-            raise
+                # Try to fetch existing job
+                existing = repo.get_by_id(UUID(job.job_id))
+                if existing:
+                    repo.update(db_obj=existing, obj_in=job_data)
+                    logger.debug(f"Job {job.job_id} updated in database")
+                else:
+                    repo.create(obj_in=job_data)
+                    logger.debug(f"Job {job.job_id} created in database")
+            except Exception as e:
+                logger.error(f"Database upsert failed for job {job.job_id}: {e}")
+                raise
 
     def _serialize_json(self, obj: Any) -> dict | None:
         """
@@ -498,7 +505,7 @@ class JobManager:
         job_state.status = getattr(db_job, "status", "pending")
         job_state.task_description = getattr(db_job, "task_description", "")
         job_state.user_id = getattr(db_job, "user_id", "default")
-        job_state.result = getattr(db_job, "result", None)
+        job_state.result = self._coerce_job_result(getattr(db_job, "result", None))
         job_state.error = getattr(db_job, "error", None)
         job_state.updated_at = getattr(db_job, "updated_at", None) or datetime.now(UTC)
 
@@ -562,12 +569,12 @@ def get_job_manager() -> JobManager:
     return _job_manager
 
 
-def initialize_job_manager(db_repo: JobRepository) -> JobManager:
+def initialize_job_manager(db_repo: Any = None) -> JobManager:
     """
-    Initialize job manager with database repo (call at API startup).
+    Initialize job manager with database persistence (call at API startup).
 
     Args:
-        db_repo: JobRepository instance for database access
+        db_repo: Ignored (kept for compatibility), persistence is enabled via transactional sessions.
 
     Returns:
         Initialized JobManager instance
@@ -575,6 +582,6 @@ def initialize_job_manager(db_repo: JobRepository) -> JobManager:
     """
     global _job_manager
     _job_manager = JobManager()
-    _job_manager.set_db_repo(db_repo)
+    _job_manager.enable_persistence()
     logger.info("JobManager initialized with database persistence")
     return _job_manager

@@ -41,6 +41,8 @@ Adapters are the interface layer that transforms DSPy modules/signatures into LM
 - **Conversation history**: Manages multi-turn conversations
 - **Native features**: Enables function calling, citations, etc.
 
+**References**: [TwoStepAdapter API](https://github.com/stanfordnlp/dspy/blob/main/docs/docs/api/adapters/TwoStepAdapter.md)
+
 ## Adapter Architecture
 
 ### Base Adapter Class
@@ -155,6 +157,61 @@ result = module(question="What is the capital of France?")
 print(result.answer)
 print(result.confidence)
 print(result.reasoning)
+```
+
+### JSONAdapter Special Types
+
+JSONAdapter supports advanced types for structured inputs/outputs:
+
+```python
+import dspy
+import pydantic
+
+# dspy.Image for multimodal inputs
+class ImageAnalysis(dspy.Signature):
+    image: dspy.Image = dspy.InputField()
+    description: str = dspy.OutputField()
+
+image = dspy.Image(url="https://example.com/image.jpg")
+module = dspy.Predict(ImageAnalysis)
+result = module(image=image)
+
+# dspy.Code for code inputs/outputs
+class CodeReview(dspy.Signature):
+    code: dspy.Code = dspy.InputField()
+    review: str = dspy.OutputField()
+
+# dspy.Tool and dspy.ToolCalls for function calling
+class ToolUse(dspy.Signature):
+    question: str = dspy.InputField()
+    tools: list[dspy.Tool] = dspy.InputField()
+    answer: str = dspy.OutputField()
+    tool_calls: dspy.ToolCalls = dspy.OutputField()
+
+# dspy.History for multi-turn conversations
+class ChatSkill(dspy.Signature):
+    question: str = dspy.InputField()
+    history: dspy.History = dspy.InputField()
+    answer: str = dspy.OutputField()
+
+history = dspy.History(messages=[
+    {"question": "Hello", "answer": "Hi!"},
+])
+
+# dspy.Reasoning for native reasoning (OpenAI/Anthropic reasoning models)
+class ReasoningTask(dspy.Signature):
+    problem: str = dspy.InputField()
+    reasoning: dspy.Reasoning = dspy.OutputField()
+    solution: str = dspy.OutputField()
+
+# Pydantic models for complex structured data
+class User(pydantic.BaseModel):
+    id: int
+    name: str
+
+class UserProcessor(dspy.Signature):
+    user_data: User = dspy.InputField()
+    analysis: str = dspy.OutputField()
 ```
 
 ### JSONAdapter Format Method

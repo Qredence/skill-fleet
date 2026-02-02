@@ -31,7 +31,8 @@ from ..schemas.skills import (
     RefineSkillRequest,
     RefineSkillResponse,
     SkillDetailResponse,
-    ValidateSkillRequest,
+    SkillListItem,
+    UpdateSkillResponse,
     ValidateSkillResponse,
 )
 from ..services.skill_service import SkillService
@@ -40,6 +41,52 @@ logger = logging.getLogger(__name__)
 
 
 router = APIRouter()
+
+
+@router.get(
+    "/",
+    response_model=list[SkillListItem],
+    responses={
+        500: {"description": "Internal server error during skill discovery"},
+    },
+)
+async def list_skills(
+    skill_service: Annotated[SkillService, Depends(get_skill_service)],
+    status: str | None = None,
+    search: str | None = None,
+) -> list[SkillListItem]:
+    """
+    List skills in the taxonomy.
+
+    Query params are best-effort filters; currently they are applied client-side.
+    """
+    # Load all skills (metadata_cache may be incomplete until discovery runs).
+    try:
+        from skill_fleet.taxonomy.discovery import ensure_all_skills_loaded
+
+        ensure_all_skills_loaded(
+            skill_service.taxonomy_manager.skills_root,
+            skill_service.taxonomy_manager.metadata_cache,
+            skill_service.taxonomy_manager._load_skill_dir_metadata,
+        )
+    except Exception as exc:
+        # If discovery fails, fall back to whatever is already cached.
+        logger.debug("Skill discovery failed; using cached metadata: %s", exc)
+
+    items = [
+        SkillListItem(skill_id=skill_id, name=meta.name, description=meta.description)
+        for skill_id, meta in skill_service.taxonomy_manager.metadata_cache.items()
+    ]
+
+    # Apply simple filters.
+    if search:
+        q = search.lower()
+        items = [i for i in items if q in i.name.lower()]
+    if status:
+        # Status isn't tracked in metadata today; keep placeholder behavior.
+        items = items
+
+    return sorted(items, key=lambda x: x.skill_id)
 
 
 @router.post("/", response_model=CreateSkillResponse)
@@ -68,7 +115,7 @@ async def create_skill(
     # Import here to avoid circular dependency with job system
     from ..services.jobs import create_job, get_job
 
-    job_id = create_job(
+    job_id = await create_job(
         task_description=request.task_description,
         user_id=request.user_id,
     )
@@ -80,15 +127,31 @@ async def create_skill(
                 request,
                 existing_job_id=job_id,
             )
+
+            # Update job status and result upon completion
+            # This ensures the job moves to a terminal state (completed or pending_review)
+            if result.status in ("completed", "pending_review"):
+                from ..services.jobs import update_job
+
+                await update_job(
+                    job_id,
+                    {
+                        "status": result.status,
+                        "result": result,
+                        "progress_percent": 100.0,
+                        "progress_message": "Skill creation completed",
+                    },
+                )
+
             logger.info(f"Skill creation job {job_id} completed with status: {result.status}")
         except Exception as e:
             logger.error(f"Skill creation job {job_id} failed: {e}")
             # Update job status to failed
-            job = get_job(job_id)
+            job = await get_job(job_id)
             if job:
                 from ..services.jobs import update_job
 
-                update_job(job_id, {"status": "failed", "error": str(e)})
+                await update_job(job_id, {"status": "failed", "error": str(e)})
 
     # Add workflow to background tasks and return immediately
     background_tasks.add_task(run_workflow)
@@ -136,12 +199,19 @@ class UpdateSkillRequest(BaseModel):
     metadata: dict | None = None
 
 
-@router.put("/{skill_id}", response_model=dict[str, str])
+@router.put(
+    "/{skill_id}",
+    response_model=UpdateSkillResponse,
+    responses={
+        404: {"description": "Skill not found"},
+        500: {"description": "Failed to update skill"},
+    },
+)
 async def update_skill(
     skill_id: str,
     request: UpdateSkillRequest,
     skill_service: Annotated[SkillService, Depends(get_skill_service)],
-) -> dict[str, str]:
+) -> UpdateSkillResponse:
     """
     Update an existing skill.
 
@@ -151,7 +221,7 @@ async def update_skill(
         skill_service: Injected SkillService for data access
 
     Returns:
-        Dictionary with skill_id and status
+        UpdateSkillResponse with skill_id and status
 
     Raises:
         HTTPException: If skill not found (404)
@@ -182,7 +252,7 @@ async def update_skill(
                 # Write back
                 metadata_path.write_text(json.dumps(current, indent=2), encoding="utf-8")
 
-        return {"skill_id": skill_id, "status": "updated"}
+        return UpdateSkillResponse(skill_id=skill_id, status="updated")
     except FileNotFoundError as err:
         raise NotFoundException("Skill", skill_id) from err
     except Exception as err:
@@ -199,7 +269,6 @@ async def update_skill(
 @router.post("/{skill_id}/validate", response_model=ValidateSkillResponse)
 async def validate_skill(
     skill_id: str,
-    request: ValidateSkillRequest,
     skill_service: Annotated[SkillService, Depends(get_skill_service)],
 ) -> ValidateSkillResponse:
     """
@@ -207,7 +276,6 @@ async def validate_skill(
 
     Args:
         skill_id: Unique skill identifier
-        request: Validation request
         skill_service: Injected SkillService for data access
 
     Returns:

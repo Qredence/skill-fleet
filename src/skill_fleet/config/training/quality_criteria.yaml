@@ -117,18 +117,18 @@ manual_review_checklist:
     - "Overview with core principle (1-2 sentences)"
     - "When to Use / When NOT to use sections"
     - "Quick Reference table"
-  
+
   patterns:
     - "5+ Core Patterns"
     - "Each pattern has ❌ anti-pattern example"
     - "Each pattern has ✅ production pattern"
     - "Each pattern has Key Insight"
-  
+
   practical_value:
     - "Common Mistakes table"
     - "Red Flags section"
     - "Real-World Impact with quantified benefits"
-  
+
   code_quality:
     - "No placeholder files"
     - "No narrative storytelling"

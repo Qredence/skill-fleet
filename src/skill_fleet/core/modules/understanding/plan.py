@@ -60,7 +60,43 @@ class SynthesizePlanModule(BaseModule):
 
     @timed_execution()
     @with_llm_fallback(default_return=None)
-    async def aforward(
+    async def aforward(self, *args, **kwargs) -> dspy.Prediction:
+        """
+        Asynchronously synthesize plan using ReAct.
+
+        This method overrides BaseModule.aforward with a flexible signature
+        while delegating to an internal implementation that expects the
+        richer, structured arguments used by this module.
+
+        It supports being called either with the original keyword arguments
+        (requirements, intent_analysis, taxonomy_analysis, dependency_analysis,
+        user_confirmation) or with a single positional argument that is treated
+        as `requirements`.
+        """
+        # Support keyword-based calls (current usage).
+        if kwargs:
+            requirements = kwargs.get("requirements")
+            intent_analysis = kwargs.get("intent_analysis", {})
+            taxonomy_analysis = kwargs.get("taxonomy_analysis", {})
+            dependency_analysis = kwargs.get("dependency_analysis", {})
+            user_confirmation = kwargs.get("user_confirmation", "")
+        else:
+            # Fallback for positional-only calls (e.g., via BaseModule interface).
+            requirements = args[0] if len(args) > 0 else None
+            intent_analysis = {}
+            taxonomy_analysis = {}
+            dependency_analysis = {}
+            user_confirmation = ""
+
+        return await self._aforward_impl(
+            requirements=requirements,
+            intent_analysis=intent_analysis,
+            taxonomy_analysis=taxonomy_analysis,
+            dependency_analysis=dependency_analysis,
+            user_confirmation=user_confirmation,
+        )
+
+    async def _aforward_impl(
         self,
         requirements: dict,
         intent_analysis: dict,
@@ -69,7 +105,7 @@ class SynthesizePlanModule(BaseModule):
         user_confirmation: str = "",
     ) -> dspy.Prediction:
         """
-        Asynchronously synthesize plan using ReAct.
+        Internal implementation for asynchronous plan synthesis using ReAct.
 
         Args:
             requirements: Requirements from GatherRequirementsModule
@@ -83,7 +119,6 @@ class SynthesizePlanModule(BaseModule):
             - skill_name, skill_description, taxonomy_path
             - content_outline, generation_guidance
             - success_criteria, estimated_length, tags, rationale
-
         """
         # Use ReAct for iterative synthesis (best-effort). Some test LMs only implement
         # sync calling; fall back to heuristics if async LM calls fail.

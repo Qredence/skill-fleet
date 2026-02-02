@@ -139,8 +139,13 @@ class GenerateSkillContentModule(BaseModule):
             "missing_sections": template_validation.get("missing_sections", []),
         }
 
-    async def aforward(  # type: ignore[override]
-        self, plan: dict, understanding: dict, skill_style: str = "comprehensive"
+    async def aforward(
+        self,
+        plan: dict | None = None,
+        understanding: dict | None = None,
+        skill_style: str = "comprehensive",
+        *args: Any,
+        **kwargs: Any,
     ) -> dspy.Prediction:
         """
         Generate skill content asynchronously.
@@ -155,6 +160,12 @@ class GenerateSkillContentModule(BaseModule):
 
         """
         start_time = time.time()
+
+        # Ensure we have dicts for plan and understanding, even if not provided positionally.
+        if plan is None:
+            plan = kwargs.get("plan", {})  # fallback to empty plan if not supplied
+        if understanding is None:
+            understanding = kwargs.get("understanding", {})  # fallback to empty understanding
 
         # Create structured inputs following DSPy best practices
         skill_plan = self._create_skill_plan(plan, understanding)

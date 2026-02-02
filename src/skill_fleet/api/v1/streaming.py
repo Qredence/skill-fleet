@@ -198,8 +198,10 @@ async def _execute_skill_creation_stream(
             yield f"data: {json.dumps({'type': 'complete', 'message': 'Skill creation completed'})}\n\n"
 
         except Exception as e:
-            logger.error(f"Streaming error: {e}")
-            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+            # Log detailed error information on the server, including the stack trace,
+            # but do not expose internal details to the client.
+            logger.exception("Streaming error")
+            yield f"data: {json.dumps({'type': 'error', 'message': 'An internal error occurred during streaming.'})}\n\n"
 
         finally:
             yield "data: [DONE]\n\n"

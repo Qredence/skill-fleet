@@ -49,17 +49,27 @@ jobs:
 
       - name: Get failed workflow info
         id: workflow-info
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+          WORKFLOW_RUN_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          WORKFLOW_RUN_NAME: ${{ github.event.workflow_run.name }}
+          INPUTS_RUN_ID: ${{ github.event.inputs.run_id }}
+          INPUTS_BRANCH: ${{ github.event.inputs.branch }}
+          REF_NAME: ${{ github.ref_name }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          REPO: ${{ github.repository }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_run" ]; then
-            echo "run_id=${{ github.event.workflow_run.id }}" >> $GITHUB_OUTPUT
-            echo "branch=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_OUTPUT
-            echo "workflow_name=${{ github.event.workflow_run.name }}" >> $GITHUB_OUTPUT
-            echo "workflow_url=https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}" >> $GITHUB_OUTPUT
+          if [ "$EVENT_NAME" = "workflow_run" ]; then
+            echo "run_id=$WORKFLOW_RUN_ID" >> $GITHUB_OUTPUT
+            echo "branch=$WORKFLOW_RUN_BRANCH" >> $GITHUB_OUTPUT
+            echo "workflow_name=$WORKFLOW_RUN_NAME" >> $GITHUB_OUTPUT
+            echo "workflow_url=https://github.com/$REPO/actions/runs/$WORKFLOW_RUN_ID" >> $GITHUB_OUTPUT
           else
-            echo "run_id=${{ github.event.inputs.run_id }}" >> $GITHUB_OUTPUT
-            echo "branch=${{ github.event.inputs.branch || github.ref_name }}" >> $GITHUB_OUTPUT
+            echo "run_id=$INPUTS_RUN_ID" >> $GITHUB_OUTPUT
+            echo "branch=${INPUTS_BRANCH:-$REF_NAME}" >> $GITHUB_OUTPUT
             echo "workflow_name=Manual CI Fix" >> $GITHUB_OUTPUT
-            echo "workflow_url=https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> $GITHUB_OUTPUT
+            echo "workflow_url=https://github.com/$REPO/actions/runs/$GITHUB_RUN_ID" >> $GITHUB_OUTPUT
           fi
 
       - name: Download workflow logs

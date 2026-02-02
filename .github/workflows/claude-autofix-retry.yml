@@ -52,10 +52,17 @@ jobs:
     steps:
       - name: Determine current attempt
         id: check
+        env:
+          INPUTS_ATTEMPT: ${{ github.event.inputs.attempt }}
+          WORKFLOW_RUN_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          INPUTS_BRANCH: ${{ github.event.inputs.branch }}
+          REF_NAME: ${{ github.ref_name }}
+          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+          INPUTS_RUN_ID: ${{ github.event.inputs.run_id }}
         run: |
-          ATTEMPT="${{ github.event.inputs.attempt || '1' }}"
-          BRANCH="${{ github.event.workflow_run.head_branch || github.event.inputs.branch || github.ref_name }}"
-          RUN_ID="${{ github.event.workflow_run.id || github.event.inputs.run_id }}"
+          ATTEMPT="${INPUTS_ATTEMPT:-1}"
+          BRANCH="${WORKFLOW_RUN_BRANCH:-${INPUTS_BRANCH:-$REF_NAME}}"
+          RUN_ID="${WORKFLOW_RUN_ID:-$INPUTS_RUN_ID}"
 
           echo "Current attempt: $ATTEMPT / $MAX_ATTEMPTS"
           echo "Branch: $BRANCH"

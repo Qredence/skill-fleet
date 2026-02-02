@@ -187,6 +187,8 @@ jobs:
 
       - name: Push fixes to branch
         if: always()
+        env:
+          BRANCH: ${{ steps['workflow-info'].outputs.branch }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -197,7 +199,7 @@ jobs:
             echo "📝 Committing and pushing fixes..."
             git add -A
             git commit -m "fix(ci): auto-fix ci failures" || echo "No new changes to commit"
-            git push origin HEAD:${{ steps.workflow-info.outputs.branch }} || {
+            git push origin HEAD:$BRANCH || {
               echo "⚠️ Push failed - branch may have diverged"
               exit 1
             }

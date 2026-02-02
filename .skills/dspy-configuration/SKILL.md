@@ -14,36 +14,51 @@ DSPy configuration, LM setup, caching, and version management.
 import dspy
 
 # Configure LM globally
-dspy.configure(lm=dspy.LM('openai/gpt-4o-mini'))
+dspy.configure(lm=dspy.LM('gemini/gemini-3-flash'))
 response = qa(question="How many floors are in the castle?")
-print('GPT-4o-mini:', response.answer)
+print('Gemini-3-flash:', response.answer)
 ```
 
 ### Switch LM Locally
 ```python
 # Change LM within a context block
-with dspy.context(lm=dspy.LM('openai/gpt-3.5-turbo')):
+with dspy.context(lm=dspy.LM('gemini/gemini-3-flash')):
     response = qa(question="How many floors are in the castle?")
-    print('GPT-3.5-turbo:', response.answer)
+    print('Gemini-3-flash:', response.answer)
 ```
 
 ### Enable Caching
 ```python
-# Configure caching
+# Caching is enabled by default in DSPy
+
+# Method 1: Configure cache globally
 dspy.configure_cache(
     enable_disk_cache=True,
     enable_memory_cache=True,
+    disk_size_limit_bytes=30_000_000_000,  # 30 GB
+    memory_max_entries=1000000,
 )
+
+# Method 2: Disable caching for a specific call
+with dspy.context(cache=False):
+    response = qa(question="Uncached question")
+
+# Method 3: Configure cache at LM level
+lm = dspy.LM(
+    "gemini/gemini-3-flash",
+    cache=True,  # Enable caching (default)
+)
+dspy.configure(lm=lm)
 ```
 
-### Configure Responses API
+### Configure LM Parameters
 ```python
 dspy.configure(
     lm=dspy.LM(
-        "openai/gpt-5-mini",
-        model_type="responses",
+        "gemini/gemini-3-flash",
         temperature=1.0,
         max_tokens=16000,
+        cache=True,
     ),
 )
 ```

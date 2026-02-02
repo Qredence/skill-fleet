@@ -29,7 +29,9 @@ except ImportError:
     sys.exit(1)
 
 
-def compile_module(module_name: str, teleprompter_name: str, cache_dir: Path, output: Path, verbose: bool):
+def compile_module(
+    module_name: str, teleprompter_name: str, cache_dir: Path, output: Path, verbose: bool
+):
     """Compile a DSPy module with the specified teleprompter."""
     print(f"Compiling module: {module_name}")
     print(f"Teleprompter: {teleprompter_name}")
@@ -40,9 +42,11 @@ def compile_module(module_name: str, teleprompter_name: str, cache_dir: Path, ou
     try:
         if module_name == "reasoner":
             from agentic_fleet.dspy_modules.reasoner import DSPyReasoner
+
             module = DSPyReasoner()
         elif module_name == "task_analyzer":
             from agentic_fleet.dspy_modules.reasoner_modules import TaskAnalysisModule
+
             module = TaskAnalysisModule()
         else:
             print(f"Error: Unknown module '{module_name}'")

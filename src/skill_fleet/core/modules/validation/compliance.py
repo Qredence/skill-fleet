@@ -4,11 +4,12 @@ Validation modules for skill quality assurance.
 Uses validation signatures to check compliance and assess quality.
 """
 
-import time
 from typing import Any
 
 import dspy
 
+from skill_fleet.common.llm_fallback import with_llm_fallback
+from skill_fleet.common.utils import timed_execution
 from skill_fleet.core.modules.base import BaseModule
 from skill_fleet.core.signatures.validation.compliance import (
     AssessQuality,
@@ -28,24 +29,32 @@ class ValidateComplianceModule(BaseModule):
         super().__init__()
         self.validate = dspy.ChainOfThought(ValidateCompliance)
 
-    async def aforward(self, **kwargs: Any) -> dict[str, Any]:
+    @with_llm_fallback(default_return=None)
+    async def _call_lm(self, skill_content: str, taxonomy_path: str) -> Any:
+        return await self.validate.acall(skill_content=skill_content, taxonomy_path=taxonomy_path)
+
+    @timed_execution()
+    async def aforward(self, **kwargs: Any) -> dspy.Prediction:
         """
         Validate skill compliance.
 
         Args:
             skill_content: SKILL.md content
             taxonomy_path: Expected taxonomy path
+            **kwargs: Additional keyword arguments for compatibility.
 
         Returns:
-            Validation results with score and issues
+            dspy.Prediction with validation results (score, issues)
 
         """
         skill_content: str = kwargs["skill_content"]
         taxonomy_path: str = kwargs["taxonomy_path"]
 
-        start_time = time.time()
-
-        result = await self.validate.acall(skill_content=skill_content, taxonomy_path=taxonomy_path)
+        result = await self._call_lm(skill_content, taxonomy_path)
+        if result is None:
+            self.logger.warning("Compliance validation failed. Using lightweight checks.")
+            fallback = self._create_fallback_result(skill_content, taxonomy_path)
+            return self._to_prediction(**fallback)
 
         output = {
             "passed": bool(result.passed) if hasattr(result, "passed") else False,
@@ -65,88 +74,259 @@ class ValidateComplianceModule(BaseModule):
             output["passed"] = False
             output["compliance_score"] = 0.0
 
-        # Log
-        duration_ms = (time.time() - start_time) * 1000
-        self._log_execution(
-            inputs={"content_length": len(skill_content), "path": taxonomy_path},
-            outputs={"passed": output["passed"], "score": output["compliance_score"]},
-            duration_ms=duration_ms,
-        )
+        return self._to_prediction(**output)
 
-        return output
+    def _create_fallback_result(self, skill_content: str, taxonomy_path: str) -> dict[str, Any]:
+        """
+        Lightweight compliance checks when LLM-based validation fails.
 
-    def forward(self, **kwargs) -> dict[str, Any]:
+        Intended to keep workflows/test runs functional when no LM is configured.
+        """
+        issues: list[str] = []
+        warnings: list[str] = []
+
+        content = skill_content or ""
+        passed = True
+
+        if not content.strip().startswith("---"):
+            passed = False
+            issues.append("Missing YAML frontmatter (--- ... ---) at top of SKILL.md")
+
+        lowered = content.lower()
+        if "name:" not in lowered:
+            passed = False
+            issues.append("Frontmatter missing required field: name")
+        if "description:" not in lowered:
+            passed = False
+            issues.append("Frontmatter missing required field: description")
+
+        # Basic check that taxonomy path is present/valid-ish.
+        if not taxonomy_path or "/" not in taxonomy_path:
+            warnings.append("Taxonomy path is missing or not in expected 'category/name' format")
+
+        compliance_score = 0.9 if passed else 0.2
+        return {
+            "passed": passed,
+            "compliance_score": compliance_score,
+            "issues": issues,
+            "critical_issues": [],
+            "warnings": warnings,
+            "auto_fixable": [],
+            "fallback": True,
+        }
+
+    def forward(self, **kwargs) -> dspy.Prediction:
         """Synchronous forward - delegates to async."""
-        import asyncio
+        from dspy.utils.syncify import run_async
 
-        return asyncio.run(self.aforward(**kwargs))
+        return run_async(self.aforward(**kwargs))
 
 
 class AssessQualityModule(BaseModule):
-    """Assess overall skill quality."""
+    """Assess overall skill quality including size and conciseness."""
 
     def __init__(self):
         super().__init__()
         self.assess = dspy.ChainOfThought(AssessQuality)
 
-    async def aforward(  # type: ignore[override]
-        self, skill_content: str, plan: dict, success_criteria: list[str] | None = None
-    ) -> dict[str, Any]:
+    @with_llm_fallback(default_return=None)
+    async def _call_lm(self, skill_content: str, plan: dict, success_criteria: list) -> Any:
+        return await self.assess.acall(
+            skill_content=skill_content, plan=str(plan), success_criteria=success_criteria
+        )
+
+    @timed_execution()
+    async def aforward(self, **kwargs) -> dspy.Prediction:
         """
         Assess skill quality.
 
+        Performs both LLM-based quality assessment and rule-based checks for:
+        - Size (word count)
+        - Conciseness (verbosity score)
+
         Args:
+            **kwargs: Keyword arguments containing skill_content, plan, and success_criteria
             skill_content: SKILL.md content
             plan: Original plan
             success_criteria: Criteria to check
 
         Returns:
-            Quality assessment with scores
+            dspy.Prediction with quality assessment (scores and metrics)
 
         """
-        start_time = time.time()
+        # Extract expected arguments from kwargs for compatibility with BaseModule.aforward
+        skill_content: str = kwargs.get("skill_content", "")
+        plan: dict = kwargs.get("plan", {})
+        success_criteria = kwargs.get("success_criteria")
 
-        result = await self.assess.acall(
-            skill_content=skill_content, plan=str(plan), success_criteria=success_criteria or []
-        )
+        # Rule-based size and conciseness checks (always available, even if LLM fails)
+        word_count = len(skill_content.split())
+        size_assessment = self._assess_size(word_count)
+        verbosity_score = self._assess_verbosity(skill_content)
+
+        # LLM-based quality assessment (best-effort)
+        result = await self._call_lm(skill_content, plan, success_criteria or [])
+        if result is None:
+            self.logger.warning("Quality LLM assessment failed. Using rule-based metrics.")
 
         output = {
-            "overall_score": float(result.overall_score)
-            if hasattr(result, "overall_score")
+            "overall_score": float(getattr(result, "overall_score", 0.0) or 0.0)
+            if result is not None
             else 0.0,
-            "completeness": float(result.completeness) if hasattr(result, "completeness") else 0.0,
-            "clarity": float(result.clarity) if hasattr(result, "clarity") else 0.0,
-            "usefulness": float(result.usefulness) if hasattr(result, "usefulness") else 0.0,
-            "accuracy": float(result.accuracy) if hasattr(result, "accuracy") else 0.0,
-            "strengths": result.strengths if isinstance(result.strengths, list) else [],
-            "weaknesses": result.weaknesses if isinstance(result.weaknesses, list) else [],
-            "meets_success_criteria": result.meets_success_criteria
-            if isinstance(result.meets_success_criteria, list)
+            "completeness": float(getattr(result, "completeness", 0.0) or 0.0)
+            if result is not None
+            else 0.0,
+            "clarity": float(getattr(result, "clarity", 0.0) or 0.0) if result is not None else 0.0,
+            "usefulness": float(getattr(result, "usefulness", 0.0) or 0.0)
+            if result is not None
+            else 0.0,
+            "accuracy": float(getattr(result, "accuracy", 0.0) or 0.0)
+            if result is not None
+            else 0.0,
+            "strengths": getattr(result, "strengths", []) if result is not None else [],
+            "weaknesses": getattr(result, "weaknesses", []) if result is not None else [],
+            "feedback": getattr(result, "feedback", "") if result is not None else "",
+            "meets_success_criteria": getattr(result, "meets_success_criteria", [])
+            if result is not None
             else [],
-            "missing_success_criteria": result.missing_success_criteria
-            if isinstance(result.missing_success_criteria, list)
+            "missing_success_criteria": getattr(result, "missing_success_criteria", [])
+            if result is not None
             else [],
+            # NEW: Size and conciseness metrics
+            "word_count": word_count,
+            "size_assessment": size_assessment,
+            "verbosity_score": verbosity_score,
+            "size_recommendations": self._generate_size_recommendations(
+                word_count, size_assessment
+            ),
+            "conciseness_recommendations": self._generate_conciseness_recommendations(
+                verbosity_score, skill_content
+            ),
         }
 
         # Validate
         if not self._validate_result(output, ["overall_score"]):
             output["overall_score"] = 0.0
 
-        # Log
-        duration_ms = (time.time() - start_time) * 1000
-        self._log_execution(
-            inputs={"content_length": len(skill_content)},
-            outputs={"overall_score": output["overall_score"]},
-            duration_ms=duration_ms,
+        return self._to_prediction(**output)
+
+    def _assess_size(self, word_count: int) -> str:
+        """
+        Assess skill size based on word count.
+
+        Args:
+            word_count: Number of words in skill content
+
+        Returns:
+            Size assessment: 'optimal', 'acceptable', or 'too_large'
+
+        """
+        if word_count < 3000:
+            return "optimal"
+        elif word_count < 5000:
+            return "acceptable"
+        else:
+            return "too_large"
+
+    def _assess_verbosity(self, content: str) -> float:
+        """
+        Assess content verbosity (0.0 = very concise, 1.0 = very verbose).
+
+        Uses heuristics:
+        - Average sentence length
+        - Ratio of filler words to content words
+        - Section density
+
+        Args:
+            content: Skill content
+
+        Returns:
+            Verbosity score (0.0 - 1.0)
+
+        """
+        import re
+
+        # Split into sentences (rough approximation)
+        sentences = re.split(r"[.!?]+", content)
+        sentences = [s.strip() for s in sentences if s.strip()]
+
+        if not sentences:
+            return 0.0
+
+        # Calculate average sentence length
+        avg_sentence_length = sum(len(s.split()) for s in sentences) / len(sentences)
+
+        # Count filler words (common verbose phrases)
+        filler_patterns = [
+            r"\bin order to\b",
+            r"\bdue to the fact that\b",
+            r"\bat this point in time\b",
+            r"\bin the event that\b",
+            r"\bfor the purpose of\b",
+            r"\bit is important to note that\b",
+            r"\bit should be noted that\b",
+        ]
+
+        filler_count = sum(
+            len(re.findall(pattern, content, re.IGNORECASE)) for pattern in filler_patterns
         )
+        filler_ratio = filler_count / max(len(sentences), 1)
 
-        return output
+        # Calculate verbosity score (0-1)
+        # Longer sentences + more filler words = more verbose
+        length_score = max(
+            0.0, min((avg_sentence_length - 10) / 20, 1.0)
+        )  # Normalize: 10 words = 0, 30 words = 1, clamped to [0, 1]
+        filler_score = min(filler_ratio * 5, 1.0)  # Scale filler ratio
 
-    def forward(self, **kwargs) -> dict[str, Any]:
-        """Synchronous forward - delegates to async."""
-        import asyncio
+        verbosity = length_score * 0.6 + filler_score * 0.4
+        # Ensure final value is in [0, 1] range
+        return max(0.0, min(round(verbosity, 2), 1.0))
 
-        return asyncio.run(self.aforward(**kwargs))
+    def _generate_size_recommendations(self, word_count: int, size_assessment: str) -> list[str]:
+        """Generate recommendations based on skill size."""
+        recommendations = []
+
+        if size_assessment == "too_large":
+            recommendations.append(
+                f"Skill is {word_count} words (recommended: <5000). "
+                "Consider moving detailed documentation to references/ folder."
+            )
+        elif size_assessment == "acceptable":
+            recommendations.append(
+                f"Skill is {word_count} words. Consider using progressive disclosure "
+                "if content continues to grow."
+            )
+
+        return recommendations
+
+    def _generate_conciseness_recommendations(
+        self, verbosity_score: float, content: str
+    ) -> list[str]:
+        """Generate recommendations for improving conciseness."""
+        recommendations = []
+
+        if verbosity_score > 0.7:
+            recommendations.append(
+                "Instructions are quite verbose. Consider: "
+                "1) Using bullet points, 2) Removing filler phrases, "
+                "3) Moving detailed explanations to references/"
+            )
+        elif verbosity_score > 0.5:
+            recommendations.append(
+                "Some sections could be more concise. Use bullet points "
+                "and numbered lists for clarity."
+            )
+
+        # Check for common verbose patterns
+        import re
+
+        if re.search(r"\b(it is|there are|there is)\b", content, re.IGNORECASE):
+            recommendations.append(
+                "Consider removing 'it is/there are' constructions for more direct language."
+            )
+
+        return recommendations
 
 
 class RefineSkillModule(BaseModule):
@@ -156,9 +336,16 @@ class RefineSkillModule(BaseModule):
         super().__init__()
         self.refine = dspy.ChainOfThought(RefineSkill)
 
-    async def aforward(  # type: ignore[override]
+    @with_llm_fallback(default_return=None)
+    async def _call_lm(self, current_content: str, weaknesses: list, target_score: float) -> Any:
+        return await self.refine.acall(
+            current_content=current_content, weaknesses=weaknesses, target_score=target_score
+        )
+
+    @timed_execution()
+    async def aforward(
         self, current_content: str, weaknesses: list[str], target_score: float = 0.8
-    ) -> dict[str, Any]:
+    ) -> dspy.Prediction:
         """
         Refine skill content.
 
@@ -171,24 +358,22 @@ class RefineSkillModule(BaseModule):
             Refined content
 
         """
-        start_time = time.time()
-
-        result = await self.refine.acall(
-            current_content=current_content, weaknesses=weaknesses, target_score=target_score
-        )
+        result = await self._call_lm(current_content, weaknesses, target_score)
+        if result is None:
+            self.logger.warning("Refinement failed. Returning original content.")
 
         output = {
-            "refined_content": result.refined_content
-            if hasattr(result, "refined_content")
-            else current_content,
-            "improvements_made": result.improvements_made
-            if isinstance(result.improvements_made, list)
+            "refined_content": getattr(result, "refined_content", None)
+            if result is not None
+            else None,
+            "improvements_made": getattr(result, "improvements_made", [])
+            if result is not None
             else [],
-            "new_score_estimate": float(result.new_score_estimate)
-            if hasattr(result, "new_score_estimate")
+            "new_score_estimate": float(getattr(result, "new_score_estimate", 0.0) or 0.0)
+            if result is not None
             else 0.0,
-            "requires_another_pass": bool(result.requires_another_pass)
-            if hasattr(result, "requires_another_pass")
+            "requires_another_pass": bool(getattr(result, "requires_another_pass", False))
+            if result is not None
             else False,
         }
 
@@ -196,21 +381,10 @@ class RefineSkillModule(BaseModule):
         if not self._validate_result(output, ["refined_content"]):
             output["refined_content"] = current_content
 
-        # Log
-        duration_ms = (time.time() - start_time) * 1000
-        improvements_list = output.get("improvements_made", [])
-        if not isinstance(improvements_list, list):
-            improvements_list = []
-        self._log_execution(
-            inputs={"weaknesses_count": len(weaknesses), "target": target_score},
-            outputs={"improvements": len(improvements_list)},
-            duration_ms=duration_ms,
-        )
+        return self._to_prediction(**output)
 
-        return output
-
-    def forward(self, **kwargs) -> dict[str, Any]:
+    def forward(self, **kwargs) -> dspy.Prediction:
         """Synchronous forward - delegates to async."""
-        import asyncio
+        from dspy.utils.syncify import run_async
 
-        return asyncio.run(self.aforward(**kwargs))
+        return run_async(self.aforward(**kwargs))

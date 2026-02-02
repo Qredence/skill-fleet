@@ -26,6 +26,7 @@ class MySignature(dspy.Signature):
 
 # Example signatures for common patterns
 
+
 class SimpleInputOutput(dspy.Signature):
     """Simple signature with one input and one output."""
 
@@ -57,10 +58,10 @@ class TypedSignature(dspy.Signature):
     from typing import List, Optional
 
     text = dspy.InputField(desc="Text to analyze")
-    keywords: List[str] = dspy.OutputField(desc="List of keywords")
+    keywords: list[str] = dspy.OutputField(desc="List of keywords")
     sentiment: str = dspy.OutputField(desc="Sentiment classification")
     confidence: float = dspy.OutputField(desc="Confidence score")
-    notes: Optional[str] = dspy.OutputField(desc="Optional notes")
+    notes: str | None = dspy.OutputField(desc="Optional notes")
 
 
 class ClassificationSignature(dspy.Signature):

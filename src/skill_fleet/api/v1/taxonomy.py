@@ -19,6 +19,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Path
 
+from skill_fleet.common.logging_utils import sanitize_for_log
 from skill_fleet.common.security import sanitize_taxonomy_path
 
 from ..dependencies import TaxonomyManagerDep
@@ -32,31 +33,6 @@ from ..schemas.taxonomy import (
 from ..services.cached_taxonomy import get_cached_taxonomy_service
 
 logger = logging.getLogger(__name__)
-
-
-def _sanitize_for_log(value: str) -> str:
-    """Sanitize a value for safe logging by removing control characters, line breaks, and ANSI escapes."""
-    import re
-
-    # Ensure we are always working with a string; this avoids type surprises in logging.
-    if not isinstance(value, str):
-        try:
-            value = str(value)
-        except Exception:
-            # Fallback to a generic placeholder if conversion fails for any reason.
-            return "<unloggable-value>"
-
-    # Remove ANSI escape sequences (e.g., color codes) which could affect log display.
-    value = re.sub(r"\x1b\[[0-9;]*m", "", value)
-
-    # Explicitly remove common line break sequences that can be used for log injection.
-    value = value.replace("\r\n", "").replace("\n", "").replace("\r", "")
-
-    # Remove remaining control characters (0x00-0x1f and 0x7f).
-    # Keep printable characters; this prevents log injection via other control codes.
-    value = "".join(char for char in value if char.isprintable() and ord(char) != 127)
-
-    return value
 
 
 router = APIRouter()
@@ -77,7 +53,7 @@ async def get_taxonomy(taxonomy_manager: TaxonomyManagerDep) -> TaxonomyResponse
     try:
         # Use cached taxonomy service for performance
         cached_service = get_cached_taxonomy_service(taxonomy_manager)
-        result = cached_service.get_global_taxonomy()
+        result = await cached_service.get_global_taxonomy()
 
         return TaxonomyResponse(
             taxonomy={
@@ -163,8 +139,8 @@ async def update_taxonomy(
 
             except Exception as update_err:
                 errors.append(f"Failed to update {path}: {update_err}")
-                safe_path = _sanitize_for_log(path)
-                safe_err = _sanitize_for_log(str(update_err))
+                safe_path = sanitize_for_log(path)
+                safe_err = sanitize_for_log(str(update_err))
                 logger.warning(f"Taxonomy update failed for {safe_path}: {safe_err}")
 
         # Update taxonomy meta timestamp
@@ -179,7 +155,7 @@ async def update_taxonomy(
             except Exception as meta_err:
                 logger.warning(f"Failed to update taxonomy_meta.json: {meta_err}")
 
-        safe_user_id = _sanitize_for_log(request.user_id)
+        safe_user_id = sanitize_for_log(request.user_id)
         logger.info(
             f"Taxonomy update by user {safe_user_id}: "
             f"{len(updates_applied)} applied, {len(errors)} errors"
@@ -187,7 +163,7 @@ async def update_taxonomy(
 
         # Invalidate cache to force refresh
         cached_service = get_cached_taxonomy_service(taxonomy_manager)
-        invalidated = cached_service.invalidate_taxonomy()
+        invalidated = await cached_service.invalidate_taxonomy()
         logger.info(f"Invalidated {invalidated} taxonomy cache entries")
 
         return {
@@ -221,7 +197,7 @@ async def get_user_taxonomy(
     try:
         # Use cached taxonomy service for performance
         cached_service = get_cached_taxonomy_service(taxonomy_manager)
-        result = cached_service.get_user_taxonomy(user_id)
+        result = await cached_service.get_user_taxonomy(user_id)
 
         # Build usage stats
         usage_stats = {
@@ -273,14 +249,14 @@ async def adapt_taxonomy(
         if request and request.query_history:
             # Use recent queries to find relevant taxonomy branches
             query_text = " ".join(request.query_history[-5:])  # Last 5 queries
-            relevant_branches = cached_service.get_relevant_branches(query_text)
+            relevant_branches = await cached_service.get_relevant_branches(query_text)
         else:
             # Fallback to full taxonomy from cache
-            result = cached_service.get_global_taxonomy()
+            result = await cached_service.get_global_taxonomy()
             relevant_branches = result["structure"]
 
         # Get mounted skills from cached user taxonomy
-        user_taxonomy_result = cached_service.get_user_taxonomy(user_id)
+        user_taxonomy_result = await cached_service.get_user_taxonomy(user_id)
         mounted_skills = user_taxonomy_result["mounted_skills"]
 
         # Build adapted taxonomy
@@ -325,3 +301,28 @@ async def adapt_taxonomy(
     except Exception as e:
         logger.exception(f"Error adapting taxonomy: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to adapt taxonomy: {e}") from e
+
+
+@router.post("/invalidate-cache", response_model=dict[str, Any])
+async def invalidate_taxonomy_cache(
+    taxonomy_manager: TaxonomyManagerDep,
+) -> dict[str, Any]:
+    """
+    Invalidate the taxonomy cache.
+
+    Args:
+        taxonomy_manager: Injected TaxonomyManager
+
+    Returns:
+        dict: Success message with count of invalidated entries
+
+    """
+    try:
+        cached_service = get_cached_taxonomy_service(taxonomy_manager)
+        invalidated = await cached_service.invalidate_taxonomy()
+
+        return {"success": True, "invalidated_count": invalidated}
+
+    except Exception as e:
+        logger.exception(f"Error invalidating taxonomy cache: {e}")
+        raise HTTPException(status_code=500, detail="Failed to invalidate cache") from e

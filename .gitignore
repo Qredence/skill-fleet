@@ -3,13 +3,14 @@
 # =============================================================================
 .venv/
 .uv-cache/
+.uv_cache/
 __pycache__/
 *.pyc
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
 .dspy_cache/
-
+.cache/
 # =============================================================================
 # Environment & Secrets
 # =============================================================================
@@ -39,9 +40,10 @@ data/
 mlruns/
 mlartifacts/
 mlflow.db
+skill_fleet_dev.db
 server.log
 *.log
-
+docs/internal/
 # =============================================================================
 # Agent Configurations (consolidated under .fleet/)
 # =============================================================================
@@ -49,11 +51,11 @@ server.log
 .claude/
 .factory/
 .letta/
-.skills/
+.opencode/
 .ai/
 .junie/
 opencode.jsonc
-.agents/
+.agents/ski/
 # =============================================================================
 # Skills
 # =============================================================================
@@ -65,7 +67,7 @@ skills/_drafts/
 *.egg-info/
 dist/
 build/
-
+PRD.md
 # =============================================================================
 # Legacy/Project-Specific
 # =============================================================================
@@ -84,10 +86,8 @@ docs/internal/reports/
 # =============================================================================
 # Misc
 # =============================================================================
-skills/practices/rlm/scripts/rlm_repl.py
-skills/python/fastapi-production/examples/02-partial-updates/interactive_demo.py
-skills/python/fastapi-production/examples/02-partial-updates/patch_endpoint_example.py
-skills/python/fastapi-production/examples/02-partial-updates/test_patch_endpoint.py
+skills/p
+
 
 # =============================================================================
 # Coverage & Testing
@@ -118,8 +118,44 @@ htmlcov/
 .github/skills/
 
 # Frontend (WIP - not ready for commit)
-src/frontend/
-.opencode/skills/ai-sdk
-.opencode/skills/skill-creator
-.opencode/skills/skill-judge
-.agent/skills/ai-sdk
+
+
+.agents/skills
+src/frontend/fleetui/.agents/skills/agentation/SKILL.md
+docs/archive/
+docs/archive/README.md
+docs/internal
+docs/archive/README.md
+docs/archive
+docs/archive/README.md
+plans/
+migrations/
+scripts/internal/dev/check_docstrings.py
+scripts/internal/dev/cleanup-technical-debt.sh
+scripts/internal/dev/final_docstring_check.py
+scripts/internal/migration/cleanup_legacy.py
+scripts/internal/opt/benchmark_optimizers.py
+scripts/internal/opt/run_gepa_optimization.py
+scripts/internal/opt/run_optimization.py
+scripts/internal/setup/setup_branch_protection.sh
+scripts/internal/tests/test_repository.py
+
+.skills/
+.agents/
+.skills/dspy-basics/templates/program-template.py
+.skills/dspy-basics/templates/signature-template.py
+.skills/dspy-configuration/scripts/compile-dspy.py
+.skills/dspy-optimization/scripts/optimize-dspy.py
+.skills/dspy-optimization/scripts/test-signature.py
+.skills/dspy-optimization-workflow/SKILL.md
+.skills/dspy-optimization-workflow/examples/example_metric.py
+.skills/dspy-optimization-workflow/examples/example_signature.py
+.skills/dspy-optimization-workflow/references/api-reference.md
+.skills/dspy-optimization-workflow/references/best-practices.md
+.skills/dspy-optimization-workflow/references/phase1-implementation.md
+.skills/dspy-optimization-workflow/references/troubleshooting.md
+.skills/dspy-optimization-workflow/scripts/quick_optimize.py
+.skills/frontend-ui-integration/SKILL.md
+.skills/product-management/SKILL.md
+PLANS.md
+TODOS.md

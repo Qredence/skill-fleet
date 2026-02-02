@@ -1,6 +1,6 @@
 ---
-name: DSPy Optimization Workflow for Skills-Fleet
-description: Use when optimizing DSPy programs in skills-fleet, implementing quality improvements, using optimization API endpoints, or troubleshooting DSPy issues. Complete 3-phase implementation guide (signatures → training → monitoring → metrics → ensemble → versioning → caching).
+name: dspy-optimization-workflow
+description: Complete 3-phase guide for optimizing DSPy programs in Skills-Fleet. Use when implementing quality improvements, using optimization API endpoints, or troubleshooting DSPy issues.
 ---
 
 # DSPy Optimization Workflow for Skills-Fleet
@@ -70,7 +70,7 @@ uv run python scripts/test_phase_implementation.py
    - Add Literal types for constrained outputs
    - Specific OutputField constraints with quality indicators
    - Concise, actionable docstrings
-   
+
 2. **Expand Training Data** → See [references/phase1-implementation.md](references/phase1-implementation.md#training-data-expansion)
    - Target: 50-100 examples (DSPy recommendation)
    - Extract from existing skills
@@ -162,18 +162,18 @@ async with httpx.AsyncClient() as client:
         }
     )
     job_id = response.json()["job_id"]
-    
+
     # Poll for completion
     while True:
         status = await client.get(
             f"http://localhost:8000/api/v1/optimization/status/{job_id}"
         )
         data = status.json()
-        
+
         if data["status"] == "completed":
             print(f"Quality score: {data['result']['quality_score']}")
             break
-        
+
         await asyncio.sleep(5)
 ```
 
@@ -337,7 +337,7 @@ After loading this skill:
 
 ---
 
-**Implementation Status**: ✅ All phases complete (Jan 19, 2026)  
-**Test Results**: 10/10 tests passing  
-**Type Checks**: ✅ Passing (11 expected MLflow warnings)  
+**Implementation Status**: ✅ All phases complete (Jan 19, 2026)
+**Test Results**: 10/10 tests passing
+**Type Checks**: ✅ Passing (11 expected MLflow warnings)
 **Ready for Production**: Yes

@@ -368,8 +368,13 @@ def start_parent_run(
         mlflow.set_tracking_uri(DEFAULT_TRACKING_URI)
         mlflow.set_experiment(experiment_name)
 
+        start_run = getattr(mlflow, "start_run", None)
+        if start_run is None:
+            logger.warning("mlflow.start_run is not available; skipping MLflow parent run")
+            return None
+
         # Start the parent run
-        run = mlflow.start_run(
+        run = start_run(
             run_name=run_name[:100],  # MLflow limits run name to 100 chars
             description=description,
         )
@@ -423,10 +428,14 @@ def start_child_run(run_name: str) -> Any:
     try:
         import mlflow
 
-        return mlflow.start_run(
-            run_name=run_name,
-            nested=True,  # type: ignore[attr-defined]
-        )
+        start_run = getattr(mlflow, "start_run", None)
+        if start_run is None:
+            from contextlib import nullcontext
+
+            logger.warning("mlflow.start_run is not available; skipping MLflow child run")
+            return nullcontext()
+
+        return start_run(run_name=run_name, nested=True)
     except Exception as e:
         logger.warning(f"Failed to start child run: {e}")
         # Return a no-op context manager
@@ -557,7 +566,7 @@ def log_quality_metrics(quality_data: dict[str, Any], prefix: str = "quality") -
 
         # Extract common quality metrics
         for key, value in quality_data.items():
-            if isinstance(value, (int, float, bool)):
+            if isinstance(value, int | float | bool):
                 metrics[f"{prefix}_{key}"] = float(value)
 
         mlflow.log_metrics(metrics)  # type: ignore[attr-defined]

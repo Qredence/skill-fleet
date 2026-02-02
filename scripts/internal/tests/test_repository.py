@@ -15,6 +15,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import os as python_os
 
 from dotenv import load_dotenv
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
 
 # Import models and repositories
 from skill_fleet.db.models import (
@@ -23,8 +25,6 @@ from skill_fleet.db.models import (
     skill_type_enum,
 )
 from skill_fleet.db.repositories import JobRepository, SkillRepository, TaxonomyRepository
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
 
 load_dotenv()
 DATABASE_URL = python_os.getenv("DATABASE_URL", "")

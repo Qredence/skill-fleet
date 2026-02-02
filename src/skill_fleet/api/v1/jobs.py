@@ -14,7 +14,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 from ..exceptions import NotFoundException
-from ..services.jobs import get_job
+from ..services.job_manager import get_job_manager
 
 router = APIRouter()
 
@@ -43,7 +43,13 @@ class JobDetailResponse(BaseModel):
     hitl_type: str | None = Field(None, description="HITL interaction type")
 
 
-@router.get("/{job_id}")
+@router.get(
+    "/{job_id}",
+    responses={
+        404: {"description": "Job not found"},
+        500: {"description": "Internal server error"},
+    },
+)
 async def get_job_status(job_id: str) -> JobDetailResponse:
     """
     Get job status and details.
@@ -58,9 +64,19 @@ async def get_job_status(job_id: str) -> JobDetailResponse:
         NotFoundException: If job not found (404)
 
     """
-    job = get_job(job_id)
+    manager = get_job_manager()
+    job = await manager.get_job(job_id)
     if not job:
         raise NotFoundException("Job", job_id)
+
+    result: dict | None = None
+    if job.result is not None:
+        if hasattr(job.result, "model_dump"):
+            result = job.result.model_dump()
+        elif isinstance(job.result, dict):
+            result = job.result
+        else:
+            result = {"value": str(job.result)}
 
     return JobDetailResponse(
         job_id=job.job_id,
@@ -70,7 +86,7 @@ async def get_job_status(job_id: str) -> JobDetailResponse:
         current_phase=job.current_phase,
         progress_message=job.progress_message,
         error=job.error,
-        result=job.result.model_dump() if job.result else None,
+        result=result,
         draft_path=job.draft_path,
         intended_taxonomy_path=job.intended_taxonomy_path,
         validation_passed=job.validation_passed,

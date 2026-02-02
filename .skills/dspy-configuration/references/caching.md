@@ -128,6 +128,8 @@ dspy.configure_cache(
 )
 ```
 
+**Reference**: [DSPy Cache Tutorial](https://github.com/stanfordnlp/dspy/blob/main/docs/docs/tutorials/cache/index.md) | [Cheat Sheet](https://github.com/stanfordnlp/dspy/blob/main/docs/docs/cheatsheet.md)
+
 ## Custom Cache Implementation
 
 ### Custom Cache Key

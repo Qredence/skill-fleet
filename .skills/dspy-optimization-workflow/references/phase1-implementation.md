@@ -4,8 +4,8 @@ Complete walkthrough of Phase 1: Foundation (signatures, training data, monitori
 
 ## Overview
 
-**Goal**: Prepare DSPy programs for effective optimization  
-**Duration**: 1-2 days  
+**Goal**: Prepare DSPy programs for effective optimization
+**Duration**: 1-2 days
 **Prerequisites**: Basic DSPy knowledge, Python 3.12+
 
 **Deliverables**:
@@ -147,9 +147,9 @@ with open('config/training/trainset_v4.json') as f:
 
 ### Expected Distribution
 
-**Size**: 50 examples  
-**Styles**: ~70% comprehensive, ~20% navigation_hub, ~10% minimal  
-**Categories**: Represent all major domains (aim for 10+ categories)  
+**Size**: 50 examples
+**Styles**: ~70% comprehensive, ~20% navigation_hub, ~10% minimal
+**Categories**: Represent all major domains (aim for 10+ categories)
 **Sources**: Mix of golden (30%), extracted (20%), synthetic (50%)
 
 ## Task 3: Monitoring Infrastructure
@@ -177,19 +177,19 @@ class ModuleMonitor(dspy.Module):
         self.name = name
         self.tracer = tracer or ExecutionTracer()
         self.quality_metric = quality_metric
-    
+
     def forward(self, **kwargs):
         trace = self.tracer.start_trace(self.name, inputs=kwargs)
-        
+
         try:
             result = self.module(**kwargs)
-            
+
             if self.quality_metric:
                 trace.quality_score = self.quality_metric(result)
-            
+
             self.tracer.end_trace(trace, success=True)
             return result
-        
+
         except Exception as e:
             self.tracer.end_trace(trace, success=False, error=str(e))
             raise

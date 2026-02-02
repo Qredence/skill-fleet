@@ -1,9 +1,11 @@
 """Tests for understanding modules (intent, taxonomy, dependencies)."""
 
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
+import dspy
 import pytest
 
+from skill_fleet.common.serialization import normalize_dict_output
 from skill_fleet.core.modules.understanding.dependencies import AnalyzeDependenciesModule
 from skill_fleet.core.modules.understanding.intent import AnalyzeIntentModule
 from skill_fleet.core.modules.understanding.taxonomy import FindTaxonomyPathModule
@@ -30,17 +32,20 @@ class TestAnalyzeIntentModule:
         mock_result.scope = "Component creation"
         mock_result.success_criteria = ["Can create components"]
 
-        mock_cot.return_value.return_value = mock_result
+        mock_chain = Mock()
+        mock_chain.acall = AsyncMock(return_value=mock_result)
+        mock_cot.return_value = mock_chain
 
         module = AnalyzeIntentModule()
         result = module.forward(
             task_description="Build a React component library", requirements={"domain": "technical"}
         )
 
-        assert isinstance(result, dict)
-        assert result["purpose"] == "Learn React"
-        assert result["skill_type"] == "how_to"
-        assert "success_criteria" in result
+        assert isinstance(result, dspy.Prediction)
+        padded = normalize_dict_output(result)
+        assert padded["purpose"] == "Learn React"
+        assert padded["skill_type"] == "how_to"
+        assert "success_criteria" in padded
 
     @pytest.mark.skip(reason="Integration test - requires actual LM configuration")
     def test_forward_handles_missing_requirements(self):
@@ -83,10 +88,11 @@ class TestFindTaxonomyPathModule:
             existing_skills=[],
         )
 
-        assert isinstance(result, dict)
-        assert result["recommended_path"] == "technical/frontend/react"
-        assert result["confidence"] == 0.85
-        assert isinstance(result["alternative_paths"], list)
+        assert isinstance(result, dspy.Prediction)
+        padded = normalize_dict_output(result)
+        assert padded["recommended_path"] == "technical/frontend/react"
+        assert padded["confidence"] == 0.85
+        assert isinstance(padded["alternative_paths"], list)
 
     def test_confidence_is_normalized(self):
         """Should ensure confidence is in 0-1 range."""
@@ -123,10 +129,11 @@ class TestAnalyzeDependenciesModule:
             existing_skills=["javascript", "html"],
         )
 
-        assert isinstance(result, dict)
-        assert "prerequisite_skills" in result
-        assert "complementary_skills" in result
-        assert len(result["prerequisite_skills"]) == 1
+        assert isinstance(result, dspy.Prediction)
+        padded = normalize_dict_output(result)
+        assert "prerequisite_skills" in padded
+        assert "complementary_skills" in padded
+        assert len(padded["prerequisite_skills"]) == 1
 
     @pytest.mark.skip(reason="Integration test - requires actual LM configuration")
     def test_handles_empty_existing_skills(self):

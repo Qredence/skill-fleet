@@ -29,53 +29,53 @@ CREATE TYPE conversation_state_enum AS ENUM (
 CREATE TABLE conversation_sessions (
     -- Primary key
     session_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    
+
     -- User context
     user_id VARCHAR(128) NOT NULL DEFAULT 'default',
-    
+
     -- Workflow state
     state conversation_state_enum NOT NULL DEFAULT 'EXPLORING',
     task_description TEXT,
     taxonomy_path VARCHAR(512),
-    
+
     -- Multi-skill support
     multi_skill_queue TEXT[] DEFAULT '{}',
     current_skill_index INTEGER DEFAULT 0,
-    
+
     -- Conversation data (JSONB for flexibility)
     messages JSONB DEFAULT '[]',
     collected_examples JSONB DEFAULT '[]',
-    
+
     -- Draft data
     skill_draft JSONB,
     skill_metadata_draft JSONB,
-    
+
     -- TDD workflow
     checklist_state JSONB DEFAULT '{}',
-    
+
     -- Pending confirmations
     pending_confirmation JSONB,
-    
+
     -- Deep understanding phase
     deep_understanding JSONB,
     current_understanding TEXT,
-    
+
     -- User problem/goals
     user_problem TEXT,
     user_goals TEXT[],
-    
+
     -- Research context
     research_context JSONB,
-    
+
     -- Session metadata
     metadata JSONB DEFAULT '{}',
-    
+
     -- Timestamps
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     last_activity_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     expires_at TIMESTAMPTZ DEFAULT NOW() + INTERVAL '24 hours',
-    
+
     -- Optional job association
     job_id UUID REFERENCES jobs(job_id) ON DELETE SET NULL
 );
@@ -95,7 +95,7 @@ CREATE INDEX idx_sessions_created_at ON conversation_sessions(created_at DESC);
 CREATE INDEX idx_sessions_last_activity ON conversation_sessions(last_activity_at DESC);
 
 -- Expiration cleanup
-CREATE INDEX idx_sessions_expires_at ON conversation_sessions(expires_at) 
+CREATE INDEX idx_sessions_expires_at ON conversation_sessions(expires_at)
     WHERE expires_at IS NOT NULL;
 
 -- Active sessions per user
@@ -103,7 +103,7 @@ CREATE INDEX idx_sessions_active ON conversation_sessions(user_id, last_activity
     WHERE state NOT IN ('COMPLETE');
 
 -- Job association
-CREATE INDEX idx_sessions_job ON conversation_sessions(job_id) 
+CREATE INDEX idx_sessions_job ON conversation_sessions(job_id)
     WHERE job_id IS NOT NULL;
 
 -- -----------------------------------------------------------------------------
@@ -143,9 +143,9 @@ DECLARE
     deleted_count INTEGER;
 BEGIN
     DELETE FROM conversation_sessions
-    WHERE expires_at IS NOT NULL 
+    WHERE expires_at IS NOT NULL
         AND expires_at < NOW();
-    
+
     GET DIAGNOSTICS deleted_count = ROW_COUNT;
     RETURN deleted_count;
 END;

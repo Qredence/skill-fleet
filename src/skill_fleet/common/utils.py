@@ -8,8 +8,12 @@ the variety of input types encountered when working with LLM outputs.
 
 from __future__ import annotations
 
+import asyncio
+import functools
 import json
 import logging
+import time
+from collections.abc import Callable
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -145,7 +149,7 @@ def safe_float(value: Any, default: float = 0.0) -> float:
         Float value
 
     """
-    if isinstance(value, (int, float)):
+    if isinstance(value, int | float):
         return float(value)
     if isinstance(value, str):
         try:
@@ -194,7 +198,76 @@ def json_serialize(
         # Handle lists of Pydantic models
         return [item.model_dump() if hasattr(item, "model_dump") else item for item in value]
 
-    if isinstance(value, (list, dict)):
+    if isinstance(value, list | dict):
         return json.dumps(value, indent=indent)
 
     return value
+
+
+def timed_execution(metric_name: str | None = None) -> Callable[..., Any]:
+    """
+    Time function execution and log performance.
+
+    Automatically calculate duration_ms and log it.
+    If the instance has a `_log_execution` method (like BaseModule), call it.
+    Otherwise log to standard logger.
+
+    Args:
+        metric_name: Optional custom metric name (default: method name)
+
+    Returns:
+        Decorated function (async or sync)
+
+    """
+
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+        @functools.wraps(func)
+        async def async_wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
+            start_time = time.time()
+            try:
+                result = await func(self, *args, **kwargs)
+                return result
+            finally:
+                duration_ms = (time.time() - start_time) * 1000
+                _log_metric(self, func, args, kwargs, duration_ms, metric_name)
+
+        @functools.wraps(func)
+        def sync_wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
+            start_time = time.time()
+            try:
+                result = func(self, *args, **kwargs)
+                return result
+            finally:
+                duration_ms = (time.time() - start_time) * 1000
+                _log_metric(self, func, args, kwargs, duration_ms, metric_name)
+
+        if asyncio.iscoroutinefunction(func):
+            return async_wrapper
+        return sync_wrapper
+
+    return decorator
+
+
+def _log_metric(
+    instance: Any,
+    func: Callable[..., Any],
+    args: Any,
+    kwargs: Any,
+    duration_ms: float,
+    metric_name: str | None,
+) -> None:
+    """Log metrics using available instance methods or fallback."""
+    name = metric_name or getattr(func, "__name__", "unknown")
+
+    # Prefer instance._log_execution (BaseModule pattern)
+    if hasattr(instance, "_log_execution") and callable(instance._log_execution):
+        # We try to construct inputs from args/kwargs if possible
+        inputs = kwargs.copy()
+        # Add positional args if we can guess names (hard without introspection, so we skip)
+        instance._log_execution(
+            inputs=inputs,
+            outputs={"_metric": name},  # Placeholder as we don't have result in finally
+            duration_ms=duration_ms,
+        )
+    else:
+        logger.debug(f"Executed {name} in {duration_ms:.2f}ms")

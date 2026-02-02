@@ -7,7 +7,7 @@ This reference collects the canonical places to configure language models and DS
 Key locations:
 
 - Code: `src/skill_fleet/llm/dspy_config.py` (use `configure_dspy()` and `get_task_lm()`)
-- Default config: `config/config.yaml`
+- Default config: `src/skill_fleet/config/config.yaml`
 - Provider-specific settings: `docs/llm/providers.md`
 - Task-model mappings: `docs/llm/task-models.md`
 

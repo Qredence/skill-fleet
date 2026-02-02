@@ -5,7 +5,45 @@ These signatures generate skill content including SKILL.md,
 examples, and supporting documentation.
 """
 
+from typing import Any
+
 import dspy
+from pydantic import BaseModel, Field
+
+
+class ContentOutlineItem(BaseModel):
+    """Single item in the content outline."""
+
+    title: str = Field(description="Section title")
+    description: str = Field(description="What this section covers")
+    estimated_length: str = Field(default="medium", description="short/medium/long")
+
+
+class SkillPlan(BaseModel):
+    """Structured skill generation plan."""
+
+    skill_name: str = Field(description="Name of the skill")
+    skill_description: str = Field(description="Brief description of the skill")
+    content_outline: list[ContentOutlineItem] = Field(description="Planned sections")
+    generation_guidance: str = Field(default="", description="Specific guidance for generation")
+    skill_category: str = Field(default="other", description="Category of the skill")
+    required_sections: list[str] = Field(default_factory=list, description="Required sections")
+    required_elements: list[str] = Field(default_factory=list, description="Required elements")
+    example_skills: list[str] = Field(default_factory=list, description="Example skill names")
+
+
+class SkillUnderstanding(BaseModel):
+    """Structured understanding from Phase 1."""
+
+    domain: str = Field(description="Skill domain")
+    category: str = Field(description="Skill category")
+    target_level: str = Field(description="Target expertise level")
+    topics: list[str] = Field(description="Topics to cover")
+    constraints: list[str] = Field(default_factory=list, description="Constraints")
+    requirements: dict[str, Any] = Field(default_factory=dict, description="Requirements")
+    intent: dict[str, Any] = Field(default_factory=dict, description="Intent analysis")
+    taxonomy: dict[str, Any] = Field(default_factory=dict, description="Taxonomy info")
+    dependencies: list[str] = Field(default_factory=list, description="Dependencies")
 
 
 class GenerateSkillContent(dspy.Signature):
@@ -17,11 +55,9 @@ class GenerateSkillContent(dspy.Signature):
     """
 
     # Inputs
-    plan: str = dspy.InputField(
-        desc="JSON plan with: skill_name, skill_description, content_outline, generation_guidance"
-    )
-    understanding: str = dspy.InputField(
-        desc="JSON understanding: requirements, intent, taxonomy, dependencies"
+    plan: SkillPlan = dspy.InputField(desc="Structured skill generation plan")
+    understanding: SkillUnderstanding = dspy.InputField(
+        desc="Structured understanding from Phase 1"
     )
     skill_style: str = dspy.InputField(
         desc="Style: 'comprehensive' (detailed), 'minimal' (concise), or 'navigation_hub' (short + subdirs)",
@@ -37,6 +73,7 @@ class GenerateSkillContent(dspy.Signature):
     )
     code_examples_count: int = dspy.OutputField(desc="Number of code examples included")
     estimated_reading_time: int = dspy.OutputField(desc="Estimated reading time in minutes")
+    reasoning: dspy.Reasoning = dspy.OutputField(desc="Reasoning process for content generation")
 
 
 class GenerateSkillSection(dspy.Signature):
@@ -59,6 +96,7 @@ class GenerateSkillSection(dspy.Signature):
         desc="List of example titles/descriptions included"
     )
     key_points: list[str] = dspy.OutputField(desc="3-5 key takeaways from this section")
+    reasoning: dspy.Reasoning = dspy.OutputField(desc="Reasoning process for section generation")
 
 
 class IncorporateFeedback(dspy.Signature):
@@ -82,6 +120,9 @@ class IncorporateFeedback(dspy.Signature):
     )
     quality_impact: str = dspy.OutputField(
         desc="Assessment of how changes affect quality (improved/unchanged/degraded)"
+    )
+    reasoning: dspy.Reasoning = dspy.OutputField(
+        desc="Reasoning process for feedback incorporation"
     )
 
 
@@ -107,4 +148,7 @@ class GenerateCodeExamples(dspy.Signature):
     common_pitfalls: list[str] = dspy.OutputField(desc="Common mistakes and how to avoid them")
     test_cases: str = dspy.OutputField(
         desc="Test cases to verify the example works (if include_tests=True)"
+    )
+    reasoning: dspy.Reasoning = dspy.OutputField(
+        desc="Reasoning process for code example generation"
     )

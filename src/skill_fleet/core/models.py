@@ -559,6 +559,7 @@ class ValidationReport(BaseModel):
     Validation results for a skill package.
 
     Merged from workflow (status-based) and core (score-based).
+    Includes enhanced validation for structure, test cases, and quality metrics.
     """
 
     passed: bool = Field(description="Whether all required checks passed")
@@ -573,6 +574,40 @@ class ValidationReport(BaseModel):
     )
     checks: list[ValidationCheckItem] = Field(default_factory=list, description="Detailed checks")
     feedback: str = Field(default="", description="Consolidated feedback for refinement")
+
+    # NEW: Structure validation fields
+    structure_valid: bool = Field(
+        default=True, description="Whether skill structure passed validation"
+    )
+    name_errors: list[str] = Field(
+        default_factory=list, description="Skill naming convention errors"
+    )
+    description_errors: list[str] = Field(
+        default_factory=list, description="Description validation errors"
+    )
+    security_issues: list[str] = Field(
+        default_factory=list, description="Security concerns (XML tags, reserved names)"
+    )
+
+    # NEW: Test case fields
+    test_cases: dict[str, Any] = Field(
+        default_factory=dict, description="Generated test cases for triggering validation"
+    )
+    trigger_coverage: float = Field(
+        default=0.0, ge=0.0, le=1.0, description="How well test cases cover trigger phrases"
+    )
+
+    # NEW: Quality metrics fields
+    word_count: int = Field(default=0, description="Skill content word count")
+    size_assessment: str = Field(
+        default="unknown", description="Size category: optimal, acceptable, too_large"
+    )
+    verbosity_score: float = Field(
+        default=0.0, ge=0.0, le=1.0, description="Content verbosity (0=concise, 1=verbose)"
+    )
+
+    # Summary
+    validation_summary: str = Field(default="", description="Human-readable validation summary")
 
     # Allow dict-like access for deprecated code using .get()
     def get(self, key: str, default: Any = None) -> Any:

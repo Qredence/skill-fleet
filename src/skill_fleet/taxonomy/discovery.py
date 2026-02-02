@@ -87,9 +87,9 @@ def ensure_all_skills_loaded(
         if skill_id not in metadata_cache:
             try:
                 load_dir_func(skill_dir.parent)
-            except Exception:
+            except Exception as exc:
                 # Skip invalid skills - they may have malformed metadata
-                pass
+                logger.debug("Skipping invalid skill %s: %s", skill_dir.parent, exc)
 
 
 def get_skill_for_prompt(

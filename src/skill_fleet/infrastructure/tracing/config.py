@@ -204,6 +204,51 @@ class ConfigModelLoader:
             )
         return api_key
 
+    def configure_cache(self) -> None:
+        """
+        Configure DSPy caching from config.yaml settings.
+
+        This method reads the dspy.cache configuration from config.yaml and applies it
+        via `dspy.configure_cache()`. Caching stores LLM responses to avoid redundant API
+        calls, improving performance and reducing costs.
+
+        Example config.yaml:
+            dspy:
+              cache:
+                enable_disk_cache: true
+                enable_memory_cache: true
+                disk_cache_dir: ".cache/dspy"
+
+        If no cache configuration is found, defaults to enabled.
+        """
+        dspy_config = self.config.get("dspy", {})
+        cache_config = dspy_config.get("cache", {})
+
+        # Default to enabled if not explicitly configured
+        enable_disk = cache_config.get("enable_disk_cache", True)
+        enable_memory = cache_config.get("enable_memory_cache", True)
+        disk_dir = cache_config.get("disk_cache_dir")
+
+        try:
+            if disk_dir:
+                dspy.configure_cache(
+                    enable_disk_cache=enable_disk,
+                    enable_memory_cache=enable_memory,
+                    disk_cache_dir=disk_dir,
+                )
+            else:
+                dspy.configure_cache(
+                    enable_disk_cache=enable_disk,
+                    enable_memory_cache=enable_memory,
+                )
+            logger.debug(
+                "DSPy cache configured: disk=%s, memory=%s",
+                enable_disk,
+                enable_memory,
+            )
+        except Exception as e:
+            logger.warning("Failed to configure DSPy cache: %s", e)
+
 
 # Singleton instance
 _config_loader: ConfigModelLoader | None = None

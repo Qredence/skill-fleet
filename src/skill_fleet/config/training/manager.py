@@ -57,7 +57,8 @@ class TrainingDataManager:
         """
         self.data_root = Path(data_root)
         self.metadata_file = self.data_root / "example_metadata.json"
-        self.trainset_file = self.data_root / "trainset.json"
+        self.trainset_file = self.data_root / "trainset_v4.json"
+        self._legacy_trainset_file = self.data_root / "trainset.json"
         self._metadata: dict[str, ExampleMetadata] = {}
         self._load_metadata()
 
@@ -102,12 +103,13 @@ class TrainingDataManager:
             config = TrainingDataConfig()
 
         # Load raw examples
-        if not self.trainset_file.exists():
-            logger.warning("Trainset file not found")
+        raw_file = self.trainset_file if self.trainset_file.exists() else self._legacy_trainset_file
+        if not raw_file.exists():
+            logger.warning("Trainset file not found (checked trainset_v4.json and trainset.json)")
             return []
 
         try:
-            raw_examples = json.loads(self.trainset_file.read_text())
+            raw_examples = json.loads(raw_file.read_text())
         except Exception as e:
             logger.error(f"Failed to load trainset: {e}")
             return []
@@ -160,7 +162,7 @@ class TrainingDataManager:
         content = example.get("task_description") or example.get("user_intent") or str(example)
         import hashlib
 
-        return hashlib.md5(content.encode()).hexdigest()
+        return hashlib.md5(content.encode(), usedforsecurity=False).hexdigest()
 
     def _update_usage_stats(self, examples: list[dict]) -> None:
         """Update last_used timestamp and usage count."""

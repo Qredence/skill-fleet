@@ -21,8 +21,8 @@ models:
     gemini/gemini-3-flash-preview:
       model: gemini-3-flash-preview
       model_type: chat
-      env: GOOGLE_API_KEY
-      env_fallback: LITELLM_API_KEY
+      env: LITELLM_API_KEY
+      env_fallback: GOOGLE_API_KEY
       timeout: 60
       parameters:
         temperature: 1.0
@@ -31,8 +31,8 @@ models:
     gemini/gemini-3-pro-preview:
       model: gemini-3-pro-preview
       model_type: chat
-      env: GOOGLE_API_KEY
-      env_fallback: LITELLM_API_KEY
+      env: LITELLM_API_KEY
+      env_fallback: GOOGLE_API_KEY
       timeout: 120
       parameters:
         temperature: 1.0  # Gemini 3 models require temperature=1.0 per documentation
@@ -146,7 +146,7 @@ optimization:
 
   # Training data paths
   training:
-    gold_skills_path: "config/training/gold_skills.json"
+    gold_skills_path: "config/training/gold_skills_v2.json"
     quality_criteria_path: "config/training/quality_criteria.yaml"
     optimized_programs_dir: "config/optimized"
 

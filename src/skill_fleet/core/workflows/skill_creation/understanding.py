@@ -1,5 +1,5 @@
 """
-Phase 1: Understanding Workflow.
+Phase 1: Understanding Workflow with streaming support.
 
 Orchestrates understanding modules to gather requirements,
 analyze intent, find taxonomy path, identify dependencies,
@@ -7,9 +7,11 @@ and synthesize a complete plan. Uses async operations for better performance.
 Can suspend for HITL clarification if ambiguities are detected.
 """
 
+from __future__ import annotations
+
 import asyncio
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from skill_fleet.core.modules.hitl.questions import GenerateClarifyingQuestionsModule
 from skill_fleet.core.modules.understanding.dependencies import AnalyzeDependenciesModule
@@ -18,28 +20,40 @@ from skill_fleet.core.modules.understanding.plan import SynthesizePlanModule
 from skill_fleet.core.modules.understanding.requirements import GatherRequirementsModule
 from skill_fleet.core.modules.understanding.taxonomy import FindTaxonomyPathModule
 from skill_fleet.core.modules.validation.structure import ValidateStructureModule
+from skill_fleet.core.workflows.streaming import (
+    StreamingWorkflowManager,
+    WorkflowEventType,
+    get_workflow_manager,
+)
+from skill_fleet.dspy import dspy_context
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
+    from skill_fleet.core.workflows.streaming import WorkflowEvent
 
 logger = logging.getLogger(__name__)
 
 
 class UnderstandingWorkflow:
     """
-    Phase 1: Understanding & Planning Workflow.
+    Phase 1: Understanding & Planning Workflow with streaming.
 
     Orchestrates understanding modules asynchronously:
     1. Gather requirements (always first - may trigger HITL)
     2. Analyze intent, find taxonomy path, analyze dependencies (parallel)
-    3. Synthesize complete plan using ReAct
+    3. Synthesize complete plan
 
     Can suspend for HITL clarification if ambiguities found.
 
     Example:
         workflow = UnderstandingWorkflow()
-        result = await workflow.execute(
-            task_description="Build a React component library",
-            user_context={"experience": "intermediate"}
-        )
-        # Returns complete understanding + plan or HITL checkpoint
+
+        # Stream mode for real-time progress
+        async for event in workflow.execute_streaming(
+            task_description="Build a React component library"
+        ):
+            print(f"{event.phase}: {event.message}")
 
     """
 
@@ -52,207 +66,363 @@ class UnderstandingWorkflow:
         self.hitl_questions = GenerateClarifyingQuestionsModule()
         self.structure_validator = ValidateStructureModule()
 
+    async def execute_streaming(
+        self,
+        task_description: str,
+        user_context: dict | None = None,
+        taxonomy_structure: dict | None = None,
+        existing_skills: list[str] | None = None,
+        manager: StreamingWorkflowManager | None = None,
+    ) -> AsyncIterator[WorkflowEvent]:
+        """
+        Execute understanding workflow with streaming events.
+
+        Args:
+            task_description: User's task description
+            user_context: Optional user context
+            taxonomy_structure: Current taxonomy structure
+            existing_skills: List of existing skill paths
+            manager: Optional workflow manager
+
+        Yields:
+            WorkflowEvent with progress, reasoning, and status updates
+
+        """
+        manager = manager or get_workflow_manager()
+
+        # Start workflow execution in background task
+        workflow_task = asyncio.create_task(
+            self._execute_workflow(
+                task_description=task_description,
+                user_context=user_context,
+                taxonomy_structure=taxonomy_structure,
+                existing_skills=existing_skills,
+                manager=manager,
+            )
+        )
+
+        # Yield events as they are emitted
+        try:
+            async for event in manager.get_events():
+                yield event
+        finally:
+            # Ensure workflow task is cleaned up
+            if not workflow_task.done():
+                workflow_task.cancel()
+                try:
+                    await workflow_task
+                except asyncio.CancelledError:
+                    pass
+
+    async def _execute_workflow(
+        self,
+        task_description: str,
+        user_context: dict | None = None,
+        taxonomy_structure: dict | None = None,
+        existing_skills: list[str] | None = None,
+        manager: StreamingWorkflowManager | None = None,
+    ) -> None:
+        """Execute the actual workflow logic."""
+        manager = manager or get_workflow_manager()
+
+        try:
+            with dspy_context():
+                await manager.set_phase("Understanding")
+                await manager.emit(
+                    WorkflowEventType.PROGRESS,
+                    "Starting understanding workflow",
+                    {"task": task_description[:100]},
+                )
+
+                # Step 1: Gather requirements (blocking - must complete first)
+                requirements = await manager.execute_module(
+                    "requirements",
+                    self.requirements.aforward,
+                    task_description=task_description,
+                    user_context=user_context or {},
+                )
+
+                # Step 1b: Validate structure early to catch common errors
+                await manager.emit(
+                    WorkflowEventType.PROGRESS,
+                    "Validating skill structure",
+                    {"skill_name": requirements.get("suggested_skill_name", "")},
+                )
+
+                structure_validation = await manager.execute_module(
+                    "structure_validator",
+                    self.structure_validator.aforward,
+                    skill_name=requirements.get("suggested_skill_name", ""),
+                    description=requirements.get("description", ""),
+                    skill_content="",
+                )
+
+                if not structure_validation.get("overall_valid", True):
+                    await manager.emit(
+                        WorkflowEventType.PROGRESS,
+                        "Structure validation failed, preparing HITL",
+                        {"errors": structure_validation.get("name_errors", [])},
+                    )
+                    result = await self._suspend_for_structure_fix(
+                        task_description=task_description,
+                        requirements=requirements,
+                        user_context=user_context or {},
+                        validation=structure_validation,
+                        manager=manager,
+                    )
+                    await manager.complete(result)
+                    return
+
+                # Check if clarification needed
+                if self._needs_clarification(requirements):
+                    await manager.emit(
+                        WorkflowEventType.PROGRESS,
+                        f"Ambiguities detected: {len(requirements.get('ambiguities', []))} items",
+                        {"ambiguities": requirements.get("ambiguities", [])},
+                    )
+                    result = await self._suspend_for_clarification(
+                        task_description=task_description,
+                        requirements=requirements,
+                        user_context=user_context or {},
+                        manager=manager,
+                    )
+                    await manager.complete(result)
+                    return
+
+                # Steps 2-4: Run in parallel for better performance
+                await manager.emit(
+                    WorkflowEventType.PROGRESS,
+                    "Analyzing intent, taxonomy, and dependencies (parallel)",
+                )
+
+                intent_task = manager.execute_module(
+                    "intent_analyzer",
+                    self.intent.aforward,
+                    task_description=task_description,
+                    requirements=requirements,
+                )
+                taxonomy_task = manager.execute_module(
+                    "taxonomy_finder",
+                    self.taxonomy.aforward,
+                    task_description=task_description,
+                    requirements=requirements,
+                    taxonomy_structure=taxonomy_structure or {},
+                    existing_skills=existing_skills or [],
+                )
+                dependencies_task = manager.execute_module(
+                    "dependency_analyzer",
+                    self.dependencies.aforward,
+                    task_description=task_description,
+                    intent_analysis={},
+                    taxonomy_path="",
+                    existing_skills=existing_skills or [],
+                )
+
+                # Wait for all parallel tasks
+                intent, taxonomy, dependencies = await asyncio.gather(
+                    intent_task, taxonomy_task, dependencies_task
+                )
+
+                # Update dependencies with intent and taxonomy info
+                await manager.emit(
+                    WorkflowEventType.PROGRESS,
+                    "Refining dependency analysis",
+                )
+                dependencies = await manager.execute_module(
+                    "dependency_analyzer_refined",
+                    self.dependencies.aforward,
+                    task_description=task_description,
+                    intent_analysis=intent,
+                    taxonomy_path=taxonomy.get("recommended_path", ""),
+                    existing_skills=existing_skills or [],
+                )
+
+                # Step 5: Synthesize plan
+                await manager.emit(
+                    WorkflowEventType.PROGRESS,
+                    "Synthesizing complete plan",
+                )
+                plan = await manager.execute_module(
+                    "plan_synthesizer",
+                    self.plan.aforward,
+                    requirements=requirements,
+                    intent_analysis=intent,
+                    taxonomy_analysis=taxonomy,
+                    dependency_analysis=dependencies,
+                )
+
+                result = {
+                    "status": "completed",
+                    "requirements": requirements,
+                    "intent": intent,
+                    "taxonomy": taxonomy,
+                    "dependencies": dependencies,
+                    "plan": plan,
+                }
+                await manager.complete(result)
+
+        except Exception as e:
+            logger.error(f"Understanding workflow error: {e}")
+            await manager.emit(
+                WorkflowEventType.ERROR,
+                f"Workflow error: {str(e)}",
+                {"error": str(e)},
+            )
+            raise
+
     async def execute(
         self,
         task_description: str,
         user_context: dict | None = None,
         taxonomy_structure: dict | None = None,
         existing_skills: list[str] | None = None,
+        manager: StreamingWorkflowManager | None = None,
     ) -> dict[str, Any]:
         """
-        Execute understanding workflow asynchronously.
+        Execute understanding workflow (non-streaming, backward compatible).
 
         Args:
             task_description: User's task description
-            user_context: Optional user context (preferences, history)
+            user_context: Optional user context
             taxonomy_structure: Current taxonomy structure
             existing_skills: List of existing skill paths
+            manager: Optional streaming workflow manager (for event emission)
 
         Returns:
-            Dictionary with either:
-            - Complete understanding + synthesized plan
-            - HITL checkpoint (if ambiguities detected)
+            Dictionary with understanding results or HITL checkpoint
 
         """
-        logger.info(f"Starting understanding workflow for: {task_description[:50]}...")
+        if manager is None:
+            manager = StreamingWorkflowManager()
 
-        # Step 1: Gather requirements (blocking - must complete first)
-        logger.debug("Step 1: Gathering requirements")
-        requirements = await self.requirements.aforward(
-            task_description=task_description, user_context=user_context or {}
-        )
-
-        # Step 1b: Validate structure early to catch common errors
-        logger.debug("Step 1b: Validating skill structure")
-        structure_validation = self.structure_validator(
-            skill_name=requirements.get("suggested_skill_name", ""),
-            description=requirements.get("description", ""),
-            skill_content="",
-        )
-
-        if not structure_validation["overall_valid"]:
-            logger.info("Structure validation failed, suspending for fixes")
-            return await self._suspend_for_structure_fix(
-                task_description=task_description,
-                requirements=requirements,
-                user_context=user_context or {},
-                validation=structure_validation,
-            )
-
-        # Check if clarification needed
-        if self._needs_clarification(requirements):
-            logger.info(f"Ambiguities detected: {len(requirements.get('ambiguities', []))} items")
-            return await self._suspend_for_clarification(
-                task_description=task_description,
-                requirements=requirements,
-                user_context=user_context or {},
-            )
-
-        # Step 2-4: Run in parallel for better performance
-        logger.debug("Steps 2-4: Analyzing intent, taxonomy, and dependencies (parallel)")
-        intent_task = self.intent.aforward(
-            task_description=task_description, requirements=requirements
-        )
-        taxonomy_task = self.taxonomy.aforward(
+        # Consume all events and return final result
+        async for event in self.execute_streaming(
             task_description=task_description,
-            requirements=requirements,
-            taxonomy_structure=taxonomy_structure or {},
-            existing_skills=existing_skills or [],
-        )
-        dependencies_task = self.dependencies.aforward(
-            task_description=task_description,
-            intent_analysis={},  # Will be updated after intent completes
-            taxonomy_path="",  # Will be updated after taxonomy completes
-            existing_skills=existing_skills or [],
-        )
+            user_context=user_context,
+            taxonomy_structure=taxonomy_structure,
+            existing_skills=existing_skills,
+            manager=manager,
+        ):
+            if event.event_type == WorkflowEventType.COMPLETED:
+                return event.data.get("result", {})
+            elif event.event_type == WorkflowEventType.ERROR:
+                raise RuntimeError(event.message)
 
-        # Wait for all parallel tasks
-        intent, taxonomy, dependencies = await asyncio.gather(
-            intent_task, taxonomy_task, dependencies_task
-        )
-
-        # Update dependencies with intent and taxonomy info
-        dependencies = await self.dependencies.aforward(
-            task_description=task_description,
-            intent_analysis=intent,
-            taxonomy_path=taxonomy.get("recommended_path", ""),
-            existing_skills=existing_skills or [],
-        )
-
-        # Step 5: Synthesize plan using ReAct
-        logger.debug("Step 5: Synthesizing plan with ReAct")
-        plan = await self.plan.aforward(
-            requirements=requirements,
-            intent_analysis=intent,
-            taxonomy_analysis=taxonomy,
-            dependency_analysis=dependencies,
-        )
-
-        logger.info("Understanding workflow completed successfully")
-
-        return {
-            "status": "completed",
-            "requirements": requirements,
-            "intent": intent,
-            "taxonomy": taxonomy,
-            "dependencies": dependencies,
-            "plan": plan,
-        }
+        return {"status": "failed", "error": "Workflow did not complete"}
 
     def _needs_clarification(self, requirements: dict) -> bool:
-        """
-        Determine if HITL clarification is needed.
-
-        Args:
-            requirements: Requirements dictionary
-
-        Returns:
-            True if ambiguities exist and are significant
-
-        """
+        """Determine if HITL clarification is needed."""
         ambiguities = requirements.get("ambiguities", [])
-
-        # No ambiguities = no clarification needed
         if not ambiguities:
             return False
-
-        # Filter out minor ambiguities (less than 10 chars)
         significant_ambiguities = [a for a in ambiguities if len(str(a)) > 10]
-
-        # Need clarification if we have significant ambiguities
-        if len(significant_ambiguities) > 0:
-            logger.debug(f"Significant ambiguities: {significant_ambiguities}")
-            return True
-
-        return False
+        return len(significant_ambiguities) > 0
 
     async def _suspend_for_clarification(
         self,
         task_description: str,
         requirements: dict,
         user_context: dict,
+        manager: StreamingWorkflowManager,
     ) -> dict[str, Any]:
-        """
-        Suspend workflow for HITL clarification with relevant questions.
+        """Suspend workflow for HITL clarification."""
+        await manager.emit(
+            WorkflowEventType.PROGRESS,
+            "Generating clarifying questions",
+        )
 
-        Args:
-            task_description: Original task description
-            requirements: Requirements with ambiguities
-            user_context: User context
-
-        Returns:
-            HITL checkpoint with targeted questions
-
-        """
-        logger.info("Suspending for HITL clarification")
-
-        # Get ambiguities
         ambiguities = requirements.get("ambiguities", [])
-
-        # Generate targeted questions based on ambiguities
-        questions_result = await self.hitl_questions.aforward(
+        questions_result = await manager.execute_module(
+            "hitl_questions",
+            self.hitl_questions.aforward,
             task_description=task_description,
             ambiguities=ambiguities,
             initial_analysis=str(requirements),
         )
 
-        # Create follow-up context with suggestions
         follow_up_context = self._create_follow_up_context(requirements, questions_result)
 
-        return {
-            "status": "pending_user_input",
-            "hitl_type": "clarify",
-            "hitl_data": {
-                "questions": questions_result.get("questions", []),
-                "priority": questions_result.get("priority", "important"),
-                "rationale": questions_result.get("rationale", ""),
-                "follow_up_context": follow_up_context,
-            },
-            "context": {
-                "requirements": requirements,
-                "user_context": user_context,
-                "partial_understanding": {
-                    "domain": requirements.get("domain"),
-                    "topics": requirements.get("topics"),
-                    "target_level": requirements.get("target_level"),
-                },
+        hitl_data: dict[str, Any] = {
+            "questions": questions_result.get("questions", []),
+            "priority": questions_result.get("priority", "important"),
+            "rationale": questions_result.get("rationale", ""),
+            "follow_up_context": follow_up_context,
+        }
+        context: dict[str, Any] = {
+            "requirements": requirements,
+            "user_context": user_context,
+            "partial_understanding": {
+                "domain": requirements.get("domain"),
+                "topics": requirements.get("topics"),
+                "target_level": requirements.get("target_level"),
             },
         }
+        result = {
+            "status": "pending_user_input",
+            "hitl_type": "clarify",
+            "hitl_data": hitl_data,
+            "context": context,
+        }
+
+        await manager.suspend_for_hitl(
+            hitl_type="clarify",
+            data=hitl_data,
+            context=context,
+        )
+
+        return result
+
+    async def _suspend_for_structure_fix(
+        self,
+        task_description: str,
+        requirements: dict,
+        user_context: dict,
+        validation: dict,
+        manager: StreamingWorkflowManager,
+    ) -> dict[str, Any]:
+        """Suspend workflow for structure fixes."""
+        all_issues = (
+            validation.get("name_errors", [])
+            + validation.get("description_errors", [])
+            + validation.get("security_issues", [])
+        )
+
+        suggested_fixes = self._generate_structure_fixes(validation, requirements)
+
+        hitl_data: dict[str, Any] = {
+            "issues": all_issues,
+            "warnings": validation.get("description_warnings", []),
+            "suggested_fixes": suggested_fixes,
+            "current_values": {
+                "skill_name": requirements.get("suggested_skill_name", ""),
+                "description": requirements.get("description", ""),
+            },
+        }
+        context: dict[str, Any] = {
+            "requirements": requirements,
+            "user_context": user_context,
+            "validation": validation,
+            "can_proceed": validation["overall_valid"],
+        }
+        result = {
+            "status": "pending_user_input",
+            "hitl_type": "structure_fix",
+            "hitl_data": hitl_data,
+            "context": context,
+        }
+
+        await manager.suspend_for_hitl(
+            hitl_type="structure_fix",
+            data=hitl_data,
+            context=context,
+        )
+
+        return result
 
     def _create_follow_up_context(
         self, requirements: dict, questions_result: dict
     ) -> dict[str, Any]:
-        """
-        Create context for follow-up after HITL.
-
-        Args:
-            requirements: Current requirements
-            questions_result: Questions generated
-
-        Returns:
-            Context dictionary for resuming workflow
-
-        """
+        """Create context for follow-up after HITL."""
         return {
             "expected_improvements": [
                 "Clearer topic definitions",
@@ -261,79 +431,15 @@ class UnderstandingWorkflow:
             ],
             "resume_strategy": "Re-run understanding with clarified requirements",
             "questions_asked": len(questions_result.get("questions", [])),
-            "critical_gaps": requirements.get("ambiguities", [])[:3],  # Top 3 gaps
-        }
-
-    async def _suspend_for_structure_fix(
-        self,
-        task_description: str,
-        requirements: dict,
-        user_context: dict,
-        validation: dict,
-    ) -> dict[str, Any]:
-        """
-        Suspend workflow for structure fixes.
-
-        Args:
-            task_description: Original task description
-            requirements: Current requirements
-            user_context: User context
-            validation: Structure validation results with errors
-
-        Returns:
-            HITL checkpoint with structure issues and suggested fixes
-
-        """
-        logger.info("Suspending for structure fix HITL")
-
-        # Combine all errors
-        all_issues = (
-            validation.get("name_errors", [])
-            + validation.get("description_errors", [])
-            + validation.get("security_issues", [])
-        )
-
-        # Generate suggested fixes
-        suggested_fixes = self._generate_structure_fixes(validation, requirements)
-
-        return {
-            "status": "pending_user_input",
-            "hitl_type": "structure_fix",
-            "hitl_data": {
-                "issues": all_issues,
-                "warnings": validation.get("description_warnings", []),
-                "suggested_fixes": suggested_fixes,
-                "current_values": {
-                    "skill_name": requirements.get("suggested_skill_name", ""),
-                    "description": requirements.get("description", ""),
-                },
-            },
-            "context": {
-                "requirements": requirements,
-                "user_context": user_context,
-                "validation": validation,
-                "can_proceed": validation["overall_valid"],
-            },
+            "critical_gaps": requirements.get("ambiguities", [])[:3],
         }
 
     def _generate_structure_fixes(self, validation: dict, requirements: dict) -> list[dict]:
-        """
-        Generate suggested fixes for structure issues.
-
-        Args:
-            validation: Structure validation results
-            requirements: Current requirements
-
-        Returns:
-            List of fix suggestions with before/after examples
-
-        """
+        """Generate suggested fixes for structure issues."""
         fixes = []
 
-        # Name fixes
         if not validation.get("name_valid"):
             current_name = requirements.get("suggested_skill_name", "")
-            # Convert to kebab-case suggestion
             suggested_name = current_name.lower().replace(" ", "-").replace("_", "-")
             fixes.append(
                 {
@@ -345,7 +451,6 @@ class UnderstandingWorkflow:
                 }
             )
 
-        # Description fixes
         if not validation.get("description_valid"):
             current_desc = requirements.get("description", "")
             trigger_phrases = requirements.get("trigger_phrases", [])

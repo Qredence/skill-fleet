@@ -2,9 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+
+- **DSPy 3.1.2+ Async-First Refactoring**: Aligned codebase with DSPy best practices
+  - Removed local wrapper modules (`pot.py`, `react.py`, `refine.py`)
+  - Re-exported DSPy primitives (`ReAct`, `Refine`, `ProgramOfThought`) directly
+  - Updated `BaseModule`: `aforward()` now primary abstract method, `forward()` delegates via `run_async`
+  - Replaced all `asyncio.run()` calls in core modules with `dspy.utils.syncify.run_async`
+  - Consolidated dual logic in modules to async-first pattern
+  - Updated docstring examples to use recommended `module()` call pattern
+  - Added comprehensive test suite (`test_async_first_refactor.py`) verifying:
+    - Forward/aforward delegation working correctly
+    - DSPy primitives re-exported properly
+    - No legacy wrapper modules remain
+    - `run_async` correctly bridges sync/async boundaries
+
+### Fixed
+
+- Code formatting and linting across core modules (12 files reformatted)
+- Type hints and import organization in refactored modules
+
 ## [0.3.5] - 2026-01-29
 
 ### Breaking Changes
+
 - **Architecture Restructure**: Complete FastAPI-centric directory restructure
   - `src/skill_fleet/app/` → `src/skill_fleet/api/` (API layer flattening)
   - `src/skill_fleet/db/` → `src/skill_fleet/infrastructure/db/`
@@ -18,6 +41,7 @@ All notable changes to this project will be documented in this file.
   - Old DSPy phase-based organization
 
 ### Added
+
 - **FastAPI v1 API**: New clean API structure
   - Background task support for async skill creation
   - HITL (Human-in-the-Loop) integration with question types
@@ -43,6 +67,7 @@ All notable changes to this project will be documented in this file.
   - Service extension guide (`docs/development/SERVICE_EXTENSION_GUIDE.md`)
 
 ### Changed
+
 - **DSPy Configuration**: Moved to centralized `skill_fleet.dspy` module
   - Task-specific LM instances via `get_task_lm()`
   - Environment variable support for `DSPY_CACHEDIR`, `DSPY_TEMPERATURE`
@@ -54,6 +79,7 @@ All notable changes to this project will be documented in this file.
   - `tests/unit/` and `tests/integration/` separation
 
 ### Removed
+
 - **Obsolete files** (from root directory):
   - `RE_STRUCTURE_SUMMARY.md`
   - `IMPLEMENTATION_SUMMARY.md`
@@ -64,6 +90,7 @@ All notable changes to this project will be documented in this file.
   - Outdated test files with broken imports
 
 ### Fixed
+
 - All import paths updated to use absolute imports
 - Circular dependency issues resolved
 - Lifespan startup errors fixed
@@ -74,6 +101,7 @@ All notable changes to this project will be documented in this file.
 ## [0.2.0] - 2026-01-16
 
 ### Breaking Changes
+
 - **Taxonomy Migration**: Simplified from 8-level to 2-level taxonomy
   - Old paths: `skills/technical_skills/programming/languages/python/async`
   - New paths: `skills/python/async`
@@ -81,6 +109,7 @@ All notable changes to this project will be documented in this file.
   - Use canonical paths in new code and documentation
 
 ### Added
+
 - `src/skill_fleet/taxonomy/models.py`: Pydantic models for taxonomy index
 - `scripts/generate_taxonomy_index.py`: Generate index from mapping report
 - `scripts/migrate_skills_structure.py`: Migrate skills to canonical paths
@@ -88,17 +117,20 @@ All notable changes to this project will be documented in this file.
 - Taxonomy alias support for backward compatibility
 
 ### Changed
+
 - `TaxonomyManager`: Added index-based skill resolution with alias support
 - `SkillValidator`: Enhanced path traversal protection and alias detection
 - API routes: Updated to use canonical path resolution
 - Documentation: Updated for new taxonomy structure
 
 ### Removed
+
 - Legacy taxonomy directories: `technical_skills/`, `domain_knowledge/`, `task_focus_areas`, etc.
 - Deprecated `src/skill_fleet/migration.py` (workflow consolidated into core/)
 - Placeholder directories: `miscellaneous/`
 
 ### Fixed
+
 - Deprecated print statements in onboarding (replaced with logging)
 - Docstring formatting inconsistencies
 - Path resolution now supports both canonical IDs and legacy aliases
@@ -115,8 +147,6 @@ All notable changes to this project will be documented in this file.
   - Recreated `src/skill_fleet/common/migration.py` with `migrate_all_skills()` function
   - Fixed broken import in `src/skill_fleet/cli/commands/migrate.py`
   - Import now correctly points to `...common.migration` instead of deprecated `...migration`
-
-
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).

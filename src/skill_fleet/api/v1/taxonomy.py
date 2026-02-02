@@ -77,7 +77,7 @@ async def get_taxonomy(taxonomy_manager: TaxonomyManagerDep) -> TaxonomyResponse
     try:
         # Use cached taxonomy service for performance
         cached_service = get_cached_taxonomy_service(taxonomy_manager)
-        result = cached_service.get_global_taxonomy()
+        result = await cached_service.get_global_taxonomy()
 
         return TaxonomyResponse(
             taxonomy={
@@ -187,7 +187,7 @@ async def update_taxonomy(
 
         # Invalidate cache to force refresh
         cached_service = get_cached_taxonomy_service(taxonomy_manager)
-        invalidated = cached_service.invalidate_taxonomy()
+        invalidated = await cached_service.invalidate_taxonomy()
         logger.info(f"Invalidated {invalidated} taxonomy cache entries")
 
         return {
@@ -221,7 +221,7 @@ async def get_user_taxonomy(
     try:
         # Use cached taxonomy service for performance
         cached_service = get_cached_taxonomy_service(taxonomy_manager)
-        result = cached_service.get_user_taxonomy(user_id)
+        result = await cached_service.get_user_taxonomy(user_id)
 
         # Build usage stats
         usage_stats = {
@@ -273,14 +273,14 @@ async def adapt_taxonomy(
         if request and request.query_history:
             # Use recent queries to find relevant taxonomy branches
             query_text = " ".join(request.query_history[-5:])  # Last 5 queries
-            relevant_branches = cached_service.get_relevant_branches(query_text)
+            relevant_branches = await cached_service.get_relevant_branches(query_text)
         else:
             # Fallback to full taxonomy from cache
-            result = cached_service.get_global_taxonomy()
+            result = await cached_service.get_global_taxonomy()
             relevant_branches = result["structure"]
 
         # Get mounted skills from cached user taxonomy
-        user_taxonomy_result = cached_service.get_user_taxonomy(user_id)
+        user_taxonomy_result = await cached_service.get_user_taxonomy(user_id)
         mounted_skills = user_taxonomy_result["mounted_skills"]
 
         # Build adapted taxonomy
@@ -325,3 +325,28 @@ async def adapt_taxonomy(
     except Exception as e:
         logger.exception(f"Error adapting taxonomy: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to adapt taxonomy: {e}") from e
+
+
+@router.post("/invalidate-cache", response_model=dict[str, Any])
+async def invalidate_taxonomy_cache(
+    taxonomy_manager: TaxonomyManagerDep,
+) -> dict[str, Any]:
+    """
+    Invalidate the taxonomy cache.
+
+    Args:
+        taxonomy_manager: Injected TaxonomyManager
+
+    Returns:
+        dict: Success message with count of invalidated entries
+
+    """
+    try:
+        cached_service = get_cached_taxonomy_service(taxonomy_manager)
+        invalidated = await cached_service.invalidate_taxonomy()
+
+        return {"success": True, "invalidated_count": invalidated}
+
+    except Exception as e:
+        logger.exception(f"Error invalidating taxonomy cache: {e}")
+        raise HTTPException(status_code=500, detail="Failed to invalidate cache") from e

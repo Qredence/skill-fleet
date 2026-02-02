@@ -30,12 +30,12 @@ uv run skill-fleet chat "Create a Python async/await skill"
 
 This documentation follows the [Diátaxis framework](https://diataxis.fr/) - organized by purpose, not by feature:
 
-| Section | Purpose | Example |
-|---------|---------|---------|
-| **Tutorials** | Learning-oriented - step by step lessons | "Getting Started" |
-| **How-To Guides** | Task-oriented - solve specific problems | "Validate a Skill" |
-| **Reference** | Information-oriented - lookup details | "API Endpoints" |
-| **Explanation** | Understanding-oriented - deep knowledge | "Architecture" |
+| Section           | Purpose                                  | Example            |
+| ----------------- | ---------------------------------------- | ------------------ |
+| **Tutorials**     | Learning-oriented - step by step lessons | "Getting Started"  |
+| **How-To Guides** | Task-oriented - solve specific problems  | "Validate a Skill" |
+| **Reference**     | Information-oriented - lookup details    | "API Endpoints"    |
+| **Explanation**   | Understanding-oriented - deep knowledge  | "Architecture"     |
 
 ---
 
@@ -62,13 +62,16 @@ Task-oriented guides for specific goals.
 Detailed technical information for lookup.
 
 ### API Reference
+
 - **[Endpoints](reference/api/endpoints.md)** - Complete REST API endpoint documentation
 - **[Schemas](reference/api/schemas.md)** - Request/response models and types
 
 ### CLI Reference
+
 - **[Commands](reference/cli/commands.md)** - All CLI commands, arguments, and options
 
 ### Core Reference
+
 - **[Workflows](reference/core/workflows.md)** - Understanding, Generation, Validation workflows
 - **[Modules](reference/core/modules.md)** - DSPy module implementations
 - **[Signatures](reference/core/signatures.md)** - DSPy signature definitions
@@ -80,10 +83,12 @@ Detailed technical information for lookup.
 Deep understanding of concepts and architecture.
 
 ### Architecture
+
 - **[System Overview](explanation/architecture/system-overview.md)** - High-level architecture and data flow
 - **[Workflow Engine](explanation/architecture/workflow-engine.md)** - 3-phase workflow details and HITL
 
 ### Development
+
 - **[Contributing](explanation/development/contributing.md)** - Development setup, workflows, and guidelines
 
 ---
@@ -162,6 +167,7 @@ skill_fleet/
 ### Human-in-the-Loop (HITL)
 
 Workflows can pause for human input at key points:
+
 - **Clarifying Questions** - When requirements are ambiguous
 - **Structure Fix** - When name/description needs adjustment
 - **Preview** - Review content before finalizing
@@ -169,12 +175,12 @@ Workflows can pause for human input at key points:
 
 ### Skill Categories
 
-| Category | Use Case | Required Sections |
-|----------|----------|-------------------|
-| `document_creation` | Creating documents/assets | Output Format, Examples |
-| `workflow_automation` | Multi-step processes | Workflow Steps, Input/Output |
-| `mcp_enhancement` | MCP-guided workflows | MCP Tools, Tool Sequences |
-| `analysis` | Data/code analysis | Analysis Approach, Output Format |
+| Category              | Use Case                  | Required Sections                |
+| --------------------- | ------------------------- | -------------------------------- |
+| `document_creation`   | Creating documents/assets | Output Format, Examples          |
+| `workflow_automation` | Multi-step processes      | Workflow Steps, Input/Output     |
+| `mcp_enhancement`     | MCP-guided workflows      | MCP Tools, Tool Sequences        |
+| `analysis`            | Data/code analysis        | Analysis Approach, Output Format |
 
 ---
 
@@ -182,15 +188,15 @@ Workflows can pause for human input at key points:
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `OPENAI_API_KEY` | OpenAI API key | Required |
-| `ANTHROPIC_API_KEY` | Anthropic API key | Alternative |
-| `SKILL_FLEET_DB_URL` | Database URL | `sqlite:///skill_fleet.db` |
-| `SKILL_FLEET_USER_ID` | Default user ID | `default` |
-| `SKILL_FLEET_SKILLS_ROOT` | Skills directory | `.skills` |
+| Variable                  | Description       | Default                    |
+| ------------------------- | ----------------- | -------------------------- |
+| `OPENAI_API_KEY`          | OpenAI API key    | Required                   |
+| `ANTHROPIC_API_KEY`       | Anthropic API key | Alternative                |
+| `SKILL_FLEET_DB_URL`      | Database URL      | `sqlite:///skill_fleet.db` |
+| `SKILL_FLEET_USER_ID`     | Default user ID   | `default`                  |
+| `SKILL_FLEET_SKILLS_ROOT` | Skills directory  | `.skills`                  |
 
-### Config File (`config/config.yaml`)
+### Config File (`src/skill_fleet/config/config.yaml`)
 
 ```yaml
 llm:
@@ -216,6 +222,7 @@ workflow:
 ## Contributing
 
 See [Contributing Guide](explanation/development/contributing.md) for:
+
 - Development setup
 - Code style and testing
 - Adding new modules

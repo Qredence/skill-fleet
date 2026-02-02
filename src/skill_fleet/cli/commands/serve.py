@@ -46,6 +46,10 @@ async def _ask_server_config(
     )
     try:
         port = int(port_input)
+        # Validate port range (1-65535)
+        if not (1 <= port <= 65535):
+            console.print(f"[yellow]Port must be between 1-65535, using default {port}[/yellow]")
+            port = 8000
     except ValueError:
         console.print(f"[yellow]Invalid port '{port_input}', using default {port}[/yellow]")
 

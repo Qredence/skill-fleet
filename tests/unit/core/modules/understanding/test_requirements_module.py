@@ -2,8 +2,10 @@
 
 from unittest.mock import Mock, patch
 
+import dspy
 import pytest
 
+from skill_fleet.common.serialization import normalize_dict_output
 from skill_fleet.core.modules.base import BaseModule
 from skill_fleet.core.modules.understanding.requirements import GatherRequirementsModule
 
@@ -75,10 +77,11 @@ class TestGatherRequirementsModule:
         module = GatherRequirementsModule()
         result = module.forward(task_description="Build a React app", user_context={})
 
-        assert isinstance(result, dict)
-        assert result["domain"] == "technical"
-        assert result["category"] == "web"
-        assert "topics" in result
+        assert isinstance(result, dspy.Prediction)
+        result_dict = normalize_dict_output(result)
+        assert result_dict["domain"] == "technical"
+        assert result_dict["category"] == "web"
+        assert "topics" in result_dict
 
     @pytest.mark.skip(reason="Integration test - requires actual LM configuration")
     def test_forward_handles_empty_ambiguities(self):

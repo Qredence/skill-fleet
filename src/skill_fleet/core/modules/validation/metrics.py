@@ -9,6 +9,7 @@ import time
 from typing import Any
 
 import dspy
+from dspy.utils.syncify import run_async
 
 from skill_fleet.core.modules.base import BaseModule
 from skill_fleet.core.signatures.validation.metrics import (
@@ -56,7 +57,7 @@ class MetricsCollectorModule(BaseModule):
         self.skill_collector = dspy.ChainOfThought(CollectSkillMetrics)
         self.comparison = dspy.ChainOfThought(CompareMetrics)
 
-    async def collect_baseline(self, task_description: str) -> dict[str, Any]:
+    async def collect_baseline(self, task_description: str) -> dspy.Prediction:
         """
         Collect baseline metrics by simulating task without skill assistance.
 
@@ -68,7 +69,7 @@ class MetricsCollectorModule(BaseModule):
             task_description: Description of the task to simulate
 
         Returns:
-            Dictionary with baseline metrics:
+            dspy.Prediction with baseline metrics:
             - tool_calls: Estimated number of tool calls
             - api_failures: Estimated API failure count
             - tokens_consumed: Estimated token consumption
@@ -118,11 +119,11 @@ class MetricsCollectorModule(BaseModule):
             duration_ms=duration_ms,
         )
 
-        return output
+        return self._to_prediction(**output)
 
     async def collect_with_skill(
         self, task_description: str, skill: dict[str, Any]
-    ) -> dict[str, Any]:
+    ) -> dspy.Prediction:
         """
         Collect metrics by simulating task with skill assistance.
 
@@ -186,9 +187,9 @@ class MetricsCollectorModule(BaseModule):
             duration_ms=duration_ms,
         )
 
-        return output
+        return self._to_prediction(**output)
 
-    def compare(self, baseline: dict[str, Any], with_skill: dict[str, Any]) -> dict[str, Any]:
+    def compare(self, baseline: dict[str, Any], with_skill: dict[str, Any]) -> dspy.Prediction:
         """
         Compare baseline vs skill-assisted metrics.
 
@@ -262,7 +263,7 @@ class MetricsCollectorModule(BaseModule):
             duration_ms=duration_ms,
         )
 
-        return output
+        return self._to_prediction(**output)
 
     def _check_targets(self, baseline: dict[str, Any], with_skill: dict[str, Any]) -> bool:
         """
@@ -454,16 +455,14 @@ class MetricsCollectorModule(BaseModule):
             "skill_name": skill_name,
         }
 
-    def forward(self, **kwargs) -> dict[str, Any]:
+    def forward(self, **kwargs) -> dspy.Prediction:
         """Synchronous forward - delegates to appropriate method."""
-        import asyncio
-
         action = kwargs.get("action")
 
         if action == "baseline":
-            return asyncio.run(self.collect_baseline(kwargs.get("task_description", "")))
+            return run_async(self.collect_baseline(kwargs.get("task_description", "")))
         elif action == "with_skill":
-            return asyncio.run(
+            return run_async(
                 self.collect_with_skill(kwargs.get("task_description", ""), kwargs.get("skill", {}))
             )
         elif action == "compare":

@@ -107,3 +107,4 @@ class GatherRequirements(dspy.Signature):
         "Examples: 'linear', 'notion', 'github', 'slack'. "
         "Empty string if requires_mcp is False."
     )
+    reasoning: dspy.Reasoning = dspy.OutputField(desc="Reasoning process for requirements analysis")

@@ -94,7 +94,7 @@ class TestHITLWorkflows:
         assert result.job_id is not None
 
         # Verify job state
-        job = mock_job_manager.get_job(result.job_id)
+        job = await mock_job_manager.get_job(result.job_id)
         assert job.status == "pending_user_input"
         assert job.hitl_type == "clarify"
 

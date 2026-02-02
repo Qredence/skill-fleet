@@ -2,10 +2,10 @@
 CLI command for interactive chat sessions.
 
 Features:
-- Real-time streaming with live updates (100ms polling)
-- Immediate thinking/reasoning display
+- Real-time streaming with live updates and AI reasoning display
+- Hybrid mode: streaming for progress, polling for HITL interactions
 - Arrow key navigation for multi-choice questions
-- Fallback to simple terminal chat if needed
+- Interactive terminal-based workflow
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ from rich.prompt import Prompt
 from rich.text import Text
 
 from ..hitl.runner import run_hitl_job
-from ..tui_spawner import spawn_tui
+from ..streaming_runner import run_hybrid_job
 
 console = Console()
 logger = logging.getLogger(__name__)
@@ -42,55 +42,38 @@ def chat_command(
         "--force-plain-text",
         help="Disable arrow-key dialogs and use plain-text prompts",
     ),
-    no_tui: bool = typer.Option(
-        False,
-        "--no-tui",
-        help="Disable Ink TUI and use simple terminal chat",
-    ),
     fast: bool = typer.Option(
         True,
         "--fast/--slow",
         help="Use fast polling (100ms) for real-time updates",
+    ),
+    stream: bool = typer.Option(
+        True,
+        "--stream/--poll",
+        help="Use streaming mode with live progress (default) or polling-only mode",
     ),
 ):
     """
     Start an interactive guided session to build a skill (job + HITL).
 
     Features real-time streaming with:
-    - Live progress updates (100ms refresh)
-    - Thinking/reasoning display
+    - Live progress updates with phase transitions
+    - AI reasoning/thinking display as it happens
     - Arrow key navigation for questions
     - Immediate response to user input
 
-    Try to launch interactive Ink TUI first, fallback to terminal chat.
+    Use --stream (default) for live progress display, or --poll for
+    compatibility mode that only polls for HITL prompts.
     """
     config = ctx.obj
 
-    # Try to spawn TUI first (if available and not disabled)
-    if not no_tui and not force_plain_text and not fast:
-        try:
-            exit_code = spawn_tui(
-                api_url=config.api_url, user_id=config.user_id, force_no_tui=False
-            )
-            if exit_code == 0:
-                # TUI not available, continue with fallback
-                console.print("[dim]TUI not available, using terminal chat...[/dim]")
-            elif exit_code > 0:
-                # TUI exited successfully
-                return
-            else:
-                # TUI error, continue with fallback
-                console.print("[yellow]TUI error, falling back to terminal chat[/yellow]")
-        except Exception as e:
-            logger.debug(f"TUI spawn failed: {e}, using fallback")
-            pass
-
     async def _run():
         try:
+            mode_label = "streaming" if stream else "polling"
             console.print(
                 Panel.fit(
                     "[bold cyan]Skill Fleet — Interactive Creator[/bold cyan]\n"
-                    "Real-time streaming with live thinking display\n"
+                    f"Mode: {mode_label} with live thinking display\n"
                     "Commands: /help, /exit",
                     border_style="cyan",
                 )
@@ -130,34 +113,52 @@ def chat_command(
                 if not task_description.strip():
                     continue
 
-                console.print("[dim]Creating job...[/dim]")
-                try:
-                    result = await config.client.create_skill(task_description, config.user_id)
-                except Exception as conn_err:
-                    console.print(f"[red]Could not connect to API server at {config.api_url}[/red]")
-                    console.print("[yellow]Make sure the server is running:[/yellow]")
-                    console.print("  uv run skill-fleet serve")
-                    raise conn_err
-
-                job_id = result.get("job_id")
-                if not job_id:
-                    console.print(f"[red]Unexpected response: {result}[/red]")
-                    continue
-
-                console.print(f"[bold green]🚀 Skill creation job started: {job_id}[/bold green]")
-
                 # Use fast polling for real-time updates
                 poll_interval = 0.1 if fast else 2.0
+                job_id: str | None = None
 
-                prompt_data = await run_hitl_job(
-                    console=console,
-                    client=config.client,
-                    job_id=job_id,
-                    auto_approve=auto_approve,
-                    show_thinking=show_thinking,
-                    force_plain_text=force_plain_text,
-                    poll_interval=poll_interval,
-                )
+                if stream:
+                    # Streaming mode: live progress + HITL handling
+                    prompt_data = await run_hybrid_job(
+                        console=console,
+                        client=config.client,
+                        task_description=task_description,
+                        user_id=config.user_id,
+                        show_thinking=show_thinking,
+                        force_plain_text=force_plain_text,
+                        poll_interval=poll_interval,
+                    )
+                else:
+                    # Polling mode: create job first, then poll
+                    console.print("[dim]Creating job...[/dim]")
+                    try:
+                        result = await config.client.create_skill(task_description, config.user_id)
+                    except Exception as conn_err:
+                        console.print(
+                            f"[red]Could not connect to API server at {config.api_url}[/red]"
+                        )
+                        console.print("[yellow]Make sure the server is running:[/yellow]")
+                        console.print("  uv run skill-fleet serve")
+                        raise conn_err
+
+                    job_id = result.get("job_id")
+                    if not job_id:
+                        console.print(f"[red]Unexpected response: {result}[/red]")
+                        continue
+
+                    console.print(
+                        f"[bold green]🚀 Skill creation job started: {job_id}[/bold green]"
+                    )
+
+                    prompt_data = await run_hitl_job(
+                        console=console,
+                        client=config.client,
+                        job_id=job_id,
+                        auto_approve=auto_approve,
+                        show_thinking=show_thinking,
+                        force_plain_text=force_plain_text,
+                        poll_interval=poll_interval,
+                    )
 
                 status = prompt_data.get("status")
                 if status == "completed":
@@ -180,9 +181,10 @@ def chat_command(
                         console.print(f"[bold cyan]📁 Skill saved to:[/bold cyan] {final_path}")
                     elif draft_path:
                         console.print(f"[bold cyan]📝 Draft saved to:[/bold cyan] {draft_path}")
-                        console.print(
-                            f"[dim]Promote when ready:[/dim] `uv run skill-fleet promote {job_id}`"
-                        )
+                        if job_id:
+                            console.print(
+                                f"[dim]Promote when ready:[/dim] `uv run skill-fleet promote {job_id}`"
+                            )
 
                     validation_score = prompt_data.get("validation_score")
                     if validation_passed is not None:

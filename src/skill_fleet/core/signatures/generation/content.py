@@ -37,6 +37,7 @@ class GenerateSkillContent(dspy.Signature):
     )
     code_examples_count: int = dspy.OutputField(desc="Number of code examples included")
     estimated_reading_time: int = dspy.OutputField(desc="Estimated reading time in minutes")
+    reasoning: dspy.Reasoning = dspy.OutputField(desc="Reasoning process for content generation")
 
 
 class GenerateSkillSection(dspy.Signature):
@@ -59,6 +60,7 @@ class GenerateSkillSection(dspy.Signature):
         desc="List of example titles/descriptions included"
     )
     key_points: list[str] = dspy.OutputField(desc="3-5 key takeaways from this section")
+    reasoning: dspy.Reasoning = dspy.OutputField(desc="Reasoning process for section generation")
 
 
 class IncorporateFeedback(dspy.Signature):
@@ -82,6 +84,9 @@ class IncorporateFeedback(dspy.Signature):
     )
     quality_impact: str = dspy.OutputField(
         desc="Assessment of how changes affect quality (improved/unchanged/degraded)"
+    )
+    reasoning: dspy.Reasoning = dspy.OutputField(
+        desc="Reasoning process for feedback incorporation"
     )
 
 
@@ -107,4 +112,7 @@ class GenerateCodeExamples(dspy.Signature):
     common_pitfalls: list[str] = dspy.OutputField(desc="Common mistakes and how to avoid them")
     test_cases: str = dspy.OutputField(
         desc="Test cases to verify the example works (if include_tests=True)"
+    )
+    reasoning: dspy.Reasoning = dspy.OutputField(
+        desc="Reasoning process for code example generation"
     )

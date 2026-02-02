@@ -29,7 +29,7 @@ class ValidateComplianceModule(BaseModule):
         super().__init__()
         self.validate = dspy.ChainOfThought(ValidateCompliance)
 
-    async def aforward(self, **kwargs: Any) -> dict[str, Any]:
+    async def aforward(self, **kwargs: Any) -> dspy.Prediction:
         """
         Validate skill compliance.
 
@@ -39,7 +39,7 @@ class ValidateComplianceModule(BaseModule):
             **kwargs: Additional keyword arguments for compatibility.
 
         Returns:
-            Validation results with score and issues
+            dspy.Prediction with validation results (score, issues)
 
         """
         skill_content: str = kwargs["skill_content"]
@@ -55,7 +55,8 @@ class ValidateComplianceModule(BaseModule):
             if not llm_fallback_enabled():
                 raise
             self.logger.warning(f"Compliance validation failed: {e}. Using lightweight checks.")
-            return self._create_fallback_result(skill_content, taxonomy_path)
+            fallback = self._create_fallback_result(skill_content, taxonomy_path)
+            return self._to_prediction(**fallback)
 
         output = {
             "passed": bool(result.passed) if hasattr(result, "passed") else False,
@@ -83,7 +84,7 @@ class ValidateComplianceModule(BaseModule):
             duration_ms=duration_ms,
         )
 
-        return output
+        return self._to_prediction(**output)
 
     def _create_fallback_result(self, skill_content: str, taxonomy_path: str) -> dict[str, Any]:
         """
@@ -124,11 +125,11 @@ class ValidateComplianceModule(BaseModule):
             "fallback": True,
         }
 
-    def forward(self, **kwargs) -> dict[str, Any]:
+    def forward(self, **kwargs) -> dspy.Prediction:
         """Synchronous forward - delegates to async."""
-        import asyncio
+        from dspy.utils.syncify import run_async
 
-        return asyncio.run(self.aforward(**kwargs))
+        return run_async(self.aforward(**kwargs))
 
 
 class AssessQualityModule(BaseModule):
@@ -140,7 +141,7 @@ class AssessQualityModule(BaseModule):
 
     async def aforward(  # type: ignore[override]
         self, skill_content: str, plan: dict, success_criteria: list[str] | None = None
-    ) -> dict[str, Any]:
+    ) -> dspy.Prediction:
         """
         Assess skill quality.
 
@@ -154,7 +155,7 @@ class AssessQualityModule(BaseModule):
             success_criteria: Criteria to check
 
         Returns:
-            Quality assessment with scores and metrics
+            dspy.Prediction with quality assessment (scores and metrics)
 
         """
         start_time = time.time()
@@ -214,7 +215,7 @@ class AssessQualityModule(BaseModule):
             duration_ms=duration_ms,
         )
 
-        return output
+        return self._to_prediction(**output)
 
     def _assess_size(self, word_count: int) -> str:
         """
@@ -280,13 +281,14 @@ class AssessQualityModule(BaseModule):
 
         # Calculate verbosity score (0-1)
         # Longer sentences + more filler words = more verbose
-        length_score = min(
-            (avg_sentence_length - 10) / 20, 1.0
-        )  # Normalize: 10 words = 0, 30 words = 1
+        length_score = max(
+            0.0, min((avg_sentence_length - 10) / 20, 1.0)
+        )  # Normalize: 10 words = 0, 30 words = 1, clamped to [0, 1]
         filler_score = min(filler_ratio * 5, 1.0)  # Scale filler ratio
 
         verbosity = length_score * 0.6 + filler_score * 0.4
-        return round(verbosity, 2)
+        # Ensure final value is in [0, 1] range
+        return max(0.0, min(round(verbosity, 2), 1.0))
 
     def _generate_size_recommendations(self, word_count: int, size_assessment: str) -> list[str]:
         """Generate recommendations based on skill size."""
@@ -333,11 +335,11 @@ class AssessQualityModule(BaseModule):
 
         return recommendations
 
-    def forward(self, **kwargs) -> dict[str, Any]:
+    def forward(self, **kwargs) -> dspy.Prediction:
         """Synchronous forward - delegates to async."""
-        import asyncio
+        from dspy.utils.syncify import run_async
 
-        return asyncio.run(self.aforward(**kwargs))
+        return run_async(self.aforward(**kwargs))
 
 
 class RefineSkillModule(BaseModule):
@@ -349,7 +351,7 @@ class RefineSkillModule(BaseModule):
 
     async def aforward(  # type: ignore[override]
         self, current_content: str, weaknesses: list[str], target_score: float = 0.8
-    ) -> dict[str, Any]:
+    ) -> dspy.Prediction:
         """
         Refine skill content.
 
@@ -404,10 +406,10 @@ class RefineSkillModule(BaseModule):
             duration_ms=duration_ms,
         )
 
-        return output
+        return self._to_prediction(**output)
 
-    def forward(self, **kwargs) -> dict[str, Any]:
+    def forward(self, **kwargs) -> dspy.Prediction:
         """Synchronous forward - delegates to async."""
-        import asyncio
+        from dspy.utils.syncify import run_async
 
-        return asyncio.run(self.aforward(**kwargs))
+        return run_async(self.aforward(**kwargs))

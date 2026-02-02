@@ -65,18 +65,18 @@ See `docs/reference/api/endpoints.md` for endpoint details.
 ## Configuration
 
 - Copy `.env.example` to `.env` and set what you need (LLM credentials, DB URL, CORS).
-- LLM/task configuration lives in `config/config.yaml` (default: `gemini/gemini-3-flash-preview`).
+- LLM/task configuration lives in `src/skill_fleet/config/config.yaml` (default: `gemini/gemini-3-flash-preview`).
 
 Common environment variables:
 
-| Variable | Notes |
-|----------|-------|
-| `GOOGLE_API_KEY` | Direct Gemini credentials (default config) |
-| `LITELLM_API_KEY` / `LITELLM_BASE_URL` | Use a LiteLLM proxy instead of direct provider creds |
-| `DATABASE_URL` | Required in `SKILL_FLEET_ENV=production`; dev can fall back to SQLite |
-| `SKILL_FLEET_CORS_ORIGINS` | Required in production (comma-separated; `*` only in dev) |
-| `SKILL_FLEET_API_URL` | CLI target (default: `http://localhost:8000`) |
-| `SKILL_FLEET_USER_ID` | User ID for analytics/context (default: `default`) |
+| Variable                               | Notes                                                                 |
+| -------------------------------------- | --------------------------------------------------------------------- |
+| `GOOGLE_API_KEY`                       | Direct Gemini credentials (default config)                            |
+| `LITELLM_API_KEY` / `LITELLM_BASE_URL` | Use a LiteLLM proxy instead of direct provider creds                  |
+| `DATABASE_URL`                         | Required in `SKILL_FLEET_ENV=production`; dev can fall back to SQLite |
+| `SKILL_FLEET_CORS_ORIGINS`             | Required in production (comma-separated; `*` only in dev)             |
+| `SKILL_FLEET_API_URL`                  | CLI target (default: `http://localhost:8000`)                         |
+| `SKILL_FLEET_USER_ID`                  | User ID for analytics/context (default: `default`)                    |
 
 ---
 

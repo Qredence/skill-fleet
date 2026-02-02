@@ -32,14 +32,13 @@ class GatherRequirementsModule(BaseModule):
             task_description="Build a React component library",
             user_context={"experience": "intermediate"}
         )
-        # Returns: {
-        #   "domain": "technical",
-        #   "category": "frontend",
-        #   "target_level": "intermediate",
-        #   "topics": ["react", "components", "typescript"],
-        #   "constraints": ["TypeScript", "production ready"],
-        #   "ambiguities": ["Unclear if SSR is needed"]
-        # }
+        # Returns: dspy.Prediction with:
+        #   domain="technical",
+        #   category="frontend",
+        #   target_level="intermediate",
+        #   topics=["react", "components", "typescript"],
+        #   constraints=["TypeScript", "production ready"],
+        #   ambiguities=["Unclear if SSR is needed"]
 
     """
 
@@ -49,7 +48,7 @@ class GatherRequirementsModule(BaseModule):
 
     async def aforward(
         self, task_description: str, user_context: dict | None = None
-    ) -> dict[str, Any]:  # type: ignore[override]
+    ) -> dspy.Prediction:  # type: ignore[override]
         """Async requirements gathering using DSPy `acall`."""
         start_time = time.time()
 
@@ -67,6 +66,8 @@ class GatherRequirementsModule(BaseModule):
             result = None
 
         output = self._result_to_output(result, clean_task)
+        if result is not None and hasattr(result, "reasoning"):
+            output.setdefault("reasoning", str(result.reasoning))
 
         required = ["domain", "category", "target_level", "topics"]
         if not self._validate_result(output, required):
@@ -83,9 +84,9 @@ class GatherRequirementsModule(BaseModule):
             duration_ms=duration_ms,
         )
 
-        return output
+        return self._to_prediction(**output)
 
-    def forward(self, task_description: str, user_context: dict | None = None) -> dict[str, Any]:  # type: ignore[override]
+    def forward(self, task_description: str, user_context: dict | None = None) -> dspy.Prediction:  # type: ignore[override]
         """
         Gather requirements from task description.
 
@@ -94,7 +95,7 @@ class GatherRequirementsModule(BaseModule):
             user_context: Optional user context (preferences, history, etc.)
 
         Returns:
-            Dictionary with structured requirements:
+            dspy.Prediction with structured requirements:
             - domain: Primary domain
             - category: Specific category
             - target_level: Target expertise level
@@ -124,6 +125,8 @@ class GatherRequirementsModule(BaseModule):
             result = None
 
         output = self._result_to_output(result, clean_task)
+        if result is not None and hasattr(result, "reasoning"):
+            output.setdefault("reasoning", str(result.reasoning))
 
         # Validate
         required = ["domain", "category", "target_level", "topics"]
@@ -142,7 +145,7 @@ class GatherRequirementsModule(BaseModule):
             duration_ms=duration_ms,
         )
 
-        return output
+        return self._to_prediction(**output)
 
     def _result_to_output(self, result: Any, clean_task: str) -> dict[str, Any]:
         """Normalize DSPy result into a stable dict output (with optional fallback)."""

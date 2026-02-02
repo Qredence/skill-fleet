@@ -82,6 +82,7 @@ uv run skill-fleet chat "Create a Python async/await programming skill"
 ```
 
 You'll see:
+
 - Real-time progress updates
 - Live reasoning/thinking display
 - Interactive prompts if clarification is needed
@@ -114,6 +115,7 @@ After completion, you'll see:
 ```
 
 The skill includes:
+
 - `SKILL.md` - The main skill file with instructions
 - Generated test cases
 - Validation report
@@ -194,6 +196,7 @@ curl http://localhost:8000/api/v1/jobs/<job_id>
 ### Create More Skills
 
 Try creating skills for:
+
 - Framework documentation (React, Django, FastAPI)
 - Best practices (testing, security, performance)
 - Workflow guides (CI/CD, deployment, debugging)
@@ -201,6 +204,7 @@ Try creating skills for:
 ### Customize Templates
 
 Edit `src/skill_fleet/core/modules/generation/templates.py` to customize:
+
 - Section structure
 - Required elements
 - Example patterns
@@ -210,6 +214,7 @@ Edit `src/skill_fleet/core/modules/generation/templates.py` to customize:
 ### "Could not connect to API server"
 
 Make sure the server is running:
+
 ```bash
 uv run skill-fleet serve
 ```
@@ -217,11 +222,13 @@ uv run skill-fleet serve
 ### "Validation failed"
 
 Check the validation output for specific issues:
+
 ```bash
 uv run skill-fleet validate <path> --json
 ```
 
 Common issues:
+
 - Missing trigger phrases in description
 - Invalid kebab-case name
 - Missing required sections
@@ -229,6 +236,7 @@ Common issues:
 ### "Database error"
 
 Reinitialize the database:
+
 ```bash
 uv run skill-fleet db init --force
 ```
@@ -239,7 +247,7 @@ uv run skill-fleet db init --force
 
 ### LLM Provider
 
-Edit `config/config.yaml`:
+Edit `src/skill_fleet/config/config.yaml`:
 
 ```yaml
 llm:
@@ -275,6 +283,7 @@ export SKILL_FLEET_API_URL=http://localhost:8080
    - HITL helps catch issues early
 
 3. **Validate before promoting**
+
    ```bash
    uv run skill-fleet validate <path> && uv run skill-fleet promote <job_id>
    ```

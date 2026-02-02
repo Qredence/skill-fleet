@@ -1,38 +1,138 @@
-# skill-fleet – Agent Working Guide
+# Skill Fleet – Agent Working Guide
 
-## Build, Lint, Test Commands
+A guide for working with the Skill Fleet codebase.
 
-**Prerequisites:** uv package manager (pre-installed), Python 3.12+
+---
 
-```bash
-# Install dependencies (run after pyproject.toml changes)
-uv sync --group dev
+## Quick Reference
 
-# Linting (run before commits)
-uv run ruff check .
-uv run ruff check --fix .
-uv run ruff format .
-uv run pre-commit run --all-files
+| Task | Command |
+|------|---------|
+| Install dependencies | `uv sync --group dev` |
+| Run linter | `uv run ruff check .` |
+| Auto-fix issues | `uv run ruff check --fix .` |
+| Format code | `uv run ruff format .` |
+| Run pre-commit | `uv run pre-commit run --all-files` |
+| Run all tests | `uv run pytest` |
+| Run unit tests | `uv run pytest tests/unit/` |
+| Run specific test | `uv run pytest tests/unit/test_file.py::test_function` |
+| Skip slow tests | `uv run pytest -m "not slow"` |
+| Type check | `uv run ty check` |
+| Validate skills | `uv run skill-fleet validate` |
+| Start dev server | `uv run skill-fleet serve --reload` |
+| Run CLI chat | `uv run skill-fleet chat` |
 
-# Testing
-uv run pytest
-uv run pytest -v
-uv run pytest tests/unit/
-uv run pytest tests/integration/
-uv run pytest --cov=src/skill_fleet
-uv run pytest tests/unit/test_skill_validator.py
-uv run pytest tests/unit/test_skill_validator.py::test_validate_directory_skill
-uv run pytest -m "not slow"
+---
+
+## Prerequisites
+
+- **Python 3.12+**
+- **uv** package manager
+- **Git**
+- **Docker** (for PostgreSQL/MLflow, optional)
+
+---
+
+## Project Structure
+
+```
+src/skill_fleet/
+├── api/                  # FastAPI application layer
+│   ├── v1/               # API endpoints (skills, jobs, hitl, optimization, streaming)
+│   ├── schemas/          # Pydantic request/response models
+│   ├── services/         # API service layer (job_manager, skill_service)
+│   ├── middleware/       # FastAPI middleware (logging)
+│   ├── utils/            # API utilities (draft_save)
+│   ├── dependencies.py   # FastAPI dependencies
+│   ├── factory.py        # App factory
+│   ├── lifespan.py       # Startup/shutdown lifecycle
+│   └── main.py           # Application entry point
+├── cli/                  # Typer CLI application
+│   ├── commands/         # CLI commands (chat, create, validate, migrate, etc.)
+│   ├── hitl/             # HITL runner and handlers
+│   ├── ui/               # CLI UI utilities
+│   └── utils/            # CLI utilities (constants, security)
+├── common/               # Shared utilities
+│   ├── utils.py          # General utilities
+│   ├── security.py       # Path security functions
+│   ├── exceptions.py     # Shared exceptions
+│   ├── paths.py          # Path utilities
+│   ├── async_utils.py    # Async utilities
+│   ├── dspy_compat.py    # DSPy compatibility layer
+│   ├── llm_fallback.py   # LLM fallback mechanisms
+│   ├── serialization.py  # Serialization helpers
+│   └── streaming.py      # Streaming utilities
+├── config/               # Configuration files
+│   ├── config.yaml       # Main configuration
+│   ├── profiles/         # LLM profiles
+│   ├── templates/        # SKILL.md template, metadata template
+│   ├── optimized/        # Optimized prompts/checkpoints
+│   └── training/         # Training data (gold_skills_v2.json, trainset_v4.json)
+├── core/                 # Core business logic
+│   ├── modules/          # DSPy modules
+│   │   ├── base.py       # Base module class
+│   │   ├── conversational.py
+│   │   ├── generation/   # content.py, refined_content.py, templates.py
+│   │   ├── hitl/         # questions.py
+│   │   ├── understanding/# dependencies.py, intent.py, parallel_analysis.py, plan.py, requirements.py, taxonomy.py
+│   │   └── validation/   # best_of_n_validator.py, compliance.py, metrics.py, structure.py, test_cases.py
+│   ├── signatures/       # DSPy signatures
+│   │   ├── base.py
+│   │   ├── generation/
+│   │   ├── hitl/
+│   │   ├── understanding/
+│   │   └── validation/
+│   ├── workflows/        # Workflow orchestration
+│   │   ├── skill_creation/   # understanding.py, generation.py, validation.py
+│   │   └── streaming.py
+│   ├── services/         # Core services
+│   │   └── conversation/     # engine.py, handlers/, models.py
+│   ├── optimization/     # Optimization system
+│   │   ├── optimizer.py
+│   │   ├── evaluation.py
+│   │   ├── cache.py
+│   │   └── rewards/      # phase1_rewards.py, phase2_rewards.py, step_rewards.py
+│   ├── hitl/             # HITL handlers
+│   ├── tools/            # Tool definitions (research.py)
+│   ├── models.py         # Domain models
+│   ├── config.py         # Core configuration
+│   └── dspy_utils.py     # DSPy utilities
+├── dspy/                 # DSPy integration layer
+│   ├── config.py         # DSPy configuration
+│   ├── adapters.py       # LM adapters
+│   └── streaming.py      # DSPy streaming support
+├── infrastructure/       # Technical infrastructure
+│   ├── db/               # Database layer (SQLAlchemy)
+│   │   ├── database.py
+│   │   ├── models.py
+│   │   ├── repositories.py
+│   │   └── session.py
+│   ├── monitoring/       # MLflow setup
+│   └── tracing/          # Distributed tracing
+├── taxonomy/             # Taxonomy management
+│   ├── manager.py
+│   ├── discovery.py
+│   ├── skill_loader.py
+│   ├── skill_registration.py
+│   ├── metadata.py
+│   ├── naming.py
+│   └── path_resolver.py
+├── validators/           # agentskills.io validation
+│   └── skill_validator.py
+└── services/             # Service layer (orchestration)
 ```
 
-**Always use `uv run` prefix** for Python commands.
+---
 
-## Code Style Guidelines
+## Code Style
 
-### Python & Formatting
+### Python Standards
 
-- Python 3.12+ required, use ruff (replaces flake8, black, isort)
-- Line length: 100 chars, double quotes, 4-space indentation
+- Python 3.12+ with modern syntax
+- Line length: 100 characters
+- Double quotes preferred
+- 4-space indentation
+- Type checker: `ty` (configured in `pyproject.toml`)
 
 ### Import Ordering
 
@@ -51,84 +151,109 @@ from skill_fleet.common.utils import safe_json_loads
 
 ### Type Hints
 
-Use modern hints: `list[str]`, `dict[str, int]`, `str | None`, `Annotated` for FastAPI
-
-### Naming
-
-- Functions/variables: snake_case
-- Classes: PascalCase
-- Constants: UPPER_SNAKE_CASE
-- Private: _prefix
-- Exceptions: suffix with Error/Exception
-- Dataclasses: `@dataclass(frozen=True, slots=True)`
-
-### Docstrings
-
-Google-style required for public modules, classes, functions:
-```python
-def validate_skill(skill_path: Path) -> ValidationResult:
-    """Validate a skill directory.
-
-    Args:
-        skill_path: Path to the skill directory.
-
-    Returns:
-        ValidationResult with validation status and errors.
-    """
-```
-
-### Error Handling
-
-- Use specific exceptions, not bare `except:`
-- Raise custom exceptions from `skill_fleet.api.exceptions` for API errors
-- Use logging (not `print`): `logger = logging.getLogger(__name__)`
-- Use `HTTPException(status_code=404, detail="Not found")` for FastAPI
-
-### Testing
-
-- pytest with `asyncio_mode = "auto"`
-- Mock external dependencies (LLMs, file I/O) in unit tests
-- Use `@pytest.mark.integration` for tests requiring API keys
-- Place tests in `tests/unit/` (fast) or `tests/integration/` (slow)
-
-### Path Security
-
-For all file operations:
-```python
-from skill_fleet.common.security import (
-    resolve_path_within_root,
-    sanitize_relative_file_path
-)
-```
-
-### DSPy Integration
+Use modern Python 3.12+ syntax:
 
 ```python
-from skill_fleet.dspy import configure_dspy, get_task_lm
+# Built-in generics
+list[str]
+dict[str, Any]
+set[int]
 
-lm = configure_dspy(default_task="skill_understand")
-edit_lm = get_task_lm("skill_edit")
+# Union operator
+str | None      # not Optional[str]
+int | str       # not Union[int, str]
+
+# Annotated for FastAPI
+from typing import Annotated
+value: Annotated[str, Depends(get_value)]
 ```
 
-**Note:** DSPy configuration moved from `skill_fleet.core.dspy` to `skill_fleet.dspy`. The old import path is no longer available.
+### Naming Conventions
 
-**DSPy 3.1.2+ best practices (this repo targets `dspy>=3.1.2,<4`):**
-- Prefer calling modules/signatures via `module(...)` (or `await module.acall(...)`) instead of `module.forward(...)`.
-- In async contexts, use DSPy async APIs (`acall`) rather than `asyncio.run(...)` wrappers.
-- In tests (and any async workflows), prefer `dspy.context(lm=...)` over repeated `dspy.configure(...)` inside async tasks.
-- By default, LM failures should raise; deterministic fallbacks are gated behind `SKILL_FLEET_ALLOW_LLM_FALLBACK=1` (enabled in tests).
+| Type | Convention | Example |
+|------|------------|---------|
+| Functions/variables | snake_case | `get_skill_name()` |
+| Classes | PascalCase | `SkillValidator` |
+| Constants | UPPER_SNAKE_CASE | `MAX_RETRIES` |
+| Private | _prefix | `_internal_method()` |
+| Exceptions | Error/Exception suffix | `ValidationError` |
 
-### FastAPI Patterns
+---
 
-- Use dependency injection: `Depends(get_skill_service)`
-- Return Pydantic models from endpoints
-- Use `BackgroundTasks` for async work
-- Handle errors with `skill_fleet.api.exceptions`
-- **Return immediately with job_id for long-running operations** - Don't block until completion
+## DSPy Patterns
 
-### Background Tasks & Job System
+### Configuration
 
-For long-running operations like skill creation:
+```python
+from skill_fleet.dspy import configure_dspy, get_task_lm, dspy_context
+
+# Configure at startup
+configure_dspy()
+
+# Get task-specific LM
+lm = get_task_lm("skill_understand")
+
+# Scoped config for async (recommended)
+with dspy_context(lm=custom_lm):
+    result = await module.aforward(...)
+```
+
+### Signatures
+
+```python
+import dspy
+
+class AnalyzeSkill(dspy.Signature):
+    """Analyze a skill description and extract requirements."""
+
+    task_description: str = dspy.InputField(desc="User's description")
+    context: str | None = dspy.InputField(desc="Additional context", default=None)
+
+    requirements: list[str] = dspy.OutputField(desc="Extracted requirements")
+    domain: str = dspy.OutputField(desc="Detected domain")
+    reasoning: dspy.Reasoning = dspy.OutputField()
+```
+
+### Modules
+
+```python
+from typing import Any
+
+class MyModule(dspy.Module):
+    def forward(self, **kwargs: Any) -> dspy.Prediction:
+        ...
+
+    async def aforward(self, **kwargs: Any) -> dspy.Prediction:
+        ...
+```
+
+### Best Practices
+
+- Prefer `module(...)` or `await module.acall(...)` over `module.forward(...)`
+- Use `dspy_context(lm=...)` for scoped configuration
+- LM failures raise by default; fallbacks need `SKILL_FLEET_ALLOW_LLM_FALLBACK=1`
+
+---
+
+## FastAPI Patterns
+
+### Dependency Injection
+
+```python
+from fastapi import APIRouter, Depends
+
+router = APIRouter()
+
+@router.get("/skills/")
+async def list_skills(
+    service: SkillService = Depends(get_skill_service)
+) -> list[SkillResponse]:
+    return await service.list_skills()
+```
+
+### Background Tasks
+
+Return immediately with job ID for long operations:
 
 ```python
 from fastapi import BackgroundTasks
@@ -138,22 +263,106 @@ async def create_skill(
     request: CreateSkillRequest,
     background_tasks: BackgroundTasks,
 ) -> CreateSkillResponse:
-    # Create job and return immediately
     job_id = create_job(...)
-
-    # Run workflow in background
     background_tasks.add_task(run_workflow, job_id, request)
-
     return CreateSkillResponse(job_id=job_id, status="pending")
 ```
 
-- Jobs are tracked via `/api/v1/jobs/{job_id}` and HITL endpoints
-- CLI polls for status and HITL prompts
-- Job state is in-memory (restarts clear pending jobs)
+Jobs are tracked via `/api/v1/jobs/{job_id}`. Jobs use dual-layer persistence (memory + PostgreSQL).
 
-### agentskills.io Compliance
+### Error Handling
 
-Every `SKILL.md` must have YAML frontmatter at top:
+```python
+from fastapi import HTTPException
+
+raise HTTPException(status_code=404, detail="Not found")
+```
+
+---
+
+## Testing
+
+### Organization
+
+| Directory | Purpose |
+|-----------|---------|
+| `tests/unit/` | Fast unit tests with mocked dependencies |
+| `tests/integration/` | Tests requiring external services |
+| `tests/api/` | API-specific tests |
+| `tests/cli/` | CLI tests |
+
+### Commands
+
+```bash
+# All tests
+uv run pytest
+
+# Unit tests only
+uv run pytest tests/unit/
+
+# Skip slow/integration tests
+uv run pytest -m "not slow and not integration"
+
+# With coverage
+uv run pytest --cov=src/skill_fleet
+```
+
+### Markers
+
+- `@pytest.mark.slow` - Long-running tests
+- `@pytest.mark.integration` - Tests requiring API keys/external services
+- `@pytest.mark.asyncio` - Async tests (mode=auto configured)
+
+---
+
+## Environment Variables
+
+### Required
+
+- `DATABASE_URL` - PostgreSQL connection string
+- `GOOGLE_API_KEY` or `GEMINI_API_KEY` - LLM credentials
+
+### API Configuration
+
+- `SKILL_FLEET_ENV` - `production` or `development`
+- `SKILL_FLEET_CORS_ORIGINS` - Allowed origins
+- `SKILL_FLEET_SKILLS_ROOT` - Skills directory (default: `./skills`)
+
+### LiteLLM Proxy (alternative to direct keys)
+
+- `LITELLM_API_KEY`, `LITELLM_BASE_URL`, `LITELLM_MODEL`
+
+### DSPy / Runtime
+
+- `DSPY_CACHEDIR` - Cache directory (default: `.dspy_cache`)
+- `DSPY_TEMPERATURE` - Global temperature override
+- `SKILL_FLEET_ALLOW_LLM_FALLBACK` - Enable fallbacks (tests only)
+
+### Model Overrides
+
+- `FLEET_MODEL_DEFAULT` - Override default model
+- `FLEET_MODEL_SKILL_UNDERSTAND`, `FLEET_MODEL_SKILL_PLAN`, etc.
+
+See `.env.example` for complete list.
+
+---
+
+## Security
+
+### Path Security
+
+```python
+from skill_fleet.common.security import resolve_path_within_root
+
+safe_path = resolve_path_within_root(base_path, user_input)
+```
+
+---
+
+## agentskills.io Compliance
+
+Every `SKILL.md` must have YAML frontmatter:
+
 ```markdown
 ---
 name: skill-name-in-kebab-case
@@ -163,113 +372,45 @@ description: A concise description (1-2 sentences)
 # Skill Title
 ```
 
-Frontmatter MUST be first, name must be kebab-case, description required.
+Requirements:
+- Frontmatter must be first in file
+- `name` in kebab-case
+- `description` required
 
-### Common Utilities
+---
 
-Import from `skill_fleet.common.utils`: `safe_json_loads()`, `safe_float()`
+## Pre-Commit Checklist
 
-### Forbidden Patterns
+```bash
+uv run ruff check --fix .
+uv run ruff format .
+uv run pre-commit run --all-files
+uv run pytest
+uv run skill-fleet validate  # if skills modified
+```
 
-- No `import *`
-- No mutable default arguments (use `None` and initialize)
-- No `print` statements (use logging)
-- No `assert` for runtime checks
-- Avoid manual `isinstance` type checks (prefer `typing`)
+Check `git status` for unwanted files (.venv/, .dspy_cache/, __pycache__/). Do not commit the `src/frontend/` directory (in .gitignore).
 
-## Security & Pre-Commit Checklist
-
-1. `uv run ruff check --fix .`
-2. `uv run ruff format .`
-3. `uv run pre-commit run --all-files`
-4. `uv run pytest`
-5. `uv run skill-fleet validate` (if skills modified)
-6. Run `uv run bandit -c pyproject.toml -r src/ -x src/frontend` when you need explicit coverage (frontend artifacts excluded on purpose).
-7. Check `git status` for .venv/, .dspy_cache/, __pycache__/
-
-## Project Structure
-
-### Source Code (`src/skill_fleet/`)
-
-- **`_seed/`** - Seed data for development/testing
-
-- **`analytics/`** - Analytics engine for tracking and metrics
-
-- **`api/`** - FastAPI application (restructured from `app/`)
-  - `v1/` - API version 1 routers (flattened structure)
-  - `schemas/` - Pydantic request/response models
-  - `services/` - Business logic layer
-  - `middleware/` - FastAPI middleware
-  - `dependencies.py` - Dependency injection
-  - `factory.py` - App factory
-  - `main.py` - Application entry point
-
-- **`cli/`** - CLI commands (Typer)
-
-- **`common/`** - Shared utilities (top-level)
-  - `utils.py` - General utilities
-  - `security.py` - Path security functions
-  - `exceptions.py` - Shared exceptions
-  - `paths.py` - Path utilities
-
-- **`config/`** - Configuration files (YAML profiles, templates, training configs)
-
-- **`core/`** - Domain logic + DSPy integration
-  - `modules/` - DSPy modules (understanding, generation, validation, hitl)
-  - `signatures/` - DSPy signature definitions
-  - `workflows/` - Workflow orchestration layer
-  - `models.py` - Domain models
-  - `hitl/` - Human-in-the-loop handlers
-  - `optimization/` - Optimization and evaluation
-  - `services/` - Core business services
-  - `tools/` - Tool definitions and handlers
-  - `config.py` - Core configuration
-
-- **`dspy/`** - Centralized DSPy configuration (new location)
-
-- **`infrastructure/`** - Technical infrastructure
-  - `db/` - Database layer (models, repositories, session)
-  - `monitoring/` - MLflow setup
-  - `tracing/` - Distributed tracing
-
-- **`services/`** - Service layer (business logic orchestration)
-
-- **`taxonomy/`** - Taxonomy management
-
-- **`validators/`** - agentskills.io compliance validation
-
-**Note:** `infrastructure/llm/` was removed. Use `skill_fleet.dspy` for LLM configuration.
-
-### Other Directories
-
-- `skills/` - Skills taxonomy (excluded from linting)
-- `tests/` - Unit and integration tests
-  - `api/` - API-specific tests (v1, schemas, services)
-  - `common/` - Common utilities tests
-  - `unit/` - Unit tests
-  - `integration/` - Integration tests
-
-## Environment Variables
-
-Required: `GOOGLE_API_KEY`
-
-Optional: `DSPY_CACHEDIR`, `DSPY_TEMPERATURE`, `DSPY_MODEL`, `LOG_LEVEL`, `SKILL_FLEET_ALLOW_LLM_FALLBACK`
-
-## Important Files
-
-- `pyproject.toml` - Dependencies, pytest config, ruff rules
-- `config/config.yaml` - LLM model settings
-- `.github/copilot-instructions.md` - Detailed project info
+---
 
 ## Key Gotchas
 
-1. `skills/` directory excluded from ruff linting
-2. CLI wraps API logic - implement in `core`/`api` first
-3. DSPy requires explicit configuration when used as library; in async tests prefer `dspy.context(lm=...)`
-4. Use migration tools (`uv run skill-fleet migrate`) instead of manual skill edits
-5. Job state is in-memory - restart clears pending jobs
-6. Some integration tests may require `GOOGLE_API_KEY`; skip with `-m "not integration"` if running offline
-7. **API endpoints return immediately** - Long operations run in `BackgroundTasks`, client polls HITL endpoint
-8. **CLI chat uses fast polling (100ms)** - For real-time updates, use `uv run skill-fleet chat --fast`
-9. **Frontend is work-in-progress** - `src/frontend/` is in .gitignore, don't commit yet
-10. Deterministic “LLM fallback” mode is for tests/offline runs only: set `SKILL_FLEET_ALLOW_LLM_FALLBACK=1`
+1. **`skills/` directory excluded from ruff linting** - Different conventions apply
+2. **CLI wraps API logic** - Implement in `core`/`api` first, expose via CLI
+3. **Async-first architecture** - Use `async/await` throughout; use `async_utils.py` for helpers
+4. **API endpoints return immediately** - Long operations use `BackgroundTasks`
+5. **Job system uses dual-layer persistence** - Memory cache + PostgreSQL
+6. **Streaming support** - Multiple streaming modules (API, workflows, DSPy)
+7. **HITL system** - Extensive human-in-the-loop support in API and CLI
+8. **Use migration tools** - `uv run skill-fleet migrate` instead of manual skill edits
+9. **Deterministic LLM fallback** - For tests/offline: `SKILL_FLEET_ALLOW_LLM_FALLBACK=1`
+
+---
+
+## Forbidden Patterns
+
+- No `import *`
+- No mutable default arguments
+- No `print` statements (use `logging.getLogger(__name__)`)
+- No `assert` for runtime checks
+- Avoid manual `isinstance` type checks

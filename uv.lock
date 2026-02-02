@@ -847,7 +847,7 @@ wheels = [
 [[package]]
 name = "dspy"
 version = "3.1.2"
-source = { registry = "https://pypi.org/simple" }
+source = { git = "https://github.com/stanfordnlp/dspy.git#586156eb92692f6eb6a9ef4749cd774bd5b92eaf" }
 dependencies = [
     { name = "anyio" },
     { name = "asyncer" },
@@ -867,10 +867,6 @@ dependencies = [
     { name = "tenacity" },
     { name = "tqdm" },
     { name = "xxhash" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/22/92/4eeed6796c48e799a41aa521bf206fabab3dbb2fbf0958655b476e43726e/dspy-3.1.2.tar.gz", hash = "sha256:6dfd8a4bbf74b1b432ff466468994a590c43fce0d45c2c0094313c9314aa3bb6", size = 261253, upload-time = "2026-01-19T14:21:47.424Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/91/18/1c93641f25f4e76772b4ffb52a4e289f1706d6bda4f3b59bb6f7c339df46/dspy-3.1.2-py3-none-any.whl", hash = "sha256:23b98bf5abeda260722c445d397d07ea27488c204b8c0ccd6d3e607c4b41bc6b", size = 312290, upload-time = "2026-01-19T14:21:45.776Z" },
 ]
 
 [[package]]
@@ -1261,11 +1257,11 @@ http = [
 
 [[package]]
 name = "gepa"
-version = "0.0.24"
+version = "0.0.26"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/bc/2c/8f249827bcdc56212a445f4f671ee2201b864e433d2c88428933bd4b08f3/gepa-0.0.24.tar.gz", hash = "sha256:8035d1a0877661b6a63db457dc935b4878ee76acf7da1e488d7e6209bb32c054", size = 135673, upload-time = "2026-01-05T16:45:30.553Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ef/98/b8f1ccc8cc2a319f21433df45bcec8a8f7903ee08aacd0acfdc475f47c05/gepa-0.0.26.tar.gz", hash = "sha256:0119ca8022e93b6236bc154a57bb910bdb117485dc067d77777933dd3e9e9ad8", size = 141776, upload-time = "2026-01-24T18:11:18.362Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7e/b1/33b035ff1aaf22d4e104c5b15ba48fe5050639764457048e967c20d6317a/gepa-0.0.24-py3-none-any.whl", hash = "sha256:6d8b16699e7b24ed01435dea7bbbc89156a88cbb4b877b14d90e7455db2b0032", size = 137539, upload-time = "2026-01-05T16:45:29.244Z" },
+    { url = "https://files.pythonhosted.org/packages/05/6e/f1141b76398026ef77f0d52a17b37d26ceb7cd320e0ad3a72c59fe00b983/gepa-0.0.26-py3-none-any.whl", hash = "sha256:331e40d8693a4192de2eb3b2b4df10d410ead49173f748d50c32a035cf746e63", size = 139666, upload-time = "2026-01-24T18:11:16.836Z" },
 ]
 
 [[package]]
@@ -3492,6 +3488,16 @@ wheels = [
 ]
 
 [[package]]
+name = "ripgrep"
+version = "15.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/1b/4c/9308d061c46f3ef1bfed45a0054f4b4fef27cbb15834ec6194152822ec5f/ripgrep-15.0.0.tar.gz", hash = "sha256:51ee063a756cb13cb0d72333e57b736e678a6a3c99c3feaa0669331382cf88ad", size = 488148, upload-time = "2025-10-20T08:44:37.879Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f6/ba/820becc3a88cca9baa6feaf6d616210481645f7c48101296b6602b4de839/ripgrep-15.0.0-py3-none-macosx_11_0_arm64.whl", hash = "sha256:ba377ff6f9fbc10e0ca0a0cc6cd19849380bdbd3cce6ca1c94c2e3fd24b9819c", size = 2026061, upload-time = "2025-10-20T08:44:34.447Z" },
+    { url = "https://files.pythonhosted.org/packages/72/59/95e261860ec2182b5c32022b65cf34de2757db6d4b0f5f14fc9699d31e1a/ripgrep-15.0.0-py3-none-manylinux_2_39_x86_64.whl", hash = "sha256:33b72e58758652ef22e8df95e8790874a114872f548b9cb0c65c8dba533e7d73", size = 7774889, upload-time = "2025-10-20T08:44:36.233Z" },
+]
+
+[[package]]
 name = "rpds-py"
 version = "0.30.0"
 source = { registry = "https://pypi.org/simple" }
@@ -3797,6 +3803,7 @@ dependencies = [
     { name = "pyyaml" },
     { name = "questionary" },
     { name = "rich" },
+    { name = "ripgrep" },
     { name = "sqlalchemy" },
     { name = "tomli" },
     { name = "ty" },
@@ -3830,7 +3837,7 @@ requires-dist = [
     { name = "asyncpg", specifier = ">=0.31.0" },
     { name = "click", specifier = ">=8.3.1" },
     { name = "datasets", specifier = ">=4.4.2" },
-    { name = "dspy", specifier = ">=3.1.2,<4" },
+    { name = "dspy", git = "https://github.com/stanfordnlp/dspy.git" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.128.0" },
     { name = "gepa", specifier = ">=0.0.24" },
     { name = "google-genai", specifier = ">=1.56.0" },
@@ -3850,6 +3857,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "questionary", specifier = ">=2.0.0" },
     { name = "rich", specifier = ">=13.7.1" },
+    { name = "ripgrep", specifier = ">=15.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8.0" },
     { name = "sqlalchemy", specifier = ">=2.0.45" },
     { name = "tomli", specifier = ">=2.0" },

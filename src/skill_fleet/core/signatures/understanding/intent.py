@@ -56,3 +56,4 @@ class AnalyzeIntent(dspy.Signature):
         desc="3-5 measurable success criteria. Format: 'User can do X', 'Skill achieves Y'. "
         "Be specific and testable. Use action verbs (implement, debug, configure, etc.)."
     )
+    reasoning: dspy.Reasoning = dspy.OutputField(desc="Reasoning process for intent analysis")

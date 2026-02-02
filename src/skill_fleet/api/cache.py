@@ -29,11 +29,11 @@ Usage:
 
 from __future__ import annotations
 
+import asyncio
 import functools
 import hashlib
 import json
 import logging
-import threading
 import time
 from typing import TYPE_CHECKING, Any, TypeVar
 
@@ -80,7 +80,7 @@ class InMemoryCache:
         """
         self.default_ttl = default_ttl
         self._cache: dict[str, CacheEntry] = {}
-        self._lock = threading.RLock()
+        self._lock = asyncio.Lock()
         self._stats = {
             "hits": 0,
             "misses": 0,
@@ -88,7 +88,7 @@ class InMemoryCache:
             "invalidations": 0,
         }
 
-    def get(self, key: str) -> Any | None:
+    async def get(self, key: str) -> Any | None:
         """
         Get a value from the cache.
 
@@ -99,7 +99,7 @@ class InMemoryCache:
             Cached value or None if not found/expired
 
         """
-        with self._lock:
+        async with self._lock:
             entry = self._cache.get(key)
             if entry is None:
                 self._stats["misses"] += 1
@@ -113,7 +113,7 @@ class InMemoryCache:
             self._stats["hits"] += 1
             return entry.value
 
-    def set(self, key: str, value: Any, ttl: int | None = None) -> None:
+    async def set(self, key: str, value: Any, ttl: int | None = None) -> None:
         """
         Set a value in the cache.
 
@@ -126,10 +126,10 @@ class InMemoryCache:
         if ttl is None:
             ttl = self.default_ttl
 
-        with self._lock:
+        async with self._lock:
             self._cache[key] = CacheEntry(value, ttl)
 
-    def invalidate(self, key: str) -> bool:
+    async def invalidate(self, key: str) -> bool:
         """
         Invalidate a specific cache entry.
 
@@ -140,14 +140,14 @@ class InMemoryCache:
             True if key was in cache, False otherwise
 
         """
-        with self._lock:
+        async with self._lock:
             if key in self._cache:
                 del self._cache[key]
                 self._stats["invalidations"] += 1
                 return True
             return False
 
-    def clear(self) -> int:
+    async def clear(self) -> int:
         """
         Clear all cache entries.
 
@@ -155,17 +155,17 @@ class InMemoryCache:
             Number of entries cleared
 
         """
-        with self._lock:
+        async with self._lock:
             count = len(self._cache)
             self._cache.clear()
             return count
 
-    def get_stats(self) -> dict[str, int]:
+    async def get_stats(self) -> dict[str, int]:
         """Get cache statistics."""
-        with self._lock:
+        async with self._lock:
             return self._stats.copy()
 
-    def cleanup_expired(self) -> int:
+    async def cleanup_expired(self) -> int:
         """
         Remove all expired entries from the cache.
 
@@ -173,7 +173,7 @@ class InMemoryCache:
             Number of entries removed
 
         """
-        with self._lock:
+        async with self._lock:
             expired_keys = [key for key, entry in self._cache.items() if entry.is_expired()]
             for key in expired_keys:
                 del self._cache[key]
@@ -232,7 +232,7 @@ def hash_key(value: str | dict | BaseModel) -> str:
 
 def cached(ttl: int = 300, key_prefix: str = ""):
     """
-    Cache function results.
+    Cache async function results.
 
     Args:
         ttl: Time-to-live in seconds
@@ -240,7 +240,7 @@ def cached(ttl: int = 300, key_prefix: str = ""):
 
     Examples:
         >>> @cached(ttl=600, key_prefix="taxonomy")
-        ... def get_taxonomy_structure():
+        ... async def get_taxonomy_structure():
         ...     # Expensive operation
         ...     return taxonomy_data
 
@@ -248,7 +248,7 @@ def cached(ttl: int = 300, key_prefix: str = ""):
 
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         @functools.wraps(func)
-        def wrapper(*args, **kwargs) -> T:
+        async def wrapper(*args, **kwargs) -> T:
             # Generate cache key from function name and arguments
             func_name = getattr(func, "__name__", "unknown")
             args_str = str(args) + str(sorted(kwargs.items()))
@@ -256,19 +256,19 @@ def cached(ttl: int = 300, key_prefix: str = ""):
             key = cache_key(func_name, cache_key_suffix, prefix=key_prefix)
 
             # Try to get from cache
-            result = _cache.get(key)
+            result = await _cache.get(key)
             if result is not None:
                 logger.debug(f"Cache hit: {key}")
                 return result
 
             # Call function and cache result
             logger.debug(f"Cache miss: {key}")
-            result = func(*args, **kwargs)
-            _cache.set(key, result, ttl=ttl)
+            result = await func(*args, **kwargs)  # type: ignore[await]
+            await _cache.set(key, result, ttl=ttl)
 
             return result
 
-        return wrapper
+        return wrapper  # type: ignore[return]
 
     return decorator
 
@@ -279,7 +279,7 @@ def cache_result(
     prefix: str = "",
 ):
     """
-    Cache function results with custom key generation.
+    Cache async function results with custom key generation.
 
     Args:
         key_func: Optional function to generate cache key
@@ -291,14 +291,14 @@ def cache_result(
         ...     return f"user:{user_id}:skill_type:{skill_type}"
         >>>
         >>> @cache_result(key_func=get_key, ttl=600, prefix="skills")
-        ... def get_user_skills(user_id: str, skill_type: str):
-        ...     return fetch_skills(user_id, skill_type)
+        ... async def get_user_skills(user_id: str, skill_type: str):
+        ...     return await fetch_skills(user_id, skill_type)
 
     """
 
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         @functools.wraps(func)
-        def wrapper(*args, **kwargs) -> T:
+        async def wrapper(*args, **kwargs) -> T:
             # Generate cache key
             if key_func:
                 key_suffix = key_func(*args, **kwargs)
@@ -312,24 +312,24 @@ def cache_result(
                 )
 
             # Try to get from cache
-            result = _cache.get(key)
+            result = await _cache.get(key)
             if result is not None:
                 logger.debug(f"Cache hit: {key}")
                 return result
 
             # Call function and cache result
             logger.debug(f"Cache miss: {key}")
-            result = func(*args, **kwargs)
-            _cache.set(key, result, ttl=ttl)
+            result = await func(*args, **kwargs)  # type: ignore[await]
+            await _cache.set(key, result, ttl=ttl)
 
             return result
 
-        return wrapper
+        return wrapper  # type: ignore[return]
 
     return decorator
 
 
-def invalidate_pattern(pattern: str) -> int:
+async def invalidate_pattern(pattern: str) -> int:
     """
     Invalidate all cache entries matching a pattern.
 
@@ -340,14 +340,14 @@ def invalidate_pattern(pattern: str) -> int:
         Number of entries invalidated
 
     Examples:
-        >>> invalidate_pattern("taxonomy:*")  # Invalidate all taxonomy keys
-        >>> invalidate_pattern("skill:python:*")  # Invalidate all Python skill caches
-        >>> invalidate_pattern("*")  # Clear all cache
+        >>> await invalidate_pattern("taxonomy:*")  # Invalidate all taxonomy keys
+        >>> await invalidate_pattern("skill:python:*")  # Invalidate all Python skill caches
+        >>> await invalidate_pattern("*")  # Clear all cache
 
     """
     import fnmatch
 
-    with _cache._lock:
+    async with _cache._lock:
         keys_to_delete = [key for key in _cache._cache if fnmatch.fnmatch(key, pattern)]
         for key in keys_to_delete:
             del _cache._cache[key]

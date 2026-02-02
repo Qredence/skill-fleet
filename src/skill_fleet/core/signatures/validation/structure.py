@@ -87,3 +87,4 @@ class ValidateSkillStructure(dspy.Signature):
     overall_valid: bool = dspy.OutputField(
         desc="True only if name_valid, description_valid are True and no security_issues exist"
     )
+    reasoning: dspy.Reasoning = dspy.OutputField(desc="Reasoning process for structure validation")

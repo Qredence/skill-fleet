@@ -31,14 +31,14 @@ class ValidateStructureModule(BaseModule):
 
     Example:
         module = ValidateStructureModule()
-        result = module.forward(
+        result = module(
             skill_name="my-cool-skill",
             description="Creates React components. Use when user asks to 'build a component' or 'create React UI'.",
             skill_content="# My Cool Skill\n\n## Instructions..."
         )
         # result["overall_valid"] == True
 
-        result = module.forward(
+        result = module(
             skill_name="My Cool Skill",
             description="Helps with projects"
         )
@@ -90,7 +90,7 @@ class ValidateStructureModule(BaseModule):
         skill_name: str,
         description: str,
         skill_content: str = "",
-    ) -> dict[str, Any]:  # ty:ignore[invalid-method-override]
+    ) -> dspy.Prediction:  # type:ignore[override]
         """
         Validate skill structure against requirements.
 
@@ -132,7 +132,7 @@ class ValidateStructureModule(BaseModule):
         except Exception as e:
             self.logger.warning(f"LLM validation failed: {e}, using rule-based only")
             # Fallback to rule-based validation only
-            return self._create_fallback_result(
+            fallback = self._create_fallback_result(
                 skill_name,
                 description,
                 skill_content,
@@ -141,6 +141,7 @@ class ValidateStructureModule(BaseModule):
                 security_issues,
                 word_count,
             )
+            return self._to_prediction(**fallback)
 
         # Merge rule-based and LLM results
         merged_name_errors = name_errors + (result.name_errors or [])
@@ -177,7 +178,7 @@ class ValidateStructureModule(BaseModule):
             duration_ms=duration_ms,
         )
 
-        return output
+        return self._to_prediction(**output)
 
     def _check_name(self, name: str) -> list[str]:
         """

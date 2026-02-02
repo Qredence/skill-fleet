@@ -1,4 +1,4 @@
-"""CLI command for starting the API server and TUI together."""
+"""CLI command for starting the API server in development mode."""
 
 from __future__ import annotations
 
@@ -11,6 +11,8 @@ from pathlib import Path
 import httpx
 import typer
 from rich.console import Console
+
+from ..utils.security import sanitize_user_id
 
 console = Console()
 
@@ -66,29 +68,29 @@ def dev_command(
         "--reload/--no-reload",
         help="Enable auto-reload on file changes (default: disabled to prevent port conflicts)",
     ),
-    tui: bool = typer.Option(
-        True,
-        "--tui/--no-tui",
-        help="Start the TUI alongside the API server",
-    ),
-    tui_script: str = typer.Option("dev", "--tui-script", help="npm script to run for the TUI"),
 ):
     """
-    Start the Skill Fleet API server and TUI together (best for development).
+    Start the Skill Fleet API server in development mode.
 
     By default, auto-reload is disabled to prevent port binding issues when files change.
     Use --reload to enable auto-reload (requires uvicorn to cleanly rebind ports).
     """
     config = ctx.obj if ctx is not None else None
     configured_api_url = getattr(config, "api_url", None)
-    user_id = getattr(config, "user_id", os.getenv("SKILL_FLEET_USER_ID", "default"))
+
+    # Sanitize user_id from config or env var
+    raw_user_id = getattr(config, "user_id", os.getenv("SKILL_FLEET_USER_ID", "default"))
+    try:
+        user_id = sanitize_user_id(raw_user_id)
+    except ValueError as e:
+        console.print(f"[bold red]Error:[/bold red] Invalid user_id: {e}", style="bold red")
+        raise typer.Exit(1) from e
 
     api_url = _derive_api_url(host, port, configured_api_url)
 
     repo_root = _resolve_repo_root()
-    tui_dir = repo_root / "cli" / "tui"
 
-    console.print("[bold green]🚀 Starting Skill Fleet (API + TUI)...[/bold green]")
+    console.print("[bold green]🚀 Starting Skill Fleet API...[/bold green]")
     console.print(f"[dim]API URL: {api_url}[/dim]")
     console.print(f"[dim]User ID: {user_id}[/dim]")
     console.print(f"[dim]Reload: {'enabled' if reload else 'disabled'}[/dim]")
@@ -131,60 +133,16 @@ def dev_command(
         console.print(f"[bold red]Failed to start API server: {exc}[/bold red]")
         raise typer.Exit(code=1) from exc
 
-    tui_proc: subprocess.Popen[str] | None = None
-    if tui:
-        # Wait for API to be ready before starting TUI
-        console.print("[dim]Waiting for API server to be ready...[/dim]")
-        if not _wait_for_api_ready(api_url):
-            console.print(
-                "[bold yellow]⚠️  API server didn't respond in time (may still be loading)[/bold yellow]"
-            )
-
-        tui_env = os.environ.copy()
-        tui_env["SKILL_FLEET_API_URL"] = api_url
-        tui_env["SKILL_FLEET_USER_ID"] = user_id
-
-        tui_cmd = ["npm", "run", tui_script]
-
-        try:
-            tui_proc = subprocess.Popen(tui_cmd, cwd=tui_dir, env=tui_env)  # nosec B603
-        except FileNotFoundError as exc:
-            console.print(
-                "[bold red]npm is required to run the TUI. Install Node.js/npm and try again.[/bold red]"
-            )
-            api_proc.terminate()
-            raise typer.Exit(code=1) from exc
-
     try:
-        if not tui_proc:
-            api_proc.wait()
-            raise typer.Exit(code=api_proc.returncode or 0)
-
-        while True:
-            api_exit = api_proc.poll()
-            tui_exit = tui_proc.poll() if tui_proc else None
-
-            if api_exit is not None:
-                console.print("[bold red]API server stopped[/bold red]")
-                if tui_proc and tui_proc.poll() is None:
-                    tui_proc.terminate()
-                raise typer.Exit(code=api_exit)
-
-            if tui_exit is not None:
-                console.print("[bold red]TUI stopped[/bold red]")
-                if api_proc.poll() is None:
-                    api_proc.terminate()
-                raise typer.Exit(code=tui_exit)
-
-            time.sleep(0.4)
+        api_proc.wait()
+        raise typer.Exit(code=api_proc.returncode or 0)
     except KeyboardInterrupt:
         console.print("\n[dim]Shutting down...[/dim]")
     finally:
-        for proc in (tui_proc, api_proc):
-            if proc and proc.poll() is None:
-                proc.terminate()
-                try:
-                    proc.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    proc.kill()
+        if api_proc and api_proc.poll() is None:
+            api_proc.terminate()
+            try:
+                api_proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                api_proc.kill()
         api_log_handle.close()

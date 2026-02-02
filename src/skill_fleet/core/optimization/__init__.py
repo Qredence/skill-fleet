@@ -12,14 +12,10 @@ from .evaluation import (
     taxonomy_path_metric,
 )
 from .optimizer import (
-    OptimizationWrapper,
+    APPROVED_MODELS,
+    DEFAULT_MODEL,
+    REFLECTION_MODEL,
     get_lm,
-    load_optimized_program,
-    optimize_with_gepa,
-    optimize_with_miprov2,
-    optimize_with_tracking,
-    quick_evaluate,
-    save_program_state,
 )
 
 __all__ = [
@@ -34,13 +30,9 @@ __all__ = [
     "skill_creation_metric",
     "evaluate_program",
     "print_evaluation_report",
-    # Optimizer
+    # Optimizer (minimal - LegacySkillCreationProgram removed)
+    "APPROVED_MODELS",
+    "DEFAULT_MODEL",
+    "REFLECTION_MODEL",
     "get_lm",
-    "OptimizationWrapper",
-    "optimize_with_miprov2",
-    "optimize_with_gepa",
-    "load_optimized_program",
-    "save_program_state",
-    "optimize_with_tracking",
-    "quick_evaluate",
 ]

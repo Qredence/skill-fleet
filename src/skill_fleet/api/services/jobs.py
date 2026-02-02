@@ -131,46 +131,40 @@ class JobStore:
 JOBS: JobStore = JobStore()
 
 
-def create_job(task_description: str = "", user_id: str = "default") -> str:
-    """
-    Create a new job and return its unique ID.
-
-    Args:
-        task_description: The task description for this job
-        user_id: The user ID creating this job
-
-    Returns:
-        The unique job ID
-
-    """
+async def create_job(task_description: str, user_id: str | None = None) -> str:
+    """Create a new job and return its ID."""
     from .job_manager import get_job_manager
 
     job_id = str(uuid.uuid4())
     job_state = JobState(
         job_id=job_id,
+        status="pending",
         task_description=task_description,
-        user_id=user_id,
+        user_id=user_id or "default",
     )
 
     # Register in both JOBS dict (for backward compat) and JobManager
     JOBS[job_id] = job_state
     manager = get_job_manager()
-    manager.create_job(job_state)
+    await manager.create_job(job_state)
 
     return job_id
 
 
-def get_job(job_id: str) -> JobState | None:
+async def get_job(job_id: str) -> JobState | None:
     """Retrieve a job by its ID, loading from disk if necessary."""
     job = JOBS.get(job_id)
     if job:
         return job
 
-    # Fallback to disk loading for persistence
-    return load_job_session(job_id)
+    # Fallback to JobManager for persistence
+    from .job_manager import get_job_manager
+
+    manager = get_job_manager()
+    return await manager.get_job(job_id)
 
 
-def update_job(job_id: str, updates: dict[str, Any]) -> JobState | None:
+async def update_job(job_id: str, updates: dict[str, Any]) -> JobState | None:
     """
     Update a job with the provided updates.
 
@@ -185,7 +179,7 @@ def update_job(job_id: str, updates: dict[str, Any]) -> JobState | None:
     from .job_manager import get_job_manager
 
     manager = get_job_manager()
-    updated_job = manager.update_job(job_id, updates)
+    updated_job = await manager.update_job(job_id, updates)
     if updated_job:
         JOBS[job_id] = updated_job
     return updated_job
@@ -230,7 +224,7 @@ async def wait_for_hitl_response(job_id: str, timeout: float = 3600.0) -> dict[s
     return response
 
 
-def notify_hitl_response(job_id: str, response: dict[str, Any]) -> None:
+async def notify_hitl_response(job_id: str, response: dict[str, Any]) -> None:
     """
     Notify the in-flight HITL waiter that a response arrived.
 
@@ -240,7 +234,7 @@ def notify_hitl_response(job_id: str, response: dict[str, Any]) -> None:
     from .job_manager import get_job_manager
 
     manager = get_job_manager()
-    job = manager.get_job(job_id)
+    job = await manager.get_job(job_id)
     if job is None:
         return
 
@@ -254,7 +248,7 @@ def notify_hitl_response(job_id: str, response: dict[str, Any]) -> None:
     job.updated_at = datetime.now(UTC)
 
     # Update both memory and database
-    manager.update_job(job_id, {"updated_at": job.updated_at, "hitl_response": response})
+    await manager.update_job(job_id, {"updated_at": job.updated_at, "hitl_response": response})
 
 
 # =============================================================================

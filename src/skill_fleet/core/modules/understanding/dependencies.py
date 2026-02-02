@@ -53,7 +53,7 @@ class AnalyzeDependenciesModule(BaseModule):
         intent_analysis: dict | None = None,
         taxonomy_path: str = "",
         existing_skills: list[str] | None = None,
-    ) -> dict[str, Any]:
+    ) -> dspy.Prediction:
         """Async dependency analysis using DSPy `acall`."""
         start_time = time.time()
 
@@ -101,6 +101,8 @@ class AnalyzeDependenciesModule(BaseModule):
                 "fallback": True,
             }
         )
+        if result is not None and hasattr(result, "reasoning"):
+            output.setdefault("reasoning", str(result.reasoning))
 
         required = ["prerequisite_skills", "complementary_skills", "dependency_rationale"]
         if not self._validate_result(output, required):
@@ -129,7 +131,7 @@ class AnalyzeDependenciesModule(BaseModule):
             duration_ms=duration_ms,
         )
 
-        return output
+        return self._to_prediction(**output)
 
     def forward(
         self,
@@ -139,7 +141,7 @@ class AnalyzeDependenciesModule(BaseModule):
         existing_skills: list[str] | None = None,
         *args: Any,
         **kwargs: Any,
-    ) -> dict[str, Any]:
+    ) -> dspy.Prediction:
         """
         Analyze dependencies for skill.
 
@@ -152,7 +154,7 @@ class AnalyzeDependenciesModule(BaseModule):
             **kwargs: Additional keyword arguments for compatibility.
 
         Returns:
-            Dictionary with dependency analysis:
+            dspy.Prediction with dependency analysis:
             - prerequisite_skills: Hard prerequisites
             - complementary_skills: Optional enhancements
             - conflicting_skills: Incompatible skills
@@ -215,6 +217,8 @@ class AnalyzeDependenciesModule(BaseModule):
                 else [],
                 "dependency_rationale": result.dependency_rationale,
             }
+            if hasattr(result, "reasoning"):
+                output.setdefault("reasoning", str(result.reasoning))
 
         # Validate
         required = ["prerequisite_skills", "complementary_skills", "dependency_rationale"]
@@ -245,4 +249,4 @@ class AnalyzeDependenciesModule(BaseModule):
             duration_ms=duration_ms,
         )
 
-        return output
+        return self._to_prediction(**output)

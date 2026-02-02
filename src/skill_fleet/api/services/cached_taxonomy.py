@@ -67,7 +67,7 @@ class CachedTaxonomyService:
         """
         self.taxonomy_manager = taxonomy_manager
 
-    def get_global_taxonomy(self) -> dict[str, Any]:
+    async def get_global_taxonomy(self) -> dict[str, Any]:
         """
         Get the global taxonomy structure with caching.
 
@@ -78,7 +78,7 @@ class CachedTaxonomyService:
         cache_key_val = cache_key("taxonomy", "global")
 
         # Try cache first
-        cached = get_cache().get(cache_key_val)
+        cached = await get_cache().get(cache_key_val)
         if cached is not None:
             logger.debug("Cache hit: global taxonomy")
             return cached
@@ -96,11 +96,11 @@ class CachedTaxonomyService:
         }
 
         # Cache for 5 minutes
-        get_cache().set(cache_key_val, result, ttl=300)
+        await get_cache().set(cache_key_val, result, ttl=300)
 
         return result
 
-    def get_user_taxonomy(self, user_id: str) -> dict[str, Any]:
+    async def get_user_taxonomy(self, user_id: str) -> dict[str, Any]:
         """
         Get user-specific taxonomy with caching.
 
@@ -114,7 +114,7 @@ class CachedTaxonomyService:
         cache_key_val = cache_key("taxonomy", "user", user_id)
 
         # Try cache first
-        cached = get_cache().get(cache_key_val)
+        cached = await get_cache().get(cache_key_val)
         if cached is not None:
             safe_user_id = _sanitize_for_log(user_id)
             logger.debug(f"Cache hit: user taxonomy for {safe_user_id}")
@@ -145,11 +145,11 @@ class CachedTaxonomyService:
         result["adapted_categories"] = adapted_categories
 
         # Cache for 2 minutes (user-specific data changes more frequently)
-        get_cache().set(cache_key_val, result, ttl=120)
+        await get_cache().set(cache_key_val, result, ttl=120)
 
         return result
 
-    def get_relevant_branches(self, task_description: str) -> dict[str, dict[str, str]]:
+    async def get_relevant_branches(self, task_description: str) -> dict[str, dict[str, str]]:
         """
         Get relevant taxonomy branches for a task with caching.
 
@@ -167,7 +167,7 @@ class CachedTaxonomyService:
         cache_key_val = cache_key("taxonomy", "branches", key_hash)
 
         # Try cache first
-        cached = get_cache().get(cache_key_val)
+        cached = await get_cache().get(cache_key_val)
         if cached is not None:
             logger.debug("Cache hit: relevant branches for task")
             return cached
@@ -177,11 +177,11 @@ class CachedTaxonomyService:
         result = self.taxonomy_manager.get_relevant_branches(task_description)
 
         # Cache for 10 minutes (task descriptions often repeat)
-        get_cache().set(cache_key_val, result, ttl=600)
+        await get_cache().set(cache_key_val, result, ttl=600)
 
         return result
 
-    def get_skill_metadata_cached(self, skill_id: str) -> dict[str, Any] | None:
+    async def get_skill_metadata_cached(self, skill_id: str) -> dict[str, Any] | None:
         """
         Get skill metadata with caching.
 
@@ -195,7 +195,7 @@ class CachedTaxonomyService:
         cache_key_val = cache_key("skill", "metadata", skill_id)
 
         # Try cache first
-        cached = get_cache().get(cache_key_val)
+        cached = await get_cache().get(cache_key_val)
         if cached is not None:
             logger.debug(f"Cache hit: skill metadata for {skill_id}")
             return cached
@@ -232,11 +232,11 @@ class CachedTaxonomyService:
             }
 
         # Cache for 5 minutes
-        get_cache().set(cache_key_val, result, ttl=300)
+        await get_cache().set(cache_key_val, result, ttl=300)
 
         return result
 
-    def invalidate_taxonomy(self) -> int:
+    async def invalidate_taxonomy(self) -> int:
         """
         Invalidate all taxonomy-related cache entries.
 
@@ -244,11 +244,11 @@ class CachedTaxonomyService:
             Number of cache entries invalidated
 
         """
-        count = invalidate_pattern("taxonomy:*")
+        count = await invalidate_pattern("taxonomy:*")
         logger.info(f"Invalidated {count} taxonomy cache entries")
         return count
 
-    def invalidate_skill(self, skill_id: str) -> int:
+    async def invalidate_skill(self, skill_id: str) -> int:
         """
         Invalidate cache entries for a specific skill.
 
@@ -260,15 +260,15 @@ class CachedTaxonomyService:
 
         """
         # Invalidate skill metadata
-        count = invalidate_pattern(f"skill:*:{skill_id}*")
+        count = await invalidate_pattern(f"skill:*:{skill_id}*")
 
         # Also invalidate any user taxonomies that might reference this skill
-        count += invalidate_pattern("taxonomy:user:*")
+        count += await invalidate_pattern("taxonomy:user:*")
 
         logger.info(f"Invalidated {count} cache entries for skill {skill_id}")
         return count
 
-    def get_cache_stats(self) -> dict[str, int]:
+    async def get_cache_stats(self) -> dict[str, int]:
         """
         Get cache statistics for monitoring.
 
@@ -276,7 +276,7 @@ class CachedTaxonomyService:
             Dictionary with cache statistics
 
         """
-        return get_cache().get_stats()
+        return await get_cache().get_stats()
 
 
 # Global instance getter

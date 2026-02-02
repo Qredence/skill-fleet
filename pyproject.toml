@@ -34,6 +34,7 @@ dependencies = [
   "gepa>=0.0.24",
   "questionary>=2.0.0",
   "greenlet>=3.3.0",
+  "ripgrep>=15.0.0",
 ]
 classifiers = [
   "Development Status :: 3 - Alpha",
@@ -267,3 +268,6 @@ include = ["tests/**"]
 
 [tool.ty.overrides.rules]
 possibly-unresolved-reference = "warn"
+
+[tool.uv.sources]
+dspy = { git = "https://github.com/stanfordnlp/dspy.git" }

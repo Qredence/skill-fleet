@@ -107,7 +107,7 @@ async def create_skill(
     # Import here to avoid circular dependency with job system
     from ..services.jobs import create_job, get_job
 
-    job_id = create_job(
+    job_id = await create_job(
         task_description=request.task_description,
         user_id=request.user_id,
     )
@@ -125,11 +125,11 @@ async def create_skill(
             if result.status in ("completed", "pending_review"):
                 from ..services.jobs import update_job
 
-                update_job(
+                await update_job(
                     job_id,
                     {
                         "status": result.status,
-                        "result": result.model_dump(),
+                        "result": result,
                         "progress_percent": 100.0,
                         "progress_message": "Skill creation completed",
                     },
@@ -139,11 +139,11 @@ async def create_skill(
         except Exception as e:
             logger.error(f"Skill creation job {job_id} failed: {e}")
             # Update job status to failed
-            job = get_job(job_id)
+            job = await get_job(job_id)
             if job:
                 from ..services.jobs import update_job
 
-                update_job(job_id, {"status": "failed", "error": str(e)})
+                await update_job(job_id, {"status": "failed", "error": str(e)})
 
     # Add workflow to background tasks and return immediately
     background_tasks.add_task(run_workflow)

@@ -14,6 +14,7 @@ Endpoints:
 from __future__ import annotations
 
 import asyncio
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks
@@ -149,12 +150,55 @@ async def get_prompt(job_id: str) -> HITLPromptResponse:
 
     """
     manager = get_job_manager()
-    job = manager.get_job(job_id)
+    job = await manager.get_job(job_id)
     if not job:
         raise NotFoundException("Job", job_id)
 
     # Extract all possible HITL data fields
     hitl_data = job.hitl_data or {}
+
+    def _get_result_field(result: Any, key: str) -> Any:
+        if result is None:
+            return None
+        if isinstance(result, dict):
+            return result.get(key)
+        return getattr(result, key, None)
+
+    # Self-heal: some older code paths populate `hitl_type`/`hitl_data` but forget
+    # to move the job into a pending-HITL state. Clients rely on status to know
+    # when to collect user input, so infer + persist a pending status when we
+    # clearly have an unresolved prompt payload.
+    def _looks_like_prompt_payload(data: dict[str, Any]) -> bool:
+        return any(
+            key in data
+            for key in (
+                "questions",
+                "summary",
+                "content",
+                "highlights",
+                "report",
+                "issues",
+                "warnings",
+                "suggested_fixes",
+            )
+        )
+
+    if (
+        job.hitl_type
+        and job.status in {"pending", "running"}
+        and isinstance(hitl_data, dict)
+        and hitl_data
+        and _looks_like_prompt_payload(hitl_data)
+        and not hitl_data.get("_resolved", False)
+    ):
+        inferred = (
+            "pending_user_input"
+            if job.hitl_type in {"clarify", "structure_fix", "deep_understanding"}
+            else "pending_hitl"
+        )
+        if inferred != job.status:
+            job.status = inferred
+            await manager.update_job(job_id, {"status": inferred})
 
     # Normalize questions server-side (API-first: CLI is a thin client)
     raw_questions = hitl_data.get("questions")
@@ -184,7 +228,7 @@ async def get_prompt(job_id: str) -> HITLPromptResponse:
         report=hitl_data.get("report"),
         passed=hitl_data.get("passed"),
         # Result data
-        skill_content=job.result.skill_content if job.result else None,
+        skill_content=_get_result_field(job.result, "skill_content"),
         # Draft-first lifecycle
         intended_taxonomy_path=job.intended_taxonomy_path,
         draft_path=job.draft_path,
@@ -234,7 +278,7 @@ async def post_response(
 
     """
     manager = get_job_manager()
-    job = manager.get_job(job_id)
+    job = await manager.get_job(job_id)
     if not job:
         raise NotFoundException("Job", job_id)
 
@@ -266,9 +310,16 @@ async def post_response(
                 skill_service.resume_skill_creation, job_id=job_id, answers=answers
             )
 
+            # Mark prompt as resolved so GET /prompt doesn't re-surface it while running.
+            hitl_data = job.hitl_data or {}
+            if isinstance(hitl_data, dict):
+                hitl_data["_resolved"] = True
+                hitl_data["_resolved_at"] = datetime.now(UTC).isoformat()
+                job.hitl_data = hitl_data
+
             # Update status immediately so UI changes state
             job.status = "running"
-            manager.update_job(job_id, {"status": "running"})
+            await manager.update_job(job_id, {"status": "running", "hitl_data": job.hitl_data})
 
             return HITLResponseResult(status="accepted")
 
@@ -287,6 +338,13 @@ async def post_response(
 
         # Update status eagerly so polling clients don't re-render the same prompt.
         job.status = "running"
+
+        # Mark prompt as resolved for self-heal logic in GET /prompt.
+        hitl_data = job.hitl_data or {}
+        if isinstance(hitl_data, dict):
+            hitl_data["_resolved"] = True
+            hitl_data["_resolved_at"] = datetime.now(UTC).isoformat()
+            job.hitl_data = hitl_data
 
     # Auto-save session on each HITL response
     from ..services.jobs import save_job_session
@@ -352,7 +410,7 @@ async def _handle_structure_fix_response(
     # Update job
     job.context = context
     job.status = "running"
-    manager.update_job(job_id, {"status": "running", "context": context})
+    await manager.update_job(job_id, {"status": "running", "context": context})
 
     # Resume workflow in background
     background_tasks.add_task(

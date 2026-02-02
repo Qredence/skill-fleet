@@ -6,6 +6,7 @@ The primary goal is to support richer terminal UX (arrow-key selection) while
 retaining a safe fallback for non-interactive environments.
 """
 
+from .completion import display_completion_result, display_connection_error
 from .prompts import (
     OTHER_OPTION_ID,
     PromptToolkitUI,
@@ -24,4 +25,6 @@ __all__ = [
     "choose_many_with_other",
     "choose_one_with_other",
     "get_default_ui",
+    "display_completion_result",
+    "display_connection_error",
 ]

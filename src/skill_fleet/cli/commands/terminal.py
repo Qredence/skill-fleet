@@ -1,8 +1,7 @@
 """
-CLI command for terminal-based chat without TUI.
+CLI command for terminal-based chat.
 
-This command provides a pure Python CLI interface for skill creation,
-without attempting to launch the React/Ink TUI.
+This command provides a pure Python CLI interface for skill creation.
 """
 
 from __future__ import annotations
@@ -40,10 +39,9 @@ def terminal_command(
     ),
 ):
     """
-    Start an interactive terminal chat session (Python CLI only, no TUI).
+    Start an interactive terminal chat session.
 
-    This command provides a terminal-based interface for skill creation using
-    only the Python CLI, without attempting to launch the React TUI.
+    This command provides a terminal-based interface for skill creation.
     """
     config = ctx.obj
 
@@ -52,7 +50,7 @@ def terminal_command(
             console.print(
                 Panel.fit(
                     "[bold cyan]Skill Fleet — Terminal Interface[/bold cyan]\n"
-                    "Pure Python CLI mode (no TUI).\n"
+                    "Interactive mode.\n"
                     "Commands: /help, /exit",
                     border_style="cyan",
                 )

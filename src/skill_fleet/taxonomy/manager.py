@@ -12,6 +12,7 @@ This manager provides:
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from dataclasses import dataclass
@@ -122,6 +123,7 @@ class TaxonomyManager:
         self.metadata_cache: dict[str, SkillMetadata] = {}
         self.meta: dict[str, Any] = {}
         self.index: TaxonomyIndex = TaxonomyIndex()
+        self._cache_lock = asyncio.Lock()
 
         self.usage_tracker = UsageTracker(
             self.skills_root / "_analytics",
@@ -285,7 +287,7 @@ class TaxonomyManager:
         """Get parent and sibling skills for context."""
         return get_parent_skills(taxonomy_path, self.skills_root)
 
-    def register_skill(
+    async def register_skill(
         self,
         path: str,
         metadata: dict[str, Any],
@@ -310,8 +312,9 @@ class TaxonomyManager:
                 extra_files=extra_files,
                 overwrite=overwrite,
             )
-            # Update cache
-            self.metadata_cache[skill_metadata.skill_id] = skill_metadata
+            # Update cache with lock protection
+            async with self._cache_lock:
+                self.metadata_cache[skill_metadata.skill_id] = skill_metadata
             # Update taxonomy stats
             self._update_taxonomy_stats(metadata)
             return True

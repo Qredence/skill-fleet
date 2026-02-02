@@ -6,7 +6,6 @@ placement in the skill taxonomy.
 """
 
 import time
-from typing import Any
 
 import dspy
 
@@ -55,7 +54,7 @@ class FindTaxonomyPathModule(BaseModule):
         requirements: dict | None = None,
         taxonomy_structure: dict | None = None,
         existing_skills: list[str] | None = None,
-    ) -> dict[str, Any]:
+    ) -> dspy.Prediction:
         """Async taxonomy analysis using DSPy `acall`."""
         start_time = time.time()
 
@@ -99,6 +98,8 @@ class FindTaxonomyPathModule(BaseModule):
                 "fallback": True,
             }
         )
+        if result is not None and hasattr(result, "reasoning"):
+            output.setdefault("reasoning", str(result.reasoning))
 
         required = ["recommended_path", "path_rationale", "confidence"]
         if not self._validate_result(output, required):
@@ -123,7 +124,7 @@ class FindTaxonomyPathModule(BaseModule):
             duration_ms=duration_ms,
         )
 
-        return output
+        return self._to_prediction(**output)
 
     def forward(  # type: ignore[override]
         self,
@@ -131,7 +132,7 @@ class FindTaxonomyPathModule(BaseModule):
         requirements: dict | None = None,
         taxonomy_structure: dict | None = None,
         existing_skills: list[str] | None = None,
-    ) -> dict[str, Any]:
+    ) -> dspy.Prediction:
         """
         Find taxonomy path for skill.
 
@@ -142,7 +143,7 @@ class FindTaxonomyPathModule(BaseModule):
             existing_skills: List of existing skill paths
 
         Returns:
-            Dictionary with taxonomy analysis:
+            dspy.Prediction with taxonomy analysis:
             - recommended_path: Suggested taxonomy path
             - alternative_paths: Alternative valid paths
             - path_rationale: Explanation for path choice
@@ -193,6 +194,8 @@ class FindTaxonomyPathModule(BaseModule):
                 else [],
                 "confidence": float(result.confidence) if hasattr(result, "confidence") else 0.5,
             }
+            if hasattr(result, "reasoning"):
+                output.setdefault("reasoning", str(result.reasoning))
 
         # Validate
         required = ["recommended_path", "path_rationale", "confidence"]
@@ -219,4 +222,4 @@ class FindTaxonomyPathModule(BaseModule):
             duration_ms=duration_ms,
         )
 
-        return output
+        return self._to_prediction(**output)

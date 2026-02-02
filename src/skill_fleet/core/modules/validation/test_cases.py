@@ -70,7 +70,7 @@ class GenerateTestCasesModule(BaseModule):
 
     Example:
         module = GenerateTestCasesModule()
-        result = module.forward(
+        result = module(
             skill_description="Creates React components. Use when user asks to 'build a component'...",
             trigger_phrases=["create React component", "build UI", "generate component"],
             negative_triggers=["simple queries", "general questions"],
@@ -86,7 +86,7 @@ class GenerateTestCasesModule(BaseModule):
         super().__init__()
         self.generator = dspy.ChainOfThought(GenerateTestCases)
 
-    def forward(self, **kwargs: Any) -> dict[str, Any]:
+    def forward(self, **kwargs: Any) -> dspy.Prediction:
         """
         Generate comprehensive test cases for skill validation.
 
@@ -140,7 +140,8 @@ class GenerateTestCasesModule(BaseModule):
                 raise
             self.logger.error(f"Test case generation failed: {e}")
             # Return minimal fallback result
-            return self._create_fallback_result(trigger_phrases, negative_triggers)
+            fallback = self._create_fallback_result(trigger_phrases, negative_triggers)
+            return self._to_prediction(**fallback)
 
         # Calculate total tests
         total_tests = (
@@ -173,7 +174,7 @@ class GenerateTestCasesModule(BaseModule):
             duration_ms=duration_ms,
         )
 
-        return output
+        return self._to_prediction(**output)
 
     def _assess_trigger_coverage(
         self, positive_tests: list[str], trigger_phrases: list[str]

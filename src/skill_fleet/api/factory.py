@@ -4,13 +4,12 @@ from __future__ import annotations
 
 import logging
 
+import dspy
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
-
-from skill_fleet.dspy import configure_dspy
 
 from .config import get_settings
 from .exceptions import SkillFleetAPIError
@@ -119,8 +118,16 @@ def create_app() -> FastAPI:
 
     # Configure DSPy globally for the API
     try:
-        configure_dspy()
-        logger.info("DSPy configured successfully")
+        from skill_fleet.infrastructure.tracing.config import ConfigModelLoader
+
+        loader = ConfigModelLoader()
+        lm = dspy.LM("gemini/gemini-3-flash-preview")
+        dspy.configure(lm=lm)
+
+        # Configure DSPy caching from config.yaml for improved performance
+        # Caching stores LLM responses to avoid redundant API calls
+        loader.configure_cache()
+        logger.info("DSPy configured successfully with caching enabled")
     except Exception as e:
         logger.error(f"Failed to configure DSPy: {e}")
 

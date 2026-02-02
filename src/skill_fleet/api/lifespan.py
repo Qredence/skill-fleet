@@ -138,7 +138,7 @@ async def _cleanup_expired_jobs() -> None:
         try:
             await asyncio.sleep(300)  # 5 minutes
             manager = get_job_manager()
-            cleaned = manager.cleanup_expired()
+            cleaned = await manager.cleanup_expired()
 
             if cleaned > 0:
                 logger.info(f"🧹 Cleaned {cleaned} expired job(s) from memory cache")

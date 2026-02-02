@@ -24,6 +24,7 @@ from typing import TYPE_CHECKING, Any
 from skill_fleet.core.workflows.skill_creation.generation import GenerationWorkflow
 from skill_fleet.core.workflows.skill_creation.understanding import UnderstandingWorkflow
 from skill_fleet.core.workflows.skill_creation.validation import ValidationWorkflow
+from skill_fleet.core.workflows.streaming import StreamingWorkflowManager
 from skill_fleet.infrastructure.tracing.mlflow import (
     end_parent_run,
     log_quality_metrics,
@@ -37,6 +38,7 @@ from skill_fleet.taxonomy.manager import TaxonomyManager
 
 from ...core.models import SkillCreationResult
 from ..schemas.models import JobState
+from .event_registry import get_event_registry
 from .job_manager import get_job_manager
 
 logger = logging.getLogger(__name__)
@@ -106,7 +108,7 @@ class SkillService:
 
         if existing_job_id:
             job_id = existing_job_id
-            job = job_manager.get_job(job_id)
+            job = await job_manager.get_job(job_id)
             if not job:
                 # Should not happen in resume flow
                 job_id = existing_job_id
@@ -119,7 +121,7 @@ class SkillService:
                 user_id=request.user_id,
                 status="running",
             )
-            job_manager.create_job(job_state)
+            await job_manager.create_job(job_state)
 
         logger.info(
             "Creating skill for user %s: %s (Job ID: %s)",
@@ -128,9 +130,15 @@ class SkillService:
             job_id,
         )
 
+        # Register event queue for real-time streaming
+        event_registry = get_event_registry()
+        event_queue = await event_registry.register(job_id)
+        streaming_manager = StreamingWorkflowManager(event_queue=event_queue)
+        logger.debug(f"Registered event queue for job {job_id}")
+
         # Check for previous answers to inject into context
         previous_answers = {}
-        job = job_manager.get_job(job_id)
+        job = await job_manager.get_job(job_id)
         if job and job.deep_understanding.answers:
             previous_answers = {"prior_clarifications": job.deep_understanding.answers}
 
@@ -172,6 +180,7 @@ class SkillService:
                         user_context=user_context,
                         taxonomy_structure=taxonomy_structure,
                         existing_skills=mounted_skills,
+                        manager=streaming_manager,
                     )
             else:
                 phase1_result = await understanding_workflow.execute(
@@ -179,17 +188,18 @@ class SkillService:
                     user_context=user_context,
                     taxonomy_structure=taxonomy_structure,
                     existing_skills=mounted_skills,
+                    manager=streaming_manager,
                 )
 
             # Check for HITL checkpoint
             if phase1_result.get("status") == "pending_user_input":
                 # Suspend job for HITL
-                job = job_manager.get_job(job_id)
+                job = await job_manager.get_job(job_id)
                 if job:
                     job.status = "pending_user_input"
                     job.hitl_data = phase1_result.get("hitl_data", {})
                     job.hitl_type = phase1_result.get("hitl_type", "clarify")
-                    job_manager.update_job(
+                    await job_manager.update_job(
                         job_id,
                         {
                             "status": "pending_user_input",
@@ -215,12 +225,14 @@ class SkillService:
                         plan=phase1_result.get("plan", {}),
                         understanding=phase1_result,
                         enable_hitl_preview=False,
+                        manager=streaming_manager,
                     )
             else:
                 phase2_result = await generation_workflow.execute(
                     plan=phase1_result.get("plan", {}),
                     understanding=phase1_result,
                     enable_hitl_preview=False,
+                    manager=streaming_manager,
                 )
 
             # Phase 3: Quality Assurance
@@ -237,6 +249,7 @@ class SkillService:
                         plan=phase1_result.get("plan", {}),
                         taxonomy_path=taxonomy_path,
                         enable_hitl_review=False,
+                        manager=streaming_manager,
                     )
             else:
                 phase3_result = await validation_workflow.execute(
@@ -244,6 +257,7 @@ class SkillService:
                     plan=phase1_result.get("plan", {}),
                     taxonomy_path=taxonomy_path,
                     enable_hitl_review=False,
+                    manager=streaming_manager,
                 )
 
             # Construct result from workflow outputs
@@ -286,6 +300,8 @@ class SkillService:
             return result
 
         finally:
+            # Unregister event queue
+            await event_registry.unregister(job_id)
             # End parent run
             if enable_mlflow and parent_run_id:
                 end_parent_run()
@@ -305,7 +321,7 @@ class SkillService:
 
         """
         job_manager = get_job_manager()
-        job = job_manager.get_job(job_id)
+        job = await job_manager.get_job(job_id)
         if not job:
             raise ValueError(f"Job {job_id} not found")
 
@@ -313,7 +329,7 @@ class SkillService:
         job.deep_understanding.answers.append(answers)
 
         job.status = "running"
-        job_manager.update_job(
+        await job_manager.update_job(
             job_id, {"status": "running", "deep_understanding": job.deep_understanding}
         )
 
@@ -322,9 +338,31 @@ class SkillService:
 
         request = CreateSkillRequest(task_description=job.task_description, user_id=job.user_id)
 
-        return await self.create_skill(request, existing_job_id=job_id)
+        try:
+            result = await self.create_skill(request, existing_job_id=job_id)
+        except Exception as exc:
+            await job_manager.update_job(job_id, {"status": "failed", "error": str(exc)})
+            raise
 
-    def save_skill_to_draft(
+        if result.status in {"completed", "pending_review"}:
+            await job_manager.update_job(
+                job_id,
+                {
+                    "status": result.status,
+                    "result": result,
+                    "progress_percent": 100.0,
+                    "progress_message": "Skill creation completed",
+                },
+            )
+        elif result.status in {"failed", "cancelled"}:
+            await job_manager.update_job(
+                job_id,
+                {"status": result.status, "error": result.error or result.message},
+            )
+
+        return result
+
+    async def save_skill_to_draft(
         self,
         job_id: str,
         result: SkillCreationResult,
@@ -342,7 +380,7 @@ class SkillService:
         """
         from ..utils.draft_save import save_skill_to_draft
 
-        return save_skill_to_draft(
+        return await save_skill_to_draft(
             drafts_root=self.drafts_root,
             job_id=job_id,
             result=result,

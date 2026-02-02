@@ -65,3 +65,4 @@ class SynthesizePlan(dspy.Signature):
     rationale: str = dspy.OutputField(
         desc="Brief rationale explaining plan decisions and how components fit together"
     )
+    reasoning: dspy.Reasoning = dspy.OutputField(desc="Reasoning process for plan synthesis")

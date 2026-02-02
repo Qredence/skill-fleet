@@ -200,7 +200,7 @@ def _ensure_draft_root(drafts_root: Path, job_id: str) -> Path:
     return job_root
 
 
-def save_skill_to_draft(
+async def save_skill_to_draft(
     *, drafts_root: Path, job_id: str, result: SkillCreationResult
 ) -> str | None:
     """
@@ -269,7 +269,7 @@ def save_skill_to_draft(
         }
 
         # Register the skill (writes SKILL.md + metadata.json + standard subdirs)
-        success = manager.register_skill(
+        success = await manager.register_skill(
             path=safe_taxonomy_path,
             metadata=meta_dict,
             content=result.skill_content,

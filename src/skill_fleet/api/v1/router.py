@@ -26,6 +26,7 @@ from .jobs import router as jobs_router
 from .optimization import router as optimization_router
 from .quality import router as quality_router
 from .skills import router as skills_router
+from .streaming import router as streaming_router
 from .taxonomy import router as taxonomy_router
 
 router = APIRouter()
@@ -33,6 +34,7 @@ router = APIRouter()
 # Include sub-routers with prefixes
 router.include_router(conversational_router, prefix="/chat", tags=["conversational"])
 router.include_router(skills_router, prefix="/skills", tags=["skills"])
+router.include_router(streaming_router, prefix="/skills", tags=["streaming"])
 router.include_router(taxonomy_router, prefix="/taxonomy", tags=["taxonomy"])
 router.include_router(quality_router, prefix="/quality", tags=["quality"])
 router.include_router(optimization_router, prefix="/optimization", tags=["optimization"])

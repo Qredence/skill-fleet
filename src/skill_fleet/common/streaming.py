@@ -161,8 +161,13 @@ def create_async_module(module: dspy.Module, max_workers: int = 4) -> Any:
         >>> result = await async_module(question="What is 2+2?")
 
     """
-    dspy.configure(async_max_workers=max_workers)
-    return dspy.asyncify(module)
+    async_program = dspy.asyncify(module)
+
+    async def async_module(*args: Any, **kwargs: Any) -> Any:
+        with dspy.context(async_max_workers=max_workers):
+            return await async_program(*args, **kwargs)
+
+    return async_module
 
 
 def _coerce_json_value(value: Any, seen: set[int] | None = None) -> Any:
@@ -286,15 +291,11 @@ __all__ = [
     "create_async_module",
     "stream_dspy_response",
     "process_stream_sync",
-    # Test stub classes (for unit testing)
-    "StubPrediction",
-    "StubStreamResponse",
-    "StubStatusMessage",
 ]
 
 
 # ============================================================================
-# Test Stub Classes (for unit testing)
+# Test Stub Classes (for unit testing only - not exported)
 # ============================================================================
 
 

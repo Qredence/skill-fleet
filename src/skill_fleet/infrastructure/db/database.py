@@ -171,7 +171,19 @@ async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
 
 @contextmanager
 def get_db_context_manager() -> SyncGenerator[Session, None, None]:
-    """Alias for get_db_context() for backward compatibility."""
+    """
+    Alias for get_db_context() for backward compatibility.
+
+    .. deprecated:: 2026.02
+        Use :func:`get_db_context` directly. Will be removed in 2026.04.
+    """
+    import warnings
+
+    warnings.warn(
+        "get_db_context_manager() is deprecated; use get_db_context() instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     with get_db_context() as db:
         yield db
 
@@ -183,10 +195,11 @@ def init_db() -> None:
     This should only be used for development. In production,
     use Alembic migrations instead.
     """
-    # Ensure uuid-ossp extension exists
-    with engine.connect() as conn:
-        conn.execute(text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
-        conn.commit()
+    # Ensure uuid-ossp extension exists (Postgres only)
+    if not _IS_SQLITE:
+        with engine.connect() as conn:
+            conn.execute(text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
+            conn.commit()
 
     Base.metadata.create_all(bind=engine)
 

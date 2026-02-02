@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 def load_trainset(
-    path: str | Path = "config/training/trainset.json",
+    path: str | Path = "config/training/trainset_v4.json",
 ) -> list[dspy.Example]:
     """
     Load training examples from JSON file.

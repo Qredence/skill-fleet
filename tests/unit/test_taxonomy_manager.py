@@ -71,10 +71,11 @@ def test_skill_exists_rejects_traversal_paths(temp_taxonomy: Path) -> None:
     assert manager.skill_exists("/absolute/path") is False
 
 
-def test_register_skill_rejects_traversal_paths(temp_taxonomy: Path) -> None:
+@pytest.mark.asyncio
+async def test_register_skill_rejects_traversal_paths(temp_taxonomy: Path) -> None:
     manager = TaxonomyManager(temp_taxonomy)
 
-    success = manager.register_skill(
+    success = await manager.register_skill(
         path="../evil",
         metadata={},
         content="# Evil\n",

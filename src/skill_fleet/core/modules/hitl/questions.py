@@ -57,7 +57,7 @@ class GenerateClarifyingQuestionsModule(BaseModule):
         initial_analysis: str = "",
         previous_answers: dict | None = None,
         **kwargs: Any,
-    ) -> dict[str, Any]:
+    ) -> dspy.Prediction:
         """
         Generate clarifying questions.
 
@@ -70,7 +70,7 @@ class GenerateClarifyingQuestionsModule(BaseModule):
             **kwargs: Additional keyword arguments for compatibility.
 
         Returns:
-            Dictionary with:
+            dspy.Prediction with:
             - questions: List of structured questions
             - priority: Priority level (critical/important/optional)
             - rationale: Overall rationale for questions
@@ -156,4 +156,4 @@ class GenerateClarifyingQuestionsModule(BaseModule):
             duration_ms=duration_ms,
         )
 
-        return output
+        return self._to_prediction(**output)

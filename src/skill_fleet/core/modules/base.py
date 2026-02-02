@@ -1,26 +1,30 @@
 """
 Base module for all DSPy modules in skill-fleet.
 
-Provides common functionality for error handling, logging, and result validation.
+Provides common functionality for error handling, logging, result validation,
+and modern async support with native DSPy 3.1.2+ features.
 """
 
+from __future__ import annotations
+
+import asyncio
 import logging
-from typing import Any
+from typing import Any, TypeVar
 
 import dspy
+from dspy.utils.syncify import run_async
 
 logger = logging.getLogger(__name__)
+
+T = TypeVar("T", bound=dspy.Prediction)
 
 
 class BaseModule(dspy.Module):
     """
     Base class for all skill-fleet DSPy modules.
 
-    Provides common functionality:
-    - Error handling and recovery
-    - Structured logging
-    - Result validation
-    - Input sanitization
+    Provides modern async support, error handling, structured logging,
+    and result validation compatible with DSPy 3.1.2+.
 
     Example:
         class MyModule(BaseModule):
@@ -28,11 +32,10 @@ class BaseModule(dspy.Module):
                 super().__init__()
                 self.processor = dspy.ChainOfThought(MySignature)
 
-            def forward(self, input_data: str) -> dict:
-                # BaseModule provides error handling
-                return self._execute_with_error_handling(
-                    lambda: self._process(input_data)
-                )
+            def forward(self, input_data: str) -> dspy.Prediction:
+                return self.processor(query=input_data)
+
+            # Async is automatically supported via aforward()
 
     """
 
@@ -40,77 +43,82 @@ class BaseModule(dspy.Module):
         super().__init__()
         self.logger = logging.getLogger(self.__class__.__name__)
 
-    def forward(self, **kwargs: Any) -> Any:
+    def forward(self, **kwargs: Any) -> dspy.Prediction:
         """
-        Override in subclasses to implement module logic.
+        Sync entrypoint.
+
+        Compatibility rules:
+        - Subclasses may implement **either** `forward()` (sync) or `aforward()` (async).
+        - If a subclass implements `aforward()` only, this method sync-runs it.
+        - If a subclass implements `forward()` only, this method is typically overridden and will not
+          be invoked.
+        - `BaseModule` itself is abstract: calling `BaseModule().forward()` raises.
 
         Args:
             **kwargs: Input arguments specific to the module
 
         Returns:
-            Module output (typically dict with structured results)
+            dspy.Prediction with structured results
+
+        """
+        if type(self) is BaseModule:
+            raise NotImplementedError(
+                "BaseModule.forward() is abstract; implement forward/aforward."
+            )
+
+        # If subclass provides async implementation only, provide a sync wrapper.
+        if type(self).aforward is not BaseModule.aforward:
+            return run_async(type(self).aforward(self, **kwargs))
+
+        raise NotImplementedError(
+            f"{self.__class__.__name__} must implement forward() or aforward() method"
+        )
+
+    async def aforward(self, **kwargs: Any) -> dspy.Prediction:
+        """
+        Async entrypoint.
+
+        Compatibility rules:
+        - If a subclass implements `forward()` (sync) only, this method provides an async fallback
+          by running `forward()` in a thread (preserving contextvars in Python 3.12+).
+        - If a subclass implements `aforward()` (async) only, it should override this method.
+        - `BaseModule` itself is abstract: calling `await BaseModule().aforward()` raises.
+
+        Args:
+            **kwargs: Input arguments specific to the module
+
+        Returns:
+            dspy.Prediction with structured results
 
         Raises:
             NotImplementedError: If subclass doesn't override
 
         """
-        raise NotImplementedError(f"{self.__class__.__name__} must implement forward() method")
+        if type(self) is BaseModule:
+            raise NotImplementedError(
+                "BaseModule.aforward() is abstract; implement forward/aforward."
+            )
 
-    async def aforward(self, **kwargs: Any) -> Any:
+        # If subclass provides only a sync forward(), offer an async fallback.
+        if type(self).forward is not BaseModule.forward:
+            return await asyncio.to_thread(type(self).forward, self, **kwargs)
+
+        raise NotImplementedError(
+            f"{self.__class__.__name__} must implement forward() or aforward() method"
+        )
+
+    def _to_prediction(self, **kwargs: Any) -> dspy.Prediction:
         """
-        Async version of forward. Override in subclasses for async support.
-
-        Default implementation runs forward() in thread pool.
+        Create a dspy.Prediction from keyword arguments.
 
         Args:
-            **kwargs: Input arguments specific to the module
+            **kwargs: Key-value pairs to include in the prediction
 
         Returns:
-            Module output (typically dict with structured results)
+            dspy.Prediction instance
 
         """
-        import asyncio
-
-        import dspy
-
-        loop = asyncio.get_event_loop()
-
-        # Propagate the current DSPy settings context (especially LM) into the worker thread.
-        # DSPy stores settings in context-local state; without this, tests/workflows that use
-        # `dspy.context(lm=...)` won't apply inside run_in_executor threads.
-        current_lm = dspy.settings.lm
-        current_adapter = dspy.settings.adapter
-        current_rm = dspy.settings.rm
-
-        def _run_with_dspy_context():
-            with dspy.context(lm=current_lm, adapter=current_adapter, rm=current_rm):
-                return self.forward(**kwargs)
-
-        return await loop.run_in_executor(None, _run_with_dspy_context)
-
-    def _validate_result(self, result: Any, required_fields: list[str]) -> bool:
-        """
-        Validate that result contains required fields.
-
-        Args:
-            result: The result to validate
-            required_fields: List of field names that must be present
-
-        Returns:
-            True if valid, False otherwise
-
-        """
-        if result is None:
-            self.logger.warning("Result is None")
-            return False
-
-        if isinstance(result, dict):
-            missing = [f for f in required_fields if f not in result]
-            if missing:
-                self.logger.warning(f"Missing fields in result: {missing}")
-                return False
-
-        return True
+        return dspy.Prediction(**kwargs)
 
     def _sanitize_input(self, value: Any, max_length: int = 10000) -> str:
         """
@@ -129,12 +137,40 @@ class BaseModule(dspy.Module):
 
         text = str(value)
 
-        # Truncate if too long
         if len(text) > max_length:
             self.logger.debug(f"Input truncated from {len(text)} to {max_length} chars")
             text = text[:max_length] + "... [truncated]"
 
         return text
+
+    def _validate_result(self, result: Any, required_fields: list[str]) -> bool:
+        """
+        Validate that result contains required fields.
+
+        Args:
+            result: The result to validate
+            required_fields: List of field names that must be present
+
+        Returns:
+            True if valid, False otherwise
+
+        """
+        if result is None:
+            self.logger.warning("Result is None")
+            return False
+
+        if isinstance(result, dspy.Prediction):
+            missing = [f for f in required_fields if not hasattr(result, f)]
+        elif isinstance(result, dict):
+            missing = [f for f in required_fields if f not in result]
+        else:
+            return False
+
+        if missing:
+            self.logger.warning(f"Missing fields in result: {missing}")
+            return False
+
+        return True
 
     def _log_execution(self, inputs: dict, outputs: dict, duration_ms: float | None = None):
         """

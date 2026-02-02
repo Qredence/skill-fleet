@@ -6,7 +6,6 @@ by iteratively refining and validating the plan components.
 """
 
 import time
-from typing import Any
 
 import dspy
 
@@ -67,7 +66,7 @@ class SynthesizePlanModule(BaseModule):
         taxonomy_analysis: dict,
         dependency_analysis: dict,
         user_confirmation: str = "",
-    ) -> dict[str, Any]:
+    ) -> dspy.Prediction:
         """
         Asynchronously synthesize plan using ReAct.
 
@@ -79,7 +78,7 @@ class SynthesizePlanModule(BaseModule):
             user_confirmation: Optional HITL feedback
 
         Returns:
-            Dictionary with complete plan:
+            dspy.Prediction with complete plan:
             - skill_name, skill_description, taxonomy_path
             - content_outline, generation_guidance
             - success_criteria, estimated_length, tags, rationale
@@ -176,14 +175,14 @@ class SynthesizePlanModule(BaseModule):
             duration_ms=duration_ms,
         )
 
-        return output
+        return self._to_prediction(**output)
 
-    def forward(self, **kwargs) -> dict[str, Any]:
+    def forward(self, **kwargs) -> dspy.Prediction:
         """
         Synchronous forward - delegates to async version.
 
         Note: Use aforward() for better performance in async contexts.
         """
-        import asyncio
+        from dspy.utils.syncify import run_async
 
-        return asyncio.run(self.aforward(**kwargs))
+        return run_async(self.aforward(**kwargs))

@@ -68,7 +68,7 @@ def resolve_repo_relative_path(path: str | Path, *, config_path: Path | None = N
     """
     Resolve a repo-style relative path with fallbacks for installed wheels.
 
-    This is primarily for paths like `config/training/trainset.json` referenced in
+    This is primarily for paths like `config/training/trainset_v4.json` referenced in
     code/config. Resolution order:
     1) Current working directory relative path (if it exists)
     2) Repo root relative path (if in a checkout)

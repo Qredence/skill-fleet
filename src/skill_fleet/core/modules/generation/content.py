@@ -17,14 +17,19 @@ import dspy
 from dspy.streaming import StreamListener, streamify
 
 from skill_fleet.core.modules.base import BaseModule
+from skill_fleet.core.signatures.generation.content import (
+    GenerateSkillContent,
+    SkillPlan,
+    SkillUnderstanding,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 from skill_fleet.core.modules.generation.templates import (
+    SkillTemplate,
     get_template_for_category,
     validate_against_template,
 )
-from skill_fleet.core.signatures.generation.content import GenerateSkillContent
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -65,6 +70,75 @@ class GenerateSkillContentModule(BaseModule):
             stream_listeners=self._stream_listeners,
         )
 
+    def _create_skill_plan(self, plan: dict, understanding: dict) -> SkillPlan:
+        """Create structured SkillPlan from raw dict inputs with template enhancement."""
+        skill_category = understanding.get("skill_category", "other")
+        template = get_template_for_category(skill_category)
+
+        # Build content outline from plan
+        content_outline = []
+        outline_data = plan.get("content_outline", [])
+        if isinstance(outline_data, list):
+            for item in outline_data:
+                if isinstance(item, dict):
+                    content_outline.append(
+                        {
+                            "title": item.get("title", "Untitled"),
+                            "description": item.get("description", ""),
+                            "estimated_length": item.get("estimated_length", "medium"),
+                        }
+                    )
+
+        return SkillPlan(
+            skill_name=plan.get("skill_name", "unnamed-skill"),
+            skill_description=plan.get("skill_description", ""),
+            content_outline=content_outline,
+            generation_guidance=plan.get("generation_guidance", ""),
+            skill_category=skill_category,
+            required_sections=template["sections"],
+            required_elements=template["required_elements"],
+            example_skills=template["example_skills"],
+        )
+
+    def _create_skill_understanding(self, understanding: dict) -> SkillUnderstanding:
+        """Create structured SkillUnderstanding from raw dict input."""
+        return SkillUnderstanding(
+            domain=understanding.get("domain", "technical"),
+            category=understanding.get("category", "general"),
+            target_level=understanding.get("target_level", "intermediate"),
+            topics=understanding.get("topics", []),
+            constraints=understanding.get("constraints", []),
+            requirements=understanding.get("requirements", {}),
+            intent=understanding.get("intent", {}),
+            taxonomy=understanding.get("taxonomy", {}),
+            dependencies=understanding.get("dependencies", []),
+        )
+
+    def _process_generation_result(
+        self, result: dspy.Prediction, skill_category: str, template: SkillTemplate
+    ) -> dict[str, Any]:
+        """Process and validate generation result."""
+        skill_content = result.skill_content
+        template_validation = validate_against_template(skill_content, template)
+
+        sections_list = (
+            result.sections_generated if isinstance(result.sections_generated, list) else []
+        )
+
+        return {
+            "skill_content": skill_content,
+            "sections_generated": sections_list,
+            "code_examples_count": int(result.code_examples_count)
+            if hasattr(result, "code_examples_count")
+            else 0,
+            "estimated_reading_time": int(result.estimated_reading_time)
+            if hasattr(result, "estimated_reading_time")
+            else 10,
+            "category": skill_category,
+            "template_compliance": template_validation,
+            "missing_sections": template_validation.get("missing_sections", []),
+        }
+
     async def aforward(  # type: ignore[override]
         self, plan: dict, understanding: dict, skill_style: str = "comprehensive"
     ) -> dspy.Prediction:
@@ -82,48 +156,22 @@ class GenerateSkillContentModule(BaseModule):
         """
         start_time = time.time()
 
-        # Get category-specific template
-        skill_category = understanding.get("skill_category", "other")
-        template = get_template_for_category(skill_category)
+        # Create structured inputs following DSPy best practices
+        skill_plan = self._create_skill_plan(plan, understanding)
+        skill_understanding = self._create_skill_understanding(understanding)
 
-        # Enhance plan with template information
-        enhanced_plan = {
-            **plan,
-            "skill_category": skill_category,
-            "required_sections": template["sections"],
-            "required_elements": template["required_elements"],
-            "example_skills": template["example_skills"],
-        }
+        # Get template for validation
+        template = get_template_for_category(skill_plan.skill_category)
 
-        # Execute signature with enhanced plan
+        # Execute signature with structured Pydantic models (not stringified JSON)
         result = await self.generate.acall(
-            plan=str(enhanced_plan),
-            understanding=str(understanding),
+            plan=skill_plan,
+            understanding=skill_understanding,
             skill_style=skill_style,
         )
 
-        # Transform output
-        skill_content = result.skill_content
-
-        # Validate against template
-        template_validation = validate_against_template(skill_content, template)
-
-        output = {
-            "skill_content": skill_content,
-            "sections_generated": result.sections_generated
-            if isinstance(result.sections_generated, list)
-            else [],
-            "code_examples_count": int(result.code_examples_count)
-            if hasattr(result, "code_examples_count")
-            else 0,
-            "estimated_reading_time": int(result.estimated_reading_time)
-            if hasattr(result, "estimated_reading_time")
-            else 10,
-            # NEW: Template compliance data
-            "category": skill_category,
-            "template_compliance": template_validation,
-            "missing_sections": template_validation.get("missing_sections", []),
-        }
+        # Process and validate result
+        output = self._process_generation_result(result, skill_plan.skill_category, template)
 
         # Validate
         required = ["skill_content"]
@@ -132,16 +180,17 @@ class GenerateSkillContentModule(BaseModule):
             output["skill_content"] = "# Error\n\nFailed to generate content."
 
         # Log
-        sections_list = output.get("sections_generated", [])
-        if not isinstance(sections_list, list):
-            sections_list = []
         duration_ms = (time.time() - start_time) * 1000
         self._log_execution(
-            inputs={"plan": str(plan)[:50], "style": skill_style, "category": skill_category},
+            inputs={
+                "plan": str(plan)[:50],
+                "style": skill_style,
+                "category": skill_plan.skill_category,
+            },
             outputs={
-                "sections": len(sections_list),
+                "sections": len(output["sections_generated"]),
                 "examples": output["code_examples_count"],
-                "template_compliance": template_validation.get("compliance_score", 0.0),
+                "template_compliance": output["template_compliance"].get("compliance_score", 0.0),
             },
             duration_ms=duration_ms,
         )
@@ -186,23 +235,17 @@ class GenerateSkillContentModule(BaseModule):
         """
         start_time = time.time()
 
-        # Get category-specific template
-        skill_category = understanding.get("skill_category", "other")
-        template = get_template_for_category(skill_category)
+        # Create structured inputs (same as aforward)
+        skill_plan = self._create_skill_plan(plan, understanding)
+        skill_understanding = self._create_skill_understanding(understanding)
 
-        # Enhance plan with template information
-        enhanced_plan = {
-            **plan,
-            "skill_category": skill_category,
-            "required_sections": template["sections"],
-            "required_elements": template["required_elements"],
-            "example_skills": template["example_skills"],
-        }
+        # Get template for validation
+        template = get_template_for_category(skill_plan.skill_category)
 
         # Execute with streaming
         output = self._streaming_generate(
-            plan=str(enhanced_plan),
-            understanding=str(understanding),
+            plan=skill_plan,
+            understanding=skill_understanding,
             skill_style=skill_style,
             include_final_prediction_in_output_stream=True,
         )
@@ -212,27 +255,11 @@ class GenerateSkillContentModule(BaseModule):
         async for value in output:
             if isinstance(value, dspy.Prediction):
                 final_prediction = value
-                # Process final prediction same as aforward
-                skill_content = value.skill_content
-                template_validation = validate_against_template(skill_content, template)
-
-                result_data = {
-                    "skill_content": skill_content,
-                    "sections_generated": value.sections_generated
-                    if isinstance(value.sections_generated, list)
-                    else [],
-                    "code_examples_count": int(value.code_examples_count)
-                    if hasattr(value, "code_examples_count")
-                    else 0,
-                    "estimated_reading_time": int(value.estimated_reading_time)
-                    if hasattr(value, "estimated_reading_time")
-                    else 10,
-                    "category": skill_category,
-                    "template_compliance": template_validation,
-                    "missing_sections": template_validation.get("missing_sections", []),
-                }
-
-                yield {"type": "prediction", "data": result_data}
+                # Process final prediction using shared helper
+                output_data = self._process_generation_result(
+                    value, skill_plan.skill_category, template
+                )
+                yield {"type": "prediction", "data": output_data}
             elif hasattr(value, "field_name") and hasattr(value, "chunk"):
                 # StreamResponse from dspy.streaming
                 yield {
@@ -251,7 +278,11 @@ class GenerateSkillContentModule(BaseModule):
             if not isinstance(sections_list, list):
                 sections_list = []
             self._log_execution(
-                inputs={"plan": str(plan)[:50], "style": skill_style, "category": skill_category},
+                inputs={
+                    "plan": str(plan)[:50],
+                    "style": skill_style,
+                    "category": skill_plan.skill_category,
+                },
                 outputs={
                     "sections": len(sections_list),
                     "streaming": True,

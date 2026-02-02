@@ -7,12 +7,12 @@ from unittest.mock import AsyncMock, patch
 import dspy
 import pytest
 
+from skill_fleet.core.modules.validation.adaptive_validator import AdaptiveValidator
 from skill_fleet.core.modules.validation.best_of_n_validator import (
-    AdaptiveValidator,
     BestOfNValidator,
-    ValidationReward,
     validate_with_best_of_n,
 )
+from skill_fleet.core.modules.validation.validation_reward import ValidationReward
 
 
 class TestValidationReward:

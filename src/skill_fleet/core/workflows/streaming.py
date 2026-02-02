@@ -102,7 +102,9 @@ class StreamingWorkflowManager:
             data=data or {},
         )
         await self.event_queue.put(event)
-        logger.debug(f"Emitted: {event_type.value} - {message}")
+        # Sanitize message for logging to avoid log injection (e.g., forged new log lines)
+        safe_message = str(message).replace("\r", " ").replace("\n", " ")
+        logger.debug(f"Emitted: {event_type.value} - {safe_message}")
 
     async def set_phase(self, phase: str) -> None:
         """Set current workflow phase and emit event."""

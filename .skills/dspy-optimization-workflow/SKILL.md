@@ -1,6 +1,6 @@
 ---
-name: DSPy Optimization Workflow for Skills-Fleet
-description: Use when optimizing DSPy programs in skills-fleet, implementing quality improvements, using optimization API endpoints, or troubleshooting DSPy issues. Complete 3-phase implementation guide (signatures → training → monitoring → metrics → ensemble → versioning → caching).
+name: dspy-optimization-workflow
+description: Complete 3-phase guide for optimizing DSPy programs in Skills-Fleet. Use when implementing quality improvements, using optimization API endpoints, or troubleshooting DSPy issues.
 ---
 
 # DSPy Optimization Workflow for Skills-Fleet

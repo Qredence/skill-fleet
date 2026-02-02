@@ -32,6 +32,8 @@ class TaskAnalysis(dspy.Signature):
 3. **OutputField**: Data the program produces
 4. **Descriptions**: Clear explanations of each field's purpose
 
+**Reference**: [DSPy Signatures Guide](https://github.com/stanfordnlp/dspy/blob/main/docs/docs/learn/programming/signatures.md)
+
 ## InputField vs OutputField
 
 ### InputField

@@ -55,6 +55,8 @@ print(result.answer)  # Brussels
 2. **Score each candidate**: Apply reward function to each prediction
 3. **Select best**: Return first prediction that meets threshold or highest-scoring result
 
+**Reference**: [DSPy Output Refinement Tutorial](https://github.com/stanfordnlp/dspy/blob/main/docs/docs/tutorials/output_refinement/best-of-n-and-refine.md) | [LLMS.txt](https://context7.com/stanfordnlp/dspy/llms.txt)
+
 ### BestOfN Parameters
 
 - `module`: Base module to refine
@@ -101,17 +103,21 @@ print(result.answer)  # Brussels
 
 1. **Generate candidate**: Run module to get initial prediction
 2. **Score candidate**: Apply reward function
-3. **Generate feedback**: If score below threshold, generate detailed feedback
-4. **Refine**: Use feedback as hints for next attempt
+3. **Generate feedback**: If score below threshold, uses internal `OfferFeedback` signature to generate detailed advice for each module
+4. **Refine**: Injects feedback as `hint_` input field via a `WrapperAdapter` for next attempt
 5. **Iterate**: Repeat until threshold met or N attempts exhausted
+
+**Internal Mechanism**: Refine uses `dspy.context(trace=[])` to track execution traces and extends the global trace with the best trace after completion. The feedback is generated per-module using `named_predictors()` to identify components.
+
+**Reference**: [DSPy Output Refinement Tutorial](https://github.com/stanfordnlp/dspy/blob/main/docs/docs/tutorials/output_refinement/best-of-n-and-refine.md)
 
 ### Refine Parameters
 
 - `module`: Base module to refine
-- `N`: Maximum number of refinement attempts
-- `reward_fn`: Function to score predictions
+- `N`: Maximum number of refinement attempts (different rollout IDs, temperature=1.0)
+- `reward_fn`: Function to score predictions `(args, pred) -> float`
 - `threshold`: Minimum score to accept
-- `fail_count`: Stop after N failed attempts (optional)
+- `fail_count`: Stop after N consecutive failed attempts (optional, for early stopping)
 
 ### Refine with Custom Feedback
 
@@ -140,11 +146,12 @@ refine = dspy.Refine(
 
 | Aspect | BestOfN | Refine |
 |---------|----------|---------|
-| **Strategy** | Generate N independent candidates | Iterate with feedback loop |
-| **Speed** | Faster (parallel candidates) | Slower (sequential with feedback) |
-| **Quality** | Good for simple improvements | Better for complex refinements |
-| **Feedback** | No feedback between attempts | Automatic feedback generation |
-| **Use Case** | Select best from multiple candidates | Iteratively improve with learning |
+| **Strategy** | Generate N independent candidates with different `rollout_id` at `temperature=1.0` | Iterate with feedback loop and hint injection |
+| **Speed** | Faster (parallel candidates) | Slower (sequential with feedback generation) |
+| **Quality** | Good for simple improvements | Better for complex refinements with learning |
+| **Feedback** | No feedback between attempts | Uses `OfferFeedback` signature to generate per-module advice |
+| **Mechanism** | Selects best by reward score | Injects hints via `WrapperAdapter` on subsequent attempts |
+| **Use Case** | Select best from multiple candidates | Iteratively improve with module-specific feedback |
 
 ### When to Use BestOfN
 

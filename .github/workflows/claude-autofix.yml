@@ -1,0 +1,221 @@
+name: Claude Auto-Fix CI Failures
+
+on:
+  # Automatic trigger when CI workflow fails
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Failed workflow run ID to fix (optional)'
+        required: false
+        type: string
+      branch:
+        description: 'Branch to fix (required if no run_id)'
+        required: false
+        type: string
+
+permissions:
+  contents: write          # Push fixes to branch
+  pull-requests: write     # Comment on PRs
+  actions: read            # Read workflow logs
+  checks: write            # Update check status
+  id-token: write          # OIDC authentication support
+
+concurrency:
+  group: claude-autofix-${{ github.event.workflow_run.head_branch || github.event.inputs.branch || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  auto-fix:
+    name: Diagnose and Fix CI Failure
+    # Only run if the triggering workflow failed
+    if: |
+      (github.event_name == 'workflow_dispatch') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'failure')
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch || github.event.inputs.branch || github.ref }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get failed workflow info
+        id: workflow-info
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "run_id=${{ github.event.workflow_run.id }}" >> $GITHUB_OUTPUT
+            echo "branch=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_OUTPUT
+            echo "workflow_name=${{ github.event.workflow_run.name }}" >> $GITHUB_OUTPUT
+            echo "workflow_url=https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}" >> $GITHUB_OUTPUT
+          else
+            echo "run_id=${{ github.event.inputs.run_id }}" >> $GITHUB_OUTPUT
+            echo "branch=${{ github.event.inputs.branch || github.ref_name }}" >> $GITHUB_OUTPUT
+            echo "workflow_name=Manual CI Fix" >> $GITHUB_OUTPUT
+            echo "workflow_url=https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download workflow logs
+        id: logs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Attempting to retrieve logs from workflow run..."
+          RUN_ID="${{ steps.workflow-info.outputs.run_id }}"
+
+          if [ -n "$RUN_ID" ] && [ "$RUN_ID" != "null" ]; then
+            echo "Downloading logs for run: $RUN_ID"
+            gh run view "$RUN_ID" --log > /tmp/ci-full.log 2>&1 || echo "Could not download full logs"
+            gh run view "$RUN_ID" > /tmp/ci-summary.txt 2>&1 || echo "Could not download summary"
+          else
+            echo "No run ID provided, creating placeholder logs"
+            echo "No workflow run logs available" > /tmp/ci-full.log
+            echo "Manual trigger - review recent CI failures" > /tmp/ci-summary.txt
+          fi
+
+          echo "logs_path=/tmp/ci-full.log" >> $GITHUB_OUTPUT
+          echo "summary_path=/tmp/ci-summary.txt" >> $GITHUB_OUTPUT
+
+          # Show first 50 lines of logs for debugging
+          echo "=== Log Preview ==="
+          head -50 /tmp/ci-full.log
+
+      - name: Claude Code Auto-Fix
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            REPO: ${{ github.repository }}
+            BRANCH: ${{ steps.workflow-info.outputs.branch }}
+            FAILED WORKFLOW: ${{ steps.workflow-info.outputs.workflow_name }}
+            WORKFLOW RUN: ${{ steps.workflow-info.outputs.workflow_url }}
+
+            ## CI Failure Analysis & Auto-Fix Task
+
+            The CI workflow "${{ steps.workflow-info.outputs.workflow_name }}" has failed on branch `${{ steps.workflow-info.outputs.branch }}`.
+
+            ### Error Logs (last 1000 lines):
+            ```
+            $(tail -1000 /tmp/ci-full.log 2>/dev/null || echo "No logs available - manual review may be needed")
+            ```
+
+            ### Workflow Summary:
+            ```
+            $(cat /tmp/ci-summary.txt 2>/dev/null || echo "No summary available")
+            ```
+
+            ## Your Task:
+
+            ### 1. Diagnose
+            - Carefully analyze the error logs to identify the root cause
+            - Determine which files or configuration need to be fixed
+            - Common CI failures in this repo:
+              * Ruff linting errors (lint: use `uv run ruff check . --fix && uv run ruff format .`)
+              * Type check errors (use `uv run ty check src/ tests/`)
+              * Test failures (use `uv run pytest tests/ -v`)
+              * Security scanning issues (use `make security`)
+
+            ### 2. Fix
+            - Make minimal, targeted changes to resolve the issue
+            - Only fix what caused the CI failure - do NOT refactor unrelated code
+            - Fix all instances of the same issue type
+
+            ### 3. Verify
+            - Run the specific checks that were failing:
+              ```bash
+              # For lint errors:
+              uv run ruff check src/ tests/ && uv run ruff format --check src/ tests/
+
+              # For type errors:
+              uv run ty check src/ tests/
+
+              # For test failures:
+              uv run pytest tests/unit/ -v --tb=short
+
+              # For security issues:
+              uv pip install pip-audit safety bandit[toml]
+              uv run bandit -r src/skill_fleet
+              ```
+            - Verify the fix resolves the original error
+
+            ### 4. Commit
+            - Create a clear, descriptive commit message
+            - Format: `fix(ci): <description of what was fixed>`
+            - Examples:
+              * `fix(ci): resolve ruff linting errors in core modules`
+              * `fix(ci): fix type annotation in workflow models`
+              * `fix(ci): resolve test assertions in validation module`
+
+            ## Rules:
+            ✅ DO:
+            - Fix ONLY what caused the CI failure
+            - Run verification commands to confirm fixes
+            - Create descriptive commits
+            - Push to the current branch
+
+            ❌ DON'T:
+            - Add new features or functionality
+            - Refactor unrelated code
+            - Change project configuration unnecessarily
+            - Force push or rewrite history
+
+            ## After Fixing:
+            Push your commits to the branch. The CI will automatically re-run to verify the fixes work.
+
+          claude_args: |
+            --max-turns 30
+            --allowedTools Read,Write,Edit,Bash(uv:*),Bash(ruff:*),Bash(ty:*),Bash(pytest:*),Bash(pip:*),Bash(bandit:*),Bash(git:*),Bash(cat:*),Bash(tail:*),Bash(head:*),Bash(ls:*),Bash(grep:*),Bash(find:*)
+        env:
+          ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
+
+      - name: Push fixes to branch
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet && git diff --staged --quiet; then
+            echo "✓ No changes - CI may already be passing or issue requires manual intervention"
+          else
+            echo "📝 Committing and pushing fixes..."
+            git add -A
+            git commit -m "fix(ci): auto-fix ci failures" || echo "No new changes to commit"
+            git push origin HEAD:${{ steps.workflow-info.outputs.branch }} || {
+              echo "⚠️ Push failed - branch may have diverged"
+              exit 1
+            }
+            echo "✅ Fixes pushed successfully"
+          fi
+
+      - name: Create summary comment
+        if: always() && github.event_name == 'workflow_run'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="${{ steps.workflow-info.outputs.branch }}"
+          WORKFLOW="${{ steps.workflow-info.outputs.workflow_name }}"
+
+          # Find any PRs for this branch
+          PR_NUMBER=$(gh pr list --head "$BRANCH" --json number --jq '.[0].number' 2>/dev/null || echo "")
+
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr comment "$PR_NUMBER" \
+              --body "🤖 **Claude Auto-Fix Workflow**
+
+            Claude Code has analyzed the failed CI workflow and attempted to fix the issues.
+
+            **Workflow:** $WORKFLOW
+            **Branch:** \`$BRANCH\`
+
+            ✅ If the fixes were successful, the CI should now pass on the next run.
+            ❌ If the CI still fails, please review the logs for manual intervention.
+
+            [View Auto-Fix Workflow Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" || true
+          fi

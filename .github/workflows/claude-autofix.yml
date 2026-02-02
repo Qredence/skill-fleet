@@ -95,7 +95,7 @@ jobs:
 
           # Show first 50 lines of logs for debugging
           echo "=== Log Preview ==="
-          head -50 /tmp/ci-full.log
+          head -50 /tmp/ci-full.log 2>/dev/null || echo 'No logs available for preview'
 
       - name: Claude Code Auto-Fix
         uses: anthropics/claude-code-action@v1

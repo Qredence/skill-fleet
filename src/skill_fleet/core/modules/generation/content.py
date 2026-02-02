@@ -197,12 +197,6 @@ class GenerateSkillContentModule(BaseModule):
 
         return self._to_prediction(**output)
 
-    def forward(self, **kwargs) -> dspy.Prediction:
-        """Sync version - delegates to async."""
-        from dspy.utils.syncify import run_async
-
-        return run_async(self.aforward(**kwargs))
-
     async def aforward_streaming(
         self,
         plan: dict,

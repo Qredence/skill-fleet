@@ -7,6 +7,14 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 
+class SkillListItem(BaseModel):
+    """Brief information about a skill for list endpoints."""
+
+    skill_id: str = Field(..., description="Unique skill identifier")
+    name: str = Field(..., description="Skill name")
+    description: str = Field(..., description="Skill description")
+
+
 class CreateSkillRequest(BaseModel):
     """Request body for creating a new skill."""
 
@@ -63,3 +71,10 @@ class RefineSkillResponse(BaseModel):
     job_id: str
     status: str
     message: str
+
+
+class UpdateSkillResponse(BaseModel):
+    """Response model for skill update."""
+
+    skill_id: str = Field(..., description="Unique skill identifier")
+    status: str = Field(..., description="Update status (e.g., 'updated')")

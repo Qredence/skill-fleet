@@ -6,12 +6,11 @@ from user task descriptions.
 """
 
 import re
-import time
 from typing import Any
 
 import dspy
 
-from skill_fleet.common.llm_fallback import llm_fallback_enabled, with_llm_fallback
+from skill_fleet.common.llm_fallback import with_llm_fallback
 from skill_fleet.common.utils import timed_execution
 from skill_fleet.core.modules.base import BaseModule
 from skill_fleet.core.signatures.understanding.requirements import GatherRequirements
@@ -152,63 +151,5 @@ class GatherRequirementsModule(BaseModule):
 
         # Validate and fill defaults
         output = self._validate_and_fill_defaults(output)
-
-        return self._to_prediction(**output)
-
-    def forward(self, task_description: str, user_context: dict | None = None) -> dspy.Prediction:  # type: ignore[override]
-        """
-        Gather requirements from task description.
-
-        Args:
-            task_description: User's task description
-            user_context: Optional user context (preferences, history, etc.)
-
-        Returns:
-            dspy.Prediction with structured requirements:
-            - domain: Primary domain
-            - category: Specific category
-            - target_level: Target expertise level
-            - topics: List of topics to cover
-            - constraints: Technical constraints
-            - ambiguities: Unclear aspects requiring HITL
-
-        """
-        start_time = time.time()
-
-        # Sanitize inputs
-        clean_task = self._sanitize_input(task_description)
-        clean_context = self._sanitize_input(str(user_context or {}))
-
-        # Execute signature
-        try:
-            result = self.gather(
-                task_description=clean_task,
-                user_context=clean_context,
-            )
-        except Exception as e:
-            # If the LM is not configured (or signature output parsing fails), fall back to a
-            # lightweight heuristic extraction so workflows and tests can proceed.
-            if not llm_fallback_enabled():
-                raise
-            self.logger.warning(f"Requirements gathering failed: {e}. Using heuristic fallback.")
-            result = None
-
-        # Normalize result
-        if result is None:
-            output = self._create_fallback_output(clean_task)
-        else:
-            output = self._normalize_result(result)
-            output = self._add_reasoning_if_present(output, result)
-
-        # Validate and fill defaults
-        output = self._validate_and_fill_defaults(output)
-
-        # Log execution
-        duration_ms = (time.time() - start_time) * 1000
-        self._log_execution(
-            inputs={"task_description": clean_task[:100]},
-            outputs={k: v for k, v in output.items() if k != "ambiguities"},
-            duration_ms=duration_ms,
-        )
 
         return self._to_prediction(**output)

@@ -158,13 +158,3 @@ class SynthesizePlanModule(BaseModule):
             output.setdefault("content_outline", ["Introduction", "Main Content", "Conclusion"])
 
         return self._to_prediction(**output)
-
-    def forward(self, **kwargs) -> dspy.Prediction:
-        """
-        Synchronous forward - delegates to async version.
-
-        Note: Use aforward() for better performance in async contexts.
-        """
-        from dspy.utils.syncify import run_async
-
-        return run_async(self.aforward(**kwargs))

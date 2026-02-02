@@ -1,6 +1,6 @@
 """Tests for understanding modules."""
 
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import dspy
 import pytest
@@ -60,10 +60,11 @@ class TestGatherRequirementsModule:
         assert module is not None
         assert hasattr(module, "gather")
 
+    @pytest.mark.asyncio
     @patch("skill_fleet.core.modules.understanding.requirements.dspy.ChainOfThought")
-    def test_forward_returns_structured_output(self, mock_cot):
-        """Should return dict with required fields."""
-        # Mock the ChainOfThought result
+    async def test_forward_returns_structured_output(self, mock_cot):
+        """Should return Prediction with required fields."""
+        # Mock the ChainOfThought result for aforward (async version)
         mock_result = Mock()
         mock_result.domain = "technical"
         mock_result.category = "web"
@@ -71,11 +72,22 @@ class TestGatherRequirementsModule:
         mock_result.topics = ["react", "components"]
         mock_result.constraints = ["typescript"]
         mock_result.ambiguities = []
+        mock_result.reasoning = "Mock reasoning"
+        mock_result.suggested_skill_name = "react-components"
+        mock_result.description = "Build React components"
+        mock_result.trigger_phrases = ["react"]
+        mock_result.negative_triggers = []
+        mock_result.skill_category = "technical"
+        mock_result.requires_mcp = False
+        mock_result.suggested_mcp_server = ""
 
-        mock_cot.return_value.return_value = mock_result
+        # Set up the async mock properly
+        mock_instance = Mock()
+        mock_instance.acall = AsyncMock(return_value=mock_result)
+        mock_cot.return_value = mock_instance
 
         module = GatherRequirementsModule()
-        result = module.forward(task_description="Build a React app", user_context={})
+        result = await module.aforward(task_description="Build a React app", user_context={})
 
         assert isinstance(result, dspy.Prediction)
         result_dict = normalize_dict_output(result)

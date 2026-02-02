@@ -476,12 +476,6 @@ class RefinedContentModule(BaseModule):
         headers = re.findall(r"^#{2,3}\s+(.+)$", content, re.MULTILINE)
         return headers
 
-    def forward(self, **kwargs: Any) -> dspy.Prediction:
-        """Sync version - delegates to async."""
-        from dspy.utils.syncify import run_async
-
-        return run_async(self.aforward(**kwargs))
-
 
 def generate_refined_skill_content(
     plan: dict[str, Any],

@@ -130,18 +130,23 @@ def chat_command(
                     )
                 else:
                     # Polling mode: create job first, then poll
-                    console.print("[dim]Creating job...[/dim]")
-                    try:
-                        result = await config.client.create_skill(task_description, config.user_id)
-                    except Exception as conn_err:
-                        console.print(
-                            f"[red]Could not connect to API server at {config.api_url}[/red]"
-                        )
-                        console.print("[yellow]Make sure the server is running:[/yellow]")
-                        console.print("  uv run skill-fleet serve")
-                        raise conn_err
+                    with console.status("[bold green]Creating job...[/bold green]") as status:
+                        try:
+                            result = await config.client.create_skill(
+                                task_description, config.user_id
+                            )
+                            job_id = result.get("job_id")
+                            status.update(
+                                f"[bold green]🚀 Skill creation job started: {job_id}[/bold green]"
+                            )
+                        except Exception as conn_err:
+                            console.print(
+                                f"[red]Could not connect to API server at {config.api_url}[/red]"
+                            )
+                            console.print("[yellow]Make sure the server is running:[/yellow]")
+                            console.print("  uv run skill-fleet serve")
+                            raise conn_err
 
-                    job_id = result.get("job_id")
                     if not job_id:
                         console.print(f"[red]Unexpected response: {result}[/red]")
                         continue

@@ -110,9 +110,9 @@ jobs:
         id: logs
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ needs.check-retry-status.outputs.run_id }}
         run: |
           echo "📋 Retrieving failure logs from workflow run..."
-          RUN_ID="${{ needs.check-retry-status.outputs.run_id }}"
 
           if [ -n "$RUN_ID" ] && [ "$RUN_ID" != "null" ]; then
             echo "Downloading logs for run: $RUN_ID"
@@ -289,15 +289,16 @@ jobs:
       - name: Trigger CI workflow
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ needs.check-retry-status.outputs.branch }}
+          ATTEMPT: ${{ needs.check-retry-status.outputs.attempt }}
+          MAX_ATTEMPTS: ${{ env.MAX_ATTEMPTS }}
         run: |
           echo "🔄 Triggering CI workflow for retry verification..."
-
-          BRANCH="${{ needs.check-retry-status.outputs.branch }}"
 
           # Note: The CI workflow should automatically trigger on push
           # This is informational logging
           echo "✅ CI workflow will automatically trigger on push to $BRANCH"
-          echo "📊 Attempt ${{ needs.check-retry-status.outputs.attempt }} of ${{ env.MAX_ATTEMPTS }}"
+          echo "📊 Attempt $ATTEMPT of $MAX_ATTEMPTS"
 
   schedule-next-retry:
     name: Schedule Next Retry
@@ -311,17 +312,19 @@ jobs:
       - name: Create repository dispatch for next retry
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CURRENT_ATTEMPT: ${{ needs.check-retry-status.outputs.attempt }}
+          BRANCH: ${{ needs.check-retry-status.outputs.branch }}
+          RUN_ID: ${{ needs.check-retry-status.outputs.run_id }}
+          MAX_ATTEMPTS: ${{ env.MAX_ATTEMPTS }}
         run: |
-          ATTEMPT=$(((${{ needs.check-retry-status.outputs.attempt }} + 1)))
-          BRANCH="${{ needs.check-retry-status.outputs.branch }}"
-          RUN_ID="${{ needs.check-retry-status.outputs.run_id }}"
+          ATTEMPT=$((CURRENT_ATTEMPT + 1))
 
           echo "📅 Scheduling retry attempt #$ATTEMPT for branch: $BRANCH"
 
           # In a real scenario, you could use repository_dispatch
           # For now, document the capability
           echo "If CI still fails after this attempt:"
-          echo "  Attempt: $ATTEMPT / ${{ env.MAX_ATTEMPTS }}"
+          echo "  Attempt: $ATTEMPT / $MAX_ATTEMPTS"
           echo "  Branch: $BRANCH"
           echo "  Command: gh workflow run claude-autofix-retry.yml -f attempt=$ATTEMPT -f branch=$BRANCH -f run_id=$RUN_ID"
 
@@ -336,15 +339,17 @@ jobs:
       - name: Create failure issue
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ needs.check-retry-status.outputs.branch }}
+          RUN_ID: ${{ needs.check-retry-status.outputs.run_id }}
+          MAX_ATTEMPTS: ${{ env.MAX_ATTEMPTS }}
+          REPO: ${{ github.repository }}
+          ACTOR: ${{ github.actor }}
         run: |
-          BRANCH="${{ needs.check-retry-status.outputs.branch }}"
-          RUN_ID="${{ needs.check-retry-status.outputs.run_id }}"
-
           echo "🚨 Creating notification for max retries exceeded..."
 
           BODY="## 🚨 Claude Auto-Fix Failed After Maximum Retries
 
-          The automated CI failure fixing workflow has exhausted all ${{ env.MAX_ATTEMPTS }} retry attempts.
+          The automated CI failure fixing workflow has exhausted all $MAX_ATTEMPTS retry attempts.
 
           **Details:**
           - **Branch:** \`$BRANCH\`
@@ -352,27 +357,27 @@ jobs:
           - **Status:** Requires manual investigation and fix
 
           ### Next Steps:
-          1. Review the failed CI logs: [View Workflow Run](https://github.com/${{ github.repository }}/actions/runs/$RUN_ID)
+          1. Review the failed CI logs: [View Workflow Run](https://github.com/$REPO/actions/runs/$RUN_ID)
           2. Analyze the root cause of the failure
           3. Make necessary fixes manually
           4. Push the fixes to trigger CI again
 
           ### Auto-Fix Context:
-          The Claude auto-fix workflow made up to ${{ env.MAX_ATTEMPTS }} attempts but was unable to resolve all issues.
+          The Claude auto-fix workflow made up to $MAX_ATTEMPTS attempts but was unable to resolve all issues.
           This typically means:
           - The issue requires human decision-making
           - The fix involves architectural changes
           - Multiple independent issues need fixing
           - The problem is environment-specific
 
-          cc @${{ github.actor }}"
+          cc @$ACTOR"
 
           gh issue create \
-            --repo "${{ github.repository }}" \
-            --title "🚨 CI Auto-Fix Failed After ${{ env.MAX_ATTEMPTS }} Attempts on \`$BRANCH\`" \
+            --repo "$REPO" \
+            --title "🚨 CI Auto-Fix Failed After $MAX_ATTEMPTS Attempts on \`$BRANCH\`" \
             --body "$BODY" \
             --label "ci-failure,needs-attention" \
-            --assignee "${{ github.actor }}" || echo "Could not create issue - may already exist"
+            --assignee "$ACTOR" || echo "Could not create issue - may already exist"
 
   notification-summary:
     name: Summary
@@ -381,14 +386,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Print Summary
+        env:
+          BRANCH: ${{ needs.check-retry-status.outputs.branch }}
+          ATTEMPT: ${{ needs.check-retry-status.outputs.attempt }}
+          MAX_ATTEMPTS: ${{ env.MAX_ATTEMPTS }}
+          SHOULD_PROCEED: ${{ needs.check-retry-status.outputs.should_proceed }}
+          CHANGES_MADE: ${{ needs.auto-fix.outputs.changes_made }}
         run: |
           echo "═══════════════════════════════════════"
           echo "  Claude Auto-Fix Workflow Summary"
           echo "═══════════════════════════════════════"
           echo ""
-          echo "Branch: ${{ needs.check-retry-status.outputs.branch }}"
-          echo "Attempt: ${{ needs.check-retry-status.outputs.attempt }} / ${{ env.MAX_ATTEMPTS }}"
-          echo "Should Proceed: ${{ needs.check-retry-status.outputs.should_proceed }}"
-          echo "Changes Made: ${{ needs.auto-fix.outputs.changes_made }}"
+          echo "Branch: $BRANCH"
+          echo "Attempt: $ATTEMPT / $MAX_ATTEMPTS"
+          echo "Should Proceed: $SHOULD_PROCEED"
+          echo "Changes Made: $CHANGES_MADE"
           echo ""
           echo "═══════════════════════════════════════"

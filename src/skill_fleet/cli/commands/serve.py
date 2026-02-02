@@ -13,6 +13,47 @@ from ..ui.prompts import get_default_ui
 console = Console()
 
 
+def validate_port(port: int) -> int:
+    """
+    Validate that port is in valid range (1-65535).
+
+    Args:
+        port: Port number to validate
+
+    Returns:
+        Validated port number
+
+    Raises:
+        typer.BadParameter: If port is out of range
+    """
+    if not (1 <= port <= 65535):
+        raise typer.BadParameter(f"Port must be between 1 and 65535, got {port}")
+    return port
+
+
+def validate_host(host: str) -> str:
+    """
+    Validate that host is a valid hostname or IP address.
+
+    Args:
+        host: Host string to validate
+
+    Returns:
+        Validated host string
+
+    Raises:
+        typer.BadParameter: If host is empty or contains invalid characters
+    """
+    if not host or not host.strip():
+        raise typer.BadParameter("Host cannot be empty")
+    # Basic validation for host format
+    import re
+
+    if not re.match(r"^[a-zA-Z0-9.:-]+$", host):
+        raise typer.BadParameter(f"Invalid host format: {host}")
+    return host
+
+
 async def _ask_server_config(
     port: int,
     host: str,
@@ -80,8 +121,19 @@ async def _ask_server_config(
 
 
 def serve_command(
-    port: int = typer.Option(8000, "--port", "-p", help="Port to run the API server on"),
-    host: str = typer.Option("127.0.0.1", "--host", help="Host to bind the server to"),
+    port: int = typer.Option(
+        8000,
+        "--port",
+        "-p",
+        help="Port to run the API server on",
+        callback=validate_port,
+    ),
+    host: str = typer.Option(
+        "127.0.0.1",
+        "--host",
+        help="Host to bind the server to",
+        callback=validate_host,
+    ),
     reload: bool = typer.Option(
         False, "--reload", "-r", help="Enable auto-reload on file changes (dev mode)"
     ),
@@ -116,13 +168,14 @@ def serve_command(
 
     # Initialize database unless skipped
     if not skip_db_init:
-        try:
-            console.print("[dim]Initializing database...[/dim]")
-            init_db()
-            console.print("[dim]✅ Database initialized[/dim]")
-        except Exception as e:
-            console.print(f"[red]❌ Database initialization failed: {e}[/red]")
-            raise typer.Exit(1) from e
+        with console.status("[bold green]Initializing database...[/bold green]") as status:
+            try:
+                init_db()
+                status.update("[bold green]✅ Database initialized[/bold green]")
+                console.print("[dim]✅ Database initialized[/dim]")
+            except Exception as e:
+                console.print(f"[red]❌ Database initialization failed: {e}[/red]")
+                raise typer.Exit(1) from e
 
     # Ask for configuration
     final_port, final_host, final_reload = asyncio.run(

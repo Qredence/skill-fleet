@@ -43,7 +43,13 @@ class JobDetailResponse(BaseModel):
     hitl_type: str | None = Field(None, description="HITL interaction type")
 
 
-@router.get("/{job_id}")
+@router.get(
+    "/{job_id}",
+    responses={
+        404: {"description": "Job not found"},
+        500: {"description": "Internal server error"},
+    },
+)
 async def get_job_status(job_id: str) -> JobDetailResponse:
     """
     Get job status and details.

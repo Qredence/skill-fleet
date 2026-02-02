@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
@@ -31,6 +31,8 @@ from ..schemas.skills import (
     RefineSkillRequest,
     RefineSkillResponse,
     SkillDetailResponse,
+    SkillListItem,
+    UpdateSkillResponse,
     ValidateSkillResponse,
 )
 from ..services.skill_service import SkillService
@@ -41,12 +43,18 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get("/", response_model=list[dict[str, Any]])
+@router.get(
+    "/",
+    response_model=list[SkillListItem],
+    responses={
+        500: {"description": "Internal server error during skill discovery"},
+    },
+)
 async def list_skills(
     skill_service: Annotated[SkillService, Depends(get_skill_service)],
     status: str | None = None,
     search: str | None = None,
-) -> list[dict[str, Any]]:
+) -> list[SkillListItem]:
     """
     List skills in the taxonomy.
 
@@ -66,19 +74,19 @@ async def list_skills(
         logger.debug("Skill discovery failed; using cached metadata: %s", exc)
 
     items = [
-        {"skill_id": skill_id, "name": meta.name, "description": meta.description}
+        SkillListItem(skill_id=skill_id, name=meta.name, description=meta.description)
         for skill_id, meta in skill_service.taxonomy_manager.metadata_cache.items()
     ]
 
     # Apply simple filters.
     if search:
         q = search.lower()
-        items = [i for i in items if q in (i.get("name", "") or "").lower()]
+        items = [i for i in items if q in i.name.lower()]
     if status:
         # Status isn't tracked in metadata today; keep placeholder behavior.
         items = items
 
-    return sorted(items, key=lambda x: x.get("skill_id", ""))
+    return sorted(items, key=lambda x: x.skill_id)
 
 
 @router.post("/", response_model=CreateSkillResponse)
@@ -191,12 +199,19 @@ class UpdateSkillRequest(BaseModel):
     metadata: dict | None = None
 
 
-@router.put("/{skill_id}", response_model=dict[str, str])
+@router.put(
+    "/{skill_id}",
+    response_model=UpdateSkillResponse,
+    responses={
+        404: {"description": "Skill not found"},
+        500: {"description": "Failed to update skill"},
+    },
+)
 async def update_skill(
     skill_id: str,
     request: UpdateSkillRequest,
     skill_service: Annotated[SkillService, Depends(get_skill_service)],
-) -> dict[str, str]:
+) -> UpdateSkillResponse:
     """
     Update an existing skill.
 
@@ -206,7 +221,7 @@ async def update_skill(
         skill_service: Injected SkillService for data access
 
     Returns:
-        Dictionary with skill_id and status
+        UpdateSkillResponse with skill_id and status
 
     Raises:
         HTTPException: If skill not found (404)
@@ -237,7 +252,7 @@ async def update_skill(
                 # Write back
                 metadata_path.write_text(json.dumps(current, indent=2), encoding="utf-8")
 
-        return {"skill_id": skill_id, "status": "updated"}
+        return UpdateSkillResponse(skill_id=skill_id, status="updated")
     except FileNotFoundError as err:
         raise NotFoundException("Skill", skill_id) from err
     except Exception as err:

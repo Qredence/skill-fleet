@@ -14,7 +14,6 @@ from collections.abc import Callable
 from typing import Any
 
 import dspy
-from dspy.utils.syncify import run_async
 
 from skill_fleet.common.serialization import normalize_dict_output
 from skill_fleet.core.modules.base import BaseModule
@@ -232,19 +231,6 @@ class ParallelUnderstandingAnalysis(BaseModule):
             }
 
         return normalize_dict_output(result)
-
-    def forward(self, **kwargs: Any) -> dspy.Prediction:
-        """
-        Synchronous forward - runs async version.
-
-        Args:
-            **kwargs: Additional arguments
-
-        Returns:
-            dspy.Prediction with combined results
-
-        """
-        return run_async(self.aforward(**kwargs))
 
 
 class ParallelAnalyzer:

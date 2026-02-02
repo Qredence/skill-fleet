@@ -284,12 +284,6 @@ class BestOfNValidator(BaseModule):
             error=True,
         )
 
-    def forward(self, **kwargs: Any) -> dspy.Prediction:
-        """Sync version - delegates to async."""
-        from dspy.utils.syncify import run_async
-
-        return run_async(self.aforward(**kwargs))
-
 
 def validate_with_best_of_n(
     skill_content: str,

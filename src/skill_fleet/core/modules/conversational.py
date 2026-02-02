@@ -38,9 +38,9 @@ class ConversationalModule(BaseModule):
         super().__init__()
         self.processor = dspy.ChainOfThought(ChatResponse)
 
-    def forward(self, **kwargs: Any) -> dspy.Prediction:
+    async def aforward(self, **kwargs: Any) -> dspy.Prediction:
         """
-        Process conversational message.
+        Process conversational message asynchronously.
 
         Args:
             **kwargs: Must include message and optional context
@@ -57,7 +57,7 @@ class ConversationalModule(BaseModule):
             safe_message = self._sanitize_input(message, max_length=5000)
             safe_context = self._sanitize_input(str(context) if context else "", max_length=10000)
 
-            result = self.processor(
+            result = await self.processor.acall(
                 message=safe_message,
                 context=safe_context,
             )
@@ -77,16 +77,3 @@ class ConversationalModule(BaseModule):
                 suggested_actions=["Try rephrasing your message"],
                 metadata={"error": str(e)},
             )
-
-    async def aforward(self, **kwargs: Any) -> dspy.Prediction:
-        """
-        Async conversational message processing.
-
-        Args:
-            **kwargs: Must include message and optional context
-
-        Returns:
-            Prediction with response, reasoning, and suggested actions
-
-        """
-        return await super().aforward(**kwargs)

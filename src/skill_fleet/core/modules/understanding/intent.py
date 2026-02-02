@@ -5,8 +5,6 @@ Uses AnalyzeIntent signature to determine skill purpose,
 target audience, and success criteria.
 """
 
-from typing import Any
-
 import dspy
 
 from skill_fleet.common.llm_fallback import with_llm_fallback
@@ -97,19 +95,3 @@ class AnalyzeIntentModule(BaseModule):
             output.setdefault("skill_type", "how_to")
 
         return self._to_prediction(**output)
-
-    def forward(self, *args: Any, **kwargs: Any) -> dspy.Prediction:
-        """Sync wrapper that delegates to aforward()."""
-        from dspy.utils.syncify import run_async
-
-        if "task_description" in kwargs:
-            task_description = kwargs["task_description"]
-        elif args:
-            task_description = args[0]
-        else:
-            raise TypeError("forward() missing required argument: 'task_description'")
-
-        requirements = kwargs.get("requirements", args[1] if len(args) > 1 else None)
-        return run_async(
-            self.aforward(task_description=task_description, requirements=requirements)
-        )

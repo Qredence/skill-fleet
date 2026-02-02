@@ -165,12 +165,6 @@ class GenerateTestCasesModule(BaseModule):
 
         return self._to_prediction(**output)
 
-    def forward(self, **kwargs: Any) -> dspy.Prediction:
-        """Synchronous forward - delegates to async."""
-        from dspy.utils.syncify import run_async
-
-        return run_async(self.aforward(**kwargs))
-
     def _assess_trigger_coverage(
         self, positive_tests: list[str], trigger_phrases: list[str]
     ) -> float:

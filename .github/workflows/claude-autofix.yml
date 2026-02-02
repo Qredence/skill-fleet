@@ -76,9 +76,9 @@ jobs:
         id: logs
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ steps.workflow-info.outputs.run_id }}
         run: |
           echo "Attempting to retrieve logs from workflow run..."
-          RUN_ID="${{ steps.workflow-info.outputs.run_id }}"
 
           if [ -n "$RUN_ID" ] && [ "$RUN_ID" != "null" ]; then
             echo "Downloading logs for run: $RUN_ID"

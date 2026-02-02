@@ -324,12 +324,6 @@ class AssessQualityModule(BaseModule):
 
         return recommendations
 
-    def forward(self, **kwargs) -> dspy.Prediction:
-        """Synchronous forward - delegates to async."""
-        from dspy.utils.syncify import run_async
-
-        return run_async(self.aforward(**kwargs))
-
 
 class RefineSkillModule(BaseModule):
     """Refine skill based on quality assessment."""

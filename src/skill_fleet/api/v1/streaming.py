@@ -10,9 +10,10 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -26,14 +27,34 @@ from skill_fleet.core.workflows.streaming import (
     WorkflowEvent,
     WorkflowEventType,
 )
-from skill_fleet.infrastructure.db.database import get_db
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import Session
+    pass
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# Configuration constants
+STATUS_POLL_INTERVAL = 0.5  # seconds
+HITL_CHECK_INTERVAL = 1.0  # seconds
+MAX_CONSECUTIVE_TIMEOUTS = 10
+
+
+# Job status constants
+class JobStatus:
+    """Job status constants."""
+
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+    PENDING_USER_INPUT = "pending_user_input"
+    PENDING_HITL = "pending_hitl"
+    PENDING_REVIEW = "pending_review"
+
+
+TERMINAL_STATUSES = {JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED}
+HITL_STATUSES = {JobStatus.PENDING_USER_INPUT, JobStatus.PENDING_HITL, JobStatus.PENDING_REVIEW}
 
 
 class StreamCreateRequest(BaseModel):
@@ -57,53 +78,69 @@ async def _format_sse_event(event: WorkflowEvent) -> str:
     return f"data: {json.dumps(data)}\n\n"
 
 
+async def _handle_hitl_event(event: WorkflowEvent) -> str | None:
+    """
+    Check if event requires HITL and return formatted pause message.
+
+    Returns formatted SSE message if HITL required, None otherwise.
+    """
+    if event.event_type == WorkflowEventType.HITL_REQUIRED:
+        return (
+            f"data: {json.dumps({'type': 'hitl_pause', 'message': 'Waiting for user input'})}\n\n"
+        )
+    return None
+
+
 async def _execute_skill_creation_stream(
     task_description: str,
     user_id: str,
     enable_hitl: bool,
     quality_threshold: float,
+    request: Request,
 ) -> StreamingResponse:
     """Execute skill creation with streaming events."""
 
-    async def event_generator():
+    async def event_generator() -> AsyncGenerator[str, None]:
         manager = StreamingWorkflowManager()
 
         try:
             # Phase 1: Understanding
             understanding_workflow = UnderstandingWorkflow()
-            understanding_events = []
+            understanding_result = None
 
             async for event in understanding_workflow.execute_streaming(
                 task_description=task_description,
                 user_context={"user_id": user_id},
                 manager=manager,
             ):
-                yield await _format_sse_event(event)
-                understanding_events.append(event)
-
-                # Check for HITL suspension
-                if event.event_type == WorkflowEventType.HITL_REQUIRED:
-                    yield f"data: {json.dumps({'type': 'hitl_pause', 'message': 'Waiting for user input'})}\n\n"
+                # Check for client disconnect
+                if await request.is_disconnected():
+                    logger.info("Client disconnected during understanding phase")
                     return
 
-                # Check for completion
-                if event.event_type == WorkflowEventType.COMPLETED:
-                    break
+                yield await _format_sse_event(event)
 
-            # Get understanding result
-            understanding_result = {}
-            for event in reversed(understanding_events):
+                # Check for HITL suspension
+                hitl_response = await _handle_hitl_event(event)
+                if hitl_response:
+                    yield hitl_response
+                    return
+
+                # Capture completion result efficiently
                 if event.event_type == WorkflowEventType.COMPLETED:
                     understanding_result = event.data.get("result", {})
                     break
 
-            if understanding_result.get("status") != "completed":
+            if (
+                understanding_result is None
+                or understanding_result.get("status") != JobStatus.COMPLETED
+            ):
                 yield f"data: {json.dumps({'type': 'error', 'message': 'Understanding phase failed'})}\n\n"
                 return
 
             # Phase 2: Generation
             generation_workflow = GenerationWorkflow()
-            generation_events = []
+            generation_result = None
 
             async for event in generation_workflow.execute_streaming(
                 plan=understanding_result.get("plan", {}),
@@ -112,24 +149,23 @@ async def _execute_skill_creation_stream(
                 quality_threshold=quality_threshold,
                 manager=manager,
             ):
-                yield await _format_sse_event(event)
-                generation_events.append(event)
-
-                if event.event_type == WorkflowEventType.HITL_REQUIRED:
-                    yield f"data: {json.dumps({'type': 'hitl_pause', 'message': 'Waiting for user input'})}\n\n"
+                # Check for client disconnect
+                if await request.is_disconnected():
+                    logger.info("Client disconnected during generation phase")
                     return
 
-                if event.event_type == WorkflowEventType.COMPLETED:
-                    break
+                yield await _format_sse_event(event)
 
-            # Get generation result
-            generation_result = {}
-            for event in reversed(generation_events):
+                hitl_response = await _handle_hitl_event(event)
+                if hitl_response:
+                    yield hitl_response
+                    return
+
                 if event.event_type == WorkflowEventType.COMPLETED:
                     generation_result = event.data.get("result", {})
                     break
 
-            if generation_result.get("status") != "completed":
+            if generation_result is None or generation_result.get("status") != JobStatus.COMPLETED:
                 yield f"data: {json.dumps({'type': 'error', 'message': 'Generation phase failed'})}\n\n"
                 return
 
@@ -144,10 +180,16 @@ async def _execute_skill_creation_stream(
                 quality_threshold=quality_threshold,
                 manager=manager,
             ):
+                # Check for client disconnect
+                if await request.is_disconnected():
+                    logger.info("Client disconnected during validation phase")
+                    return
+
                 yield await _format_sse_event(event)
 
-                if event.event_type == WorkflowEventType.HITL_REQUIRED:
-                    yield f"data: {json.dumps({'type': 'hitl_pause', 'message': 'Waiting for user input'})}\n\n"
+                hitl_response = await _handle_hitl_event(event)
+                if hitl_response:
+                    yield hitl_response
                     return
 
                 if event.event_type == WorkflowEventType.COMPLETED:
@@ -176,7 +218,7 @@ async def _execute_skill_creation_stream(
 @router.post("/stream")
 async def create_skill_streaming(
     request: StreamCreateRequest,
-    db: Session = Depends(get_db),  # noqa: B008
+    http_request: Request,  # noqa: B008
 ):
     r"""
     Create a skill with real-time streaming progress.
@@ -200,13 +242,14 @@ async def create_skill_streaming(
         user_id=request.user_id,
         enable_hitl=request.enable_hitl,
         quality_threshold=request.quality_threshold,
+        request=http_request,
     )
 
 
 @router.get("/{job_id}/stream")
 async def get_job_stream(
     job_id: str,
-    db: Session = Depends(get_db),  # noqa: B008
+    request: Request,  # noqa: B008
 ):
     """
     Get real-time stream for an existing job.
@@ -223,14 +266,18 @@ async def get_job_stream(
     event_registry = get_event_registry()
     event_queue = await event_registry.get(job_id)
 
-    async def event_stream():
+    async def event_stream() -> AsyncGenerator[str, None]:
         """Stream workflow events from the registered queue."""
         last_status = None
         timeout_count = 0
-        max_timeout = 10  # Max consecutive timeouts before falling back to status polling
 
         try:
             while True:
+                # Check for client disconnect
+                if await request.is_disconnected():
+                    logger.info(f"Client disconnected from job {job_id} stream")
+                    break
+
                 # Check if job is still active
                 job = await job_manager.get_job(job_id)
                 if not job:
@@ -245,20 +292,22 @@ async def get_job_stream(
                     last_status = status
 
                 # Terminal states
-                if status in {"completed", "failed", "cancelled"}:
+                if status in TERMINAL_STATUSES:
                     yield f"data: {json.dumps({'type': 'complete', 'status': status})}\n\n"
                     break
 
                 # HITL pause states - emit status and wait
-                if status in {"pending_user_input", "pending_hitl", "pending_review"}:
+                if status in HITL_STATUSES:
                     yield f"data: {json.dumps({'type': 'hitl_pause', 'status': status, 'message': f'Waiting for user: {status}'})}\n\n"
-                    await asyncio.sleep(1.0)
+                    await asyncio.sleep(HITL_CHECK_INTERVAL)
                     continue
 
                 # Try to get event from queue with timeout
                 if event_queue:
                     try:
-                        event = await asyncio.wait_for(event_queue.get(), timeout=0.5)
+                        event = await asyncio.wait_for(
+                            event_queue.get(), timeout=STATUS_POLL_INTERVAL
+                        )
                         timeout_count = 0  # Reset timeout counter on successful event
                         yield await _format_sse_event(event)
 
@@ -270,19 +319,19 @@ async def get_job_stream(
                             break
                         if event.event_type == WorkflowEventType.HITL_REQUIRED:
                             yield f"data: {json.dumps({'type': 'hitl_pause', 'message': 'HITL required'})}\n\n"
-                            await asyncio.sleep(1.0)
+                            await asyncio.sleep(HITL_CHECK_INTERVAL)
 
                     except TimeoutError:
                         timeout_count += 1
                         # Fall back to status polling if too many timeouts
-                        if timeout_count >= max_timeout:
+                        if timeout_count >= MAX_CONSECUTIVE_TIMEOUTS:
                             logger.warning(
-                                f"Job {job_id}: No events for {max_timeout * 0.5}s, falling back to status"
+                                f"Job {job_id}: No events for {MAX_CONSECUTIVE_TIMEOUTS * STATUS_POLL_INTERVAL}s, falling back to status"
                             )
-                            await asyncio.sleep(0.5)
+                            await asyncio.sleep(STATUS_POLL_INTERVAL)
                 else:
                     # No event queue registered, fall back to status polling
-                    await asyncio.sleep(0.5)
+                    await asyncio.sleep(STATUS_POLL_INTERVAL)
 
         except Exception as e:
             logger.error(f"Streaming error for job {job_id}: {e}")

@@ -154,6 +154,8 @@ class GenerateSkillContentModule(BaseModule):
             plan: Skill plan with outline and guidance
             understanding: Understanding from Phase 1
             skill_style: Content style preference
+            *args: Positional arguments for compatibility
+            **kwargs: Additional keyword arguments
 
         Returns:
             dspy.Prediction with generated content and template compliance

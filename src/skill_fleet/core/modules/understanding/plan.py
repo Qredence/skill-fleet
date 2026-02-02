@@ -89,7 +89,7 @@ class SynthesizePlanModule(BaseModule):
             user_confirmation = ""
 
         return await self._aforward_impl(
-            requirements=requirements,
+            requirements=requirements or {},
             intent_analysis=intent_analysis,
             taxonomy_analysis=taxonomy_analysis,
             dependency_analysis=dependency_analysis,
@@ -119,6 +119,7 @@ class SynthesizePlanModule(BaseModule):
             - skill_name, skill_description, taxonomy_path
             - content_outline, generation_guidance
             - success_criteria, estimated_length, tags, rationale
+
         """
         # Use ReAct for iterative synthesis (best-effort). Some test LMs only implement
         # sync calling; fall back to heuristics if async LM calls fail.

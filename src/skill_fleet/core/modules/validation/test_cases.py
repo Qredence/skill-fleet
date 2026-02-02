@@ -12,7 +12,6 @@ from typing import Any
 
 import dspy
 
-from skill_fleet.common.llm_fallback import with_llm_fallback
 from skill_fleet.common.utils import timed_execution
 from skill_fleet.core.modules.base import BaseModule
 
@@ -88,7 +87,6 @@ class GenerateTestCasesModule(BaseModule):
         self.generator = dspy.ChainOfThought(GenerateTestCases)
 
     @timed_execution()
-    @with_llm_fallback(default_return=None)
     async def aforward(self, **kwargs: Any) -> dspy.Prediction:
         """
         Generate comprehensive test cases for skill validation.

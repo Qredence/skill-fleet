@@ -10,10 +10,44 @@ Tests the new validation features added in the skill-fleet improvements:
 """
 
 import asyncio
+import json
+from collections import namedtuple
 from unittest.mock import patch
 
 import dspy
 import pytest
+
+# Create a mock completion response object
+MockChoice = namedtuple("MockChoice", ["message"])
+MockMessage = namedtuple("MockMessage", ["content"])
+
+
+class MockUsage:
+    """Mock usage object that can be converted to dict."""
+
+    def __init__(self, prompt_tokens: int, completion_tokens: int, total_tokens: int):
+        self.prompt_tokens = prompt_tokens
+        self.completion_tokens = completion_tokens
+        self.total_tokens = total_tokens
+
+    def __iter__(self):
+        """Make it iterable so dict() can convert it."""
+        return iter(
+            [
+                ("prompt_tokens", self.prompt_tokens),
+                ("completion_tokens", self.completion_tokens),
+                ("total_tokens", self.total_tokens),
+            ]
+        )
+
+
+class MockCompletion:
+    """Mock completion response object matching OpenAI's format."""
+
+    def __init__(self, content: str):
+        self.choices = [MockChoice(message=MockMessage(content=content))]
+        self.usage = MockUsage(prompt_tokens=100, completion_tokens=50, total_tokens=150)
+        self.model = "mock/model"
 
 
 class MockLM(dspy.LM):
@@ -22,17 +56,34 @@ class MockLM(dspy.LM):
     def __init__(self):
         super().__init__(model="mock/model")
 
+    def _create_completion(self, content: str) -> MockCompletion:
+        """Create a mock completion response object."""
+        return MockCompletion(content=content)
+
     def __call__(self, prompt=None, messages=None, **kwargs):
         """Mock LLM responses based on prompt content."""
         prompt_str = str(prompt or messages or "").lower()
+        content = self._get_response(prompt_str)
+        return self._create_completion(content)
+
+    async def aforward(self, prompt=None, messages=None, **kwargs):
+        """Mock async LLM responses based on prompt content."""
+        prompt_str = str(prompt or messages or "").lower()
+        content = self._get_response(prompt_str)
+        return self._create_completion(content)
+
+    def _get_response(self, prompt_str: str) -> str:
+        """Extract common response logic."""
+        # Test case generation - check first since prompts include "skill_description"
+        # which would match the structure validation below
+        if "test" in prompt_str and (
+            "trigger" in prompt_str or "positive" in prompt_str or "negative" in prompt_str
+        ):
+            return self._mock_test_cases_response()
 
         # Structure validation
         if "structure" in prompt_str and ("name" in prompt_str or "description" in prompt_str):
             return self._mock_structure_response(prompt_str)
-
-        # Test case generation
-        if "test" in prompt_str and ("trigger" in prompt_str or "positive" in prompt_str):
-            return self._mock_test_cases_response()
 
         # Compliance validation
         if "compliance" in prompt_str or "yaml" in prompt_str or "frontmatter" in prompt_str:
@@ -89,26 +140,95 @@ suggested_description: ""
 """
 
     def _mock_test_cases_response(self) -> str:
-        """Mock test case generation response."""
-        return """positive_tests:
-  - "How do I create a React component with TypeScript?"
-  - "Build a reusable button component in React"
-  - "Create a form component with validation in TypeScript"
-  - "I need to build a React component library"
-negative_tests:
-  - "How do I create a Vue component?"
-  - "Build an Angular directive"
-  - "Create a Python Flask API"
-  - "Set up a database in PostgreSQL"
-edge_cases:
-  - "Create a React component in JavaScript (not TypeScript)"
-  - "Convert existing React JS component to TypeScript"
-  - "Create a React component with both TypeScript and JavaScript"
-functional_tests:
-  - "Given a design mock, generate TypeScript React component code"
-  - "Component should compile without TypeScript errors"
-  - "Component should follow React best practices"
-"""
+        """Mock test case generation response in JSON format."""
+        return json.dumps(
+            {
+                "reasoning": "Test cases generated to cover trigger phrases including variations, edge cases, and negative scenarios for skill validation.",
+                "positive_tests": [
+                    "How do I create a React component with TypeScript?",
+                    "Build a reusable button component in React",
+                    "Create a form component with validation in TypeScript",
+                    "I need to build a React component library",
+                    "Create a modal component with TypeScript",
+                    "Build a navigation component in React",
+                    "Create a card component with TypeScript props",
+                    "Implement a dropdown component in React",
+                    "Build a table component with TypeScript",
+                    "Create a tabs component in React",
+                ],
+                "negative_tests": [
+                    "How do I create a Vue component?",
+                    "Build an Angular directive",
+                    "Create a Python Flask API",
+                    "Set up a database in PostgreSQL",
+                    "How do I write a Java class?",
+                    "Build a mobile app with Swift",
+                    "Create a CSS animation",
+                    "Configure nginx server",
+                    "Write a shell script",
+                    "Deploy to Kubernetes",
+                ],
+                "edge_cases": [
+                    "Create a React component in JavaScript (not TypeScript)",
+                    "Convert existing React JS component to TypeScript",
+                    "Create a React component with both TypeScript and JavaScript",
+                    "Build a component that works in React and React Native",
+                    "Create a React component using class syntax instead of hooks",
+                ],
+                "functional_tests": [
+                    {
+                        "scenario": "Basic TypeScript component creation",
+                        "input": "Create a button component with TypeScript",
+                        "expected_behavior": "Generate a properly typed React button component with props interface",
+                        "success_criteria": [
+                            "Component compiles without errors",
+                            "Props are properly typed",
+                            "Component follows React best practices",
+                        ],
+                    },
+                    {
+                        "scenario": "Component with complex props",
+                        "input": "Create a form component with validation callbacks",
+                        "expected_behavior": "Generate a form component with proper TypeScript types for callbacks and state",
+                        "success_criteria": [
+                            "Callback types are defined",
+                            "State management is typed",
+                            "Form validation logic is included",
+                        ],
+                    },
+                    {
+                        "scenario": "Generic component",
+                        "input": "Create a reusable list component with generics",
+                        "expected_behavior": "Generate a generic list component that works with any item type",
+                        "success_criteria": [
+                            "Generic types are properly used",
+                            "Component is reusable",
+                            "Type safety is maintained",
+                        ],
+                    },
+                    {
+                        "scenario": "Component with context",
+                        "input": "Create a theme provider component with TypeScript context",
+                        "expected_behavior": "Generate a context provider with proper TypeScript types",
+                        "success_criteria": [
+                            "Context type is defined",
+                            "Provider and consumer are typed",
+                            "Default values are set",
+                        ],
+                    },
+                    {
+                        "scenario": "Error boundary component",
+                        "input": "Create an error boundary component in TypeScript",
+                        "expected_behavior": "Generate a class-based error boundary with proper type annotations",
+                        "success_criteria": [
+                            "Component extends React.Component correctly",
+                            "Error handling is typed",
+                            "Fallback UI is rendered",
+                        ],
+                    },
+                ],
+            }
+        )
 
     def _mock_compliance_response(self) -> str:
         """Mock compliance validation response."""

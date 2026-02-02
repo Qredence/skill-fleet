@@ -197,7 +197,7 @@ async def _execute_skill_creation_stream(
 
             yield f"data: {json.dumps({'type': 'complete', 'message': 'Skill creation completed'})}\n\n"
 
-        except Exception as e:
+        except Exception:
             # Log detailed error information on the server, including the stack trace,
             # but do not expose internal details to the client.
             logger.exception("Streaming error")

@@ -71,6 +71,8 @@ class BestOfNValidator(BaseModule):
         Validate with multiple attempts and select best result.
 
         Args:
+            *args: Positional arguments (skill_content, taxonomy_path, use_reward_consensus)
+            **kwargs: Keyword arguments for validation parameters
             skill_content: SKILL.md content to validate
             taxonomy_path: Expected taxonomy path
             use_reward_consensus: If True, use reward-weighted consensus
@@ -86,6 +88,7 @@ class BestOfNValidator(BaseModule):
             - confidence: Confidence in result (based on reward score)
             - all_results: All validation results for inspection
 
+        """
         # Support both keyword and positional calling conventions to remain
         # compatible with BaseModule.aforward while preserving existing usage.
         if "skill_content" in kwargs:
@@ -108,7 +111,7 @@ class BestOfNValidator(BaseModule):
             use_reward_consensus = bool(args[2])
         else:
             use_reward_consensus = True
-        """
+
         start_time = time.time()
 
         # Run N validation attempts in parallel

@@ -145,6 +145,7 @@ class AssessQualityModule(BaseModule):
         - Conciseness (verbosity score)
 
         Args:
+            **kwargs: Keyword arguments containing skill_content, plan, and success_criteria
             skill_content: SKILL.md content
             plan: Original plan
             success_criteria: Criteria to check

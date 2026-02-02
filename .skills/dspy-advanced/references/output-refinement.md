@@ -55,7 +55,7 @@ print(result.answer)  # Brussels
 2. **Score each candidate**: Apply reward function to each prediction
 3. **Select best**: Return first prediction that meets threshold or highest-scoring result
 
-**Reference**: [DSPy Output Refinement Tutorial](https://github.com/stanfordnlp/dspy/blob/main/docs/docs/tutorials/output_refinement/best-of-n-and-refine.md) | [LLMS.txt](https://context7.com/stanfordnlp/dspy/llms.txt)
+**Reference**: [DSPy Output Refinement Tutorial](https://github.com/stanfordnlp/dspy/blob/main/docs/tutorials/output_refinement/best-of-n-and-refine.md) | [llms.txt](https://github.com/stanfordnlp/dspy/blob/main/llms.txt)
 
 ### BestOfN Parameters
 

@@ -1,6 +1,6 @@
 # Core Workflows Reference
 
-**Last Updated**: 2026-01-31
+**Last Updated**: 2026-02-02
 **Location**: `src/skill_fleet/core/workflows/skill_creation/`
 
 ## Overview
@@ -151,6 +151,8 @@ async def execute(
     understanding: dict,
     enable_hitl_preview: bool = False,
     skill_style: str = "comprehensive",
+    quality_threshold: float | None = None,
+    manager: StreamingWorkflowManager | None = None,
 ) -> dict[str, Any]
 ```
 
@@ -162,6 +164,8 @@ async def execute(
 | `understanding` | `dict` | Yes | Understanding results |
 | `enable_hitl_preview` | `bool` | No | Show preview for feedback |
 | `skill_style` | `str` | No | `minimal`, `comprehensive`, `navigation_hub` |
+| `quality_threshold` | `float \| None` | No | Minimum quality score (uses `DEFAULT_QUALITY_THRESHOLDS` if None) |
+| `manager` | `StreamingWorkflowManager` | No | Optional streaming manager |
 
 **Returns:**
 
@@ -260,7 +264,8 @@ async def execute(
     plan: dict,
     taxonomy_path: str,
     enable_hitl_review: bool = False,
-    quality_threshold: float = 0.75,
+    quality_threshold: float | None = None,
+    manager: StreamingWorkflowManager | None = None,
 ) -> dict[str, Any]
 ```
 
@@ -272,7 +277,8 @@ async def execute(
 | `plan` | `dict` | Yes | Original plan with success criteria |
 | `taxonomy_path` | `str` | Yes | Expected taxonomy path |
 | `enable_hitl_review` | `bool` | No | Show for human review |
-| `quality_threshold` | `float` | No | Minimum quality score (0-1) |
+| `quality_threshold` | `float \| None` | No | Minimum quality score (uses `DEFAULT_QUALITY_THRESHOLDS` if None) |
+| `manager` | `StreamingWorkflowManager` | No | Optional streaming manager |
 
 **Returns:**
 
@@ -491,6 +497,168 @@ ValidationReport = {
     "conciseness_recommendations": list[str],
 }
 ```
+
+---
+
+## Typed Output Models
+
+**File**: `src/skill_fleet/core/workflows/models.py`
+
+The workflows now have typed Pydantic models for all inputs and outputs, providing:
+- Type safety and validation
+- IDE autocompletion
+- Clear documentation of data contracts
+
+### QualityThresholds
+
+Centralized configuration for all quality-related thresholds. Use `DEFAULT_QUALITY_THRESHOLDS` to access the global instance:
+
+```python
+from skill_fleet.core.workflows.models import DEFAULT_QUALITY_THRESHOLDS
+
+# Available thresholds
+DEFAULT_QUALITY_THRESHOLDS.validation_pass_threshold    # 0.75 - Validation must meet this score
+DEFAULT_QUALITY_THRESHOLDS.refinement_target_quality    # 0.80 - Target quality for content refinement
+DEFAULT_QUALITY_THRESHOLDS.taxonomy_confidence_threshold # 0.60 - Minimum confidence for taxonomy path
+DEFAULT_QUALITY_THRESHOLDS.trigger_coverage_target      # 0.90 - Target coverage of trigger phrases in tests
+DEFAULT_QUALITY_THRESHOLDS.optimal_word_count_min       # 500  - Minimum words for optimal size
+DEFAULT_QUALITY_THRESHOLDS.optimal_word_count_max       # 3000 - Maximum words for optimal size
+DEFAULT_QUALITY_THRESHOLDS.acceptable_word_count_max    # 5000 - Maximum before size warning
+DEFAULT_QUALITY_THRESHOLDS.verbosity_warning_threshold  # 0.70 - Threshold for verbosity warnings
+```
+
+**Usage in Workflows:**
+
+Workflows automatically use centralized thresholds when not explicitly provided:
+
+```python
+# Uses DEFAULT_QUALITY_THRESHOLDS.refinement_target_quality (0.80)
+result = await generation.execute(
+    plan=plan_data,
+    understanding=understanding_data,
+    quality_threshold=None  # Falls back to default
+)
+
+# Uses DEFAULT_QUALITY_THRESHOLDS.validation_pass_threshold (0.75)
+result = await validation.execute(
+    skill_content=content,
+    plan=plan_data,
+    taxonomy_path="technical/python",
+    quality_threshold=None  # Falls back to default
+)
+```
+
+### Phase Output Models
+
+All phase workflows return typed Pydantic models (in addition to dict-based returns for backward compatibility).
+
+#### Phase1UnderstandingOutput
+
+```python
+from skill_fleet.core.workflows.models import Phase1UnderstandingOutput
+
+class Phase1UnderstandingOutput(BaseModel):
+    status: Literal["completed", "pending_user_input", "failed"]
+    requirements: RequirementsOutput
+    intent: IntentOutput
+    taxonomy: TaxonomyOutput
+    dependencies: DependencyOutput
+    plan: PlanOutput | None
+    structure_validation: StructureValidationOutput | None
+    hitl_type: str | None
+    hitl_data: dict[str, Any] | None
+    execution_time_ms: float | None
+
+    # Methods for workflow continuation
+    def is_ready_for_generation(self) -> bool:
+        """Check if phase 1 completed successfully."""
+        return self.status == "completed" and self.plan is not None
+
+    def to_generation_input(self) -> dict[str, Any]:
+        """Convert to input format for GenerationWorkflow."""
+```
+
+**Usage:**
+
+```python
+from skill_fleet.core.workflows.models import (
+    Phase1UnderstandingOutput,
+    dict_to_requirements,
+    dict_to_plan,
+)
+
+# Convert dict to typed model for better IDE support
+phase1_dict = await understanding.execute(task_description="...")
+phase1_output = Phase1UnderstandingOutput(
+    status="completed",
+    requirements=dict_to_requirements(phase1_dict.get("requirements", {})),
+    intent=dict_to_intent(phase1_dict.get("intent", {})),
+    plan=dict_to_plan(phase1_dict.get("plan", {})),
+    # ... other fields
+)
+
+if phase1_output.is_ready_for_generation():
+    gen_input = phase1_output.to_generation_input()
+```
+
+#### Phase2GenerationOutput
+
+```python
+class Phase2GenerationOutput(BaseModel):
+    status: Literal["completed", "pending_user_input", "failed"]
+    skill_content: str
+    sections_generated: list[str]
+    code_examples_count: int
+    estimated_reading_time: int
+    initial_quality_score: float | None
+    final_quality_score: float | None
+    refinement_iterations: int
+    hitl_type: str | None
+    hitl_data: dict[str, Any] | None
+    execution_time_ms: float | None
+
+    def is_ready_for_validation(self) -> bool:
+        """Check if ready for validation phase."""
+        return self.status == "completed" and bool(self.skill_content)
+```
+
+#### Phase3ValidationOutput
+
+```python
+class Phase3ValidationOutput(BaseModel):
+    status: Literal["completed", "needs_improvement", "pending_user_input", "failed"]
+    passed: bool
+    validation_report: ValidationReportOutput
+    skill_content: str
+    was_refined: bool
+    refinement_improvements: list[str]
+    hitl_type: str | None
+    hitl_data: dict[str, Any] | None
+    execution_time_ms: float | None
+```
+
+### Helper Functions
+
+For gradual migration from dict-based to typed outputs:
+
+```python
+from skill_fleet.core.workflows.models import (
+    dict_to_requirements,
+    dict_to_intent,
+    dict_to_taxonomy,
+    dict_to_dependencies,
+    dict_to_plan,
+)
+
+# Convert dict results to typed models
+requirements = dict_to_requirements(phase1_result["requirements"])
+intent = dict_to_intent(phase1_result["intent"])
+taxonomy = dict_to_taxonomy(phase1_result["taxonomy"])
+dependencies = dict_to_dependencies(phase1_result["dependencies"])
+plan = dict_to_plan(phase1_result["plan"])
+```
+
+These helper functions provide safe defaults and validation, making it easy to work with both old dict-based code and new typed code simultaneously.
 
 ---
 

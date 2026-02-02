@@ -5,12 +5,10 @@ Uses FindTaxonomyPath signature to determine optimal
 placement in the skill taxonomy.
 """
 
-import time
-
 import dspy
 
-from skill_fleet.common.llm_fallback import llm_fallback_enabled
-from skill_fleet.common.utils import safe_float
+from skill_fleet.common.llm_fallback import with_llm_fallback
+from skill_fleet.common.utils import safe_float, timed_execution
 from skill_fleet.core.modules.base import BaseModule
 from skill_fleet.core.signatures.understanding.taxonomy import FindTaxonomyPath
 
@@ -48,7 +46,9 @@ class FindTaxonomyPathModule(BaseModule):
         super().__init__()
         self.find_path = dspy.ChainOfThought(FindTaxonomyPath)
 
-    async def aforward(  # type: ignore[override]
+    @timed_execution()
+    @with_llm_fallback(default_return=None)
+    async def aforward(
         self,
         task_description: str,
         requirements: dict | None = None,
@@ -56,25 +56,17 @@ class FindTaxonomyPathModule(BaseModule):
         existing_skills: list[str] | None = None,
     ) -> dspy.Prediction:
         """Async taxonomy analysis using DSPy `acall`."""
-        start_time = time.time()
-
         clean_task = self._sanitize_input(task_description)
         clean_requirements = self._sanitize_input(str(requirements or {}))
         clean_structure = self._sanitize_input(str(taxonomy_structure or {}))
         clean_existing = existing_skills if existing_skills else []
 
-        try:
-            result = await self.find_path.acall(
-                task_description=clean_task,
-                requirements=clean_requirements,
-                taxonomy_structure=clean_structure,
-                existing_skills=clean_existing,
-            )
-        except Exception as e:
-            if not llm_fallback_enabled():
-                raise
-            self.logger.warning(f"Taxonomy analysis failed: {e}. Using fallback path.")
-            result = None
+        result = await self.find_path.acall(
+            task_description=clean_task,
+            requirements=clean_requirements,
+            taxonomy_structure=clean_structure,
+            existing_skills=clean_existing,
+        )
 
         output = (
             {
@@ -111,19 +103,6 @@ class FindTaxonomyPathModule(BaseModule):
         confidence_value = safe_float(output.get("confidence", 0.0), default=0.0)
         output["confidence"] = max(0.0, min(1.0, confidence_value))
 
-        duration_ms = (time.time() - start_time) * 1000
-        self._log_execution(
-            inputs={
-                "task_description": clean_task[:100],
-                "taxonomy": clean_structure[:100],
-            },
-            outputs={
-                "path": output["recommended_path"],
-                "confidence": output["confidence"],
-            },
-            duration_ms=duration_ms,
-        )
-
         return self._to_prediction(**output)
 
     def forward(  # type: ignore[override]
@@ -151,27 +130,18 @@ class FindTaxonomyPathModule(BaseModule):
             - confidence: Confidence score (0.0-1.0)
 
         """
-        start_time = time.time()
-
-        # Sanitize inputs
         clean_task = self._sanitize_input(task_description)
         clean_requirements = self._sanitize_input(str(requirements or {}))
         clean_structure = self._sanitize_input(str(taxonomy_structure or {}))
         clean_existing = existing_skills if existing_skills else []
 
         # Execute signature
-        try:
-            result = self.find_path(
-                task_description=clean_task,
-                requirements=clean_requirements,
-                taxonomy_structure=clean_structure,
-                existing_skills=clean_existing,
-            )
-        except Exception as e:
-            if not llm_fallback_enabled():
-                raise
-            self.logger.warning(f"Taxonomy analysis failed: {e}. Using fallback path.")
-            result = None
+        result = self.find_path(
+            task_description=clean_task,
+            requirements=clean_requirements,
+            taxonomy_structure=clean_structure,
+            existing_skills=clean_existing,
+        )
 
         # Transform to structured output
         if result is None:
@@ -207,19 +177,5 @@ class FindTaxonomyPathModule(BaseModule):
 
         # Ensure confidence is in valid range
         output["confidence"] = max(0.0, min(1.0, output["confidence"]))
-
-        # Log execution
-        duration_ms = (time.time() - start_time) * 1000
-        self._log_execution(
-            inputs={
-                "task_description": clean_task[:100],
-                "taxonomy": clean_structure[:100],
-            },
-            outputs={
-                "path": output["recommended_path"],
-                "confidence": output["confidence"],
-            },
-            duration_ms=duration_ms,
-        )
 
         return self._to_prediction(**output)

@@ -19,6 +19,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Path
 
+from skill_fleet.common.logging_utils import sanitize_for_log
 from skill_fleet.common.security import sanitize_taxonomy_path
 
 from ..dependencies import TaxonomyManagerDep
@@ -32,31 +33,6 @@ from ..schemas.taxonomy import (
 from ..services.cached_taxonomy import get_cached_taxonomy_service
 
 logger = logging.getLogger(__name__)
-
-
-def _sanitize_for_log(value: str) -> str:
-    """Sanitize a value for safe logging by removing control characters, line breaks, and ANSI escapes."""
-    import re
-
-    # Ensure we are always working with a string; this avoids type surprises in logging.
-    if not isinstance(value, str):
-        try:
-            value = str(value)
-        except Exception:
-            # Fallback to a generic placeholder if conversion fails for any reason.
-            return "<unloggable-value>"
-
-    # Remove ANSI escape sequences (e.g., color codes) which could affect log display.
-    value = re.sub(r"\x1b\[[0-9;]*m", "", value)
-
-    # Explicitly remove common line break sequences that can be used for log injection.
-    value = value.replace("\r\n", "").replace("\n", "").replace("\r", "")
-
-    # Remove remaining control characters (0x00-0x1f and 0x7f).
-    # Keep printable characters; this prevents log injection via other control codes.
-    value = "".join(char for char in value if char.isprintable() and ord(char) != 127)
-
-    return value
 
 
 router = APIRouter()
@@ -163,8 +139,8 @@ async def update_taxonomy(
 
             except Exception as update_err:
                 errors.append(f"Failed to update {path}: {update_err}")
-                safe_path = _sanitize_for_log(path)
-                safe_err = _sanitize_for_log(str(update_err))
+                safe_path = sanitize_for_log(path)
+                safe_err = sanitize_for_log(str(update_err))
                 logger.warning(f"Taxonomy update failed for {safe_path}: {safe_err}")
 
         # Update taxonomy meta timestamp
@@ -179,7 +155,7 @@ async def update_taxonomy(
             except Exception as meta_err:
                 logger.warning(f"Failed to update taxonomy_meta.json: {meta_err}")
 
-        safe_user_id = _sanitize_for_log(request.user_id)
+        safe_user_id = sanitize_for_log(request.user_id)
         logger.info(
             f"Taxonomy update by user {safe_user_id}: "
             f"{len(updates_applied)} applied, {len(errors)} errors"

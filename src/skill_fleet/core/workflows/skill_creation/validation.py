@@ -20,6 +20,9 @@ from skill_fleet.core.modules.validation.compliance import (
 )
 from skill_fleet.core.modules.validation.structure import ValidateStructureModule
 from skill_fleet.core.modules.validation.test_cases import GenerateTestCasesModule
+from skill_fleet.core.workflows.models import (
+    DEFAULT_QUALITY_THRESHOLDS,
+)
 from skill_fleet.core.workflows.streaming import (
     StreamingWorkflowManager,
     WorkflowEventType,
@@ -73,7 +76,7 @@ class ValidationWorkflow:
         plan: dict,
         taxonomy_path: str,
         enable_hitl_review: bool = False,
-        quality_threshold: float = 0.75,
+        quality_threshold: float | None = None,
         manager: StreamingWorkflowManager | None = None,
     ) -> AsyncIterator[WorkflowEvent]:
         """
@@ -84,13 +87,17 @@ class ValidationWorkflow:
             plan: Original plan with success criteria
             taxonomy_path: Expected taxonomy path
             enable_hitl_review: Whether to show for human review
-            quality_threshold: Minimum quality score
+            quality_threshold: Minimum quality score (uses DEFAULT_QUALITY_THRESHOLDS if None)
             manager: Optional workflow manager
 
         Yields:
             WorkflowEvent with validation progress and results
 
         """
+        # Use centralized threshold if not provided
+        if quality_threshold is None:
+            quality_threshold = DEFAULT_QUALITY_THRESHOLDS.validation_pass_threshold
+
         manager = manager or get_workflow_manager()
 
         # Start workflow execution in background task
@@ -124,10 +131,14 @@ class ValidationWorkflow:
         plan: dict,
         taxonomy_path: str,
         enable_hitl_review: bool = False,
-        quality_threshold: float = 0.75,
+        quality_threshold: float | None = None,
         manager: StreamingWorkflowManager | None = None,
     ) -> None:
         """Execute the actual workflow logic."""
+        # Use centralized threshold if not provided
+        if quality_threshold is None:
+            quality_threshold = DEFAULT_QUALITY_THRESHOLDS.validation_pass_threshold
+
         manager = manager or get_workflow_manager()
 
         try:
@@ -356,7 +367,7 @@ class ValidationWorkflow:
         plan: dict,
         taxonomy_path: str,
         enable_hitl_review: bool = False,
-        quality_threshold: float = 0.75,
+        quality_threshold: float | None = None,
         manager: StreamingWorkflowManager | None = None,
     ) -> dict[str, Any]:
         """
@@ -367,7 +378,7 @@ class ValidationWorkflow:
             plan: Original plan with success criteria
             taxonomy_path: Expected taxonomy path
             enable_hitl_review: Whether to show for human review
-            quality_threshold: Minimum quality score
+            quality_threshold: Minimum quality score (uses DEFAULT_QUALITY_THRESHOLDS if None)
             manager: Optional streaming workflow manager (for event emission)
 
         Returns:

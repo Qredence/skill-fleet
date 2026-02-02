@@ -10,7 +10,8 @@ from typing import Any
 
 import dspy
 
-from skill_fleet.common.llm_fallback import llm_fallback_enabled
+from skill_fleet.common.llm_fallback import llm_fallback_enabled, with_llm_fallback
+from skill_fleet.common.utils import timed_execution
 from skill_fleet.core.modules.base import BaseModule
 from skill_fleet.core.signatures.understanding.requirements import GatherRequirements
 
@@ -46,24 +47,16 @@ class GatherRequirementsModule(BaseModule):
         super().__init__()
         self.gather = dspy.ChainOfThought(GatherRequirements)
 
+    @timed_execution()
+    @with_llm_fallback(default_return=None)
     async def aforward(
         self, task_description: str, user_context: dict | None = None
-    ) -> dspy.Prediction:  # type: ignore[override]
+    ) -> dspy.Prediction:
         """Async requirements gathering using DSPy `acall`."""
-        start_time = time.time()
-
         clean_task = self._sanitize_input(task_description)
         clean_context = self._sanitize_input(str(user_context or {}))
 
-        try:
-            result = await self.gather.acall(
-                task_description=clean_task, user_context=clean_context
-            )
-        except Exception as e:
-            if not llm_fallback_enabled():
-                raise
-            self.logger.warning(f"Requirements gathering failed: {e}. Using heuristic fallback.")
-            result = None
+        result = await self.gather.acall(task_description=clean_task, user_context=clean_context)
 
         output = self._result_to_output(result, clean_task)
         if result is not None and hasattr(result, "reasoning"):
@@ -76,13 +69,6 @@ class GatherRequirementsModule(BaseModule):
             output.setdefault("category", "general")
             output.setdefault("target_level", "intermediate")
             output.setdefault("topics", ["general"])
-
-        duration_ms = (time.time() - start_time) * 1000
-        self._log_execution(
-            inputs={"task_description": clean_task[:100]},
-            outputs={k: v for k, v in output.items() if k != "ambiguities"},
-            duration_ms=duration_ms,
-        )
 
         return self._to_prediction(**output)
 

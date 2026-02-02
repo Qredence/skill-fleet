@@ -1,6 +1,6 @@
 # Core Modules Reference
 
-**Last Updated**: 2026-01-31
+**Last Updated**: 2026-02-02
 **Location**: `src/skill_fleet/core/modules/`
 
 ## Overview
@@ -389,6 +389,89 @@ Outputs are validated for required fields:
 if not self._validate_result(output, required=["skill_content"]):
     output["skill_content"] = "# Default content"
 ```
+
+---
+
+## Common Utilities
+
+### @with_llm_fallback Decorator
+
+**File**: `src/skill_fleet/common/llm_fallback.py`
+
+Provides graceful degradation for DSPy modules when LLM calls fail. Particularly useful in offline or test environments.
+
+```python
+from skill_fleet.common.llm_fallback import with_llm_fallback
+
+class MyModule(BaseModule):
+    @with_llm_fallback(default_return={"result": "fallback_value"})
+    async def aforward(self, **kwargs):
+        # LLM call that might fail
+        result = await self.generate(kwargs)
+        return {"result": result}
+```
+
+**Configuration:**
+- Enable with `SKILL_FLEET_ALLOW_LLM_FALLBACK=1` environment variable
+- Only active in test/offline environments by default
+- Logs warnings when fallback is triggered for observability
+
+**Benefits:**
+- Allows tests to run without LLM availability
+- Prevents workflow failures in degraded states
+- Safe default return values for graceful degradation
+
+### @timed_execution Decorator
+
+**File**: `src/skill_fleet/common/utils.py`
+
+Tracks execution time for performance monitoring and debugging. Works with both sync and async functions.
+
+```python
+from skill_fleet.common.utils import timed_execution
+
+class MyModule(BaseModule):
+    @timed_execution
+    async def aforward(self, task_description: str, **kwargs):
+        # Operation to time
+        result = await self.process(task_description)
+        return result
+```
+
+**Features:**
+- Logs execution time at DEBUG level with module/function name
+- Handles both sync and async functions transparently
+- Safe `func.__name__` access with fallback to `<lambda>` for anonymous functions
+- Minimal overhead, useful for identifying performance bottlenecks
+
+**Output Example:**
+```
+DEBUG: MyModule.aforward completed in 1234.56ms
+```
+
+### sanitize_for_log()
+
+**File**: `src/skill_fleet/common/logging_utils.py`
+
+Sanitizes potentially sensitive data before logging. Prevents accidental exposure of user inputs or confidential information in logs.
+
+```python
+from skill_fleet.common.logging_utils import sanitize_for_log
+
+# Safe to log sensitive information
+logger.debug(f"Processing: {sanitize_for_log(user_input)}")
+
+# Truncates long strings and escapes special characters
+long_text = "..." * 1000
+safe_text = sanitize_for_log(long_text, max_length=100)
+logger.info(f"Content: {safe_text}")
+```
+
+**Features:**
+- Truncates overly long strings to prevent log spam
+- Escapes special characters to prevent log injection
+- Handles None and empty values gracefully
+- Default max length: 500 characters
 
 ---
 

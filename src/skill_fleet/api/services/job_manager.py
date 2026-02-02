@@ -19,39 +19,14 @@ from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
+from skill_fleet.common.logging_utils import sanitize_for_log
+
 from ...infrastructure.db.repositories import JobRepository
 from ...infrastructure.db.session import transactional_session
 from ..schemas.models import DeepUnderstandingState, JobState, TDDWorkflowState
 
 if TYPE_CHECKING:
     pass
-
-
-def _sanitize_for_log(value: Any) -> str:
-    """
-    Make a string safe for single-line log messages by removing line breaks.
-
-    This helps prevent log injection via user-controlled values that may
-    contain newline characters. Also masks potential secrets.
-    """
-    if value is None:
-        return ""
-    text = str(value)
-    # Replace CR and LF characters with spaces to preserve readability
-    text = text.replace("\r", " ").replace("\n", " ")
-    # Mask potential secrets (API keys, tokens, passwords)
-    import re
-
-    text = re.sub(
-        r"(api[_-]?key|token|password|secret|auth)[\s]*[=:]\s*\S+",
-        r"\1=***",
-        text,
-        flags=re.IGNORECASE,
-    )
-    # Truncate very long values
-    if len(text) > 500:
-        text = text[:497] + "..."
-    return text
 
 
 logger = logging.getLogger(__name__)
@@ -233,7 +208,7 @@ class JobManager:
             JobState if found, None otherwise
 
         """
-        safe_job_id = _sanitize_for_log(job_id)
+        safe_job_id = sanitize_for_log(job_id)
 
         # Fast path: try memory first (no lock needed for read)
         job = await self.memory.get(job_id)
@@ -284,7 +259,7 @@ class JobManager:
         """
         # Store in memory immediately (fast)
         await self.memory.set(job_state.job_id, job_state)
-        safe_job_id = _sanitize_for_log(job_state.job_id)
+        safe_job_id = sanitize_for_log(job_state.job_id)
         logger.debug(f"Job {safe_job_id} stored in memory")
 
         # Persist to DB
@@ -314,7 +289,7 @@ class JobManager:
             Updated JobState if successful, None otherwise
 
         """
-        safe_job_id = _sanitize_for_log(job_id)
+        safe_job_id = sanitize_for_log(job_id)
 
         # Try to get from memory first
         job = await self.memory.get(job_id)
@@ -361,7 +336,7 @@ class JobManager:
             True if save succeeded, False otherwise
 
         """
-        safe_job_id = _sanitize_for_log(job.job_id)
+        safe_job_id = sanitize_for_log(job.job_id)
         await self.memory.set(job.job_id, job)
 
         if self.persistence_enabled:

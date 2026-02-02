@@ -10,7 +10,8 @@ from typing import Any
 
 import dspy
 
-from skill_fleet.common.llm_fallback import llm_fallback_enabled
+from skill_fleet.common.llm_fallback import llm_fallback_enabled, with_llm_fallback
+from skill_fleet.common.utils import timed_execution
 from skill_fleet.core.modules.base import BaseModule
 from skill_fleet.core.signatures.understanding.dependencies import AnalyzeDependencies
 
@@ -47,7 +48,9 @@ class AnalyzeDependenciesModule(BaseModule):
         super().__init__()
         self.analyze = dspy.ChainOfThought(AnalyzeDependencies)
 
-    async def aforward(  # type: ignore[override]
+    @timed_execution()
+    @with_llm_fallback(default_return=None)
+    async def aforward(
         self,
         task_description: str,
         intent_analysis: dict | None = None,
@@ -55,25 +58,17 @@ class AnalyzeDependenciesModule(BaseModule):
         existing_skills: list[str] | None = None,
     ) -> dspy.Prediction:
         """Async dependency analysis using DSPy `acall`."""
-        start_time = time.time()
-
         clean_task = self._sanitize_input(task_description)
         clean_intent = self._sanitize_input(str(intent_analysis or {}))
         clean_path = self._sanitize_input(taxonomy_path)
         clean_existing = existing_skills if existing_skills else []
 
-        try:
-            result = await self.analyze.acall(
-                task_description=clean_task,
-                intent_analysis=clean_intent,
-                taxonomy_path=clean_path,
-                existing_skills=clean_existing,
-            )
-        except Exception as e:
-            if not llm_fallback_enabled():
-                raise
-            self.logger.warning(f"Dependency analysis failed: {e}. Using fallback dependencies.")
-            result = None
+        result = await self.analyze.acall(
+            task_description=clean_task,
+            intent_analysis=clean_intent,
+            taxonomy_path=clean_path,
+            existing_skills=clean_existing,
+        )
 
         output = (
             {
@@ -117,19 +112,6 @@ class AnalyzeDependenciesModule(BaseModule):
         complementary_skills = output.get("complementary_skills", [])
         if not isinstance(complementary_skills, list):
             complementary_skills = []
-
-        duration_ms = (time.time() - start_time) * 1000
-        self._log_execution(
-            inputs={
-                "task_description": clean_task[:100],
-                "taxonomy_path": clean_path,
-            },
-            outputs={
-                "prerequisites_count": len(prerequisite_skills),
-                "complementary_count": len(complementary_skills),
-            },
-            duration_ms=duration_ms,
-        )
 
         return self._to_prediction(**output)
 

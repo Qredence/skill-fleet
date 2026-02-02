@@ -11,16 +11,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from skill_fleet.common.logging_utils import sanitize_for_log
+
 from ...common.security import resolve_path_within_root
 from ..schemas.models import DeepUnderstandingState, JobState, TDDWorkflowState
 
 logger = logging.getLogger(__name__)
-
-
-def _sanitize_for_log(value: Any) -> str:
-    """Remove newline characters from values before logging to prevent log injection."""
-    text = str(value)
-    return text.replace("\r", "").replace("\n", "")
 
 
 def _is_safe_job_id(job_id: str) -> bool:
@@ -273,32 +269,32 @@ def save_job_session(job_id: str) -> bool:
 
     """
     if not _is_safe_job_id(job_id):
-        logger.warning("Cannot save session: unsafe job id %s", _sanitize_for_log(job_id))
+        logger.warning("Cannot save session: unsafe job id %s", sanitize_for_log(job_id))
         return False
 
     job = JOBS.get(job_id)
     if not job:
-        logger.warning("Cannot save session: job %s not found", _sanitize_for_log(job_id))
+        logger.warning("Cannot save session: job %s not found", sanitize_for_log(job_id))
         return False
 
     try:
         session_file = resolve_path_within_root(SESSION_DIR, f"{job_id}.json")
         session_data = job.model_dump(mode="json", exclude_none=True)
         session_file.write_text(json.dumps(session_data, indent=2, default=str), encoding="utf-8")
-        logger.debug("Saved session for job %s", _sanitize_for_log(job_id))
+        logger.debug("Saved session for job %s", sanitize_for_log(job_id))
         return True
     except ValueError as e:
         logger.warning(
             "Cannot save session for job %s: %s",
-            _sanitize_for_log(job_id),
-            _sanitize_for_log(e),
+            sanitize_for_log(job_id),
+            sanitize_for_log(e),
         )
         return False
     except Exception as e:
         logger.error(
             "Failed to save session for job %s: %s",
-            _sanitize_for_log(job_id),
-            _sanitize_for_log(e),
+            sanitize_for_log(job_id),
+            sanitize_for_log(e),
         )
         return False
 
@@ -315,7 +311,7 @@ def load_job_session(job_id: str) -> JobState | None:
 
     """
     if not _is_safe_job_id(job_id):
-        logger.warning("Cannot load session: unsafe job id %s", _sanitize_for_log(job_id))
+        logger.warning("Cannot load session: unsafe job id %s", sanitize_for_log(job_id))
         return None
 
     try:
@@ -343,22 +339,22 @@ def load_job_session(job_id: str) -> JobState | None:
         job.hitl_lock = asyncio.Lock()
 
         JOBS[job_id] = job
-        logger.info("Loaded session for job %s", _sanitize_for_log(job_id))
+        logger.info("Loaded session for job %s", sanitize_for_log(job_id))
         return job
 
     except ValueError as e:
         logger.warning(
             "Cannot load session for job %s: %s",
-            _sanitize_for_log(job_id),
-            _sanitize_for_log(e),
+            sanitize_for_log(job_id),
+            sanitize_for_log(e),
         )
         return None
 
     except Exception as e:
         logger.error(
             "Failed to load session for job %s: %s",
-            _sanitize_for_log(job_id),
-            _sanitize_for_log(e),
+            sanitize_for_log(job_id),
+            sanitize_for_log(e),
         )
         return None
 
@@ -389,7 +385,7 @@ def delete_job_session(job_id: str) -> bool:
 
     """
     if not _is_safe_job_id(job_id):
-        logger.warning("Cannot delete session: unsafe job id %s", _sanitize_for_log(job_id))
+        logger.warning("Cannot delete session: unsafe job id %s", sanitize_for_log(job_id))
         return False
 
     try:
@@ -401,15 +397,15 @@ def delete_job_session(job_id: str) -> bool:
     except ValueError as e:
         logger.warning(
             "Cannot delete session for job %s: %s",
-            _sanitize_for_log(job_id),
-            _sanitize_for_log(e),
+            sanitize_for_log(job_id),
+            sanitize_for_log(e),
         )
         return False
     except Exception as e:
         logger.error(
             "Failed to delete session for job %s: %s",
-            _sanitize_for_log(job_id),
-            _sanitize_for_log(e),
+            sanitize_for_log(job_id),
+            sanitize_for_log(e),
         )
         return False
 

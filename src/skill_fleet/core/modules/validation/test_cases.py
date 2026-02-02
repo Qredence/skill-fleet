@@ -12,7 +12,8 @@ from typing import Any
 
 import dspy
 
-from skill_fleet.common.llm_fallback import llm_fallback_enabled
+from skill_fleet.common.llm_fallback import with_llm_fallback
+from skill_fleet.common.utils import timed_execution
 from skill_fleet.core.modules.base import BaseModule
 
 
@@ -86,7 +87,9 @@ class GenerateTestCasesModule(BaseModule):
         super().__init__()
         self.generator = dspy.ChainOfThought(GenerateTestCases)
 
-    def forward(self, **kwargs: Any) -> dspy.Prediction:
+    @timed_execution()
+    @with_llm_fallback(default_return=None)
+    async def aforward(self, **kwargs: Any) -> dspy.Prediction:
         """
         Generate comprehensive test cases for skill validation.
 
@@ -106,8 +109,6 @@ class GenerateTestCasesModule(BaseModule):
             - total_tests: Total count of all tests
 
         """
-        start_time = self._get_time()
-
         skill_description = kwargs.get("skill_description")
         if skill_description is None:
             raise ValueError("skill_description must be provided")
@@ -128,18 +129,17 @@ class GenerateTestCasesModule(BaseModule):
         clean_trigger_phrases = [self._sanitize_input(str(p)) for p in trigger_phrases[:10]]
         clean_negative_triggers = [self._sanitize_input(str(t)) for t in negative_triggers[:5]]
 
-        try:
-            result = self.generator(
-                skill_description=clean_description,
-                trigger_phrases=clean_trigger_phrases,
-                negative_triggers=clean_negative_triggers,
-                skill_category=skill_category,
-            )
-        except Exception as e:
-            if not llm_fallback_enabled():
-                raise
-            self.logger.error(f"Test case generation failed: {e}")
-            # Return minimal fallback result
+        result = await self.generator.acall(
+            skill_description=clean_description,
+            trigger_phrases=clean_trigger_phrases,
+            negative_triggers=clean_negative_triggers,
+            skill_category=skill_category,
+        )
+
+        if result is None:
+            # Fallback handled by decorator returning None, but we need structure
+            # Wait, decorator returns default_return=None.
+            # So result is None.
             fallback = self._create_fallback_result(trigger_phrases, negative_triggers)
             return self._to_prediction(**fallback)
 
@@ -163,18 +163,13 @@ class GenerateTestCasesModule(BaseModule):
             "trigger_coverage": trigger_coverage,
         }
 
-        # Log execution
-        duration_ms = (self._get_time() - start_time) * 1000
-        self._log_execution(
-            inputs={
-                "skill_category": skill_category,
-                "trigger_count": len(trigger_phrases),
-            },
-            outputs={"total_tests": total_tests},
-            duration_ms=duration_ms,
-        )
-
         return self._to_prediction(**output)
+
+    def forward(self, **kwargs: Any) -> dspy.Prediction:
+        """Synchronous forward - delegates to async."""
+        from dspy.utils.syncify import run_async
+
+        return run_async(self.aforward(**kwargs))
 
     def _assess_trigger_coverage(
         self, positive_tests: list[str], trigger_phrases: list[str]
@@ -240,9 +235,3 @@ class GenerateTestCasesModule(BaseModule):
             "trigger_coverage": trigger_coverage,
             "fallback": True,
         }
-
-    def _get_time(self) -> float:
-        """Get current time for duration tracking."""
-        import time
-
-        return time.time()

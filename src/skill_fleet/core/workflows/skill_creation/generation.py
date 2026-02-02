@@ -13,6 +13,9 @@ from typing import TYPE_CHECKING, Any
 
 from skill_fleet.core.modules.generation.content import GenerateSkillContentModule
 from skill_fleet.core.modules.generation.refined_content import RefinedContentModule
+from skill_fleet.core.workflows.models import (
+    DEFAULT_QUALITY_THRESHOLDS,
+)
 from skill_fleet.core.workflows.streaming import (
     StreamingWorkflowManager,
     WorkflowEventType,
@@ -62,7 +65,7 @@ class GenerationWorkflow:
         understanding: dict,
         enable_hitl_preview: bool = False,
         skill_style: str = "comprehensive",
-        quality_threshold: float = 0.8,
+        quality_threshold: float | None = None,
         enable_token_streaming: bool = False,
         manager: StreamingWorkflowManager | None = None,
     ) -> AsyncIterator[WorkflowEvent]:
@@ -74,7 +77,7 @@ class GenerationWorkflow:
             understanding: Understanding from Phase 1
             enable_hitl_preview: Whether to show preview for feedback
             skill_style: Content style
-            quality_threshold: Minimum quality score
+            quality_threshold: Minimum quality score (uses DEFAULT_QUALITY_THRESHOLDS if None)
             enable_token_streaming: Enable token-level streaming (shows content as it's generated)
             manager: Optional workflow manager
 
@@ -83,6 +86,10 @@ class GenerationWorkflow:
             If enable_token_streaming=True, also yields TOKEN_STREAM events.
 
         """
+        # Use centralized threshold if not provided
+        if quality_threshold is None:
+            quality_threshold = DEFAULT_QUALITY_THRESHOLDS.refinement_target_quality
+
         manager = manager or get_workflow_manager()
 
         # Start workflow execution in background task
@@ -117,11 +124,15 @@ class GenerationWorkflow:
         understanding: dict,
         enable_hitl_preview: bool = False,
         skill_style: str = "comprehensive",
-        quality_threshold: float = 0.8,
+        quality_threshold: float | None = None,
         enable_token_streaming: bool = False,
         manager: StreamingWorkflowManager | None = None,
     ) -> None:
         """Execute the actual workflow logic."""
+        # Use centralized threshold if not provided
+        if quality_threshold is None:
+            quality_threshold = DEFAULT_QUALITY_THRESHOLDS.refinement_target_quality
+
         manager = manager or get_workflow_manager()
 
         try:
@@ -251,7 +262,7 @@ class GenerationWorkflow:
         understanding: dict,
         enable_hitl_preview: bool = False,
         skill_style: str = "comprehensive",
-        quality_threshold: float = 0.8,
+        quality_threshold: float | None = None,
         manager: StreamingWorkflowManager | None = None,
     ) -> dict[str, Any]:
         """
@@ -262,7 +273,7 @@ class GenerationWorkflow:
             understanding: Understanding from Phase 1
             enable_hitl_preview: Whether to show preview for feedback
             skill_style: Content style
-            quality_threshold: Minimum quality score
+            quality_threshold: Minimum quality score (uses DEFAULT_QUALITY_THRESHOLDS if None)
             manager: Optional streaming workflow manager (for event emission)
 
         Returns:

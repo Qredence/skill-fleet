@@ -4,7 +4,28 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **Typed Phase Output Models** (February 2026)
+  - New `src/skill_fleet/core/workflows/models.py` with Pydantic models for workflow contracts
+  - `QualityThresholds` - Centralized quality threshold configuration with validation
+  - Phase output models: `Phase1UnderstandingOutput`, `Phase2GenerationOutput`, `Phase3ValidationOutput`
+  - Module output models: `RequirementsOutput`, `IntentOutput`, `TaxonomyOutput`, `DependencyOutput`, `PlanOutput`, etc.
+  - Helper functions: `dict_to_requirements()`, `dict_to_intent()`, `dict_to_taxonomy()`, etc. for gradual migration
+  - `DEFAULT_QUALITY_THRESHOLDS` global instance for consistent quality scoring across workflows
+
+- **Centralized Utility Decorators**
+  - `src/skill_fleet/common/logging_utils.py` - `sanitize_for_log()` function for safe logging of sensitive data
+  - `src/skill_fleet/common/llm_fallback.py` - `@with_llm_fallback` decorator for graceful DSPy module degradation
+  - `src/skill_fleet/common/utils.py` - `@timed_execution` decorator for performance tracking
+
 ### Changed
+
+- **Workflows use centralized quality thresholds**
+  - `GenerationWorkflow` now uses `DEFAULT_QUALITY_THRESHOLDS.refinement_target_quality` (0.80) instead of hardcoded 0.8
+  - `ValidationWorkflow` now uses `DEFAULT_QUALITY_THRESHOLDS.validation_pass_threshold` (0.75) instead of hardcoded 0.75
+  - Quality threshold parameters now accept `None` with automatic fallback to centralized defaults
+  - Updated all workflow method signatures: `quality_threshold: float | None = None`
 
 - **DSPy 3.1.2+ Async-First Refactoring**: Aligned codebase with DSPy best practices
   - Removed local wrapper modules (`pot.py`, `react.py`, `refine.py`)
@@ -21,6 +42,11 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Missing imports in `validation/compliance.py` (`with_llm_fallback`, `timed_execution`)
+- Missing `llm_fallback_enabled` import in `understanding/requirements.py`
+- D401 docstring imperative mood violations in multiple modules
+- `func.__name__` type error with `getattr()` fallback in `utils.py`
+- Removed 7 unused `# type: ignore[override]` comments across modules
 - Code formatting and linting across core modules (12 files reformatted)
 - Type hints and import organization in refactored modules
 
@@ -150,67 +176,6 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## [Unreleased]
-
-### Added
-
-- **Enhanced validation pipeline** (January 31, 2026)
-  - Structure validation (kebab-case + description trigger requirements + basic security checks)
-  - Automated test-case generation and trigger-coverage scoring
-  - Expanded validation report fields (structure + test cases + size/verbosity metrics + summary)
-- **HITL structure-fix flow** (January 31, 2026)
-  - New `structure_fix` HITL prompt fields + request models for accepting suggested fixes
-  - New API v1 skills list endpoint: `GET /api/v1/skills`
-
-- **Interactive Chat CLI with Auto-Save** (January 12, 2026)
-  - Interactive chat interface for guided skill creation via `uv run python -m skill_fleet.cli.app chat`
-  - Full Phase 1, 2, and 3 HITL (Human-in-the-Loop) support in chat CLI
-    - Phase 1: Clarification questions and confirmation dialogs (yellow/cyan panels)
-    - Phase 2: Content preview with highlights (blue panel)
-    - Phase 3: Validation reports with pass/fail indicators (green/red panels)
-  - Automatic skill persistence to taxonomy directory after completion
-  - `_save_skill_to_taxonomy()` function integrates with `TaxonomyManager.register_skill()`
-  - Skills automatically saved to disk with proper directory structure:
-    - `skills/{taxonomy_path}/SKILL.md` (with YAML frontmatter)
-    - `skills/{taxonomy_path}/metadata.json` (extended metadata)
-    - Subdirectories: examples/, capabilities/, tests/, resources/, etc.
-  - Improved error handling in CLI client
-    - Specific 404 handling for lost jobs (server restarts)
-    - Helpful error messages for connection issues
-    - Better exception display (type name, message)
-  - Server mode options:
-    - Production mode (default): Stable, no auto-reload
-    - Development mode (`--reload`): Auto-reload with warnings
-  - Display saved skill path on completion: `📁 Skill saved to: {path}`
-- **FastAPI v2 server** with auto-discovery of DSPy programs/modules and routerized endpoints for skills, taxonomy, validation, chat, and HITL polling/response. Includes CORS defaults, `/health` probe, and shared DSPy configuration at startup.
-- **Modular Typer CLI** rebuilt around `skill_fleet.cli.app` with dedicated commands for `serve`, `chat`, `create`, `validate`, `migrate`, `generate-xml`, `optimize`, `analytics`, and `onboard`, backed by a new HTTP client for HITL polling and API calls.
-- **Expanded technical skill library** adding FastAPI backend architecture, DSPy framework usage, Python async/decorators/core syntax, pytest testing, code quality analysis, Docker containerization, design patterns, and concurrency skills under `skills/technical_skills/`.
-- **Documentation updates** including refreshed README (Skill Fleet branding, setup, env vars, and CLI examples) and new implementation/review plan documents under `docs/plans/`.
-- **Restructured documentation tree** with intro/getting-started/concepts folders + new guides (`docs/intro/introduction.md`, `docs/getting-started/index.md`, `docs/concepts/concept-guide.md`, `docs/concepts/developer-reference.md`) and updated cross-links from README, AGENTS.md, CLI/API references, and skill-creation guidelines to eliminate legacy quick-start pages.
-
-### Changed
-
-- **DSPy 3.1.2 alignment + best practices** (January 31, 2026)
-  - Project now targets `dspy>=3.1.2,<4` via `uv`/lockfile
-  - Prefer `module(...)` / `await module.acall(...)` over calling `.forward(...)` directly
-  - Async-safe LM scoping in tests via `dspy.context(lm=...)`
-  - Deterministic fallback mode gated behind `SKILL_FLEET_ALLOW_LLM_FALLBACK=1` (tests/offline only)
-- API v1 schemas and endpoints updated for background-job semantics (create returns `status=pending`)
-
-- CLI help and examples now use the new `skill-fleet` Typer entrypoint (`uv run python -m skill_fleet.cli.app ...`) instead of the removed single-file CLI.
-- API bootstrapping centralizes DSPy configuration and exposes v2 endpoints, replacing the previous monolithic application wiring.
-- Dependency versions for LLM stack and TUI stack bumped in README and lockfiles to reflect current environment.
-
-### Removed
-
-- Legacy CLI entrypoints (`src/skill_fleet/cli/main.py`, `interactive_typer.py`) and the old conversational reward pipeline were removed in favor of the new API + modular CLI flow.
-- Outdated planning documents under `plans/` were retired/archived to reduce noise and align with the new workflow documentation.
-
-### Fixed
-
-- Test suite stability improvements (collection errors, DSPy async configuration gotchas)
-- Path sanitization now allows dots in safe filename components (e.g., `file.name.txt`)
 
 ---
 

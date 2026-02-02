@@ -4,12 +4,12 @@ Validation modules for skill quality assurance.
 Uses validation signatures to check compliance and assess quality.
 """
 
-import time
 from typing import Any
 
 import dspy
 
-from skill_fleet.common.llm_fallback import llm_fallback_enabled
+from skill_fleet.common.llm_fallback import with_llm_fallback
+from skill_fleet.common.utils import timed_execution
 from skill_fleet.core.modules.base import BaseModule
 from skill_fleet.core.signatures.validation.compliance import (
     AssessQuality,
@@ -29,6 +29,11 @@ class ValidateComplianceModule(BaseModule):
         super().__init__()
         self.validate = dspy.ChainOfThought(ValidateCompliance)
 
+    @with_llm_fallback(default_return=None)
+    async def _call_lm(self, skill_content: str, taxonomy_path: str) -> Any:
+        return await self.validate.acall(skill_content=skill_content, taxonomy_path=taxonomy_path)
+
+    @timed_execution()
     async def aforward(self, **kwargs: Any) -> dspy.Prediction:
         """
         Validate skill compliance.
@@ -45,16 +50,9 @@ class ValidateComplianceModule(BaseModule):
         skill_content: str = kwargs["skill_content"]
         taxonomy_path: str = kwargs["taxonomy_path"]
 
-        start_time = time.time()
-
-        try:
-            result = await self.validate.acall(
-                skill_content=skill_content, taxonomy_path=taxonomy_path
-            )
-        except Exception as e:
-            if not llm_fallback_enabled():
-                raise
-            self.logger.warning(f"Compliance validation failed: {e}. Using lightweight checks.")
+        result = await self._call_lm(skill_content, taxonomy_path)
+        if result is None:
+            self.logger.warning("Compliance validation failed. Using lightweight checks.")
             fallback = self._create_fallback_result(skill_content, taxonomy_path)
             return self._to_prediction(**fallback)
 
@@ -75,14 +73,6 @@ class ValidateComplianceModule(BaseModule):
         if not self._validate_result(output, ["passed", "compliance_score"]):
             output["passed"] = False
             output["compliance_score"] = 0.0
-
-        # Log
-        duration_ms = (time.time() - start_time) * 1000
-        self._log_execution(
-            inputs={"content_length": len(skill_content), "path": taxonomy_path},
-            outputs={"passed": output["passed"], "score": output["compliance_score"]},
-            duration_ms=duration_ms,
-        )
 
         return self._to_prediction(**output)
 
@@ -139,7 +129,14 @@ class AssessQualityModule(BaseModule):
         super().__init__()
         self.assess = dspy.ChainOfThought(AssessQuality)
 
-    async def aforward(  # type: ignore[override]
+    @with_llm_fallback(default_return=None)
+    async def _call_lm(self, skill_content: str, plan: dict, success_criteria: list) -> Any:
+        return await self.assess.acall(
+            skill_content=skill_content, plan=str(plan), success_criteria=success_criteria
+        )
+
+    @timed_execution()
+    async def aforward(
         self, skill_content: str, plan: dict, success_criteria: list[str] | None = None
     ) -> dspy.Prediction:
         """
@@ -158,30 +155,30 @@ class AssessQualityModule(BaseModule):
             dspy.Prediction with quality assessment (scores and metrics)
 
         """
-        start_time = time.time()
-
         # Rule-based size and conciseness checks (always available, even if LLM fails)
         word_count = len(skill_content.split())
         size_assessment = self._assess_size(word_count)
         verbosity_score = self._assess_verbosity(skill_content)
 
         # LLM-based quality assessment (best-effort)
-        try:
-            result = await self.assess.acall(
-                skill_content=skill_content, plan=str(plan), success_criteria=success_criteria or []
-            )
-        except Exception as e:
-            if not llm_fallback_enabled():
-                raise
-            self.logger.warning(f"Quality LLM assessment failed: {e}. Using rule-based metrics.")
-            result = None
+        result = await self._call_lm(skill_content, plan, success_criteria or [])
+        if result is None:
+            self.logger.warning("Quality LLM assessment failed. Using rule-based metrics.")
 
         output = {
-            "overall_score": float(getattr(result, "overall_score", 0.0) or 0.0),
-            "completeness": float(getattr(result, "completeness", 0.0) or 0.0),
-            "clarity": float(getattr(result, "clarity", 0.0) or 0.0),
-            "usefulness": float(getattr(result, "usefulness", 0.0) or 0.0),
-            "accuracy": float(getattr(result, "accuracy", 0.0) or 0.0),
+            "overall_score": float(getattr(result, "overall_score", 0.0) or 0.0)
+            if result is not None
+            else 0.0,
+            "completeness": float(getattr(result, "completeness", 0.0) or 0.0)
+            if result is not None
+            else 0.0,
+            "clarity": float(getattr(result, "clarity", 0.0) or 0.0) if result is not None else 0.0,
+            "usefulness": float(getattr(result, "usefulness", 0.0) or 0.0)
+            if result is not None
+            else 0.0,
+            "accuracy": float(getattr(result, "accuracy", 0.0) or 0.0)
+            if result is not None
+            else 0.0,
             "strengths": getattr(result, "strengths", []) if result is not None else [],
             "weaknesses": getattr(result, "weaknesses", []) if result is not None else [],
             "feedback": getattr(result, "feedback", "") if result is not None else "",
@@ -206,14 +203,6 @@ class AssessQualityModule(BaseModule):
         # Validate
         if not self._validate_result(output, ["overall_score"]):
             output["overall_score"] = 0.0
-
-        # Log
-        duration_ms = (time.time() - start_time) * 1000
-        self._log_execution(
-            inputs={"content_length": len(skill_content), "word_count": word_count},
-            outputs={"overall_score": output["overall_score"], "verbosity": verbosity_score},
-            duration_ms=duration_ms,
-        )
 
         return self._to_prediction(**output)
 
@@ -349,7 +338,14 @@ class RefineSkillModule(BaseModule):
         super().__init__()
         self.refine = dspy.ChainOfThought(RefineSkill)
 
-    async def aforward(  # type: ignore[override]
+    @with_llm_fallback(default_return=None)
+    async def _call_lm(self, current_content: str, weaknesses: list, target_score: float) -> Any:
+        return await self.refine.acall(
+            current_content=current_content, weaknesses=weaknesses, target_score=target_score
+        )
+
+    @timed_execution()
+    async def aforward(
         self, current_content: str, weaknesses: list[str], target_score: float = 0.8
     ) -> dspy.Prediction:
         """
@@ -364,17 +360,9 @@ class RefineSkillModule(BaseModule):
             Refined content
 
         """
-        start_time = time.time()
-
-        try:
-            result = await self.refine.acall(
-                current_content=current_content, weaknesses=weaknesses, target_score=target_score
-            )
-        except Exception as e:
-            if not llm_fallback_enabled():
-                raise
-            self.logger.warning(f"Refinement failed: {e}. Returning original content.")
-            result = None
+        result = await self._call_lm(current_content, weaknesses, target_score)
+        if result is None:
+            self.logger.warning("Refinement failed. Returning original content.")
 
         output = {
             "refined_content": getattr(result, "refined_content", None)
@@ -394,17 +382,6 @@ class RefineSkillModule(BaseModule):
         # Validate
         if not self._validate_result(output, ["refined_content"]):
             output["refined_content"] = current_content
-
-        # Log
-        duration_ms = (time.time() - start_time) * 1000
-        improvements_list = output.get("improvements_made", [])
-        if not isinstance(improvements_list, list):
-            improvements_list = []
-        self._log_execution(
-            inputs={"weaknesses_count": len(weaknesses), "target": target_score},
-            outputs={"improvements": len(improvements_list)},
-            duration_ms=duration_ms,
-        )
 
         return self._to_prediction(**output)
 

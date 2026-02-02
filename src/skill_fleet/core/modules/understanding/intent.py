@@ -5,12 +5,12 @@ Uses AnalyzeIntent signature to determine skill purpose,
 target audience, and success criteria.
 """
 
-import time
 from typing import Any
 
 import dspy
 
-from skill_fleet.common.llm_fallback import llm_fallback_enabled
+from skill_fleet.common.llm_fallback import with_llm_fallback
+from skill_fleet.common.utils import timed_execution
 from skill_fleet.core.modules.base import BaseModule
 from skill_fleet.core.signatures.understanding.intent import AnalyzeIntent
 
@@ -47,25 +47,19 @@ class AnalyzeIntentModule(BaseModule):
         super().__init__()
         self.analyze = dspy.ChainOfThought(AnalyzeIntent)
 
+    @timed_execution()
+    @with_llm_fallback(default_return=None)
     async def aforward(
         self, task_description: str, requirements: dict | None = None
-    ) -> dspy.Prediction:  # type: ignore[override]
+    ) -> dspy.Prediction:
         """Async intent analysis using DSPy `acall`."""
-        start_time = time.time()
-
         clean_task = self._sanitize_input(task_description)
         clean_requirements = self._sanitize_input(str(requirements or {}))
 
-        try:
-            result = await self.analyze.acall(
-                task_description=clean_task,
-                requirements=clean_requirements,
-            )
-        except Exception as e:
-            if not llm_fallback_enabled():
-                raise
-            self.logger.warning(f"Intent analysis failed: {e}. Using heuristic fallback.")
-            result = None
+        result = await self.analyze.acall(
+            task_description=clean_task,
+            requirements=clean_requirements,
+        )
 
         output = (
             {
@@ -101,16 +95,6 @@ class AnalyzeIntentModule(BaseModule):
             output.setdefault("problem_statement", "Need to " + clean_task[:50])
             output.setdefault("target_audience", "Developers")
             output.setdefault("skill_type", "how_to")
-
-        purpose = str(output.get("purpose", ""))
-        skill_type = str(output.get("skill_type", ""))
-
-        duration_ms = (time.time() - start_time) * 1000
-        self._log_execution(
-            inputs={"task_description": clean_task[:100]},
-            outputs={"skill_type": skill_type, "purpose": purpose[:50]},
-            duration_ms=duration_ms,
-        )
 
         return self._to_prediction(**output)
 

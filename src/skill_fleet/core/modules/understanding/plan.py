@@ -5,11 +5,10 @@ Uses ReAct (Reasoning + Acting) to synthesize a complete skill plan
 by iteratively refining and validating the plan components.
 """
 
-import time
-
 import dspy
 
-from skill_fleet.common.llm_fallback import llm_fallback_enabled
+from skill_fleet.common.llm_fallback import with_llm_fallback
+from skill_fleet.common.utils import timed_execution
 from skill_fleet.core.modules.base import BaseModule
 from skill_fleet.core.signatures.understanding.plan import SynthesizePlan
 
@@ -59,7 +58,9 @@ class SynthesizePlanModule(BaseModule):
             return f"Warning: {len(topics)} topics may be too many, consider prioritizing"
         return f"OK: {len(topics)} topics defined"
 
-    async def aforward(  # type: ignore[override]
+    @timed_execution()
+    @with_llm_fallback(default_return=None)
+    async def aforward(
         self,
         requirements: dict,
         intent_analysis: dict,
@@ -84,23 +85,15 @@ class SynthesizePlanModule(BaseModule):
             - success_criteria, estimated_length, tags, rationale
 
         """
-        start_time = time.time()
-
         # Use ReAct for iterative synthesis (best-effort). Some test LMs only implement
         # sync calling; fall back to heuristics if async LM calls fail.
-        try:
-            result = await self.synthesize.acall(
-                requirements=str(requirements),
-                intent_analysis=str(intent_analysis),
-                taxonomy_analysis=str(taxonomy_analysis),
-                dependency_analysis=str(dependency_analysis),
-                user_confirmation=user_confirmation,
-            )
-        except Exception as e:
-            if not llm_fallback_enabled():
-                raise
-            self.logger.warning(f"Plan synthesis failed: {e}. Using heuristic fallback.")
-            result = None
+        result = await self.synthesize.acall(
+            requirements=str(requirements),
+            intent_analysis=str(intent_analysis),
+            taxonomy_analysis=str(taxonomy_analysis),
+            dependency_analysis=str(dependency_analysis),
+            user_confirmation=user_confirmation,
+        )
 
         # Transform to structured output
         if result is None:
@@ -163,17 +156,6 @@ class SynthesizePlanModule(BaseModule):
             )
             output.setdefault("taxonomy_path", "general/unnamed-skill")
             output.setdefault("content_outline", ["Introduction", "Main Content", "Conclusion"])
-
-        # Log execution
-        duration_ms = (time.time() - start_time) * 1000
-        self._log_execution(
-            inputs={"requirements": str(requirements)[:100], "taxonomy": output["taxonomy_path"]},
-            outputs={
-                "skill_name": output["skill_name"],
-                "outline_length": len(output["content_outline"]),
-            },
-            duration_ms=duration_ms,
-        )
 
         return self._to_prediction(**output)
 

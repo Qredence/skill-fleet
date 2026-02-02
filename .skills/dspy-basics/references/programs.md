@@ -236,7 +236,7 @@ class CustomReasoner(dspy.Module):
 
     def forward(self, input_data: str):
         # Configure LM parameters via context or LM configuration
-        with dspy.context(lm=dspy.LM("openai/gpt-4o", temperature=0.7)):
+        with dspy.context(lm=dspy.LM("gemini/gemini-3-flash-preview", temperature=0.7)):
             return self.reason(input=input_data)
 ```
 

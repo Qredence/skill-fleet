@@ -113,10 +113,14 @@ async def stream_prediction(
                     "data": {"content": str(value)},
                 }
     except Exception as e:
-        logger.error(f"Streaming error: {e}")
+        # Log full error details on the server, including stack trace,
+        # but do not expose them to the client.
+        logger.error("Streaming error", exc_info=True)
         yield {
             "type": "error",
-            "data": {"message": str(e)},
+            "data": {
+                "message": "An internal error occurred during streaming."
+            },
         }
 
 

@@ -62,11 +62,10 @@ class BestOfNValidator(BaseModule):
         self.validator = dspy.ChainOfThought(ValidateCompliance)
         self.reward_fn = ValidationReward()
 
-    async def aforward(  # type: ignore[override]
+    async def aforward(
         self,
-        skill_content: str,
-        taxonomy_path: str,
-        use_reward_consensus: bool = True,
+        *args: Any,
+        **kwargs: Any,
     ) -> dspy.Prediction:
         """
         Validate with multiple attempts and select best result.
@@ -87,6 +86,28 @@ class BestOfNValidator(BaseModule):
             - confidence: Confidence in result (based on reward score)
             - all_results: All validation results for inspection
 
+        # Support both keyword and positional calling conventions to remain
+        # compatible with BaseModule.aforward while preserving existing usage.
+        if "skill_content" in kwargs:
+            skill_content = cast(str, kwargs["skill_content"])
+        elif len(args) >= 1:
+            skill_content = cast(str, args[0])
+        else:
+            raise TypeError("aforward() missing required argument: 'skill_content'")
+
+        if "taxonomy_path" in kwargs:
+            taxonomy_path = cast(str, kwargs["taxonomy_path"])
+        elif len(args) >= 2:
+            taxonomy_path = cast(str, args[1])
+        else:
+            raise TypeError("aforward() missing required argument: 'taxonomy_path'")
+
+        if "use_reward_consensus" in kwargs:
+            use_reward_consensus = bool(kwargs["use_reward_consensus"])
+        elif len(args) >= 3:
+            use_reward_consensus = bool(args[2])
+        else:
+            use_reward_consensus = True
         """
         start_time = time.time()
 

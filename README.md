@@ -163,12 +163,14 @@ Create `.env` file (copy from `.env.example`):
 |----------|----------|-------------|
 | `GOOGLE_API_KEY` | Yes* | Gemini API key (or use LiteLLM) |
 | `LITELLM_API_KEY` | Yes* | LiteLLM proxy API key |
-| `LITELLM_BASE_URL` | With LiteLLM | LiteLLM proxy endpoint |
+| `LITELLM_BASE_URL` | With LiteLLM | LiteLLM proxy root (e.g. `http://localhost:4000`) |
 | `DATABASE_URL` | Production | PostgreSQL connection string |
 | `SKILL_FLEET_ENV` | No | `development` (default) or `production` |
 | `SKILL_FLEET_CORS_ORIGINS` | Production | Comma-separated allowed origins |
 
 \* Choose either Google API key OR LiteLLM credentials.
+
+Note: `LITELLM_BASE_URL` must point to the LiteLLM proxy root (or optional `/v1`). Provider endpoints like `.../generateContent` are invalid and will error.
 
 ### Development vs Production
 

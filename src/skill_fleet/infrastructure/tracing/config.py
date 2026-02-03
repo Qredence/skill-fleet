@@ -132,11 +132,28 @@ class ConfigModelLoader:
             model_config = model_config.copy()
             model_config["parameters"] = {**base_params, **task_params}
 
+        from ...common.env_utils import resolve_api_credentials
+
+        requested_env = model_config.get("env")
+        creds = resolve_api_credentials(prefer_litellm=True, requested_env=requested_env)
+        if not creds.get("api_key"):
+            fallback_env = model_config.get("env_fallback")
+            if fallback_env and fallback_env != requested_env:
+                creds = resolve_api_credentials(prefer_litellm=False, requested_env=fallback_env)
+
+        model_params = dict(model_config.get("parameters", {}))
+        api_key = creds.get("api_key")
+        if api_key:
+            model_params["api_key"] = api_key
+        base_url = creds.get("base_url")
+        if base_url:
+            model_params["api_base"] = base_url
+            model_params.setdefault("custom_llm_provider", "litellm_proxy")
+
         # Create DSPy LM from model config
         return dspy.LM(
             model=model_config.get("model", model_ref),
-            api_key=self._get_api_key(model_config),
-            **model_config.get("parameters", {}),
+            **model_params,
         )
 
     def _resolve_model_ref(self, model_ref: str, role: str | None = None) -> dict:

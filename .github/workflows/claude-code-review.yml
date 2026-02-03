@@ -3,11 +3,12 @@ name: Claude Code Review
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review, reopened]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.py"
-    #   - "tests/**/*.py"
-    #   - "skills/**/*.py"
+    # Only run when reviewing actual Python changes.
+    paths:
+      - "src/**/*.py"
+      - "tests/**/*.py"
+      - "scripts/**/*.py"
+      - "pyproject.toml"
 
 jobs:
   claude-review:

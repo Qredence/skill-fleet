@@ -18,6 +18,8 @@ uv sync --group dev
 
 # API server (development)
 uv run skill-fleet dev
+#
+# Note: `skill-fleet dev` forces `SKILL_FLEET_ENV=development` to avoid production DB requirements.
 
 # create skill (non-interactive)
 uv run skill-fleet create "Create a Python decorators skill" --auto-approve

@@ -96,6 +96,15 @@ def dev_command(
     console.print(f"[dim]Reload: {'enabled' if reload else 'disabled'}[/dim]")
 
     api_env = os.environ.copy()
+    env_mode = api_env.get("SKILL_FLEET_ENV")
+    if env_mode not in {"development", "dev"}:
+        api_env["SKILL_FLEET_ENV"] = "development"
+        if env_mode:
+            console.print(
+                f"[bold yellow]⚠️  Overriding SKILL_FLEET_ENV={env_mode} → development for dev server[/bold yellow]"
+            )
+        else:
+            console.print("[dim]SKILL_FLEET_ENV=development[/dim]")
 
     api_cmd = [
         sys.executable,

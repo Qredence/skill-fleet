@@ -10,7 +10,7 @@ from typing import Optional
 from uuid import UUID
 
 from sqlalchemy import (
-    ARRAY,
+    JSON,
     Boolean,
     CheckConstraint,
     DateTime,
@@ -18,15 +18,57 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    LargeBinary,
     String,
     Text,
     text,
 )
+from sqlalchemy.dialects.postgresql import ARRAY as PG_ARRAY
 from sqlalchemy.dialects.postgresql import BYTEA, JSONB
 from sqlalchemy.orm import Mapped, declarative_base, mapped_column, relationship
 from sqlalchemy.sql import func
+from sqlalchemy.types import TypeDecorator
 
 Base = declarative_base()
+
+
+class JSONType(TypeDecorator):
+    """JSON column that maps to JSONB on Postgres and JSON elsewhere."""
+
+    impl = JSON
+    cache_ok = True
+
+    def load_dialect_impl(self, dialect):
+        """Return dialect-specific JSON column implementation."""
+        if dialect.name == "postgresql":
+            return dialect.type_descriptor(JSONB)
+        return dialect.type_descriptor(JSON)
+
+
+class StringArrayType(TypeDecorator):
+    """List-of-string column that maps to ARRAY(String) on Postgres and JSON elsewhere."""
+
+    impl = JSON
+    cache_ok = True
+
+    def load_dialect_impl(self, dialect):
+        """Return dialect-specific list-of-strings column implementation."""
+        if dialect.name == "postgresql":
+            return dialect.type_descriptor(PG_ARRAY(String))
+        return dialect.type_descriptor(JSON)
+
+
+class BinaryType(TypeDecorator):
+    """Binary column that maps to BYTEA on Postgres and LargeBinary elsewhere."""
+
+    impl = LargeBinary
+    cache_ok = True
+
+    def load_dialect_impl(self, dialect):
+        """Return dialect-specific binary column implementation."""
+        if dialect.name == "postgresql":
+            return dialect.type_descriptor(BYTEA)
+        return dialect.type_descriptor(LargeBinary)
 
 
 # =============================================================================
@@ -279,7 +321,7 @@ class Skill(Base):
 
     # Performance metadata
     performance_stats: Mapped[dict] = mapped_column(
-        JSONB, nullable=False, server_default=text("'{}'::jsonb")
+        JSONType(), nullable=False, server_default=text("'{}'")
     )
 
     # Relationships
@@ -513,7 +555,7 @@ class FacetDefinition(Base):
     __tablename__ = "facet_definitions"
 
     facet_key: Mapped[str] = mapped_column(String(64), primary_key=True)
-    allowed_values: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
+    allowed_values: Mapped[list[str] | None] = mapped_column(StringArrayType(), nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
@@ -606,7 +648,7 @@ class DependencyClosure(Base):
         Integer, ForeignKey("skills.skill_id"), primary_key=True
     )
     min_depth: Mapped[int] = mapped_column(Integer, nullable=False, primary_key=True)
-    dependency_types: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False)
+    dependency_types: Mapped[list[str]] = mapped_column(StringArrayType(), nullable=False)
 
     __table_args__ = (
         Index("idx_dependency_closure_ancestor", "ancestor_id"),
@@ -731,7 +773,7 @@ class SkillFile(Base):
     relative_path: Mapped[str] = mapped_column(String(512), nullable=False)
     filename: Mapped[str] = mapped_column(String(256), nullable=False)
     content: Mapped[str | None] = mapped_column(Text, nullable=True)
-    binary_data: Mapped[bytes | None] = mapped_column(BYTEA, nullable=True)
+    binary_data: Mapped[bytes | None] = mapped_column(BinaryType(), nullable=True)
     file_size_bytes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     checksum: Mapped[str | None] = mapped_column(String(64), nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -806,13 +848,13 @@ class Job(Base):
     )
     job_type: Mapped[str] = mapped_column(String(64), nullable=False, default="skill_creation")
     user_id: Mapped[str] = mapped_column(String(128), nullable=False, default="default")
-    user_context: Mapped[dict] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
+    user_context: Mapped[dict] = mapped_column(JSONType(), server_default=text("'{}'"))
     task_description: Mapped[str] = mapped_column(Text, nullable=False)
     task_description_refined: Mapped[str | None] = mapped_column(Text, nullable=True)
     current_phase: Mapped[str | None] = mapped_column(String(64), nullable=True)
     progress_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     progress_percent: Mapped[int] = mapped_column(Integer, default=0)
-    result: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    result: Mapped[dict | None] = mapped_column(JSONType(), nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     error_stack: Mapped[str | None] = mapped_column(Text, nullable=True)
     intended_taxonomy_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
@@ -839,11 +881,11 @@ class Job(Base):
     )
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    job_metadata: Mapped[dict] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
+    job_metadata: Mapped[dict] = mapped_column(JSONType(), server_default=text("'{}'"))
 
     # HITL fields
     hitl_type: Mapped[str | None] = mapped_column(String(32), nullable=True)
-    hitl_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    hitl_data: Mapped[dict | None] = mapped_column(JSONType(), nullable=True)
 
     # Relationships
     hitl_interactions: Mapped[list["HITLInteraction"]] = relationship(
@@ -885,15 +927,15 @@ class HITLInteraction(Base):
         nullable=False,
     )
     round_number: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
-    prompt_data: Mapped[dict] = mapped_column(JSONB, nullable=False)
-    response_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    prompt_data: Mapped[dict] = mapped_column(JSONType(), nullable=False)
+    response_data: Mapped[dict | None] = mapped_column(JSONType(), nullable=True)
     responded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     timeout_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    hitl_metadata: Mapped[dict] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
+    hitl_metadata: Mapped[dict] = mapped_column(JSONType(), server_default=text("'{}'"))
 
     # Relationships
     job: Mapped["Job"] = relationship("Job", back_populates="hitl_interactions")
@@ -915,12 +957,12 @@ class DeepUnderstandingState(Base):
     job_id: Mapped[UUID] = mapped_column(
         ForeignKey("jobs.job_id", ondelete="CASCADE"), unique=True, nullable=False
     )
-    questions_asked: Mapped[list] = mapped_column(JSONB, server_default=text("'[]'::jsonb"))
-    answers: Mapped[list] = mapped_column(JSONB, server_default=text("'[]'::jsonb"))
-    research_performed: Mapped[list] = mapped_column(JSONB, server_default=text("'[]'::jsonb"))
+    questions_asked: Mapped[list] = mapped_column(JSONType(), server_default=text("'[]'"))
+    answers: Mapped[list] = mapped_column(JSONType(), server_default=text("'[]'"))
+    research_performed: Mapped[list] = mapped_column(JSONType(), server_default=text("'[]'"))
     understanding_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     user_problem: Mapped[str | None] = mapped_column(Text, nullable=True)
-    user_goals: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
+    user_goals: Mapped[list[str] | None] = mapped_column(StringArrayType(), nullable=True)
     readiness_score: Mapped[float] = mapped_column(default=0.0, nullable=False)
     complete: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(
@@ -944,9 +986,9 @@ class TDDWorkflowState(Base):
     baseline_tests_run: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     compliance_tests_run: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     rationalizations_identified: Mapped[list[str] | None] = mapped_column(
-        ARRAY(String), nullable=True
+        StringArrayType(), nullable=True
     )
-    checklist_state: Mapped[dict] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
+    checklist_state: Mapped[dict] = mapped_column(JSONType(), server_default=text("'{}'"))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
@@ -984,9 +1026,9 @@ class ValidationReport(Base):
     )
     passed: Mapped[bool] = mapped_column(Boolean, nullable=False)
     score: Mapped[float] = mapped_column(Integer, nullable=False)
-    errors: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
-    warnings: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
-    checks_performed: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
+    errors: Mapped[list[str] | None] = mapped_column(StringArrayType(), nullable=True)
+    warnings: Mapped[list[str] | None] = mapped_column(StringArrayType(), nullable=True)
+    checks_performed: Mapped[list[str] | None] = mapped_column(StringArrayType(), nullable=True)
     quality_score: Mapped[float | None] = mapped_column(Integer, nullable=True)
     completeness_score: Mapped[float | None] = mapped_column(Integer, nullable=True)
     compliance_score: Mapped[float | None] = mapped_column(Integer, nullable=True)
@@ -1096,7 +1138,7 @@ class UsageEvent(Base):
     duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     error_type: Mapped[str | None] = mapped_column(String(64), nullable=True)
     session_id: Mapped[UUID | None] = mapped_column(nullable=True)
-    event_metadata: Mapped[dict] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
+    event_metadata: Mapped[dict] = mapped_column(JSONType(), server_default=text("'{}'"))
     occurred_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
@@ -1124,12 +1166,12 @@ class OptimizationJob(Base):
     max_bootstrapped_demos: Mapped[int] = mapped_column(Integer, nullable=False, default=4)
     max_labeled_demos: Mapped[int] = mapped_column(Integer, nullable=False, default=4)
     trainset_file: Mapped[str | None] = mapped_column(Text, nullable=True)
-    training_skills: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
+    training_skills: Mapped[list[str] | None] = mapped_column(StringArrayType(), nullable=True)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending")
     result_score: Mapped[float | None] = mapped_column(Integer, nullable=True)
     optimized_program_path: Mapped[str | None] = mapped_column(Text, nullable=True)
     training_time_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    validation_metrics: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    validation_metrics: Mapped[dict | None] = mapped_column(JSONType(), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
@@ -1195,37 +1237,37 @@ class ConversationSession(Base):
 
     # Multi-skill support
     multi_skill_queue: Mapped[list[str] | None] = mapped_column(
-        ARRAY(String), server_default=text("'{}'"), nullable=True
+        StringArrayType(), default=list, nullable=True
     )
     current_skill_index: Mapped[int] = mapped_column(Integer, default=0)
 
     # Conversation data (JSONB for flexibility)
-    messages: Mapped[list] = mapped_column(JSONB, server_default=text("'[]'::jsonb"))
-    collected_examples: Mapped[list] = mapped_column(JSONB, server_default=text("'[]'::jsonb"))
+    messages: Mapped[list] = mapped_column(JSONType(), server_default=text("'[]'"))
+    collected_examples: Mapped[list] = mapped_column(JSONType(), server_default=text("'[]'"))
 
     # Draft data
-    skill_draft: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
-    skill_metadata_draft: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    skill_draft: Mapped[dict | None] = mapped_column(JSONType(), nullable=True)
+    skill_metadata_draft: Mapped[dict | None] = mapped_column(JSONType(), nullable=True)
 
     # TDD workflow
-    checklist_state: Mapped[dict] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
+    checklist_state: Mapped[dict] = mapped_column(JSONType(), server_default=text("'{}'"))
 
     # Pending confirmations
-    pending_confirmation: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    pending_confirmation: Mapped[dict | None] = mapped_column(JSONType(), nullable=True)
 
     # Deep understanding phase
-    deep_understanding: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    deep_understanding: Mapped[dict | None] = mapped_column(JSONType(), nullable=True)
     current_understanding: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # User problem/goals
     user_problem: Mapped[str | None] = mapped_column(Text, nullable=True)
-    user_goals: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
+    user_goals: Mapped[list[str] | None] = mapped_column(StringArrayType(), nullable=True)
 
     # Research context
-    research_context: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    research_context: Mapped[dict | None] = mapped_column(JSONType(), nullable=True)
 
     # Session metadata
-    session_metadata: Mapped[dict] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
+    session_metadata: Mapped[dict] = mapped_column(JSONType(), server_default=text("'{}'"))
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(

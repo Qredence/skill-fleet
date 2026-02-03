@@ -57,6 +57,7 @@ class TestHITLWorkflows:
             mock_instance.get_mounted_skills.return_value = []
             yield mock_instance
 
+    @pytest.mark.filterwarnings("error:coroutine .* was never awaited:RuntimeWarning")
     async def test_multi_question_clarification(
         self, mock_job_manager, mock_workflows, mock_taxonomy_manager
     ):
@@ -142,24 +143,10 @@ class TestHITLWorkflows:
         assert resume_result.skill_content == "# Web Dev Skill"
 
         # Verify job state updated
-        job = mock_job_manager.get_job(result.job_id)
-        # Note: resume_skill_creation calls create_skill which updates job at end
-        # Since we mocked workflows, the actual job status update logic in create_skill runs
-        # create_skill doesn't explicitly set "completed" on the job object in memory
-        # unless it calls job_manager.update_job for completion, which it doesn't seem to do
-        # in the success path (it returns result).
-        # Wait, SkillService.create_skill doesn't seem to update job status to "completed" at the end!
-        # It just returns the result. This might be a bug or intended for the caller to handle.
-        # Looking at create_skill code: it updates for HITL and failures, but success path just returns result.
-        # The caller (API route) might not update it either?
-        # Actually, create_skill docstring says "Returns: SkillCreationResult".
-        # Let's check api/v1/skills.py.
-        # It calls create_skill in background_tasks.
-        # It logs success/failure.
-
-        # If create_skill doesn't update job status to completed, the job stays in "running".
-        # This seems like a potential issue identified by this test!
-        # But for this test, we verify the returned result is completed.
+        job = await mock_job_manager.get_job(result.job_id)
+        assert job is not None
+        assert job.status == "completed"
+        # resume_skill_creation updates the job to a terminal status after running create_skill.
 
     async def test_skill_preview_approval(self, mock_job_manager, mock_workflows):
         """Test Scenario B: Preview approval flow."""

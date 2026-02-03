@@ -1,7 +1,7 @@
 # CLI Commands Reference
 
-**Last Updated**: 2026-01-31
-**Version**: skill-fleet 0.5.0
+**Last Updated**: 2026-02-03
+**Version**: skill-fleet 0.3.6
 
 ## Overview
 

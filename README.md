@@ -321,8 +321,8 @@ Apache License 2.0. See [`LICENSE`](LICENSE) for details.
 
 ---
 
-**Version**: 0.3.5
+**Version**: 0.3.6
 **Status**: Alpha
-**Last Updated**: 2026-02-02
+**Last Updated**: 2026-02-03
 
 Built with ❤️ by the Qredence team

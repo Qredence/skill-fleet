@@ -51,3 +51,6 @@ class FindTaxonomyPath(dspy.Signature):
         desc="Confidence 0.0-1.0 in path selection. >0.8 = high confidence (proceed), "
         "0.6-0.8 = moderate (acceptable), <0.6 = low (request user confirmation before proceeding)"
     )
+    reasoning: dspy.Reasoning = dspy.OutputField(
+        desc="Reasoning process for taxonomy path selection"
+    )

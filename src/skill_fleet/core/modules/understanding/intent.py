@@ -5,11 +5,10 @@ Uses AnalyzeIntent signature to determine skill purpose,
 target audience, and success criteria.
 """
 
-import time
-from typing import Any
-
 import dspy
 
+from skill_fleet.common.llm_fallback import with_llm_fallback
+from skill_fleet.common.utils import timed_execution
 from skill_fleet.core.modules.base import BaseModule
 from skill_fleet.core.signatures.understanding.intent import AnalyzeIntent
 
@@ -31,15 +30,14 @@ class AnalyzeIntentModule(BaseModule):
             task_description="Build a React component library",
             requirements={"domain": "technical", "topics": ["react", "components"]}
         )
-        # Returns: {
-        #   "purpose": "Help developers build consistent UIs",
-        #   "problem_statement": "Managing UI consistency across apps",
-        #   "target_audience": "Frontend developers",
-        #   "value_proposition": "Pre-built, tested components",
-        #   "skill_type": "how_to",
-        #   "scope": "Component creation and management",
-        #   "success_criteria": ["User can create components", ...]
-        # }
+        # Returns: dspy.Prediction with:
+        #   purpose="Help developers build consistent UIs",
+        #   problem_statement="Managing UI consistency across apps",
+        #   target_audience="Frontend developers",
+        #   value_proposition="Pre-built, tested components",
+        #   skill_type="how_to",
+        #   scope="Component creation and management",
+        #   success_criteria=["User can create components", ...]
 
     """
 
@@ -47,67 +45,47 @@ class AnalyzeIntentModule(BaseModule):
         super().__init__()
         self.analyze = dspy.ChainOfThought(AnalyzeIntent)
 
-    def forward(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
-        """
-        Analyze intent from task description.
-
-        Args:
-            task_description: User's task description
-            requirements: Optional requirements from GatherRequirementsModule
-
-        Returns:
-            Dictionary with intent analysis:
-            - purpose: Why this skill exists
-            - problem_statement: Specific problem addressed
-            - target_audience: Who needs this skill
-            - value_proposition: Unique value provided
-            - skill_type: Type of skill (how_to, reference, etc.)
-            - scope: What's included/excluded
-            - success_criteria: Measurable success criteria
-
-        """
-        # Support both keyword and positional arguments to remain compatible
-        # with BaseModule.forward while preserving existing behavior.
-        if "task_description" in kwargs:
-            task_description = kwargs["task_description"]
-        elif args:
-            task_description = args[0]
-        else:
-            raise TypeError("forward() missing required argument: 'task_description'")
-
-        if "requirements" in kwargs:
-            requirements = kwargs["requirements"]
-        elif len(args) > 1:
-            requirements = args[1]
-        else:
-            requirements = None
-
-        start_time = time.time()
-
-        # Sanitize inputs
+    @timed_execution()
+    @with_llm_fallback(default_return=None)
+    async def aforward(
+        self, task_description: str, requirements: dict | None = None
+    ) -> dspy.Prediction:
+        """Async intent analysis using DSPy `acall`."""
         clean_task = self._sanitize_input(task_description)
         clean_requirements = self._sanitize_input(str(requirements or {}))
 
-        # Execute signature
-        result = self.analyze(
+        result = await self.analyze.acall(
             task_description=clean_task,
             requirements=clean_requirements,
         )
 
-        # Transform to structured output
-        output = {
-            "purpose": result.purpose,
-            "problem_statement": result.problem_statement,
-            "target_audience": result.target_audience,
-            "value_proposition": result.value_proposition,
-            "skill_type": result.skill_type,
-            "scope": result.scope,
-            "success_criteria": result.success_criteria
-            if isinstance(result.success_criteria, list)
-            else [],
-        }
+        output = (
+            {
+                "purpose": result.purpose,
+                "problem_statement": result.problem_statement,
+                "target_audience": result.target_audience,
+                "value_proposition": result.value_proposition,
+                "skill_type": result.skill_type,
+                "scope": result.scope,
+                "success_criteria": result.success_criteria
+                if isinstance(result.success_criteria, list)
+                else [],
+            }
+            if result is not None
+            else {
+                "purpose": f"Help with: {clean_task[:80]}",
+                "problem_statement": f"User needs guidance on: {clean_task[:80]}",
+                "target_audience": "Developers",
+                "value_proposition": "Provides a clear, actionable workflow.",
+                "skill_type": "how_to",
+                "scope": "Focuses on practical steps and best practices.",
+                "success_criteria": ["User can complete the task"],
+                "fallback": True,
+            }
+        )
+        if result is not None and hasattr(result, "reasoning"):
+            output.setdefault("reasoning", str(result.reasoning))
 
-        # Validate
         required = ["purpose", "problem_statement", "target_audience", "skill_type"]
         if not self._validate_result(output, required):
             self.logger.warning("Result missing required fields, using defaults")
@@ -116,12 +94,4 @@ class AnalyzeIntentModule(BaseModule):
             output.setdefault("target_audience", "Developers")
             output.setdefault("skill_type", "how_to")
 
-        # Log execution
-        duration_ms = (time.time() - start_time) * 1000
-        self._log_execution(
-            inputs={"task_description": clean_task[:100]},
-            outputs={"skill_type": output["skill_type"], "purpose": output["purpose"][:50]},
-            duration_ms=duration_ms,
-        )
-
-        return output
+        return self._to_prediction(**output)

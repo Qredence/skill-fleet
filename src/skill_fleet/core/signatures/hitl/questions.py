@@ -54,3 +54,4 @@ class GenerateClarifyingQuestions(dspy.Signature):
     rationale: str = dspy.OutputField(
         desc="Overall rationale for why these specific questions are being asked"
     )
+    reasoning: dspy.Reasoning = dspy.OutputField(desc="Reasoning process for question generation")

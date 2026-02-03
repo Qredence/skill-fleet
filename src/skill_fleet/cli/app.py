@@ -24,6 +24,7 @@ from .commands.promote import promote_command
 from .commands.serve import serve_command
 from .commands.terminal import terminal_command
 from .commands.validate import validate_command
+from .utils.security import sanitize_user_id, validate_api_url
 
 # Initialize Typer app
 app = typer.Typer(
@@ -102,8 +103,16 @@ def main_callback(
       SKILL_FLEET_API_URL: Default API server URL
       SKILL_FLEET_USER_ID: Default user ID
     """
+    # Validate and sanitize inputs
+    try:
+        validated_api_url = validate_api_url(api_url)
+        sanitized_user_id = sanitize_user_id(user_id)
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}", style="bold red")
+        raise typer.Exit(1) from e
+
     # Store config object in Click context
-    ctx.obj = CLIConfig(api_url=api_url, user_id=user_id)
+    ctx.obj = CLIConfig(api_url=validated_api_url, user_id=sanitized_user_id)
 
 
 # Register commands from separate files

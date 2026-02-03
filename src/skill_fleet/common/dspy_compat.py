@@ -1,8 +1,23 @@
-"""DSPy backward compatibility utilities."""
+"""
+DSPy backward compatibility utilities.
 
+.. deprecated:: 2026.02
+    This module provides compatibility for older DSPy versions.
+    Will be removed in 2026.04 when minimum DSPy version is 3.2+.
+"""
+
+import warnings
 from typing import Any
 
 import dspy
+
+# Emit deprecation warning on import
+warnings.warn(
+    "skill_fleet.common.dspy_compat is deprecated and will be removed in 2026.04. "
+    "Update to DSPy 3.2+ which has native Reasoning support.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 if hasattr(dspy, "Reasoning"):
     Reasoning = dspy.Reasoning

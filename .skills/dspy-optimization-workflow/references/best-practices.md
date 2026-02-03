@@ -106,19 +106,19 @@ trainset = real_examples + synthetic_examples
 def validate_trainset(trainset: list[dict]) -> bool:
     """Validate trainset structure."""
     required_fields = ["task_description"]
-    
+
     for i, example in enumerate(trainset):
         # Check required fields
         missing = [f for f in required_fields if f not in example]
         if missing:
             print(f"Example {i}: Missing fields {missing}")
             return False
-        
+
         # Check field types
         if not isinstance(example["task_description"], str):
             print(f"Example {i}: task_description must be string")
             return False
-    
+
     return True
 ```
 
@@ -255,13 +255,13 @@ def validate_skill_output(result):
     """Validate skill generation output."""
     if not hasattr(result, "skill_content"):
         raise ValueError("Missing skill_content field")
-    
+
     if len(result.skill_content) < 100:
         raise ValueError("Skill content too short")
-    
+
     if "# " not in result.skill_content:
         raise ValueError("Skill missing header")
-    
+
     return True
 
 validated = ValidatedModule(
@@ -402,11 +402,11 @@ for variant, metrics in stats.items():
 
 ## Common Pitfalls to Avoid
 
-❌ **Don't optimize on <50 examples** - Leads to overfitting  
-❌ **Don't skip baseline evaluation** - You need a comparison point  
-❌ **Don't use auto="heavy" by default** - Usually not worth the cost  
-❌ **Don't ignore type errors** - They cause runtime failures  
-❌ **Don't skip monitoring** - You're flying blind without it  
-❌ **Don't cache non-deterministic operations** - Defeats the purpose  
-❌ **Don't deploy without version management** - Makes rollback impossible  
+❌ **Don't optimize on <50 examples** - Leads to overfitting
+❌ **Don't skip baseline evaluation** - You need a comparison point
+❌ **Don't use auto="heavy" by default** - Usually not worth the cost
+❌ **Don't ignore type errors** - They cause runtime failures
+❌ **Don't skip monitoring** - You're flying blind without it
+❌ **Don't cache non-deterministic operations** - Defeats the purpose
+❌ **Don't deploy without version management** - Makes rollback impossible
 ❌ **Don't forget train/test split** - Evaluation will be biased

@@ -72,6 +72,8 @@ compiled = teleprompter.compile(
 - `metric`: Evaluation metric function
 - `max_errors`: Maximum number of errors to tolerate
 
+**Reference**: [DSPy Optimizers Guide](https://github.com/stanfordnlp/dspy/blob/main/docs/docs/learn/optimization/optimizers.md)
+
 ## KNNFewShot
 
 Uses k-nearest neighbors to select relevant examples.
@@ -169,6 +171,8 @@ teleprompter = MIPROv2(
 - `prompt_model`: LM for prompt generation (fast model)
 - `max_bootstrapped_demos`: Maximum bootstrapped demonstrations
 - `max_labeled_demos`: Maximum labeled demonstrations
+
+**References**: [DSPy MIPROv2 Tutorial](https://github.com/stanfordnlp/dspy/blob/main/docs/docs/tutorials/math/index.ipynb) | [LLMS.txt](https://context7.com/stanfordnlp/dspy/llms.txt) | [Games Tutorial](https://github.com/stanfordnlp/dspy/blob/main/docs/docs/tutorials/games/index.ipynb)
 
 ## GEPA
 
@@ -284,18 +288,23 @@ def semantic_metric(example, pred, trace=None):
 
 ### 3. Monitor Token Usage
 
+DSPy can track per-call LM usage. Enable tracking once, then read usage off the returned `Prediction`.
+
 ```python
 import dspy
 
-# Enable token tracking
-dspy.settings.configure(
-    lm=dspy.OpenAI(model="gpt-4"),
-    trace=[]
+# Enable usage tracking (DSPy >= 2.6.16; included in 3.1.2+)
+dspy.configure(
+    lm=dspy.LM("openai/gpt-4"),
+    track_usage=True,
 )
 
-# After optimization
-total_tokens = sum(len(trace) for trace in dspy.settings.trace)
-print(f"Total tokens used: {total_tokens}")
+program = MyProgram()
+prediction = program(question="Test")
+
+# Usage is a dict keyed by model name
+usage = prediction.get_lm_usage()
+print(usage)
 ```
 
 ### 4. Save and Reuse Compiled Programs

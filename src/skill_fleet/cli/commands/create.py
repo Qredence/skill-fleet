@@ -3,15 +3,14 @@
 from __future__ import annotations
 
 import asyncio
-from pathlib import Path
 
 import httpx
 import typer
 from rich.console import Console
-from rich.panel import Panel
 from rich.text import Text
 
 from ..hitl.runner import run_hitl_job
+from ..ui.completion import display_completion_result, display_connection_error
 
 console = Console()
 
@@ -30,9 +29,7 @@ def create_command(
             try:
                 result = await config.client.create_skill(task, config.user_id)
             except Exception as conn_err:
-                console.print(f"[red]Could not connect to API server at {config.api_url}[/red]")
-                console.print("[yellow]Make sure the server is running:[/yellow]")
-                console.print("  uv run skill-fleet serve")
+                display_connection_error(console, config.api_url)
                 raise conn_err
 
             job_id = result.get("job_id")
@@ -46,58 +43,9 @@ def create_command(
                 auto_approve=auto_approve,
             )
 
-            status = prompt_data.get("status")
-            if status == "completed":
-                validation_passed = prompt_data.get("validation_passed")
-                if validation_passed is False:
-                    console.print(
-                        "\n[bold yellow]✨ Skill Creation Completed (validation failed)[/bold yellow]"
-                    )
-                else:
-                    console.print("\n[bold green]✨ Skill Creation Completed![/bold green]")
-
-                intended = prompt_data.get("intended_taxonomy_path") or prompt_data.get("path")
-                if intended:
-                    console.print(f"[dim]Intended path:[/dim] {intended}")
-
-                final_path = prompt_data.get("final_path") or prompt_data.get("saved_path")
-                draft_path = prompt_data.get("draft_path")
-                if final_path:
-                    console.print(f"[bold cyan]📁 Skill saved to:[/bold cyan] {final_path}")
-                elif draft_path:
-                    console.print(f"[bold cyan]📝 Draft saved to:[/bold cyan] {draft_path}")
-                    console.print(
-                        f"[dim]Promote when ready:[/dim] `uv run skill-fleet promote {job_id}`"
-                    )
-
-                validation_score = prompt_data.get("validation_score")
-                if validation_passed is not None:
-                    status_label = "PASS" if validation_passed else "FAIL"
-                    score_suffix = (
-                        f" (score: {validation_score})" if validation_score is not None else ""
-                    )
-                    style = "green" if validation_passed else "yellow"
-                    console.print(f"[{style}]Validation: {status_label}{score_suffix}[/{style}]")
-
-                content: str | None = None
-                for base in (final_path, draft_path):
-                    if not base:
-                        continue
-                    skill_md = Path(str(base)) / "SKILL.md"
-                    if skill_md.exists():
-                        content = skill_md.read_text(encoding="utf-8")
-                        break
-                if content is None:
-                    content = prompt_data.get("skill_content") or "No content generated."
-
-                console.print(Panel(Text(content), title="Final Skill Content"))
-                return
-
-            if status == "failed":
-                console.print(Text(f"❌ Job failed: {prompt_data.get('error')}", style="red"))
-                return
-
-            console.print(Text(f"Job ended with status: {status}", style="yellow"))
+            # Display completion results
+            display_completion_result(console, prompt_data, show_content_panel=True)
+            return
         except httpx.HTTPStatusError as e:
             error_text = ""
             try:

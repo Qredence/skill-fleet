@@ -24,6 +24,8 @@ from .conversational import (
 from .hitl import (
     QuestionOption,
     StructuredQuestion,
+    StructureFixRequest,
+    StructureFixSuggestion,
     normalize_questions,
 )
 from .models import (
@@ -53,7 +55,6 @@ from .skills import (
     RefineSkillRequest,
     RefineSkillResponse,
     SkillDetailResponse,
-    ValidateSkillRequest,
     ValidateSkillResponse,
 )
 from .taxonomy import (
@@ -72,12 +73,13 @@ __all__ = [
     # HITL models
     "QuestionOption",
     "StructuredQuestion",
+    "StructureFixSuggestion",
+    "StructureFixRequest",
     "normalize_questions",
     # Skills schemas
     "CreateSkillRequest",
     "CreateSkillResponse",
     "SkillDetailResponse",
-    "ValidateSkillRequest",
     "ValidateSkillResponse",
     "RefineSkillRequest",
     "RefineSkillResponse",

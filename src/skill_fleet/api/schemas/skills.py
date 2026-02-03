@@ -7,6 +7,14 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 
+class SkillListItem(BaseModel):
+    """Brief information about a skill for list endpoints."""
+
+    skill_id: str = Field(..., description="Unique skill identifier")
+    name: str = Field(..., description="Skill name")
+    description: str = Field(..., description="Skill description")
+
+
 class CreateSkillRequest(BaseModel):
     """Request body for creating a new skill."""
 
@@ -22,7 +30,7 @@ class CreateSkillResponse(BaseModel):
     """Response model for skill creation."""
 
     job_id: str = Field(..., description="Unique identifier for the background job")
-    status: str = Field(default="accepted", description="Initial job status")
+    status: str = Field(default="pending", description="Initial job status")
 
 
 class SkillDetailResponse(BaseModel):
@@ -37,13 +45,6 @@ class SkillDetailResponse(BaseModel):
     content: str | None = None
 
 
-class ValidateSkillRequest(BaseModel):
-    """Request body for validating a skill."""
-
-    skill_id: str = Field(..., description="Skill ID to validate")
-    user_id: str = Field(default="default", description="User ID for context")
-
-
 class ValidateSkillResponse(BaseModel):
     """Response model for skill validation."""
 
@@ -56,8 +57,11 @@ class ValidateSkillResponse(BaseModel):
 class RefineSkillRequest(BaseModel):
     """Request body for refining a skill."""
 
-    skill_id: str = Field(..., description="Skill ID to refine")
     feedback: str = Field(..., description="User feedback for refinement")
+    focus_areas: list[str] = Field(
+        default_factory=list,
+        description="Optional focus areas (e.g., examples, clarity, structure)",
+    )
     user_id: str = Field(default="default", description="User ID for context")
 
 
@@ -67,3 +71,10 @@ class RefineSkillResponse(BaseModel):
     job_id: str
     status: str
     message: str
+
+
+class UpdateSkillResponse(BaseModel):
+    """Response model for skill update."""
+
+    skill_id: str = Field(..., description="Unique skill identifier")
+    status: str = Field(..., description="Update status (e.g., 'updated')")

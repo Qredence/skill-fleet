@@ -1,320 +1,328 @@
-# Skill Fleet
+# 🚀 Skill Fleet
 
-A modular AI capability platform that creates, manages, and deploys agent skills as reusable, standards-compliant components.
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Code style: Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 
-**Skill Fleet** transforms how AI agents learn by organizing capabilities in a hierarchical taxonomy. Instead of bloated monolithic prompts, skills are modular, versioned, and discoverable—loaded on-demand when agents need them.
+**A local-first platform for creating, validating, and curating AI agent skills as standards-compliant artifacts.**
 
-> **Perfect for**: AI teams building agent systems, platform engineers managing capability libraries, and organizations standardizing AI knowledge management.
-
----
-
-## Why Skill Fleet?
-
-### For Technical Teams
-
-- **DSPy-Powered Workflows**: Built on DSPy with task-based orchestrators for reliable skill generation
-- **FastAPI Architecture**: Clean API layer with background tasks, dependency injection, and async support
-- **agentskills.io Compliant**: Standard YAML frontmatter ensures skills work across different agent frameworks
-- **Hierarchical MLflow Tracking**: Parent runs for workflows, child runs for each phase
-
-### For Decision Makers
-
-- **Modular & Maintainable**: Skills are versioned, tracked, and independently testable
-- **Standards-Based**: Open specification compliance prevents vendor lock-in
-- **Scalable**: Hierarchical taxonomy supports hundreds of skills with organized growth
-
-### For Everyone
-
-- **Easy to Use**: Chat interface for creating skills without coding
-- **Validated**: Automated compliance checking ensures quality
-- **Observable**: Built-in analytics and usage tracking
-
----
-
-## Quick Start
-
-Create your first skill in under 2 minutes:
+Skill Fleet transforms natural language descriptions into production-ready agent skills using an intelligent three-phase workflow: Understanding → Generation → Validation. Built on [DSPy](https://github.com/stanfordnlp/dspy) for reliable, optimizable LLM programs.
 
 ```bash
-# 1. Install dependencies
-uv sync --group dev
-cp .env.example .env
-# Edit .env and add your GOOGLE_API_KEY
-
-# 2. Start the API server
-uv run skill-fleet serve
-
-# 3. Create a skill via chat (in a new terminal)
-uv run skill-fleet chat "Create a Python decorators skill"
+# Create a skill in minutes
+uv run skill-fleet chat "Create a React hooks mastery skill for intermediate developers"
 ```
 
-The skill is created as a draft. After reviewing it in `drafts/<job_id>/`, promote it:
+---
+
+## ✨ Why Skill Fleet?
+
+Traditional prompt engineering creates fragile, unversioned prompts that break when models change. Skill Fleet creates **structured, validated, reusable artifacts** that agentskills.io-compliant agents can consume.
+
+### Key Differentiators
+
+| Feature | Traditional Prompts | Skill Fleet |
+|---------|-------------------|-------------|
+| **Creation** | Manual, trial-and-error | AI-assisted, structured workflow |
+| **Validation** | Ad-hoc testing | Multi-phase validation with quality gates |
+| **Format** | Plain text | agentskills.io compliant SKILL.md |
+| **Dependencies** | Implicit | Explicitly declared and validated |
+| **Versioning** | None | Git-tracked with promotion workflow |
+| **Discovery** | None | Hierarchical taxonomy with search |
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- **Python 3.12+**
+- **uv** package manager
+- **Git**
+- **API Key**: Google (Gemini) or LiteLLM proxy
+
+### Installation
 
 ```bash
+# Clone and setup
+git clone https://github.com/qredence/skill-fleet.git
+cd skill-fleet
+uv sync --group dev
+
+# Configure environment
+cp .env.example .env
+# Edit .env and add your GOOGLE_API_KEY or LITELLM credentials
+```
+
+### First Skill Creation
+
+```bash
+# Start the API server
+uv run skill-fleet serve
+
+# In another terminal, create a skill interactively
+uv run skill-fleet chat "Create a skill for Python decorators"
+
+# Or create non-interactively with auto-approval
+uv run skill-fleet create "Build a React testing skill" --auto-approve
+
+# Validate the generated skill
+uv run skill-fleet validate skills/_drafts/<job_id>
+
+# Promote to taxonomy when ready
 uv run skill-fleet promote <job_id>
 ```
 
 ---
 
-## Prerequisites
+## 🏗️ Architecture
 
-- **Python**: 3.12+
-- **Package Manager**: [uv](https://github.com/astral-sh/uv)
-- **API Keys**: `GOOGLE_API_KEY` (Gemini is the default model)
+Skill Fleet uses a **three-phase workflow** powered by DSPy:
+
+```
+User Request
+    ↓
+┌─────────────────────────────────────────────────────────┐
+│  Phase 1: Understanding                                 │
+│  - Extract requirements                                 │
+│  - Analyze intent                                       │
+│  - Build execution plan                                 │
+└─────────────────────────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────────────────────────┐
+│  Phase 2: Generation                                    │
+│  - Create SKILL.md with YAML frontmatter                │
+│  - Generate code examples                               │
+│  - Apply category-specific templates                    │
+└─────────────────────────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────────────────────────┐
+│  Phase 3: Validation                                    │
+│  - Structure validation                                 │
+│  - Compliance checking                                  │
+│  - Quality assessment (Best-of-N)                       │
+└─────────────────────────────────────────────────────────┘
+    ↓
+Draft Ready for Review → Promote to Taxonomy
+```
+
+### Draft-First Workflow
+
+1. **Draft Phase**: Skills are generated into `skills/_drafts/<job_id>/`
+2. **Review Phase**: Human-in-the-loop (HITL) for feedback and refinement
+3. **Promotion Phase**: Validated skills moved to stable taxonomy paths
 
 ---
 
-## Installation
+## 📋 CLI Reference
+
+### Core Commands
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `serve` | Start FastAPI server | `uv run skill-fleet serve --reload` |
+| `dev` | Start server + TUI | `uv run skill-fleet dev` |
+| `chat` | Interactive skill creation | `uv run skill-fleet chat "Create..."` |
+| `create` | Non-interactive creation | `uv run skill-fleet create "..." --auto-approve` |
+| `validate` | Validate skill directory | `uv run skill-fleet validate ./skills/_drafts/job_123` |
+| `promote` | Promote draft to taxonomy | `uv run skill-fleet promote job_123` |
+| `generate-xml` | Export skills as XML | `uv run skill-fleet generate-xml` |
+
+### Server Options
 
 ```bash
-# Clone the repository
-git clone https://github.com/Qredence/skill-fleet.git
-cd skill-fleet
+# Development mode with auto-reload
+uv run skill-fleet serve --reload
 
-# Install dependencies
-uv sync
+# Skip database initialization
+uv run skill-fleet serve --skip-db-init
 
-# Setup environment
-cp .env.example .env
-# Edit .env and add your GOOGLE_API_KEY
+# Custom port
+uv run skill-fleet serve --port 8080
 ```
 
----
-
-## Interactive Workflows
-
-### 💬 Real-Time Chat
-
-Build skills with streaming updates and live reasoning display:
+### Validation Options
 
 ```bash
-uv run skill-fleet chat "Create a Redis caching skill"
-```
+# Validate with JSON output for scripting
+uv run skill-fleet validate ./my-skill --json
 
-Features:
-- Real-time progress updates (100ms polling)
-- Live thinking/reasoning display
-- Arrow key navigation for multi-choice questions
-- HITL (Human-in-the-Loop) integration
-
-### 📊 Validation & Quality
-
-Validate skills against agentskills.io standards:
-
-```bash
-# Validate a skill
-uv run skill-fleet validate skills/python/decorators
-
-# Check compliance
-uv run skill-fleet validate --strict skills/general/testing
-```
-
-### 🧠 DSPy Optimization
-
-Tune prompts using MIPROv2 or GEPA optimizers:
-
-```bash
-uv run skill-fleet optimize --optimizer miprov2
+# Strict validation (fail on warnings)
+uv run skill-fleet validate ./my-skill --strict
 ```
 
 ---
 
-## API Reference
-
-### v1 API (Current)
-
-The v1 API provides comprehensive skill management:
-
-| Endpoint | Description |
-|----------|-------------|
-| `POST /api/v1/skills` | Create skill (starts background job) |
-| `GET /api/v1/skills/{id}` | Get skill details |
-| `PUT /api/v1/skills/{id}` | Update skill |
-| `POST /api/v1/skills/{id}/validate` | Validate skill |
-| `POST /api/v1/skills/{id}/refine` | Refine with feedback |
-| `GET /api/v1/jobs/{id}` | Check job status |
-| `GET /api/v1/hitl/{job_id}` | Poll for HITL prompts |
-| `POST /api/v1/hitl/{job_id}` | Submit HITL response |
-
-### CLI Commands
-
-| Command | Description |
-|---------|-------------|
-| `skill-fleet serve` | Start FastAPI server |
-| `skill-fleet chat` | Interactive skill creation |
-| `skill-fleet list` | List all skills |
-| `skill-fleet promote <id>` | Promote draft to taxonomy |
-| `skill-fleet validate <path>` | Validate skill |
-| `skill-fleet terminal` | Python-only CLI interface |
-
----
-
-## Project Structure
-
-```text
-skill-fleet/
-├── src/skill_fleet/
-│   ├── api/                 # FastAPI application
-│   │   ├── v1/             # API v1 routes
-│   │   ├── services/       # Business logic layer
-│   │   └── schemas/        # Pydantic models
-│   ├── cli/                # Typer-based CLI
-│   │   └── commands/
-│   │       ├── chat.py     # Interactive chat
-│   │       └── terminal.py # Python-only interface
-│   ├── core/               # Domain logic
-│   │   ├── workflows/      # Task-based orchestrators
-│   │   ├── modules/        # DSPy modules
-│   │   └── signatures/     # DSPy signatures
-│   ├── dspy/               # Centralized DSPy config
-│   ├── infrastructure/     # Technical infrastructure
-│   │   ├── db/            # Database layer
-│   │   └── tracing/       # MLflow integration
-│   ├── taxonomy/          # Skill taxonomy management
-│   └── validators/        # Skill validation
-├── skills/                # Skill taxonomy
-│   ├── _core/            # Always-loaded skills
-│   ├── python/           # Python skills
-│   ├── devops/           # DevOps skills
-│   └── ...
-├── tests/
-│   ├── api/              # API tests
-│   ├── unit/             # Unit tests
-│   └── integration/      # Integration tests
-├── config/               # Configuration
-└── docs/                 # Documentation
-```
-
----
-
-## Architecture
-
-### FastAPI-Centric Design
-
-The v0.3.5 restructure introduces a clean, FastAPI-centric architecture:
-
-1. **API Layer** (`api/`): Routes, schemas, and dependency injection
-2. **Service Layer** (`api/services/`): Business logic bridging API to workflows
-3. **Workflow Layer** (`core/workflows/`): Task-based DSPy orchestrators
-4. **Infrastructure** (`infrastructure/`): Database, tracing, monitoring
-
-### Workflow Orchestrators
-
-Three-phase skill creation with HITL support:
-
-1. **Understanding Workflow**: Analyzes requirements, generates plan
-2. **Generation Workflow**: Creates skill content
-3. **Validation Workflow**: Checks compliance, refines content
-
-Each phase runs in a child MLflow run under a parent workflow run.
-
----
-
-## Configuration
+## 🔧 Configuration
 
 ### Environment Variables
 
+Create `.env` file (copy from `.env.example`):
+
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `GOOGLE_API_KEY` | Yes | Gemini API key |
-| `SKILL_FLEET_ENV` | No | `production` or `development` |
-| `SKILL_FLEET_CORS_ORIGINS` | Prod | Allowed origins (comma-separated) |
-| `DSPY_CACHEDIR` | No | DSPy cache directory |
-| `DSPY_TEMPERATURE` | No | Override LLM temperature |
+| `GOOGLE_API_KEY` | Yes* | Gemini API key (or use LiteLLM) |
+| `LITELLM_API_KEY` | Yes* | LiteLLM proxy API key |
+| `LITELLM_BASE_URL` | With LiteLLM | LiteLLM proxy endpoint |
+| `DATABASE_URL` | Production | PostgreSQL connection string |
+| `SKILL_FLEET_ENV` | No | `development` (default) or `production` |
+| `SKILL_FLEET_CORS_ORIGINS` | Production | Comma-separated allowed origins |
 
-### Config File
+\* Choose either Google API key OR LiteLLM credentials.
 
-Edit `config/config.yaml` for:
-- Model settings (default: `gemini/gemini-2-flash`)
-- Optimizer configurations (MIPROv2, GEPA)
-- Task-specific model assignments
+### Development vs Production
+
+**Development Mode** (`SKILL_FLEET_ENV=development`):
+- SQLite fallback (no DATABASE_URL required)
+- CORS allows `*`
+- Debug logging
+- Auto-reload enabled
+
+**Production Mode** (`SKILL_FLEET_ENV=production`):
+- PostgreSQL required
+- Explicit CORS origins required
+- Structured logging
+- Security headers enabled
 
 ---
 
-## Development
+## 🌐 API Reference
 
-### Running Tests
+When the server is running, access interactive documentation:
+
+- **Swagger UI**: `http://localhost:8000/docs`
+- **ReDoc**: `http://localhost:8000/redoc`
+
+### Key Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check |
+| `/api/v1/skills` | POST | Create skill (returns job ID) |
+| `/api/v1/skills/stream` | POST | Create skill with SSE streaming |
+| `/api/v1/skills/{id}` | GET | Get skill by ID |
+| `/api/v1/jobs/{id}` | GET | Get job status and results |
+| `/api/v1/taxonomy` | GET | List taxonomy categories |
+| `/api/v1/hitl/responses` | POST | Submit HITL response |
+
+### Streaming API
+
+For real-time progress updates:
 
 ```bash
-# Run all tests
+curl -X POST http://localhost:8000/api/v1/skills/stream \
+  -H "Content-Type: application/json" \
+  -d '{
+    "task_description": "Create a Python asyncio skill",
+    "user_id": "developer-1",
+    "enable_hitl": true
+  }'
+```
+
+Returns Server-Sent Events (SSE) with:
+- Phase transitions (Understanding → Generation → Validation)
+- Real-time reasoning and thoughts
+- Progress updates
+- HITL suspension points
+
+---
+
+## 🧪 Development
+
+### Setup
+
+```bash
+# Install dependencies
+uv sync --group dev
+
+# Run linting and formatting
+uv run ruff check --fix .
+uv run ruff format .
+
+# Run type checker
+uv run ty check
+
+# Run tests
 uv run pytest
 
-# Run unit tests only
-uv run pytest tests/unit/
-
-# Run with coverage
-uv run pytest --cov=skill_fleet
+# Run specific test
+uv run pytest tests/unit/test_async_utils.py -v
 ```
 
-### Linting & Formatting
+### Pre-commit Hooks
 
 ```bash
-# Check and fix
-uv run ruff check --fix .
+# Install hooks
+uv run pre-commit install
 
-# Format code
-uv run ruff format .
+# Run manually
+uv run pre-commit run --all-files
 ```
 
-### Project Standards
+### Project Structure
 
-- **Python**: 3.12+ with modern type hints (`str | None`)
-- **Line Length**: 100 characters
-- **Quotes**: Double quotes
-- **Docstrings**: Google style
-- **Imports**: Absolute only, no relative imports
-
----
-
-## Documentation
-
-### Getting Started
-
-- [Getting Started Guide](docs/getting-started/index.md) - Installation and first steps
-- [Quick Start](docs/getting-started/STREAMING_QUICKSTART.md) - Streaming chat guide
-
-### Core Concepts
-
-- [System Overview](docs/index.md) - Architecture and concepts
-- [AGENTS.md](AGENTS.md) - Comprehensive working guide
-- [Developer Reference](docs/concepts/developer-reference.md)
-
-### API & Technical
-
-- [API v1 Documentation](docs/api/index.md) - REST API reference
-- [API Migration](docs/api/MIGRATION_V1_TO_V2.md) - v1 to v2 migration guide
-- [DSPy Framework](docs/dspy/index.md) - Workflow documentation
-- [Import Path Guide](docs/development/IMPORT_PATH_GUIDE.md) - Import conventions
-- [Service Extension](docs/development/SERVICE_EXTENSION_GUIDE.md) - Adding services
-
-### Advanced
-
-- [HITL System](docs/architecture/CONVERSATIONAL_INTERFACE.md) - Human-in-the-Loop
-- [agentskills.io Compliance](docs/concepts/agentskills-compliance.md) - Standards
-- [Background Jobs](docs/architecture/BACKGROUND_JOBS.md) - Async job processing
+```
+src/skill_fleet/
+├── api/                    # FastAPI application
+│   ├── v1/                 # API endpoints (skills, jobs, HITL)
+│   └── services/           # Business logic layer
+├── cli/                    # Typer CLI application
+├── core/                   # Core business logic
+│   ├── modules/            # DSPy modules (generation, validation)
+│   ├── signatures/         # DSPy signatures
+│   └── workflows/          # Workflow orchestration
+├── taxonomy/               # Taxonomy management
+└── infrastructure/         # Database, monitoring, tracing
+```
 
 ---
 
-## Migration from v0.2.x
+## 📚 Documentation
 
-See [docs/api/MIGRATION_V1_TO_V2.md](docs/api/MIGRATION_V1_TO_V2.md) for:
-- Import path changes
-- API endpoint updates
-- Architecture changes
-- Breaking changes and deprecations
-
----
-
-## License
-
-Apache License 2.0. See [LICENSE](LICENSE).
-
-## Contributing
-
-See [CONTRIBUTING.md](docs/development/CONTRIBUTING.md) for development workflow.
+| Document | Description |
+|----------|-------------|
+| [`docs/README.md`](docs/README.md) | Documentation index and navigation |
+| [`docs/tutorials/getting-started.md`](docs/tutorials/getting-started.md) | Step-by-step onboarding |
+| [`docs/how-to-guides/create-a-skill.md`](docs/how-to-guides/create-a-skill.md) | End-to-end creation guide |
+| [`docs/how-to-guides/validate-a-skill.md`](docs/how-to-guides/validate-a-skill.md) | Validation details |
+| [`docs/reference/api/endpoints.md`](docs/reference/api/endpoints.md) | Complete API reference |
+| [`AGENTS.md`](AGENTS.md) | Development workflow guide |
+| [`SECURITY.md`](SECURITY.md) | Security policy |
 
 ---
 
-**Version**: 0.3.5  
-**Status**: Production Ready  
-**Last Updated**: January 2026
+## 🤝 Contributing
+
+We welcome contributions! Please see [`docs/explanation/development/contributing.md`](docs/explanation/development/contributing.md) for guidelines.
+
+### Quick Contribution Workflow
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes
+4. Run tests and linting (`uv run pre-commit run --all-files`)
+5. Commit your changes (`git commit -m 'Add amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
+
+---
+
+## 📄 License
+
+Apache License 2.0. See [`LICENSE`](LICENSE) for details.
+
+---
+
+## 🔗 Related Projects
+
+- **[DSPy](https://github.com/stanfordnlp/dspy)** - The framework powering our LLM programs
+- **[agentskills.io](https://agentskills.io)** - The skill standard we implement
+- **[LiteLLM](https://github.com/BerriAI/litellm)** - Proxy for multiple LLM providers
+
+---
+
+**Version**: 0.3.5
+**Status**: Alpha
+**Last Updated**: 2026-02-02
+
+Built with ❤️ by the Qredence team

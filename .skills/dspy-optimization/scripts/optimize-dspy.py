@@ -34,7 +34,7 @@ except ImportError:
 def load_examples(file_path: Path):
     """Load examples from a JSONL file."""
     examples = []
-    with open(file_path, "r") as f:
+    with open(file_path) as f:
         for line in f:
             if line.strip():
                 examples.append(json.loads(line))
@@ -68,6 +68,7 @@ def optimize_module(
     try:
         if module_name == "reasoner":
             from agentic_fleet.dspy_modules.reasoner import DSPyReasoner
+
             module = DSPyReasoner()
         else:
             print(f"Error: Unknown module '{module_name}'")
@@ -84,7 +85,9 @@ def optimize_module(
     # Use custom metric if provided
     if metric_name != "accuracy":
         # In a real implementation, you'd load custom metrics from a module
-        print(f"Warning: Using default accuracy metric (custom metric '{metric_name}' not implemented)")
+        print(
+            f"Warning: Using default accuracy metric (custom metric '{metric_name}' not implemented)"
+        )
         metric = accuracy_metric
     else:
         metric = accuracy_metric

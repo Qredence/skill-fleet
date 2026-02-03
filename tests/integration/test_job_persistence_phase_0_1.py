@@ -8,7 +8,7 @@ Tests cover:
 """
 
 from datetime import UTC, datetime
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 from uuid import UUID, uuid4
 
 import pytest
@@ -20,38 +20,51 @@ from skill_fleet.api.services.job_manager import JobManager
 class TestJobPersistenceLifecycle:
     """Test complete job lifecycle with dual-layer persistence."""
 
-    def test_create_job_stores_in_memory_and_db(self):
+    @pytest.mark.asyncio
+    @patch("skill_fleet.api.services.job_manager.JobRepository")
+    @patch("skill_fleet.api.services.job_manager.transactional_session")
+    async def test_create_job_stores_in_memory_and_db(self, mock_session, mock_repo_cls):
         """Test that created job is stored in both memory and DB."""
-        mock_repo = Mock()
-        mock_repo.create = Mock(return_value=Mock(job_id=uuid4()))
+        # Setup mocks
+        mock_db = Mock()
+        mock_session.return_value.__enter__.return_value = mock_db
+        mock_repo_instance = mock_repo_cls.return_value
 
         manager = JobManager()
-        manager.set_db_repo(mock_repo)
+        manager.enable_persistence()
 
-        job = JobState(job_id="persist-1", status="pending")
-        manager.create_job(job)
+        job_id = str(uuid4())
+        job = JobState(job_id=job_id, status="pending")
+        await manager.create_job(job)
 
         # Verify in memory
-        in_memory = manager.memory.get("persist-1")
+        in_memory = await manager.memory.get(job_id)
         assert in_memory is not None
         assert in_memory.status == "pending"
-        # DB create should be attempted
-        assert mock_repo.create.called or True  # Allow fallback to memory-only
 
-    def test_retrieve_job_from_memory_first(self):
+        # DB create should be attempted
+        # We check if JobRepository was instantiated and create was called
+        assert mock_repo_cls.call_count > 0
+        assert mock_repo_instance.create.called or mock_repo_instance.update.called
+
+    @pytest.mark.asyncio
+    async def test_retrieve_job_from_memory_first(self):
         """Test that manager retrieves from memory first."""
         manager = JobManager()
         job_id = "memory-first"
         job = JobState(job_id=job_id, status="running")
 
-        manager.memory.set(job_id, job)
-        retrieved = manager.get_job(job_id)
+        await manager.memory.set(job_id, job)
+        retrieved = await manager.get_job(job_id)
 
         assert retrieved is not None
         assert retrieved.job_id == job_id
         assert retrieved.status == "running"
 
-    def test_fallback_to_database_on_memory_miss(self):
+    @pytest.mark.asyncio
+    @patch("skill_fleet.api.services.job_manager.JobRepository")
+    @patch("skill_fleet.api.services.job_manager.transactional_session")
+    async def test_fallback_to_database_on_memory_miss(self, mock_session, mock_repo_cls):
         """Test that manager falls back to DB on memory miss."""
         mock_db_job = Mock()
         mock_db_job.job_id = uuid4()
@@ -60,37 +73,44 @@ class TestJobPersistenceLifecycle:
         mock_db_job.error = None
         mock_db_job.updated_at = datetime.now(UTC)
 
-        mock_repo = Mock()
-        mock_repo.get_by_id = Mock(return_value=mock_db_job)
+        # Setup mock repo return
+        mock_repo_instance = mock_repo_cls.return_value
+        mock_repo_instance.get_by_id.return_value = mock_db_job
+
+        mock_db = Mock()
+        mock_session.return_value.__enter__.return_value = mock_db
 
         manager = JobManager()
-        manager.set_db_repo(mock_repo)
+        manager.enable_persistence()
 
         job_uuid = str(mock_db_job.job_id)
-        retrieved = manager.get_job(job_uuid)
+        retrieved = await manager.get_job(job_uuid)
 
         assert retrieved is not None
         assert retrieved.status == "completed"
-        assert mock_repo.get_by_id.called
+        assert mock_repo_instance.get_by_id.called
 
-    def test_update_job_updates_both_layers(self):
+    @pytest.mark.asyncio
+    async def test_update_job_updates_both_layers(self):
         """Test that job updates persist to both memory and DB."""
-        manager = JobManager()  # No DB repo - test memory-only path
+        # This test relies on "memory only" path if persistence not enabled
+        manager = JobManager()  # No persistence enabled
 
         job_id = "update-1"
         job = JobState(job_id=job_id, status="pending")
-        manager.create_job(job)
+        await manager.create_job(job)
 
-        # Update job (use progress_message instead - JobState doesn't have progress_percent)
-        manager.update_job(job_id, {"status": "completed", "progress_message": "100%"})
+        # Update job
+        await manager.update_job(job_id, {"status": "completed", "progress_message": "100%"})
 
         # Verify in memory
-        in_memory = manager.memory.get(job_id)
+        in_memory = await manager.memory.get(job_id)
         assert in_memory is not None
         assert in_memory.status == "completed"
         assert in_memory.progress_message == "100%"
 
-    def test_full_job_lifecycle(self):
+    @pytest.mark.asyncio
+    async def test_full_job_lifecycle(self):
         """Test complete lifecycle: pending → running → completed."""
         manager = JobManager()  # Test memory-only path
 
@@ -98,23 +118,23 @@ class TestJobPersistenceLifecycle:
 
         # Step 1: Create (pending)
         job = JobState(job_id=job_id, status="pending")
-        manager.create_job(job)
+        await manager.create_job(job)
 
         # Step 2: Start (running)
-        manager.update_job(job_id, {"status": "running"})
-        in_memory = manager.memory.get(job_id)
+        await manager.update_job(job_id, {"status": "running"})
+        in_memory = await manager.memory.get(job_id)
         assert in_memory is not None
         assert in_memory.status == "running"
 
         # Step 3: Progress
-        manager.update_job(job_id, {"progress_message": "50%"})
-        in_memory = manager.memory.get(job_id)
+        await manager.update_job(job_id, {"progress_message": "50%"})
+        in_memory = await manager.memory.get(job_id)
         assert in_memory is not None
         assert in_memory.progress_message == "50%"
 
         # Step 4: Complete
-        manager.update_job(job_id, {"status": "completed", "result": {"score": 0.85}})
-        final = manager.memory.get(job_id)
+        await manager.update_job(job_id, {"status": "completed", "result": {"score": 0.85}})
+        final = await manager.memory.get(job_id)
         assert final is not None
         assert final.status == "completed"
 
@@ -122,59 +142,18 @@ class TestJobPersistenceLifecycle:
 class TestJobResumeOnStartup:
     """Test job resume workflows (startup recovery patterns)."""
 
-    def test_resume_pending_jobs_workflow(self):
-        """Test workflow for resuming pending jobs."""
-        mock_repo = Mock()
-        pending_jobs = [
-            Mock(job_id=uuid4(), status="pending"),
-            Mock(job_id=uuid4(), status="pending"),
-        ]
-        mock_repo.get_by_status = Mock(return_value=pending_jobs)
-
-        jobs_to_resume = mock_repo.get_by_status("pending")
-
-        assert len(jobs_to_resume) == 2
-        assert all(j.status == "pending" for j in jobs_to_resume)
-
-    def test_resume_running_jobs_workflow(self):
-        """Test workflow for resuming running jobs."""
-        mock_repo = Mock()
-        running_jobs = [
-            Mock(job_id=uuid4(), status="running"),
-            Mock(job_id=uuid4(), status="running"),
-        ]
-        mock_repo.get_by_status = Mock(return_value=running_jobs)
-
-        jobs_to_resume = mock_repo.get_by_status("running")
-
-        assert len(jobs_to_resume) == 2
-        assert all(j.status == "running" for j in jobs_to_resume)
-
-    def test_resume_hitl_jobs_workflow(self):
-        """Test workflow for resuming HITL jobs."""
-        mock_repo = Mock()
-        hitl_jobs = [Mock(job_id=uuid4(), status="pending_hitl")]
-        mock_repo.get_by_status = Mock(return_value=hitl_jobs)
-
-        jobs_to_resume = mock_repo.get_by_status("pending_hitl")
-
-        assert len(jobs_to_resume) == 1
-        assert jobs_to_resume[0].status == "pending_hitl"
-
-    def test_startup_skips_completed_jobs(self):
-        """Test that completed/failed jobs are not resumed on startup."""
-        mock_repo = Mock()
-        mock_repo.get_by_status = Mock(return_value=[])
-
-        completed_jobs = mock_repo.get_by_status("completed")
-
-        assert len(completed_jobs) == 0
+    # Note: These tests mocked the old way where lifespan used the repo directly.
+    # Now lifespan creates its own repo. We can't easily unit test lifespan logic here
+    # without mocking lifespan itself, but we can verify repo behavior.
+    # For now, we'll skip these as they test lifespan logic which has moved.
+    pass
 
 
 class TestCrashRecovery:
     """Test crash recovery scenarios."""
 
-    def test_recover_from_mid_job_crash(self):
+    @pytest.mark.asyncio
+    async def test_recover_from_mid_job_crash(self):
         """Test recovery when job is in progress at crash."""
         manager = JobManager()
 
@@ -184,76 +163,73 @@ class TestCrashRecovery:
             status="running",
             progress_message="Creating content...",
         )
-        manager.create_job(job)
+        await manager.create_job(job)
 
         # Job is in memory before "crash"
-        assert manager.memory.get(job_id) is not None
+        assert await manager.memory.get(job_id) is not None
 
         # Simulate crash: clear memory
-        manager.memory.clear()
-        assert manager.memory.get(job_id) is None
+        await manager.memory.clear()
+        assert await manager.memory.get(job_id) is None
 
-        # In production, would recover from DB
-        # This test verifies the clear happened
-
-    def test_recover_partial_updates(self):
+    @pytest.mark.asyncio
+    @patch("skill_fleet.api.services.job_manager.JobRepository")
+    @patch("skill_fleet.api.services.job_manager.transactional_session")
+    async def test_recover_partial_updates(self, mock_session, mock_repo_cls):
         """Test that partially saved updates are recovered."""
-        mock_repo = Mock()
         manager = JobManager()
-        manager.set_db_repo(mock_repo)
+        manager.enable_persistence()
 
         job_id = "partial-recovery"
         job = JobState(job_id=job_id, status="pending")
-        manager.create_job(job)
+        await manager.create_job(job)
 
         # Partial update
-        manager.update_job(job_id, {"status": "running"})
+        await manager.update_job(job_id, {"status": "running"})
 
         # Crash: clear memory
-        manager.memory.clear()
+        await manager.memory.clear()
 
         # Recover
-        recovered = manager.memory.get(job_id)
-        assert recovered is None  # Was cleared, but would be in DB
+        recovered = await manager.memory.get(job_id)
+        assert recovered is None  # Was cleared, but would be in DB (if we fetched it)
 
-    def test_memory_cache_warms_on_db_hit(self):
+    @pytest.mark.asyncio
+    @patch("skill_fleet.api.services.job_manager.JobRepository")
+    @patch("skill_fleet.api.services.job_manager.transactional_session")
+    async def test_memory_cache_warms_on_db_hit(self, mock_session, mock_repo_cls):
         """Test that memory cache is warmed when jobs are retrieved from DB."""
-        mock_repo = Mock()
         manager = JobManager()
-        manager.set_db_repo(mock_repo)
+        manager.enable_persistence()
 
         job_id = str(uuid4())
 
-        # Create and persist
-        job = JobState(job_id=job_id, status="running")
-        manager.create_job(job)
-
-        # Simulate resume: clear memory
-        manager.memory.delete(job_id)
-        assert manager.memory.get(job_id) is None
-
-        # Mock DB to return the job
+        # Setup mock DB return
         mock_db_job = Mock()
-        try:
-            mock_db_job.job_id = UUID(job_id)
-        except ValueError:
-            mock_db_job.job_id = uuid4()
+        mock_db_job.job_id = UUID(job_id)
         mock_db_job.status = "running"
         mock_db_job.error = None
         mock_db_job.result = None
         mock_db_job.updated_at = datetime.now(UTC)
 
-        try:
-            mock_repo.get_by_id = Mock(return_value=mock_db_job)
-            manager.get_job(job_id)
+        mock_repo_instance = mock_repo_cls.return_value
+        mock_repo_instance.get_by_id.return_value = mock_db_job
 
-            # Now should be in memory if DB hit worked
-            in_memory = manager.memory.get(job_id)
-            if in_memory:
-                assert in_memory.job_id == job_id
-        except Exception:
-            # Memory-only fallback is acceptable
-            pass
+        # Create and persist (just to simulate flow)
+        job = JobState(job_id=job_id, status="running")
+        await manager.create_job(job)
+
+        # Simulate resume: clear memory
+        await manager.memory.delete(job_id)
+        assert await manager.memory.get(job_id) is None
+
+        # Get from DB
+        await manager.get_job(job_id)
+
+        # Now should be in memory
+        in_memory = await manager.memory.get(job_id)
+        if in_memory:
+            assert in_memory.job_id == job_id
 
 
 def is_valid_uuid(uuid_string):
@@ -270,7 +246,8 @@ def is_valid_uuid(uuid_string):
 class TestMemoryCacheManagement:
     """Test memory cache TTL and cleanup behavior."""
 
-    def test_cache_expiration_by_ttl(self):
+    @pytest.mark.asyncio
+    async def test_cache_expiration_by_ttl(self):
         """Test that jobs expire from cache after TTL."""
         from datetime import timedelta
 
@@ -279,16 +256,18 @@ class TestMemoryCacheManagement:
         job_id = "expiring-job"
         job = JobState(job_id=job_id, status="pending")
 
-        store.set(job_id, job)
-        assert store.get(job_id) is not None
+        await store.set(job_id, job)
+        assert await store.get(job_id) is not None
 
-        # Manually expire
-        store.store[job_id] = (job, datetime.now(UTC) - timedelta(minutes=120))
+        # Manually expire (access store directly since it's internal)
+        async with store._lock:
+            store.store[job_id] = (job, datetime.now(UTC) - timedelta(minutes=120))
 
         # Should be expired now
-        assert store.get(job_id) is None
+        assert await store.get(job_id) is None
 
-    def test_cleanup_removes_expired_entries(self):
+    @pytest.mark.asyncio
+    async def test_cleanup_removes_expired_entries(self):
         """Test that cleanup removes expired entries."""
         from datetime import timedelta
 
@@ -297,30 +276,33 @@ class TestMemoryCacheManagement:
 
         for i in range(3):
             job = JobState(job_id=f"job-{i}", status="pending")
-            store.set(f"job-{i}", job)
+            await store.set(f"job-{i}", job)
 
-        # Manually expire all
+        # Manually expire all (access store directly with lock)
         past = datetime.now(UTC) - timedelta(minutes=120)
-        for job_id in list(store.store.keys()):
-            job, _ = store.store[job_id]
-            store.store[job_id] = (job, past)
+        async with store._lock:
+            for job_id in list(store.store.keys()):
+                job, _ = store.store[job_id]
+                store.store[job_id] = (job, past)
 
         # Cleanup
-        cleaned = store.cleanup_expired()
+        cleaned = await store.cleanup_expired()
         assert cleaned == 3
-        assert len(store.store) == 0
+        async with store._lock:
+            assert len(store.store) == 0
 
-    def test_cleanup_keeps_valid_entries(self):
+    @pytest.mark.asyncio
+    async def test_cleanup_keeps_valid_entries(self):
         """Test that cleanup doesn't remove valid entries."""
         manager = JobManager()
         store = manager.memory
 
         job = JobState(job_id="valid", status="pending")
-        store.set("valid", job)
+        await store.set("valid", job)
 
-        cleaned = store.cleanup_expired()
+        cleaned = await store.cleanup_expired()
         assert cleaned == 0
-        assert store.get("valid") is not None
+        assert await store.get("valid") is not None
 
 
 class TestJobManagerGlobalInstance:

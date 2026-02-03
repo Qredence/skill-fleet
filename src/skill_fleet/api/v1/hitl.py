@@ -14,6 +14,7 @@ Endpoints:
 from __future__ import annotations
 
 import asyncio
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks
@@ -21,7 +22,11 @@ from pydantic import BaseModel, Field
 
 from ..dependencies import SkillServiceDep
 from ..exceptions import NotFoundException
-from ..schemas import StructuredQuestion, normalize_questions
+from ..schemas import (
+    StructuredQuestion,
+    StructureFixSuggestion,
+    normalize_questions,
+)
 from ..services.job_manager import get_job_manager
 from ..services.jobs import notify_hitl_response
 
@@ -78,6 +83,16 @@ class HITLPromptResponse(BaseModel):
     current_understanding: str | None = Field(None, description="Current understanding")
     readiness_score: float | None = Field(None, description="Readiness score")
     questions_asked: list[Any] | None = Field(None, description="Questions asked")
+    # Structure fix fields
+    structure_issues: list[str] | None = Field(None, description="Structure validation issues")
+    structure_warnings: list[str] | None = Field(
+        None, description="Structure improvement suggestions"
+    )
+    suggested_fixes: list[StructureFixSuggestion] | None = Field(
+        None, description="Suggested structure fixes"
+    )
+    current_skill_name: str | None = Field(None, description="Current skill name")
+    current_description: str | None = Field(None, description="Current skill description")
 
 
 class HITLResponseResult(BaseModel):
@@ -135,16 +150,63 @@ async def get_prompt(job_id: str) -> HITLPromptResponse:
 
     """
     manager = get_job_manager()
-    job = manager.get_job(job_id)
+    job = await manager.get_job(job_id)
     if not job:
         raise NotFoundException("Job", job_id)
 
     # Extract all possible HITL data fields
     hitl_data = job.hitl_data or {}
 
+    def _get_result_field(result: Any, key: str) -> Any:
+        if result is None:
+            return None
+        if isinstance(result, dict):
+            return result.get(key)
+        return getattr(result, key, None)
+
+    # Self-heal: some older code paths populate `hitl_type`/`hitl_data` but forget
+    # to move the job into a pending-HITL state. Clients rely on status to know
+    # when to collect user input, so infer + persist a pending status when we
+    # clearly have an unresolved prompt payload.
+    def _looks_like_prompt_payload(data: dict[str, Any]) -> bool:
+        return any(
+            key in data
+            for key in (
+                "questions",
+                "summary",
+                "content",
+                "highlights",
+                "report",
+                "issues",
+                "warnings",
+                "suggested_fixes",
+            )
+        )
+
+    if (
+        job.hitl_type
+        and job.status in {"pending", "running"}
+        and isinstance(hitl_data, dict)
+        and hitl_data
+        and _looks_like_prompt_payload(hitl_data)
+        and not hitl_data.get("_resolved", False)
+    ):
+        inferred = (
+            "pending_user_input"
+            if job.hitl_type in {"clarify", "structure_fix", "deep_understanding"}
+            else "pending_hitl"
+        )
+        if inferred != job.status:
+            job.status = inferred
+            await manager.update_job(job_id, {"status": inferred})
+
     # Normalize questions server-side (API-first: CLI is a thin client)
     raw_questions = hitl_data.get("questions")
     normalized_questions = normalize_questions(raw_questions) if raw_questions else None
+
+    # Extract structure fix data if present
+    suggested_fixes = hitl_data.get("suggested_fixes", [])
+    current_values = hitl_data.get("current_values", {})
 
     return HITLPromptResponse(
         status=job.status,
@@ -166,7 +228,7 @@ async def get_prompt(job_id: str) -> HITLPromptResponse:
         report=hitl_data.get("report"),
         passed=hitl_data.get("passed"),
         # Result data
-        skill_content=job.result.skill_content if job.result else None,
+        skill_content=_get_result_field(job.result, "skill_content"),
         # Draft-first lifecycle
         intended_taxonomy_path=job.intended_taxonomy_path,
         draft_path=job.draft_path,
@@ -178,6 +240,12 @@ async def get_prompt(job_id: str) -> HITLPromptResponse:
         validation_status=job.validation_status,
         validation_score=job.validation_score,
         error=job.error,
+        # Structure fix fields
+        structure_issues=hitl_data.get("issues"),
+        structure_warnings=hitl_data.get("warnings"),
+        suggested_fixes=suggested_fixes,
+        current_skill_name=current_values.get("skill_name"),
+        current_description=current_values.get("description"),
     )
 
 
@@ -195,6 +263,7 @@ async def post_response(
     - clarify: {"answers": {"response": "..."}}
     - confirm/preview/validate: {"action": "proceed|revise|cancel", "feedback": "..."}
     - deep_understanding: {"action": "proceed|cancel", "answer": "...", "problem": "...", "goals": [...]}
+    - structure_fix: {"skill_name": "...", "description": "...", "accept_suggestions": true}
     - tdd_*: {"action": "proceed|revise|cancel", "feedback": "..."}
 
     Args:
@@ -209,7 +278,7 @@ async def post_response(
 
     """
     manager = get_job_manager()
-    job = manager.get_job(job_id)
+    job = await manager.get_job(job_id)
     if not job:
         raise NotFoundException("Job", job_id)
 
@@ -222,6 +291,17 @@ async def post_response(
     async with job.hitl_lock:
         # Handle stateless resumption (Phase 5: Interactive HITL)
         if job.status == "pending_user_input":
+            # Handle structure_fix HITL type
+            if job.hitl_type == "structure_fix":
+                return await _handle_structure_fix_response(
+                    job_id=job_id,
+                    job=job,
+                    response=response,
+                    manager=manager,
+                    skill_service=skill_service,
+                    background_tasks=background_tasks,
+                )
+
             # Extract answers (support wrapped or direct format)
             answers = response.get("answers", response)
 
@@ -230,9 +310,16 @@ async def post_response(
                 skill_service.resume_skill_creation, job_id=job_id, answers=answers
             )
 
+            # Mark prompt as resolved so GET /prompt doesn't re-surface it while running.
+            hitl_data = job.hitl_data or {}
+            if isinstance(hitl_data, dict):
+                hitl_data["_resolved"] = True
+                hitl_data["_resolved_at"] = datetime.now(UTC).isoformat()
+                job.hitl_data = hitl_data
+
             # Update status immediately so UI changes state
             job.status = "running"
-            manager.update_job(job_id, {"status": "running"})
+            await manager.update_job(job_id, {"status": "running", "hitl_data": job.hitl_data})
 
             return HITLResponseResult(status="accepted")
 
@@ -252,9 +339,84 @@ async def post_response(
         # Update status eagerly so polling clients don't re-render the same prompt.
         job.status = "running"
 
+        # Mark prompt as resolved for self-heal logic in GET /prompt.
+        hitl_data = job.hitl_data or {}
+        if isinstance(hitl_data, dict):
+            hitl_data["_resolved"] = True
+            hitl_data["_resolved_at"] = datetime.now(UTC).isoformat()
+            job.hitl_data = hitl_data
+
     # Auto-save session on each HITL response
     from ..services.jobs import save_job_session
 
     save_job_session(job_id)
+
+    return HITLResponseResult(status="accepted")
+
+
+async def _handle_structure_fix_response(
+    job_id: str,
+    job: Any,
+    response: dict,
+    manager: Any,
+    skill_service: SkillServiceDep,
+    background_tasks: BackgroundTasks,
+) -> HITLResponseResult:
+    """
+    Handle structure fix HITL response.
+
+    Validates the corrected values and resumes the workflow.
+    """
+    # Extract structure fix response
+    skill_name = response.get("skill_name")
+    description = response.get("description")
+    accept_suggestions = response.get("accept_suggestions", False)
+
+    # If accepting suggestions, use suggested values from hitl_data
+    if accept_suggestions:
+        hitl_data = job.hitl_data or {}
+        suggested_fixes = hitl_data.get("suggested_fixes", [])
+        for fix in suggested_fixes:
+            if fix.get("field") == "skill_name" and not skill_name:
+                skill_name = fix.get("suggested")
+            if fix.get("field") == "description" and not description:
+                description = fix.get("suggested")
+
+    # Validate the corrected values
+    from skill_fleet.core.modules.validation.structure import ValidateStructureModule
+
+    validator = ValidateStructureModule()
+    validation = validator(
+        skill_name=skill_name or "",
+        description=description or "",
+        skill_content="",
+    )
+
+    if not validation["overall_valid"]:
+        # Still has issues - return errors
+        return HITLResponseResult(
+            status="rejected",
+            detail=f"Structure validation failed: {validation['name_errors'] + validation['description_errors']}",
+        )
+
+    # Update job context with corrected values
+    context = job.context or {}
+    if "requirements" not in context:
+        context["requirements"] = {}
+
+    context["requirements"]["suggested_skill_name"] = skill_name
+    context["requirements"]["description"] = description
+
+    # Update job
+    job.context = context
+    job.status = "running"
+    await manager.update_job(job_id, {"status": "running", "context": context})
+
+    # Resume workflow in background
+    background_tasks.add_task(
+        skill_service.resume_skill_creation,
+        job_id=job_id,
+        answers={"skill_name": skill_name, "description": description},
+    )
 
     return HITLResponseResult(status="accepted")

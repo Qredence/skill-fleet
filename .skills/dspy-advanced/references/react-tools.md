@@ -27,6 +27,8 @@ ReAct (Reasoning + Acting) is an agent pattern that combines language model reas
 - **Dynamic reasoning**: Adapt to intermediate results
 - **Traceability**: Full trajectory of tool calls for debugging
 
+**References**: [DSPy Modules Guide](https://github.com/stanfordnlp/dspy/blob/main/docs/docs/learn/programming/modules.md) | [DSPy Tools Guide](https://github.com/stanfordnlp/dspy/blob/main/docs/docs/learn/programming/tools.md)
+
 ## Basic ReAct Agent
 
 ### Simple ReAct with Single Tool

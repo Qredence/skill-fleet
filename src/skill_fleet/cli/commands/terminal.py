@@ -1,8 +1,7 @@
 """
-CLI command for terminal-based chat without TUI.
+CLI command for terminal-based chat.
 
-This command provides a pure Python CLI interface for skill creation,
-without attempting to launch the React/Ink TUI.
+This command provides a pure Python CLI interface for skill creation.
 """
 
 from __future__ import annotations
@@ -40,10 +39,9 @@ def terminal_command(
     ),
 ):
     """
-    Start an interactive terminal chat session (Python CLI only, no TUI).
+    Start an interactive terminal chat session.
 
-    This command provides a terminal-based interface for skill creation using
-    only the Python CLI, without attempting to launch the React TUI.
+    This command provides a terminal-based interface for skill creation.
     """
     config = ctx.obj
 
@@ -52,7 +50,7 @@ def terminal_command(
             console.print(
                 Panel.fit(
                     "[bold cyan]Skill Fleet — Terminal Interface[/bold cyan]\n"
-                    "Pure Python CLI mode (no TUI).\n"
+                    "Interactive mode.\n"
                     "Commands: /help, /exit",
                     border_style="cyan",
                 )
@@ -89,16 +87,21 @@ def terminal_command(
                 if not task_description.strip():
                     continue
 
-                console.print("[dim]Creating job...[/dim]")
-                try:
-                    result = await config.client.create_skill(task_description, config.user_id)
-                except Exception as conn_err:
-                    console.print(f"[red]Could not connect to API server at {config.api_url}[/red]")
-                    console.print("[yellow]Make sure the server is running:[/yellow]")
-                    console.print("  uv run skill-fleet serve")
-                    raise conn_err
+                with console.status("[bold green]Creating job...[/bold green]") as status:
+                    try:
+                        result = await config.client.create_skill(task_description, config.user_id)
+                        job_id = result.get("job_id")
+                        status.update(
+                            f"[bold green]🚀 Skill creation job started: {job_id}[/bold green]"
+                        )
+                    except Exception as conn_err:
+                        console.print(
+                            f"[red]Could not connect to API server at {config.api_url}[/red]"
+                        )
+                        console.print("[yellow]Make sure the server is running:[/yellow]")
+                        console.print("  uv run skill-fleet serve")
+                        raise conn_err
 
-                job_id = result.get("job_id")
                 if not job_id:
                     console.print(f"[red]Unexpected response: {result}[/red]")
                     continue

@@ -190,7 +190,7 @@ class ExplorationHandlers:
 
         elif intent_result["intent_type"] == "clarify":
             confidence = intent_result["confidence"]
-            if isinstance(confidence, (int, float)) and confidence > 0.7:
+            if isinstance(confidence, int | float) and confidence > 0.7:
                 session.collected_examples.append(
                     {"input_description": user_message, "expected_output": ""}
                 )

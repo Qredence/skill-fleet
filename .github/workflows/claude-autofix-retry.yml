@@ -1,0 +1,405 @@
+name: Claude Auto-Fix with Retry
+
+on:
+  # Automatic trigger when CI workflow fails
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+  # Manual trigger for explicit retries
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Failed workflow run ID to fix (optional)'
+        required: false
+        type: string
+      branch:
+        description: 'Branch to fix (required if no run_id)'
+        required: false
+        type: string
+      attempt:
+        description: 'Current attempt number (internal use)'
+        required: false
+        default: '1'
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write          # Trigger workflows
+  checks: write
+  id-token: write
+
+concurrency:
+  group: claude-autofix-retry-${{ github.event.workflow_run.head_branch || github.event.inputs.branch || github.ref }}
+  cancel-in-progress: false  # Don't cancel, let retries continue
+
+env:
+  MAX_ATTEMPTS: 3
+
+jobs:
+  check-retry-status:
+    name: Check Retry Eligibility
+    if: |
+      (github.event_name == 'workflow_dispatch') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'failure')
+    runs-on: ubuntu-latest
+    outputs:
+      should_proceed: ${{ steps.check.outputs.proceed }}
+      attempt: ${{ steps.check.outputs.attempt }}
+      branch: ${{ steps.check.outputs.branch }}
+      run_id: ${{ steps.check.outputs.run_id }}
+    steps:
+      - name: Determine current attempt
+        id: check
+        env:
+          INPUTS_ATTEMPT: ${{ github.event.inputs.attempt }}
+          WORKFLOW_RUN_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          INPUTS_BRANCH: ${{ github.event.inputs.branch }}
+          REF_NAME: ${{ github.ref_name }}
+          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+          INPUTS_RUN_ID: ${{ github.event.inputs.run_id }}
+        run: |
+          ATTEMPT="${INPUTS_ATTEMPT:-1}"
+          BRANCH="${WORKFLOW_RUN_BRANCH:-${INPUTS_BRANCH:-$REF_NAME}}"
+          RUN_ID="${WORKFLOW_RUN_ID:-$INPUTS_RUN_ID}"
+
+          echo "Current attempt: $ATTEMPT / $MAX_ATTEMPTS"
+          echo "Branch: $BRANCH"
+          echo "Run ID: $RUN_ID"
+
+          if [ "$ATTEMPT" -gt "$MAX_ATTEMPTS" ]; then
+            echo "🛑 Maximum attempts ($MAX_ATTEMPTS) reached. Stopping."
+            echo "proceed=false" >> $GITHUB_OUTPUT
+          else
+            echo "🔄 Proceeding with fix attempt $ATTEMPT"
+            echo "proceed=true" >> $GITHUB_OUTPUT
+          fi
+
+          echo "attempt=$ATTEMPT" >> $GITHUB_OUTPUT
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+
+  auto-fix:
+    name: Auto-Fix Attempt
+    needs: check-retry-status
+    if: needs.check-retry-status.outputs.should_proceed == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      changes_made: ${{ steps.fix-result.outputs.changes_made }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.check-retry-status.outputs.branch }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python and uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --group dev
+        continue-on-error: true
+
+      - name: Retrieve CI failure logs
+        id: logs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ needs.check-retry-status.outputs.run_id }}
+        run: |
+          echo "📋 Retrieving failure logs from workflow run..."
+
+          if [ -n "$RUN_ID" ] && [ "$RUN_ID" != "null" ]; then
+            echo "Downloading logs for run: $RUN_ID"
+            gh run view "$RUN_ID" --log > /tmp/ci-full.log 2>&1 || echo "Could not access logs" > /tmp/ci-full.log
+            gh run view "$RUN_ID" > /tmp/ci-summary.txt 2>&1 || echo "Could not access summary" > /tmp/ci-summary.txt
+          else
+            echo "No run ID available, will diagnose based on recent failures"
+            echo "Manual retry mode - analyzing recent test/lint failures" > /tmp/ci-full.log
+            echo "See branch for recent changes" > /tmp/ci-summary.txt
+          fi
+
+          echo "logs_available=true" >> $GITHUB_OUTPUT
+          head -100 /tmp/ci-full.log
+
+      - name: Claude Code Auto-Fix
+        id: claude-fix
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            REPO: ${{ github.repository }}
+            BRANCH: ${{ needs.check-retry-status.outputs.branch }}
+            ATTEMPT: ${{ needs.check-retry-status.outputs.attempt }} of ${{ env.MAX_ATTEMPTS }}
+            TIMESTAMP: ${{ github.event.workflow_run.created_at || 'Now' }}
+
+            ## Claude Auto-Fix with Retry - Attempt ${{ needs.check-retry-status.outputs.attempt }}/${{ env.MAX_ATTEMPTS }}
+
+            The CI workflow has failed on branch `${{ needs.check-retry-status.outputs.branch }}`.
+            This is **attempt ${{ needs.check-retry-status.outputs.attempt }} of ${{ env.MAX_ATTEMPTS }}** to automatically fix the issues.
+
+            ### CI Failure Logs (Last 1500 lines):
+            ```
+            $(tail -1500 /tmp/ci-full.log 2>/dev/null || echo "No logs available - check recent git changes")
+            ```
+
+            ### Workflow Status:
+            ```
+            $(cat /tmp/ci-summary.txt 2>/dev/null)
+            ```
+
+            ## Your Mission:
+
+            ### Step 1: Analyze the Failure
+            - Read the error logs carefully to understand what failed
+            - Identify the error pattern (linting, types, tests, security, etc.)
+            - Determine which files need to be changed
+            - Note if this is a new failure or recurring issue
+
+            ### Step 2: Fix the Issue
+            **Minimal Fix Principle**: Change ONLY what's necessary to fix the failure.
+
+            Common fixes needed in this project:
+
+            **For Ruff/Linting Errors:**
+            ```bash
+            uv run ruff check src/ tests/ --fix
+            uv run ruff format src/ tests/
+            ```
+
+            **For Type Checking Errors (ty):**
+            ```bash
+            uv run ty check src/ tests/
+            # Review output and fix type annotations
+            ```
+
+            **For Pytest Failures:**
+            ```bash
+            uv run pytest tests/unit/ -v --tb=short
+            # Fix failing tests or code they depend on
+            ```
+
+            **For Security Issues:**
+            ```bash
+            uv run bandit -r src/skill_fleet -f json -o bandit-report.json || true
+            # Address flagged security concerns
+            ```
+
+            **For Build/Integration Issues:**
+            - Verify imports and dependencies are correct
+            - Check configuration files are valid
+            - Ensure entrypoints work: `uv run skill-fleet --help`
+
+            ### Step 3: Verify Your Fixes
+            Run the exact same checks that were failing:
+            ```bash
+            # Full test suite (like CI does)
+            uv run ruff check src/ tests/ && uv run ruff format --check src/ tests/
+            uv run ty check src/ tests/
+            uv run pytest tests/unit/ -v --tb=short
+            uv run skill-fleet --help
+            ```
+
+            Only proceed to step 4 if these commands succeed!
+
+            ### Step 4: Commit Changes
+            ```bash
+            git add -A
+            git commit -m "fix(ci): resolve [description of what was fixed]"
+            git push origin HEAD:${{ needs.check-retry-status.outputs.branch }}
+            ```
+
+            ## Important Guidelines:
+
+            ✅ **REQUIRED:**
+            - Fix must be minimal and targeted
+            - All verification commands must pass before committing
+            - Commit message must describe what was fixed
+            - Push changes to the current branch
+
+            ❌ **FORBIDDEN:**
+            - Do NOT add new features
+            - Do NOT refactor unrelated code
+            - Do NOT modify unrelated configuration
+            - Do NOT skip verification steps
+
+            ## Retry Context:
+            If this is attempt 2 or 3, the previous fix(es) may not have worked. Consider:
+            - Is there a second independent issue?
+            - Did the first fix introduce a new problem?
+            - Is the root cause something different than initially thought?
+
+            Be thorough and cautious on later attempts.
+
+          claude_args: |
+            --max-turns 25
+            --allowedTools Read,Write,Edit,Bash(uv:*),Bash(ruff:*),Bash(ty:*),Bash(pytest:*),Bash(pip:*),Bash(bandit:*),Bash(git:*),Bash(cat:*),Bash(tail:*),Bash(head:*),Bash(ls:*),Bash(grep:*),Bash(find:*),Bash(which:*)
+        env:
+          ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
+
+      - name: Commit and push changes
+        id: fix-result
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Check if there are any changes
+          if git diff --quiet && git diff --staged --quiet; then
+            echo "ℹ️  No changes detected after fix attempt"
+            echo "changes_made=false" >> $GITHUB_OUTPUT
+          else
+            echo "📝 Changes detected, creating commit..."
+            git add -A
+
+            if git diff --staged --quiet; then
+              echo "ℹ️  Staged changes are empty, skipping commit"
+              echo "changes_made=false" >> $GITHUB_OUTPUT
+            else
+              git commit -m "fix(ci): auto-fix attempt ${{ needs.check-retry-status.outputs.attempt }}/${{ env.MAX_ATTEMPTS }}" || {
+                echo "⚠️  Commit failed - may have no new changes"
+                echo "changes_made=false" >> $GITHUB_OUTPUT
+              }
+
+              echo "🚀 Pushing changes to branch..."
+              if git push origin HEAD:${{ needs.check-retry-status.outputs.branch }}; then
+                echo "✅ Push successful"
+                echo "changes_made=true" >> $GITHUB_OUTPUT
+              else
+                echo "⚠️  Push failed - may need manual intervention"
+                exit 1
+              fi
+            fi
+          fi
+
+  trigger-ci-rerun:
+    name: Trigger CI Re-Run
+    needs: [check-retry-status, auto-fix]
+    if: needs.auto-fix.outputs.changes_made == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait before re-triggering
+        run: sleep 10
+        # Give GitHub time to process the push
+
+      - name: Trigger CI workflow
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ needs.check-retry-status.outputs.branch }}
+          ATTEMPT: ${{ needs.check-retry-status.outputs.attempt }}
+          MAX_ATTEMPTS: ${{ env.MAX_ATTEMPTS }}
+        run: |
+          echo "🔄 Triggering CI workflow for retry verification..."
+
+          # Note: The CI workflow should automatically trigger on push
+          # This is informational logging
+          echo "✅ CI workflow will automatically trigger on push to $BRANCH"
+          echo "📊 Attempt $ATTEMPT of $MAX_ATTEMPTS"
+
+  schedule-next-retry:
+    name: Schedule Next Retry
+    needs: [check-retry-status, auto-fix]
+    if: |
+      always() &&
+      needs.auto-fix.outputs.changes_made == 'true' &&
+      needs.check-retry-status.outputs.attempt < 3
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create repository dispatch for next retry
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CURRENT_ATTEMPT: ${{ needs.check-retry-status.outputs.attempt }}
+          BRANCH: ${{ needs.check-retry-status.outputs.branch }}
+          RUN_ID: ${{ needs.check-retry-status.outputs.run_id }}
+          MAX_ATTEMPTS: ${{ env.MAX_ATTEMPTS }}
+        run: |
+          ATTEMPT=$((CURRENT_ATTEMPT + 1))
+
+          echo "📅 Scheduling retry attempt #$ATTEMPT for branch: $BRANCH"
+
+          # In a real scenario, you could use repository_dispatch
+          # For now, document the capability
+          echo "If CI still fails after this attempt:"
+          echo "  Attempt: $ATTEMPT / $MAX_ATTEMPTS"
+          echo "  Branch: $BRANCH"
+          echo "  Command: gh workflow run claude-autofix-retry.yml -f attempt=$ATTEMPT -f branch=$BRANCH -f run_id=$RUN_ID"
+
+  notify-max-retries:
+    name: Alert - Max Retries Exceeded
+    needs: check-retry-status
+    if: |
+      always() &&
+      needs.check-retry-status.outputs.should_proceed == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create failure issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ needs.check-retry-status.outputs.branch }}
+          RUN_ID: ${{ needs.check-retry-status.outputs.run_id }}
+          MAX_ATTEMPTS: ${{ env.MAX_ATTEMPTS }}
+          REPO: ${{ github.repository }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          echo "🚨 Creating notification for max retries exceeded..."
+
+          BODY="## 🚨 Claude Auto-Fix Failed After Maximum Retries
+
+          The automated CI failure fixing workflow has exhausted all $MAX_ATTEMPTS retry attempts.
+
+          **Details:**
+          - **Branch:** \`$BRANCH\`
+          - **Run ID:** $RUN_ID
+          - **Status:** Requires manual investigation and fix
+
+          ### Next Steps:
+          1. Review the failed CI logs: [View Workflow Run](https://github.com/$REPO/actions/runs/$RUN_ID)
+          2. Analyze the root cause of the failure
+          3. Make necessary fixes manually
+          4. Push the fixes to trigger CI again
+
+          ### Auto-Fix Context:
+          The Claude auto-fix workflow made up to $MAX_ATTEMPTS attempts but was unable to resolve all issues.
+          This typically means:
+          - The issue requires human decision-making
+          - The fix involves architectural changes
+          - Multiple independent issues need fixing
+          - The problem is environment-specific
+
+          cc @$ACTOR"
+
+          gh issue create \
+            --repo "$REPO" \
+            --title "🚨 CI Auto-Fix Failed After $MAX_ATTEMPTS Attempts on \`$BRANCH\`" \
+            --body "$BODY" \
+            --label "ci-failure,needs-attention" \
+            --assignee "$ACTOR" || echo "Could not create issue - may already exist"
+
+  notification-summary:
+    name: Summary
+    needs: [check-retry-status, auto-fix]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print Summary
+        env:
+          BRANCH: ${{ needs.check-retry-status.outputs.branch }}
+          ATTEMPT: ${{ needs.check-retry-status.outputs.attempt }}
+          MAX_ATTEMPTS: ${{ env.MAX_ATTEMPTS }}
+          SHOULD_PROCEED: ${{ needs.check-retry-status.outputs.should_proceed }}
+          CHANGES_MADE: ${{ needs.auto-fix.outputs.changes_made }}
+        run: |
+          echo "═══════════════════════════════════════"
+          echo "  Claude Auto-Fix Workflow Summary"
+          echo "═══════════════════════════════════════"
+          echo ""
+          echo "Branch: $BRANCH"
+          echo "Attempt: $ATTEMPT / $MAX_ATTEMPTS"
+          echo "Should Proceed: $SHOULD_PROCEED"
+          echo "Changes Made: $CHANGES_MADE"
+          echo ""
+          echo "═══════════════════════════════════════"

@@ -17,9 +17,8 @@ Options:
 
 import argparse
 import importlib
-import inspect
 import sys
-from typing import get_type_hints, get_origin, get_args
+from typing import get_type_hints
 
 
 def validate_signature(signature_class, strict: bool) -> bool:
@@ -33,10 +32,11 @@ def validate_signature(signature_class, strict: bool) -> bool:
     # Check if it's a DSPy Signature
     try:
         import dspy
+
         if not issubclass(signature_class, dspy.Signature):
             issues.append(f"❌ {signature_class.__name__} is not a dspy.Signature subclass")
             return False
-        print(f"✓ Is a dspy.Signature subclass")
+        print("✓ Is a dspy.Signature subclass")
     except ImportError:
         issues.append("❌ dspy is not installed")
         return False
@@ -69,12 +69,12 @@ def validate_signature(signature_class, strict: bool) -> bool:
         # Check if InputField or OutputField
         if isinstance(field, dspy.InputField):
             input_fields.append(name)
-            print(f"    ✓ InputField")
+            print("    ✓ InputField")
         elif isinstance(field, dspy.OutputField):
             output_fields.append(name)
-            print(f"    ✓ OutputField")
+            print("    ✓ OutputField")
         else:
-            issues.append(f"    ❌ Not an InputField or OutputField")
+            issues.append("    ❌ Not an InputField or OutputField")
             continue
 
         # Check description
@@ -91,7 +91,7 @@ def validate_signature(signature_class, strict: bool) -> bool:
             warnings.append(f"    ⚠ {name}: Missing type hint")
 
     # Validate structure
-    print(f"\nSummary:")
+    print("\nSummary:")
     print(f"  Input fields: {len(input_fields)}")
     print(f"  Output fields: {len(output_fields)}")
 

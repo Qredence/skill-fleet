@@ -70,14 +70,24 @@ _IS_SQLITE = DATABASE_URL.startswith("sqlite")
 
 # Synchronous engine
 # SQLite doesn't support connection pooling like PostgreSQL
+connect_args = {"check_same_thread": False} if _IS_SQLITE else {}
+if not _IS_SQLITE:
+    connect_args.update(
+        {
+            "connect_timeout": 10,
+            "options": "-c idle_in_transaction_session_timeout=60000",  # 60s timeout
+        }
+    )
+
 engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=bool(not _IS_SQLITE),
-    pool_size=10 if not _IS_SQLITE else 0,
-    max_overflow=20 if not _IS_SQLITE else 0,
+    pool_size=20 if not _IS_SQLITE else 0,  # Increased from 10
+    max_overflow=30 if not _IS_SQLITE else 0,  # Increased from 20
     pool_recycle=300 if not _IS_SQLITE else -1,  # Recycle connections every 5 min
+    pool_timeout=30,  # Wait up to 30s for connection
     echo=os.getenv("SQL_ECHO", "false").lower() == "true",
-    connect_args={"check_same_thread": False} if _IS_SQLITE else {},
+    connect_args=connect_args,
 )
 
 # Synchronous session factory
@@ -161,7 +171,19 @@ async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
 
 @contextmanager
 def get_db_context_manager() -> SyncGenerator[Session, None, None]:
-    """Alias for get_db_context() for backward compatibility."""
+    """
+    Alias for get_db_context() for backward compatibility.
+
+    .. deprecated:: 2026.02
+        Use :func:`get_db_context` directly. Will be removed in 2026.04.
+    """
+    import warnings
+
+    warnings.warn(
+        "get_db_context_manager() is deprecated; use get_db_context() instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     with get_db_context() as db:
         yield db
 
@@ -173,10 +195,11 @@ def init_db() -> None:
     This should only be used for development. In production,
     use Alembic migrations instead.
     """
-    # Ensure uuid-ossp extension exists
-    with engine.connect() as conn:
-        conn.execute(text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
-        conn.commit()
+    # Ensure uuid-ossp extension exists (Postgres only)
+    if not _IS_SQLITE:
+        with engine.connect() as conn:
+            conn.execute(text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
+            conn.commit()
 
     Base.metadata.create_all(bind=engine)
 

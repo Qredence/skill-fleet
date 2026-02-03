@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import tempfile
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -16,6 +17,12 @@ os.environ["SKILL_FLEET_ENV"] = "development"
 os.environ["SKILL_FLEET_CORS_ORIGINS"] = "*"
 # Allow deterministic fallbacks when LMs are not configured (tests run offline).
 os.environ.setdefault("SKILL_FLEET_ALLOW_LLM_FALLBACK", "1")
+
+# Use a non-filesystem MLflow tracking backend for tests to avoid FileStore deprecation warnings.
+os.environ.setdefault(
+    "MLFLOW_TRACKING_URI",
+    f"sqlite:///{os.path.join(tempfile.gettempdir(), f'skill_fleet_mlflow_{os.getpid()}.db')}",
+)
 
 # Use in-memory SQLite for tests unless DATABASE_URL is explicitly set
 if "DATABASE_URL" not in os.environ:

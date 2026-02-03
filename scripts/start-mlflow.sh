@@ -6,11 +6,8 @@ set -e
 echo "🚀 Starting MLflow UI with DSPy autologging..."
 echo ""
 
-# Check if mlruns directory exists
-if [ ! -d "mlruns" ]; then
-    echo "📁 Creating mlruns directory..."
-    mkdir -p mlruns
-fi
+# Ensure artifact root exists
+mkdir -p mlartifacts
 
 # Start MLflow UI
 echo "✅ MLflow UI starting on http://localhost:5001"

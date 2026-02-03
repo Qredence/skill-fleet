@@ -62,7 +62,7 @@ class PromptToolkitUI:
     async def ask_text(self, prompt: str, *, default: str = "") -> str:
         """Ask for free-form text using prompt-toolkit when available."""
         try:
-            from prompt_toolkit.shortcuts import prompt
+            from prompt_toolkit.shortcuts import prompt as pt_prompt
         except ImportError:
             logger.debug("prompt_toolkit not available, using Rich fallback")
 
@@ -70,7 +70,7 @@ class PromptToolkitUI:
             def _rich_ask_wrapper(p: str, d: str) -> Any:
                 return RichPrompt.ask(p, default=d)
 
-            result = await asyncio.to_thread(_rich_ask_wrapper, str(prompt), default)
+            result = await asyncio.to_thread(_rich_ask_wrapper, prompt, default)
             return str(result) if result is not None else default
         except Exception as e:
             logger.warning(f"prompt_toolkit import failed unexpectedly: {e}")
@@ -78,12 +78,12 @@ class PromptToolkitUI:
             def _rich_ask_wrapper(p: str, d: str) -> Any:
                 return RichPrompt.ask(p, default=d)
 
-            result = await asyncio.to_thread(_rich_ask_wrapper, str(prompt), default)
+            result = await asyncio.to_thread(_rich_ask_wrapper, prompt, default)
             return str(result) if result is not None else default
 
         # prompt_toolkit's prompt function is not async, so we run it in a thread
         def _prompt_wrapper(p: str, d: str) -> Any:
-            return prompt(p, default=d)
+            return pt_prompt(p, default=d)
 
         result = await asyncio.to_thread(_prompt_wrapper, f"{prompt}: ", default)
         return str(result) if result is not None else default

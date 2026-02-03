@@ -49,6 +49,7 @@ Example:
 from __future__ import annotations
 
 import logging
+import os
 from datetime import UTC
 from typing import TYPE_CHECKING, Any
 
@@ -59,7 +60,21 @@ logger = logging.getLogger(__name__)
 
 # Default MLflow configuration
 DEFAULT_EXPERIMENT_NAME = "skill-fleet-phase1-phase2"
-DEFAULT_TRACKING_URI = "mlruns"
+DEFAULT_TRACKING_URI = "sqlite:///mlflow.db"
+
+
+def _get_tracking_uri(default: str = DEFAULT_TRACKING_URI) -> str:
+    """
+    Resolve MLflow tracking URI.
+
+    Preference order:
+    1) SKILL_FLEET_MLFLOW_TRACKING_URI (project-specific override)
+    2) MLFLOW_TRACKING_URI (standard MLflow env var)
+    3) Provided default
+    """
+    return (
+        os.getenv("SKILL_FLEET_MLFLOW_TRACKING_URI") or os.getenv("MLFLOW_TRACKING_URI") or default
+    )
 
 
 def setup_mlflow_experiment(
@@ -71,7 +86,7 @@ def setup_mlflow_experiment(
 
     Args:
         experiment_name: Name of the MLflow experiment
-        tracking_uri: MLflow tracking URI (default: "mlruns")
+        tracking_uri: MLflow tracking URI (default: "sqlite:///mlflow.db")
 
     Raises:
         ImportError: If MLflow is not installed
@@ -86,7 +101,8 @@ def setup_mlflow_experiment(
     except ImportError as err:
         raise ImportError("MLflow is not installed. Install it with: uv add mlflow") from err
 
-    mlflow.set_tracking_uri(tracking_uri)
+    resolved_tracking_uri = _get_tracking_uri(tracking_uri)
+    mlflow.set_tracking_uri(resolved_tracking_uri)
     mlflow.set_experiment(experiment_name)
 
     # Log system info
@@ -102,7 +118,7 @@ def setup_mlflow_experiment(
     except Exception as e:
         logger.warning(f"Failed to log system info: {e}")
 
-    logger.info(f"MLflow experiment '{experiment_name}' ready at {tracking_uri}")
+    logger.info(f"MLflow experiment '{experiment_name}' ready at {resolved_tracking_uri}")
 
 
 def log_phase_metrics(
@@ -365,7 +381,7 @@ def start_parent_run(
 
         import mlflow
 
-        mlflow.set_tracking_uri(DEFAULT_TRACKING_URI)
+        mlflow.set_tracking_uri(_get_tracking_uri())
         mlflow.set_experiment(experiment_name)
 
         start_run = getattr(mlflow, "start_run", None)

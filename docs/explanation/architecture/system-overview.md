@@ -170,6 +170,7 @@ Optional MLflow integration for:
 - DSPy autologging
 - Prompt tracking
 - Metric collection
+- Default tracking backend: `sqlite:///mlflow.db` (override with `SKILL_FLEET_MLFLOW_TRACKING_URI` or `MLFLOW_TRACKING_URI`)
 
 ---
 

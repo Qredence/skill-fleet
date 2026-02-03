@@ -54,6 +54,7 @@ docs/internal/
 .opencode/
 .ai/
 .junie/
+.codex/
 opencode.jsonc
 .agents/ski/
 # =============================================================================

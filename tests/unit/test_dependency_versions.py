@@ -15,6 +15,6 @@ def test_pyproject_enforces_dspy_version_range() -> None:
     normalized_deps = [dep.replace(" ", "").lower() for dep in deps]
     dspy_deps = [dep for dep in normalized_deps if dep.startswith("dspy")]
 
-    assert dspy_deps == ["dspy>=3.1.2,<4"], (
-        f"pyproject.toml must declare dspy>=3.1.2,<4 to avoid version drift; found: {dspy_deps!r}"
-    )
+    assert dspy_deps == [
+        "dspy>=3.1.2,<4"
+    ], f"pyproject.toml must declare dspy>=3.1.2,<4 to avoid version drift; found: {dspy_deps!r}"

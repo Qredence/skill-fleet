@@ -14,6 +14,51 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 # =============================================================================
+# Compatibility Helpers
+# =============================================================================
+
+
+class DictLikeAccessMixin:
+    """
+    Provide dict-like access helpers for backward-compatible code.
+
+    Some parts of the codebase (and downstream tooling) historically treated
+    models like dicts via `.get()` / `obj[key]`. Pydantic BaseModel does not
+    implement these, so we provide them explicitly.
+    """
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """
+        Get attribute by key with optional default.
+
+        Args:
+            key: Attribute name to retrieve.
+            default: Default value if attribute not found.
+
+        Returns:
+            The attribute value or default.
+
+        """
+        return getattr(self, key, default)
+
+    def __getitem__(self, key: str) -> Any:
+        """
+        Enable dict-like access to attributes.
+
+        Args:
+            key: Attribute name to retrieve.
+
+        Returns:
+            The attribute value.
+
+        """
+        try:
+            return getattr(self, key)
+        except AttributeError as exc:
+            raise KeyError(key) from exc
+
+
+# =============================================================================
 # HITL (Human-in-the-Loop) Models
 # =============================================================================
 
@@ -262,7 +307,7 @@ class UnderstandingResult(BaseModel):
 # =============================================================================
 
 
-class SkillMetadata(BaseModel):
+class SkillMetadata(DictLikeAccessMixin, BaseModel):
     """
     Metadata for a skill following agentskills.io spec.
 
@@ -339,33 +384,7 @@ class SkillMetadata(BaseModel):
         "comprehensive (long self-contained), or minimal (focused single-purpose)",
     )
 
-    # Allow dict-like access for deprecated code using .get()
-    def get(self, key: str, default: Any = None) -> Any:
-        """
-        Get attribute by key with optional default.
-
-        Args:
-            key: Attribute name to retrieve.
-            default: Default value if attribute not found.
-
-        Returns:
-            The attribute value or default.
-
-        """
-        return getattr(self, key, default)
-
-    def __getitem__(self, key: str) -> Any:
-        """
-        Enable dict-like access to attributes.
-
-        Args:
-            key: Attribute name to retrieve.
-
-        Returns:
-            The attribute value.
-
-        """
-        return getattr(self, key)
+    # DictLikeAccessMixin provides `.get()` and `__getitem__()` for deprecated dict-style access.
 
 
 class Capability(BaseModel):
@@ -554,7 +573,7 @@ class EditResult(BaseModel):
 # =============================================================================
 
 
-class ValidationReport(BaseModel):
+class ValidationReport(DictLikeAccessMixin, BaseModel):
     """
     Validation results for a skill package.
 
@@ -609,33 +628,7 @@ class ValidationReport(BaseModel):
     # Summary
     validation_summary: str = Field(default="", description="Human-readable validation summary")
 
-    # Allow dict-like access for deprecated code using .get()
-    def get(self, key: str, default: Any = None) -> Any:
-        """
-        Get attribute by key with optional default.
-
-        Args:
-            key: Attribute name to retrieve.
-            default: Default value if attribute not found.
-
-        Returns:
-            The attribute value or default.
-
-        """
-        return getattr(self, key, default)
-
-    def __getitem__(self, key: str) -> Any:
-        """
-        Enable dict-like access to attributes.
-
-        Args:
-            key: Attribute name to retrieve.
-
-        Returns:
-            The attribute value.
-
-        """
-        return getattr(self, key)
+    # DictLikeAccessMixin provides `.get()` and `__getitem__()` for deprecated dict-style access.
 
 
 class TestCase(BaseModel):

@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Regression coverage for draft promotion and draft-save parsing helpers
+  - Added API tests for `POST /api/v1/drafts/{job_id}/promote` (including `delete_draft=true`)
+  - Added unit tests for safe filename handling and code block extraction in draft saves
+  - Added unit tests for dict-like access helpers on core models
+
+### Changed
+
+- Internal refactors to reduce nesting and improve maintainability (no intended behavior change)
+  - Draft promotion and draft save flows extracted into smaller, focused helpers
+  - Validation workflow refactored to centralize threshold resolution and refinement logic
+  - Conversation service response routing split into clearer helper methods
+- CI release workflow can now be manually dispatched to publish an existing tag
+
+### Fixed
+
+- Draft promotion `delete_draft=true` no longer deletes the session file and then recreates it
+- Draft promotion rollback paths preserve original tracebacks (bare `raise`)
+- Draft save warning logs include traceback context for easier debugging
+
 ## [0.3.6] - 2026-02-03
 
 ### Added

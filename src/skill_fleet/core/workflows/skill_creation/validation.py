@@ -70,6 +70,21 @@ class ValidationWorkflow:
         self.quality_refiner: dspy.Refine | None = None
         self._lock = asyncio.Lock()
 
+    def _resolve_quality_threshold(self, quality_threshold: float | None) -> float:
+        """
+        Resolve the effective quality threshold.
+
+        Args:
+            quality_threshold: Optional override (uses defaults if None)
+
+        Returns:
+            Effective quality threshold
+
+        """
+        if quality_threshold is None:
+            return DEFAULT_QUALITY_THRESHOLDS.validation_pass_threshold
+        return quality_threshold
+
     async def execute_streaming(
         self,
         skill_content: str,
@@ -95,8 +110,7 @@ class ValidationWorkflow:
 
         """
         # Use centralized threshold if not provided
-        if quality_threshold is None:
-            quality_threshold = DEFAULT_QUALITY_THRESHOLDS.validation_pass_threshold
+        quality_threshold = self._resolve_quality_threshold(quality_threshold)
 
         manager = manager or get_workflow_manager()
 
@@ -136,8 +150,7 @@ class ValidationWorkflow:
     ) -> None:
         """Execute the actual workflow logic."""
         # Use centralized threshold if not provided
-        if quality_threshold is None:
-            quality_threshold = DEFAULT_QUALITY_THRESHOLDS.validation_pass_threshold
+        quality_threshold = self._resolve_quality_threshold(quality_threshold)
 
         manager = manager or get_workflow_manager()
 
@@ -258,70 +271,17 @@ class ValidationWorkflow:
                     return
 
                 # Step 4: Refine if needed using dspy.Refine
-                final_content = skill_content
-                refinements_made: list[str] = []
-                refine_result: dspy.Prediction | dict[str, Any] | None = None
-
-                if quality_score < quality_threshold:
-                    await manager.emit(
-                        WorkflowEventType.PROGRESS,
-                        f"Quality {quality_score:.2f} below threshold {quality_threshold}, refining",
-                    )
-
-                    weakness_list = (
-                        quality_result.get("weaknesses") if isinstance(quality_result, dict) else []
-                    )
-
-                    if weakness_list:
-                        # Create quality-based reward function
-                        def quality_reward(kwargs: Any, pred: Any) -> float:
-                            """Calculate quality score for refinement."""
-                            content = getattr(pred, "refined_content", "")
-                            score = 0.5
-
-                            # Check for improvements
-                            if len(content) > len(kwargs.get("current_content", "")) * 0.9:
-                                score += 0.2
-
-                            # Check for addressed weaknesses
-                            weaknesses = kwargs.get("weaknesses", [])
-                            if weaknesses and any(w not in content for w in weaknesses[:2]):
-                                score += 0.3
-
-                            return min(1.0, score)
-
-                        # Initialize Refine if not already done
-                        async with self._lock:
-                            if self.quality_refiner is None:
-                                self.quality_refiner = dspy.Refine(
-                                    module=self.refinement,
-                                    reward_fn=quality_reward,
-                                    N=2,
-                                    threshold=quality_threshold,
-                                )
-
-                        async def _refine_executor(
-                            **kwargs: Any,
-                        ) -> dspy.Prediction | dict[str, Any]:
-                            assert self.quality_refiner is not None
-                            return await asyncio.to_thread(self.quality_refiner.forward, **kwargs)
-
-                        refine_result = await manager.execute_module(
-                            "quality_refiner",
-                            _refine_executor,
-                            current_content=skill_content,
-                            weaknesses=weakness_list,
-                            target_score=quality_threshold,
-                        )
-
-                        if isinstance(refine_result, dict):
-                            final_content = refine_result.get("refined_content", skill_content)
-                            refinements_made = refine_result.get("improvements_made", [])
-                        elif hasattr(refine_result, "refined_content"):
-                            final_content = refine_result.refined_content
-                            refinements_made = getattr(refine_result, "improvements_made", [])
-                    else:
-                        refine_result = None
+                (
+                    final_content,
+                    refinements_made,
+                    refine_result,
+                ) = await self._refine_if_needed(
+                    skill_content=skill_content,
+                    quality_result=quality_result,
+                    quality_score=quality_score,
+                    quality_threshold=quality_threshold,
+                    manager=manager,
+                )
 
                 # Determine final status
                 passed = (
@@ -482,6 +442,88 @@ class ValidationWorkflow:
                 "validation_summary": "Passed" if passed else "Needs improvement",
             },
         }
+
+    async def _refine_if_needed(
+        self,
+        *,
+        skill_content: str,
+        quality_result: Any,
+        quality_score: float,
+        quality_threshold: float,
+        manager: StreamingWorkflowManager,
+    ) -> tuple[str, list[str], dspy.Prediction | dict[str, Any] | None]:
+        """
+        Optionally refine content when below the quality threshold.
+
+        Args:
+            skill_content: Original skill content.
+            quality_result: Quality assessment output.
+            quality_score: Current quality score.
+            quality_threshold: Required score threshold.
+            manager: Workflow manager for emitting events.
+
+        Returns:
+            Tuple of (final_content, refinements_made, refine_result)
+
+        """
+        if quality_score >= quality_threshold:
+            return skill_content, [], None
+
+        await manager.emit(
+            WorkflowEventType.PROGRESS,
+            f"Quality {quality_score:.2f} below threshold {quality_threshold}, refining",
+        )
+
+        weakness_list = quality_result.get("weaknesses") if isinstance(quality_result, dict) else []
+        if not weakness_list:
+            return skill_content, [], None
+
+        def quality_reward(kwargs: Any, pred: Any) -> float:
+            """Calculate quality score for refinement."""
+            content = getattr(pred, "refined_content", "")
+            score = 0.5
+
+            if len(content) > len(kwargs.get("current_content", "")) * 0.9:
+                score += 0.2
+
+            weaknesses = kwargs.get("weaknesses", [])
+            if weaknesses and any(w not in content for w in weaknesses[:2]):
+                score += 0.3
+
+            return min(1.0, score)
+
+        async with self._lock:
+            if self.quality_refiner is None:
+                self.quality_refiner = dspy.Refine(
+                    module=self.refinement,
+                    reward_fn=quality_reward,
+                    N=2,
+                    threshold=quality_threshold,
+                )
+
+        async def _refine_executor(**kwargs: Any) -> dspy.Prediction | dict[str, Any]:
+            assert self.quality_refiner is not None
+            return await asyncio.to_thread(self.quality_refiner.forward, **kwargs)
+
+        refine_result = await manager.execute_module(
+            "quality_refiner",
+            _refine_executor,
+            current_content=skill_content,
+            weaknesses=weakness_list,
+            target_score=quality_threshold,
+        )
+
+        if isinstance(refine_result, dict):
+            final_content = refine_result.get("refined_content", skill_content)
+            refinements_made = refine_result.get("improvements_made", [])
+        elif hasattr(refine_result, "refined_content"):
+            final_content = refine_result.refined_content
+            refinements_made = getattr(refine_result, "improvements_made", [])
+        else:
+            final_content = skill_content
+            refinements_made = []
+
+        return final_content, refinements_made, refine_result
 
     def _create_review_checkpoint(
         self,

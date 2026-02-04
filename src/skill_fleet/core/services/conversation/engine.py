@@ -139,63 +139,20 @@ class ConversationService(ConversationHandlers):
         try:
             prior_state = session.state
 
-            # Handle empty/continue messages for automatic progression
-            user_message_trimmed = user_message.strip().lower() if user_message else ""
-            is_continue = user_message_trimmed in ("", "continue", "proceed", "next")
-
-            # Don't add empty messages to history
-            if user_message.strip():
-                session.messages.append({"role": "user", "content": user_message})
-
-            # Route based on current state
-            if session.state == ConversationState.EXPLORING:
-                response = await self.handle_exploring(user_message, session, thinking_callback)
-            elif session.state == ConversationState.DEEP_UNDERSTANDING:
-                response = await self.handle_deep_understanding(
-                    user_message, session, thinking_callback
-                )
-            elif session.state == ConversationState.MULTI_SKILL_DETECTED:
-                response = self.handle_multi_skill(user_message, session)
-            elif session.state == ConversationState.CONFIRMING:
-                response = await self.handle_confirmation(user_message, session, thinking_callback)
-            elif session.state == ConversationState.CREATING:
-                response = self.handle_creating(user_message, session)
-            elif session.state == ConversationState.TDD_RED_PHASE:
-                if is_continue:
-                    response = await self.execute_tdd_red_phase(session, thinking_callback)
-                else:
-                    response = await self.handle_tdd_red(user_message, session, thinking_callback)
-            elif session.state == ConversationState.TDD_GREEN_PHASE:
-                if is_continue:
-                    response = await self.execute_tdd_green_phase(session, thinking_callback)
-                else:
-                    response = await self.handle_tdd_green(user_message, session, thinking_callback)
-            elif session.state == ConversationState.TDD_REFACTOR_PHASE:
-                response = await self.handle_tdd_refactor(user_message, session, thinking_callback)
-            elif session.state == ConversationState.REVIEWING:
-                response = await self.handle_reviewing(user_message, session, thinking_callback)
-            elif session.state == ConversationState.REVISING:
-                response = await self.handle_revising(user_message, session, thinking_callback)
-            elif session.state == ConversationState.CHECKLIST_COMPLETE:
-                response = await self.handle_checklist_complete(
-                    user_message, session, thinking_callback
-                )
-            else:
-                response = AgentResponse(
-                    message="I'm ready to help you create a skill. What would you like to create?",
-                    state=ConversationState.EXPLORING,
-                    action="greet",
-                )
+            is_continue = self._is_continue_message(user_message)
+            self._record_user_message(session, user_message)
+            response = await self._route_response(
+                user_message=user_message,
+                session=session,
+                thinking_callback=thinking_callback,
+                is_continue=is_continue,
+            )
 
             # Attach compact progress + readiness information to the user-visible message.
             response = self._decorate_with_progress(response, session, prior_state)
 
             # Add agent response to history
-            if response.state is not None:
-                session.state = response.state
-            session.messages.append({"role": "assistant", "content": response.message})
-            if response.thinking_content:
-                session.messages.append({"role": "thinking", "content": response.thinking_content})
+            self._record_agent_response(session, response)
 
             return response
 
@@ -210,6 +167,66 @@ class ConversationService(ConversationHandlers):
                 action="error",
                 requires_user_input=True,
             )
+
+    def _is_continue_message(self, user_message: str) -> bool:
+        """Return True for empty/continue messages used to advance workflow."""
+        user_message_trimmed = user_message.strip().lower() if user_message else ""
+        return user_message_trimmed in ("", "continue", "proceed", "next")
+
+    def _record_user_message(self, session: ConversationSession, user_message: str) -> None:
+        """Append a non-empty user message to the session history."""
+        if user_message.strip():
+            session.messages.append({"role": "user", "content": user_message})
+
+    def _record_agent_response(self, session: ConversationSession, response: AgentResponse) -> None:
+        """Append agent response (and optional thinking) to the session history."""
+        if response.state is not None:
+            session.state = response.state
+        session.messages.append({"role": "assistant", "content": response.message})
+        if response.thinking_content:
+            session.messages.append({"role": "thinking", "content": response.thinking_content})
+
+    async def _route_response(
+        self,
+        *,
+        user_message: str,
+        session: ConversationSession,
+        thinking_callback: Callable[[str], None] | None,
+        is_continue: bool,
+    ) -> AgentResponse:
+        """Route the request to the correct handler based on session state."""
+        if session.state == ConversationState.EXPLORING:
+            return await self.handle_exploring(user_message, session, thinking_callback)
+        if session.state == ConversationState.DEEP_UNDERSTANDING:
+            return await self.handle_deep_understanding(user_message, session, thinking_callback)
+        if session.state == ConversationState.MULTI_SKILL_DETECTED:
+            return self.handle_multi_skill(user_message, session)
+        if session.state == ConversationState.CONFIRMING:
+            return await self.handle_confirmation(user_message, session, thinking_callback)
+        if session.state == ConversationState.CREATING:
+            return self.handle_creating(user_message, session)
+        if session.state == ConversationState.TDD_RED_PHASE:
+            if is_continue:
+                return await self.execute_tdd_red_phase(session, thinking_callback)
+            return await self.handle_tdd_red(user_message, session, thinking_callback)
+        if session.state == ConversationState.TDD_GREEN_PHASE:
+            if is_continue:
+                return await self.execute_tdd_green_phase(session, thinking_callback)
+            return await self.handle_tdd_green(user_message, session, thinking_callback)
+        if session.state == ConversationState.TDD_REFACTOR_PHASE:
+            return await self.handle_tdd_refactor(user_message, session, thinking_callback)
+        if session.state == ConversationState.REVIEWING:
+            return await self.handle_reviewing(user_message, session, thinking_callback)
+        if session.state == ConversationState.REVISING:
+            return await self.handle_revising(user_message, session, thinking_callback)
+        if session.state == ConversationState.CHECKLIST_COMPLETE:
+            return await self.handle_checklist_complete(user_message, session, thinking_callback)
+
+        return AgentResponse(
+            message="I'm ready to help you create a skill. What would you like to create?",
+            state=ConversationState.EXPLORING,
+            action="greet",
+        )
 
     def _decorate_with_progress(
         self,

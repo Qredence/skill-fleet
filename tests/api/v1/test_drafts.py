@@ -84,29 +84,30 @@ def test_promote_draft_without_delete_draft_keeps_session_and_draft_dir(
 
     job_id = "test-job-456"
 
-    draft_job_root = drafts_root_resolved / job_id
-    draft_skill_dir = draft_job_root / "testing" / "test-skill"
-    draft_skill_dir.mkdir(parents=True, exist_ok=True)
-    (draft_skill_dir / "SKILL.md").write_text("# Test Skill\n", encoding="utf-8")
+    try:
+        draft_job_root = drafts_root_resolved / job_id
+        draft_skill_dir = draft_job_root / "testing" / "test-skill"
+        draft_skill_dir.mkdir(parents=True, exist_ok=True)
+        (draft_skill_dir / "SKILL.md").write_text("# Test Skill\n", encoding="utf-8")
 
-    job = _create_completed_job(job_id=job_id, draft_skill_dir=draft_skill_dir)
-    jobs.JOBS[job_id] = job
+        job = _create_completed_job(job_id=job_id, draft_skill_dir=draft_skill_dir)
+        jobs.JOBS[job_id] = job
 
-    assert jobs.save_job_session(job_id) is True
-    session_file = sessions_dir / f"{job_id}.json"
-    assert session_file.exists()
+        assert jobs.save_job_session(job_id) is True
+        session_file = sessions_dir / f"{job_id}.json"
+        assert session_file.exists()
 
-    resp = client.post(
-        f"/api/v1/drafts/{job_id}/promote",
-        json={"overwrite": True, "delete_draft": False, "force": False},
-    )
-    assert resp.status_code == 200, resp.text
+        resp = client.post(
+            f"/api/v1/drafts/{job_id}/promote",
+            json={"overwrite": True, "delete_draft": False, "force": False},
+        )
+        assert resp.status_code == 200, resp.text
 
-    # Draft root and session should remain when delete_draft=false.
-    assert draft_job_root.exists()
-    assert session_file.exists()
+        # Draft root and session should remain when delete_draft=false.
+        assert draft_job_root.exists()
+        assert session_file.exists()
 
-    target_dir = temp_skills_root / "testing" / "test-skill"
-    assert target_dir.exists()
-
-    jobs.JOBS.pop(job_id, None)
+        target_dir = temp_skills_root / "testing" / "test-skill"
+        assert target_dir.exists()
+    finally:
+        jobs.JOBS.pop(job_id, None)

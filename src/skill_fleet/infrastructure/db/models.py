@@ -15,6 +15,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     Enum,
+    Float,
     ForeignKey,
     Index,
     Integer,
@@ -872,7 +873,7 @@ class Job(Base):
         ),
         nullable=True,
     )
-    validation_score: Mapped[float | None] = mapped_column(Integer, nullable=True)
+    validation_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
@@ -1025,13 +1026,13 @@ class ValidationReport(Base):
         nullable=False,
     )
     passed: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    score: Mapped[float] = mapped_column(Integer, nullable=False)
+    score: Mapped[float] = mapped_column(Float, nullable=False)
     errors: Mapped[list[str] | None] = mapped_column(StringArrayType(), nullable=True)
     warnings: Mapped[list[str] | None] = mapped_column(StringArrayType(), nullable=True)
     checks_performed: Mapped[list[str] | None] = mapped_column(StringArrayType(), nullable=True)
-    quality_score: Mapped[float | None] = mapped_column(Integer, nullable=True)
-    completeness_score: Mapped[float | None] = mapped_column(Integer, nullable=True)
-    compliance_score: Mapped[float | None] = mapped_column(Integer, nullable=True)
+    quality_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    completeness_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    compliance_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

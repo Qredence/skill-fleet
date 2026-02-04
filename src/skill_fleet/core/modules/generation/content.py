@@ -115,6 +115,10 @@ class GenerateSkillContentModule(BaseModule):
             dependencies=dependencies_to_generation_list(understanding.get("dependencies")),
         )
 
+    def create_skill_understanding(self, understanding: dict) -> SkillUnderstanding:
+        """Public method to create structured SkillUnderstanding from raw dict input."""
+        return self._create_skill_understanding(understanding)
+
     def _process_generation_result(
         self, result: dspy.Prediction, skill_category: str, template: SkillTemplate
     ) -> dict[str, Any]:

@@ -733,8 +733,8 @@ def dependencies_to_generation_list(dependencies: Any) -> list[str]:
     Normalize dependency output into a list format expected by generation.
 
     Phase 1 dependency analysis returns a dict-shaped object with keys like
-    'prerequisite_skills'. Phase 2 content generation expects `dependencies`
-    as a simple list of prerequisite skill IDs/strings.
+    'prerequisite_skills' and 'complementary_skills'. Phase 2 content generation
+    expects `dependencies` as a simple list of all skill IDs/strings.
     """
     if dependencies is None:
         return []
@@ -742,13 +742,21 @@ def dependencies_to_generation_list(dependencies: Any) -> list[str]:
         return [d for d in dependencies if isinstance(d, str)]
     if isinstance(dependencies, dict):
         prereqs = dependencies.get("prerequisite_skills", [])
+        complementary = dependencies.get("complementary_skills", [])
+        result = []
         if isinstance(prereqs, list):
-            return [d for d in prereqs if isinstance(d, str)]
-        return []
+            result.extend([d for d in prereqs if isinstance(d, str)])
+        if isinstance(complementary, list):
+            result.extend([d for d in complementary if isinstance(d, str)])
+        return result
     prerequisite_skills = getattr(dependencies, "prerequisite_skills", None)
+    complementary_skills = getattr(dependencies, "complementary_skills", None)
+    result = []
     if isinstance(prerequisite_skills, list):
-        return [d for d in prerequisite_skills if isinstance(d, str)]
-    return []
+        result.extend([d for d in prerequisite_skills if isinstance(d, str)])
+    if isinstance(complementary_skills, list):
+        result.extend([d for d in complementary_skills if isinstance(d, str)])
+    return result
 
 
 def dict_to_plan(data: dict[str, Any]) -> PlanOutput:

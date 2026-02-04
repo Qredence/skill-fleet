@@ -83,8 +83,9 @@ async def list_skills(
         q = search.lower()
         items = [i for i in items if q in i.name.lower()]
     if status:
-        # Status isn't tracked in metadata today; keep placeholder behavior.
-        items = items
+        # Status isn't tracked in metadata today; placeholder for future filtering.
+        # Currently, status is accepted but not used to filter items.
+        pass
 
     return sorted(items, key=lambda x: x.skill_id)
 

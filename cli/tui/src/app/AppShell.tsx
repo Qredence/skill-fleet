@@ -101,6 +101,7 @@ export function AppShell() {
   const [thinkingOpen, setThinkingOpen] = useState(false);
   const [thinkingLines, setThinkingLines] = useState<string[]>([]);
   const [showJumpedToBottom, setShowJumpedToBottom] = useState(false);
+  const [jobError, setJobError] = useState<string | null>(null);
 
   // Track if we're actively receiving streaming data for visual feedback
   const [isStreamingActive, setIsStreamingActive] = useState(false);
@@ -156,6 +157,15 @@ export function AppShell() {
 
   // Detect if job is in HITL waiting state
   const isWaitingForInput = job ? HITL_STATUSES.has(job.status) : false;
+
+  // Compute disabled reason for InputArea
+  const inputDisabledReason = useMemo(() => {
+    if (dialog) return "answering dialog";
+    if (activeHitlMessageId) return "responding to question";
+    if (job && isWaitingForInput) return "waiting for your answer";
+    if (job && !TERMINAL_STATUSES.has(job.status)) return "job running";
+    return undefined;
+  }, [activeHitlMessageId, dialog, isWaitingForInput, job]);
 
   const footerLeft = useMemo(() => {
     if (!job) return "Enter send | Shift+Enter newline | Ctrl+T thinking | Esc exit";
@@ -480,6 +490,7 @@ export function AppShell() {
     ]);
     setComposerText("");
     setThinkingLines([]);
+    setJobError(null);
 
     try {
       const response = await createSkillJob(task, userId);
@@ -499,17 +510,20 @@ export function AppShell() {
       }
 
       setJob({ id: jobId, status: "running", phase: "", module: "" });
+      setJobError(null);
     } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
       setMessages((prev) => [
         ...prev,
         {
           id: makeId("m"),
           role: "system",
-          content: `Failed to create job: ${err instanceof Error ? err.message : String(err)}`,
+          content: `Failed to create job: ${errMsg}`,
           createdAt: nowMs(),
           status: "done",
         },
       ]);
+      setJobError(errMsg);
     }
   }, [composerText, userId]);
 
@@ -584,7 +598,7 @@ export function AppShell() {
             showJumpedToBottom={showJumpedToBottom}
           />
 
-          {job ? (
+             {job ? (
             <ProgressIndicator
               theme={THEME}
               phase={job.phase}
@@ -602,6 +616,8 @@ export function AppShell() {
             onSubmit={startJob}
             focused={!dialog && !activeHitlMessageId}
             disabled={composerDisabled}
+            disabledReason={inputDisabledReason}
+            error={jobError || undefined}
           />
         </box>
 

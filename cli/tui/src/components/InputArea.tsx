@@ -18,9 +18,13 @@ type Props = {
   onSubmit: () => void;
   focused: boolean;
   disabled: boolean;
+  /** Reason why input is disabled (e.g., "waiting for HITL", "job running") */
+  disabledReason?: string;
+  /** Error message to display prominently */
+  error?: string;
 };
 
-export function InputArea({ theme, value, onChange, onSubmit, focused, disabled }: Props) {
+export function InputArea({ theme, value, onChange, onSubmit, focused, disabled, disabledReason, error }: Props) {
   const textareaTheme = useMemo(
     () => ({ panelAlt: theme.panel, text: theme.text, muted: theme.muted }),
     [theme.panel, theme.text, theme.muted],
@@ -75,16 +79,16 @@ export function InputArea({ theme, value, onChange, onSubmit, focused, disabled 
     <box
       flexDirection="column"
       gap={0}
-      padding={1}
-      backgroundColor={theme.panel}
-      border
-      borderColor={theme.border}
-      height={6}
+      paddingLeft={1}
+      paddingTop={0}
+      paddingBottom={0}
     >
-      <text fg={theme.muted}>
-        <span fg={theme.accent}>Prompt</span>
-        <span fg={theme.muted}> | Enter send | Shift+Enter newline</span>
-      </text>
+      {/* Error message if present */}
+      {error ? (
+        <box paddingBottom={1}>
+          <text fg={theme.accent}>⚠ {error}</text>
+        </box>
+      ) : null}
 
       <ControlledTextarea
         theme={textareaTheme}
@@ -95,8 +99,17 @@ export function InputArea({ theme, value, onChange, onSubmit, focused, disabled 
         height={3}
         wrapText
         focused={focused && !disabled}
-        placeholder={disabled ? "Waiting..." : "Describe the skill you want to create..."}
+        placeholder={disabled ? (disabledReason || "waiting...") : "Describe skill..."}
       />
+
+      {/* Help and status line */}
+      <box flexDirection="row" gap={2}>
+        <text fg={theme.muted}>enter send | shift+enter newline</text>
+        {disabled && disabledReason ? (
+          <text fg={theme.muted}>| ⏸ {disabledReason}</text>
+        ) : null}
+        <text fg={theme.muted}>| esc exit</text>
+      </box>
     </box>
   );
 }

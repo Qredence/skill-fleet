@@ -15,5 +15,9 @@ def test_create_skill_understanding_normalizes_dependency_dict():
         },
     }
 
-    parsed = module._create_skill_understanding(understanding)
-    assert parsed.dependencies == ["technical/programming/shell-basics", "technical/tools/rg"]
+    parsed = module.create_skill_understanding(understanding)
+    assert parsed.dependencies == [
+        "technical/programming/shell-basics",
+        "technical/tools/rg",
+        "technical/tools/fzf",
+    ]

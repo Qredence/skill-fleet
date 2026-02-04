@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import logging
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from skill_fleet.taxonomy.manager import TaxonomyManager
 
@@ -200,6 +200,68 @@ def _ensure_draft_root(drafts_root: Path, job_id: str) -> Path:
     return job_root
 
 
+def _write_asset_and_example_files(full_path: Path, skill_md: str) -> None:
+    """
+    Write extracted asset/example files from a SKILL.md body.
+
+    Args:
+        full_path: Root skill directory.
+        skill_md: Full SKILL.md contents.
+
+    """
+    assets = _extract_named_file_code_blocks(skill_md)
+    examples = _extract_usage_example_code_blocks(skill_md)
+
+    if assets:
+        assets_dir = full_path / "assets"
+        assets_dir.mkdir(parents=True, exist_ok=True)
+        for filename, content in assets.items():
+            (assets_dir / filename).write_text(content, encoding="utf-8")
+
+    if examples:
+        examples_dir = full_path / "examples"
+        examples_dir.mkdir(parents=True, exist_ok=True)
+        for filename, content in examples.items():
+            (examples_dir / filename).write_text(content, encoding="utf-8")
+
+
+def _write_subdirectory_files(full_path: Path, edit_result: Any) -> None:
+    """
+    Write v2 Golden Standard subdirectory files from edit_result.
+
+    Args:
+        full_path: Root skill directory.
+        edit_result: Result object that may include subdirectory_files.
+
+    """
+    if not edit_result or not hasattr(edit_result, "subdirectory_files"):
+        return
+
+    subdir_files = edit_result.subdirectory_files
+    if not subdir_files or not isinstance(subdir_files, dict):
+        return
+
+    valid_subdirs = {"references", "guides", "templates", "scripts", "examples"}
+    for subdir_name, files in subdir_files.items():
+        if subdir_name not in valid_subdirs:
+            logger.warning("Skipping invalid subdirectory: %s", subdir_name)
+            continue
+        if not isinstance(files, dict):
+            continue
+        subdir_path = full_path / subdir_name
+        subdir_path.mkdir(parents=True, exist_ok=True)
+        for filename, content in files.items():
+            safe_filename = _safe_single_filename(filename)
+            if safe_filename:
+                file_path = subdir_path / safe_filename
+                file_path.write_text(str(content), encoding="utf-8")
+                logger.debug(
+                    "Wrote subdirectory file: %s/%s",
+                    subdir_name,
+                    safe_filename,
+                )
+
+
 async def save_skill_to_draft(
     *, drafts_root: Path, job_id: str, result: SkillCreationResult
 ) -> str | None:
@@ -284,20 +346,7 @@ async def save_skill_to_draft(
                 skill_md_path = full_path / "SKILL.md"
                 if skill_md_path.exists():
                     skill_md = skill_md_path.read_text(encoding="utf-8")
-                    assets = _extract_named_file_code_blocks(skill_md)
-                    examples = _extract_usage_example_code_blocks(skill_md)
-
-                    if assets:
-                        assets_dir = full_path / "assets"
-                        assets_dir.mkdir(parents=True, exist_ok=True)
-                        for filename, content in assets.items():
-                            (assets_dir / filename).write_text(content, encoding="utf-8")
-
-                    if examples:
-                        examples_dir = full_path / "examples"
-                        examples_dir.mkdir(parents=True, exist_ok=True)
-                        for filename, content in examples.items():
-                            (examples_dir / filename).write_text(content, encoding="utf-8")
+                    _write_asset_and_example_files(full_path, skill_md)
             except Exception:
                 logger.warning(
                     "Failed to extract skill artifacts (assets/examples) for %s",
@@ -308,30 +357,7 @@ async def save_skill_to_draft(
             # v2 Golden Standard: Write subdirectory files if provided in edit_result
             # Subdirectory files come from the DSPy generation phase
             try:
-                if result.edit_result and hasattr(result.edit_result, "subdirectory_files"):
-                    subdir_files = result.edit_result.subdirectory_files
-                    if subdir_files and isinstance(subdir_files, dict):
-                        # Valid subdirectories per v2 standard
-                        valid_subdirs = {"references", "guides", "templates", "scripts", "examples"}
-                        for subdir_name, files in subdir_files.items():
-                            if subdir_name not in valid_subdirs:
-                                logger.warning("Skipping invalid subdirectory: %s", subdir_name)
-                                continue
-                            if not isinstance(files, dict):
-                                continue
-                            subdir_path = full_path / subdir_name
-                            subdir_path.mkdir(parents=True, exist_ok=True)
-                            for filename, content in files.items():
-                                # Validate filename for safety
-                                safe_filename = _safe_single_filename(filename)
-                                if safe_filename:
-                                    file_path = subdir_path / safe_filename
-                                    file_path.write_text(str(content), encoding="utf-8")
-                                    logger.debug(
-                                        "Wrote subdirectory file: %s/%s",
-                                        subdir_name,
-                                        safe_filename,
-                                    )
+                _write_subdirectory_files(full_path, result.edit_result)
             except Exception as e:
                 logger.warning(
                     "Failed to write subdirectory files for %s: %s",

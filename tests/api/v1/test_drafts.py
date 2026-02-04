@@ -45,27 +45,26 @@ def test_promote_draft_delete_draft_deletes_session_and_draft_dir(
     job = _create_completed_job(job_id=job_id, draft_skill_dir=draft_skill_dir)
     jobs.JOBS[job_id] = job
 
-    assert jobs.save_job_session(job_id) is True
-    session_file = sessions_dir / f"{job_id}.json"
-    assert session_file.exists()
+    try:
+        assert jobs.save_job_session(job_id) is True
+        session_file = sessions_dir / f"{job_id}.json"
+        assert session_file.exists()
 
-    resp = client.post(
-        f"/api/v1/drafts/{job_id}/promote",
-        json={"overwrite": True, "delete_draft": True, "force": False},
-    )
-    assert resp.status_code == 200, resp.text
+        resp = client.post(
+            f"/api/v1/drafts/{job_id}/promote",
+            json={"overwrite": True, "delete_draft": True, "force": False},
+        )
+        assert resp.status_code == 200, resp.text
 
-    # Draft root and session should be removed when delete_draft=true.
-    assert not draft_job_root.exists()
-    assert not session_file.exists()
+        # Draft root and session should be removed when delete_draft=true.
+        assert not draft_job_root.exists()
+        assert not session_file.exists()
 
-    # Target taxonomy directory should exist.
-    target_dir = temp_skills_root / "testing" / "test-skill"
-    assert target_dir.exists()
-
-    jobs.JOBS.pop(job_id, None)
-
-
+        # Target taxonomy directory should exist.
+        target_dir = temp_skills_root / "testing" / "test-skill"
+        assert target_dir.exists()
+    finally:
+        jobs.JOBS.pop(job_id, None)
 def test_promote_draft_without_delete_draft_keeps_session_and_draft_dir(
     client, temp_skills_root, dependency_override_cleanup, monkeypatch, tmp_path
 ):

@@ -300,7 +300,9 @@ async def save_skill_to_draft(
                             (examples_dir / filename).write_text(content, encoding="utf-8")
             except Exception:
                 logger.warning(
-                    "Failed to extract skill artifacts (assets/examples) for %s", full_path
+                    "Failed to extract skill artifacts (assets/examples) for %s",
+                    full_path,
+                    exc_info=True,
                 )
 
             # v2 Golden Standard: Write subdirectory files if provided in edit_result
@@ -331,7 +333,12 @@ async def save_skill_to_draft(
                                         safe_filename,
                                     )
             except Exception as e:
-                logger.warning("Failed to write subdirectory files for %s: %s", full_path, e)
+                logger.warning(
+                    "Failed to write subdirectory files for %s: %s",
+                    full_path,
+                    e,
+                    exc_info=True,
+                )
 
             logger.info("Draft saved successfully to: %s", full_path)
             return str(full_path)

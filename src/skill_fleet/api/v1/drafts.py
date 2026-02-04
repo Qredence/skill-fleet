@@ -160,12 +160,12 @@ async def promote_draft(
                 if backup_path.exists():
                     shutil.rmtree(backup_path)
 
-            except Exception as e:
+            except Exception:
                 if needs_restore and backup_path.exists():
                     if target_dir.exists():
                         shutil.rmtree(target_dir)
                     shutil.move(str(backup_path), str(target_dir))
-                raise e
+                raise
 
         # Update taxonomy meta/cache by loading metadata (best-effort)
         # Refresh cache by reloading always-loaded skills
@@ -180,8 +180,8 @@ async def promote_draft(
             job_root = skills_root_resolved / "_drafts" / job_id
             _safe_rmtree(job_root)
             delete_job_session(job_id)
-
-        save_job_session(job_id)
+        else:
+            save_job_session(job_id)
 
         return PromoteDraftResponse(
             job_id=job_id,

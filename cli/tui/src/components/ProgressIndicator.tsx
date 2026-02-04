@@ -30,6 +30,16 @@ const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", 
 // Pulse frames for non-token activity (slower, subtler animation)
 const PULSE_FRAMES = ["◐", "◓", "◑", "◒"];
 
+// Waiting indicator for HITL states (attention-grabbing)
+const WAITING_FRAMES = ["◉", "◎"];
+
+// Statuses that indicate waiting for user input (HITL)
+const HITL_WAITING_STATUSES = new Set([
+  "pending_user_input",
+  "pending_hitl",
+  "pending_review",
+]);
+
 /**
  * Format time since last event in human-readable form.
  */
@@ -45,6 +55,10 @@ function formatTimeSince(ms: number | null): string {
 export function ProgressIndicator({ theme, phase, module, status, isStreaming, activity }: Props) {
   const [spinnerIdx, setSpinnerIdx] = useState(0);
   const [pulseIdx, setPulseIdx] = useState(0);
+  const [waitingIdx, setWaitingIdx] = useState(0);
+
+  // Detect HITL waiting state
+  const isWaitingForInput = status ? HITL_WAITING_STATUSES.has(status) : false;
 
   // Use activity.isActive for enhanced activity detection
   const showActivity = isStreaming || activity?.isActive;
@@ -53,28 +67,40 @@ export function ProgressIndicator({ theme, phase, module, status, isStreaming, a
 
   // Fast spinner for token streaming
   useEffect(() => {
-    if (!showActivity || !hasTokens) return;
+    if (!showActivity || !hasTokens || isWaitingForInput) return;
 
     const interval = setInterval(() => {
       setSpinnerIdx((i) => (i + 1) % SPINNER_FRAMES.length);
     }, 80);
 
     return () => clearInterval(interval);
-  }, [showActivity, hasTokens]);
+  }, [showActivity, hasTokens, isWaitingForInput]);
 
   // Slower pulse for general activity (no token_stream)
   useEffect(() => {
-    if (!showActivity || hasTokens) return;
+    if (!showActivity || hasTokens || isWaitingForInput) return;
 
     const interval = setInterval(() => {
       setPulseIdx((i) => (i + 1) % PULSE_FRAMES.length);
     }, 250);
 
     return () => clearInterval(interval);
-  }, [showActivity, hasTokens]);
+  }, [showActivity, hasTokens, isWaitingForInput]);
 
-  // Choose animation based on activity type
+  // Waiting animation for HITL states
+  useEffect(() => {
+    if (!isWaitingForInput) return;
+
+    const interval = setInterval(() => {
+      setWaitingIdx((i) => (i + 1) % WAITING_FRAMES.length);
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [isWaitingForInput]);
+
+  // Choose animation based on state
   const spinner = (() => {
+    if (isWaitingForInput) return WAITING_FRAMES[waitingIdx] ?? "◉";
     if (!showActivity) return " ";
     if (hasTokens) return SPINNER_FRAMES[spinnerIdx] ?? "⠋";
     return PULSE_FRAMES[pulseIdx] ?? "◐";
@@ -83,6 +109,7 @@ export function ProgressIndicator({ theme, phase, module, status, isStreaming, a
   const icon = phase ? PHASE_ICONS[phase] || "●" : "●";
 
   const statusText = (() => {
+    if (isWaitingForInput) return "Waiting for input";
     if (status === "completed") return "Done";
     if (status === "failed") return "Failed";
     if (status === "cancelled") return "Cancelled";
@@ -96,21 +123,32 @@ export function ProgressIndicator({ theme, phase, module, status, isStreaming, a
     ? formatTimeSince(activity.timeSinceLastEvent)
     : "";
 
+  // Format phase name with first letter capitalized
+  const phaseName = phase ? phase.charAt(0).toUpperCase() + phase.slice(1) : "Idle";
+
+  // Concise format for narrow terminals: "Phase → Module → Status"
+  // When waiting for input, highlight with special styling
+  const statusColor = isWaitingForInput
+    ? theme.accent  // Highlight waiting state
+    : showActivity
+      ? theme.accent
+      : theme.muted;
+
   return (
     <box flexDirection="row" gap={1} paddingLeft={1} paddingTop={0} paddingBottom={1}>
-      <text fg={theme.accent}>
+      <text fg={isWaitingForInput ? theme.accent : theme.accent}>
         {spinner} {icon}
       </text>
       <text fg={theme.muted}>
-        {phase ? phase.charAt(0).toUpperCase() + phase.slice(1) : "Idle"}
+        {phaseName}
       </text>
       {module ? (
         <text fg={theme.muted}>
           → {module}
         </text>
       ) : null}
-      <text fg={theme.border}>|</text>
-      <text fg={showActivity ? theme.accent : theme.muted}>
+      <text fg={theme.border}>→</text>
+      <text fg={statusColor}>
         {statusText}
       </text>
       {timeSinceText ? (

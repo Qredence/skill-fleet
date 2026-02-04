@@ -147,21 +147,35 @@ export function AppShell() {
 
   const composerDisabled = Boolean(dialog) || Boolean(activeHitlMessageId) || (job != null && !TERMINAL_STATUSES.has(job.status));
 
+  // Detect if job is in HITL waiting state
+  const isWaitingForInput = job ? HITL_STATUSES.has(job.status) : false;
+
   const footerLeft = useMemo(() => {
     if (!job) return "Enter send | Shift+Enter newline | Ctrl+T thinking | Esc exit";
-    const pieces: string[] = [];
-    pieces.push(`Job ${job.id}`);
-    if (job.phase) pieces.push(`phase=${job.phase}`);
-    if (job.module) pieces.push(`module=${job.module}`);
-    if (job.status) pieces.push(`status=${job.status}`);
-    return pieces.join(" | ");
+
+    // When waiting for HITL input, show prominent message
+    if (HITL_STATUSES.has(job.status)) {
+      return `[${job.id}] ⚠ WAITING FOR INPUT - respond to continue`;
+    }
+
+    // Concise format: Job ID → Phase → Status
+    const parts: string[] = [`[${job.id}]`];
+    if (job.phase) parts.push(job.phase);
+    if (job.module) parts.push(`→ ${job.module}`);
+    if (job.status && !TERMINAL_STATUSES.has(job.status)) {
+      parts.push(`(${job.status})`);
+    } else if (job.status) {
+      parts.push(`✓ ${job.status}`);
+    }
+    return parts.join(" ");
   }, [job]);
 
   const footerRight = useMemo(() => {
     if (dialog) return "Dialog: Enter confirm | Ctrl+S submit";
+    if (isWaitingForInput) return "↑ Answer above to continue";
     if (!job) return `API ${apiUrl}`;
     return `API ${apiUrl}`;
-  }, [apiUrl, dialog, job]);
+  }, [apiUrl, dialog, isWaitingForInput, job]);
 
   const ensureStreamingAssistantMessage = useCallback((chunk: string) => {
     if (!chunk) return;

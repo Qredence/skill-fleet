@@ -12,6 +12,7 @@ import { InputArea } from "../components/InputArea";
 import { InputDialog, type DialogKind } from "../components/InputDialog";
 import { MessageList, type ChatMessage } from "../components/MessageList";
 import { ThinkingPanel } from "../components/ThinkingPanel";
+import { ProgressIndicator } from "../components/ProgressIndicator";
 import { Footer } from "../components/Footer";
 
 const THEME = {
@@ -19,10 +20,11 @@ const THEME = {
   panel: "#0a0a0a",
   panelAlt: "#121212",
   border: "#2a2a2a",
-  accent: "#ffffff",
+  accent: "#22c55e",  // Green accent for activity
   text: "#e5e5e5",
   muted: "#737373",
   error: "#ef4444",
+  success: "#22c55e",
 };
 
 const HITL_STATUSES = new Set(["pending_user_input", "pending_hitl", "pending_review"]);
@@ -44,11 +46,30 @@ function asString(value: unknown): string {
   return typeof value === "string" ? value : value == null ? "" : String(value);
 }
 
+function sanitizeUserId(input: string): string {
+  // Allow only alphanumeric, dash, underscore; max 64 chars
+  // This prevents terminal escape sequences and other control characters
+  const sanitized = input.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 64);
+  return sanitized || "default";
+}
+
 type JobState = {
   id: string;
   status: string;
   phase: string;
   module: string;
+};
+
+/**
+ * Activity instrumentation for tracking streaming/event activity.
+ * Used to provide responsive UI feedback during all event types.
+ */
+export type ActivitySummary = {
+  lastEventAt: number | null;
+  lastTokenAt: number | null;
+  lastStatusAt: number | null;
+  isActive: boolean;
+  timeSinceLastEvent: number | null;
 };
 
 type DialogState = {
@@ -70,20 +91,54 @@ export function AppShell() {
       id: makeId("m"),
       role: "system",
       content:
-        "Skill Fleet TUI (OpenTUI)\n\nType your task below and press Enter to start.\nShift+Enter inserts a newline.\nCtrl+T toggles thinking.\nEsc exits.",
+        "Skill Fleet TUI - Ready",
       createdAt: nowMs(),
       status: "done",
     },
   ]);
 
   const [composerText, setComposerText] = useState("");
-  const [userId, setUserId] = useState(process.env.SKILL_FLEET_USER_ID || "default");
+  const [userId, setUserId] = useState(
+    sanitizeUserId(process.env.SKILL_FLEET_USER_ID || "default")
+  );
   const [job, setJob] = useState<JobState | null>(null);
   const [dialog, setDialog] = useState<DialogState | null>(null);
   const [activeHitlMessageId, setActiveHitlMessageId] = useState<string | null>(null);
 
   const [thinkingOpen, setThinkingOpen] = useState(false);
   const [thinkingLines, setThinkingLines] = useState<string[]>([]);
+
+  // Track if we're actively receiving streaming data for visual feedback
+  const [isStreamingActive, setIsStreamingActive] = useState(false);
+  const streamingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Activity instrumentation: track timestamps for different event types
+  const [lastEventAt, setLastEventAt] = useState<number | null>(null);
+  const [lastTokenAt, setLastTokenAt] = useState<number | null>(null);
+  const [lastStatusAt, setLastStatusAt] = useState<number | null>(null);
+  const [currentTime, setCurrentTime] = useState<number>(nowMs());
+
+  // Update current time periodically for "time since last event" display
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(nowMs());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Compute activity summary for child components
+  const activity: ActivitySummary = useMemo(() => {
+    const timeSinceLastEvent = lastEventAt ? currentTime - lastEventAt : null;
+    // Consider activity "active" if we received an event in the last 3 seconds
+    const isActive = timeSinceLastEvent !== null && timeSinceLastEvent < 3000;
+    return {
+      lastEventAt,
+      lastTokenAt,
+      lastStatusAt,
+      isActive,
+      timeSinceLastEvent,
+    };
+  }, [lastEventAt, lastTokenAt, lastStatusAt, currentTime]);
 
   useEffect(() => {
     jobRef.current = job;
@@ -109,6 +164,16 @@ export function AppShell() {
 
   const ensureStreamingAssistantMessage = useCallback((chunk: string) => {
     if (!chunk) return;
+
+    // Mark streaming as active for visual feedback
+    setIsStreamingActive(true);
+    if (streamingTimeoutRef.current) {
+      clearTimeout(streamingTimeoutRef.current);
+    }
+    // Clear active state after 500ms of no new chunks
+    streamingTimeoutRef.current = setTimeout(() => {
+      setIsStreamingActive(false);
+    }, 500);
 
     setMessages((prev) => {
       const next = [...prev];
@@ -156,6 +221,9 @@ export function AppShell() {
 
     if (inlineTypes.has(kind)) {
       // Check if we already have an unanswered HITL message - prevent duplicates
+      const messageId = makeId("hitl");
+      let shouldSetActive = false;
+
       setMessages((prev) => {
         const hasPendingHitl = prev.some(
           (m) => m.role === "hitl" && m.hitlData && !m.hitlData.answered
@@ -181,12 +249,10 @@ export function AppShell() {
           }
         }
 
-        // Create an inline HITL message
-        const messageId = makeId("hitl");
-        // Update activeHitlMessageId synchronously with the state update
-        // We use a setTimeout to ensure it happens after this state update
-        setTimeout(() => setActiveHitlMessageId(messageId), 0);
+        // Mark that we should set this as active after the state update
+        shouldSetActive = true;
 
+        // Create an inline HITL message
         return [
           ...prev,
           {
@@ -201,8 +267,14 @@ export function AppShell() {
               answered: false,
             },
           },
-        ];
+        ]
       });
+
+      // Set active HITL message ID after the message is added
+      // This is done outside setMessages to follow React patterns
+      if (shouldSetActive) {
+        setActiveHitlMessageId(messageId);
+      }
     } else {
       // Modal types: preview, validate
       setDialog({ kind, prompt, openedAt: nowMs() });
@@ -212,9 +284,14 @@ export function AppShell() {
   const handleStreamEvent = useCallback((event: WorkflowEvent) => {
     const type = asString(event.type);
     const currentJob = jobRef.current;
+    const eventTime = nowMs();
+
+    // Record activity timestamp for all events
+    setLastEventAt(eventTime);
 
     if (type === "status") {
       const status = asString(event.status);
+      setLastStatusAt(eventTime);
       setJob((prev) => {
         if (!prev) return prev;
         return { ...prev, status: status || prev.status };
@@ -257,6 +334,7 @@ export function AppShell() {
 
     if (type === "token_stream") {
       const chunk = asString(event.data?.chunk) || asString(event.message);
+      setLastTokenAt(eventTime);
       ensureStreamingAssistantMessage(chunk);
       return;
     }
@@ -381,19 +459,22 @@ export function AppShell() {
   }, [job, maybeOpenHitl]);
 
   const layoutThinking = thinkingOpen ? (
-    <ThinkingPanel theme={THEME} lines={thinkingLines} />
+    <ThinkingPanel
+      theme={THEME}
+      lines={thinkingLines}
+      isActive={isStreamingActive || Boolean(job && !TERMINAL_STATUSES.has(job.status))}
+    />
   ) : null;
 
+  // Check if any message is currently streaming
+  const hasStreamingMessage = messages.some((m) => m.status === "streaming");
+
   return (
-    <box flexDirection="column" width="100%" height="100%" backgroundColor={THEME.background} padding={1} gap={1}>
-      <box flexDirection="row" gap={1} flexGrow={1}>
+    <box flexDirection="column" width="100%" height="100%" backgroundColor={THEME.background}>
+      <box flexDirection="row" flexGrow={1}>
         <box
           flexDirection="column"
           flexGrow={1}
-          backgroundColor={THEME.panelAlt}
-          border
-          borderColor={THEME.border}
-          padding={1}
         >
           <MessageList
             theme={THEME}
@@ -401,6 +482,17 @@ export function AppShell() {
             onHitlSubmit={submitInlineHitl}
             activeHitlMessageId={activeHitlMessageId}
           />
+
+          {job ? (
+            <ProgressIndicator
+              theme={THEME}
+              phase={job.phase}
+              module={job.module}
+              status={job.status}
+              isStreaming={hasStreamingMessage || isStreamingActive}
+              activity={activity}
+            />
+          ) : null}
 
           <InputArea
             theme={THEME}
@@ -415,7 +507,7 @@ export function AppShell() {
         {layoutThinking}
       </box>
 
-      <Footer theme={THEME} left={footerLeft} right={footerRight} />
+      <Footer theme={THEME} left={footerLeft} right={footerRight} activity={activity} />
 
       {dialog ? (
         <InputDialog

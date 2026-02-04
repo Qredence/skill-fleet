@@ -262,6 +262,104 @@ def _write_subdirectory_files(full_path: Path, edit_result: Any) -> None:
                 )
 
 
+def _extract_taxonomy_path(metadata: Any) -> str:
+    """
+    Extract taxonomy path from metadata, preferring taxonomy_path over skill_id.
+
+    Args:
+        metadata: Skill metadata object (Pydantic or dict-like)
+
+    Returns:
+        Taxonomy path string
+
+    """
+    taxonomy_path = getattr(metadata, "taxonomy_path", None)
+    if taxonomy_path:
+        return taxonomy_path
+    return getattr(metadata, "skill_id", "")
+
+
+def _build_metadata_dict(metadata: Any) -> dict[str, Any]:
+    """
+    Build metadata dict for registration, preserving workflow-produced fields.
+
+    Args:
+        metadata: Skill metadata object
+
+    Returns:
+        Dict of metadata fields for register_skill
+
+    """
+    return {
+        "skill_id": metadata.skill_id,
+        "name": metadata.name,
+        "description": metadata.description,
+        "version": metadata.version,
+        "type": metadata.type,
+        "weight": getattr(metadata, "weight", "medium"),
+        "load_priority": getattr(metadata, "load_priority", "on_demand"),
+        "dependencies": getattr(metadata, "dependencies", []) or [],
+        "capabilities": getattr(metadata, "capabilities", []) or [],
+        "category": getattr(metadata, "category", ""),
+        "keywords": getattr(metadata, "keywords", []) or [],
+        "scope": getattr(metadata, "scope", ""),
+        "see_also": getattr(metadata, "see_also", []) or [],
+        "tags": getattr(metadata, "tags", []) or [],
+    }
+
+
+def _build_evolution(result: Any) -> dict[str, Any]:
+    """
+    Build evolution metadata for registration.
+
+    Args:
+        result: SkillCreationResult from workflow
+
+    Returns:
+        Evolution metadata dictionary
+
+    """
+    return {
+        "created_by": "skill-fleet-api",
+        "workflow": "SkillCreationProgram",
+        "validation_score": result.validation_report.score if result.validation_report else None,
+    }
+
+
+async def _register_draft(
+    manager: TaxonomyManager,
+    *,
+    path: str,
+    metadata: dict[str, Any],
+    content: str,
+    evolution: dict[str, Any],
+    extra_files: dict[str, Any] | None,
+) -> bool:
+    """
+    Register a draft skill in the taxonomy manager.
+
+    Args:
+        manager: Taxonomy manager instance
+        path: Safe taxonomy path
+        metadata: Metadata dict for registration
+        content: Skill content
+        evolution: Evolution metadata
+        extra_files: Optional extra files mapping
+
+    Returns:
+        True if register_skill succeeds
+
+    """
+    return await manager.register_skill(
+        path=path,
+        metadata=metadata,
+        content=content,
+        evolution=evolution,
+        extra_files=extra_files,
+        overwrite=True,
+    )
+
+
 async def save_skill_to_draft(
     *, drafts_root: Path, job_id: str, result: SkillCreationResult
 ) -> str | None:
@@ -289,9 +387,7 @@ async def save_skill_to_draft(
 
         # Extract metadata for registration
         metadata = result.metadata
-        taxonomy_path = (
-            metadata.taxonomy_path if hasattr(metadata, "taxonomy_path") else metadata.skill_id
-        )
+        taxonomy_path = _extract_taxonomy_path(metadata)
 
         # Use centralized path sanitization to prevent traversal attacks
         safe_taxonomy_path = sanitize_taxonomy_path(taxonomy_path)
@@ -304,40 +400,19 @@ async def save_skill_to_draft(
         # Important: preserve workflow-produced metadata (capabilities, load_priority, etc.)
         # so deterministic validators and downstream tooling see the same intent the DSPy
         # planner produced.
-        meta_dict = {
-            "skill_id": metadata.skill_id,
-            "name": metadata.name,
-            "description": metadata.description,
-            "version": metadata.version,
-            "type": metadata.type,
-            "weight": getattr(metadata, "weight", "medium"),
-            "load_priority": getattr(metadata, "load_priority", "on_demand"),
-            "dependencies": getattr(metadata, "dependencies", []) or [],
-            "capabilities": getattr(metadata, "capabilities", []) or [],
-            "category": getattr(metadata, "category", ""),
-            "keywords": getattr(metadata, "keywords", []) or [],
-            "scope": getattr(metadata, "scope", ""),
-            "see_also": getattr(metadata, "see_also", []) or [],
-            "tags": getattr(metadata, "tags", []) or [],
-        }
+        meta_dict = _build_metadata_dict(metadata)
 
         # Evolution tracking
-        evolution = {
-            "created_by": "skill-fleet-api",
-            "workflow": "SkillCreationProgram",
-            "validation_score": result.validation_report.score
-            if result.validation_report
-            else None,
-        }
+        evolution = _build_evolution(result)
 
         # Register the skill (writes SKILL.md + metadata.json + standard subdirs)
-        success = await manager.register_skill(
+        success = await _register_draft(
+            manager,
             path=safe_taxonomy_path,
             metadata=meta_dict,
             content=result.skill_content,
             evolution=evolution,
             extra_files=result.extra_files,
-            overwrite=True,
         )
 
         if success:

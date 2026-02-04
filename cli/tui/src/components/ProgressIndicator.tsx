@@ -1,20 +1,10 @@
 import { useEffect, useState } from "react";
+import type { ActivitySummary } from "../types";
 
 type Theme = {
   accent: string;
   muted: string;
   border: string;
-};
-
-/**
- * Activity summary from AppShell instrumentation.
- */
-export type ActivitySummary = {
-  lastEventAt: number | null;
-  lastTokenAt: number | null;
-  lastStatusAt: number | null;
-  isActive: boolean;
-  timeSinceLastEvent: number | null;
 };
 
 type Props = {
@@ -65,7 +55,7 @@ export function ProgressIndicator({ theme, phase, module, status, isStreaming, a
     return () => clearInterval(interval);
   }, [showActivity]);
 
-  const spinner = showActivity ? SPINNER_FRAMES[spinnerIdx] : " ";
+  const spinner = showActivity ? (SPINNER_FRAMES[spinnerIdx] ?? "⠋") : " ";
   const icon = phase ? PHASE_ICONS[phase] || "●" : "●";
 
   const statusText = (() => {

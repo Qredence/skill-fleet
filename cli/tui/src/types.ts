@@ -63,3 +63,15 @@ export type CreateJobResponse = {
   status?: string;
   error?: string;
 };
+
+/**
+ * Activity summary from AppShell instrumentation.
+ * Used to provide responsive UI feedback during all event types.
+ */
+export type ActivitySummary = {
+  lastEventAt: number | null;
+  lastTokenAt: number | null;
+  lastStatusAt: number | null;
+  isActive: boolean;
+  timeSinceLastEvent: number | null;
+};

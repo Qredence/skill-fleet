@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useKeyboard, useRenderer } from "@opentui/react";
-import type { HitlPrompt, WorkflowEvent } from "../types";
+import type { ActivitySummary, HitlPrompt, WorkflowEvent } from "../types";
 import {
   createSkillJob,
   fetchHitlPrompt,
@@ -60,18 +60,6 @@ type JobState = {
   module: string;
 };
 
-/**
- * Activity instrumentation for tracking streaming/event activity.
- * Used to provide responsive UI feedback during all event types.
- */
-export type ActivitySummary = {
-  lastEventAt: number | null;
-  lastTokenAt: number | null;
-  lastStatusAt: number | null;
-  isActive: boolean;
-  timeSinceLastEvent: number | null;
-};
-
 type DialogState = {
   kind: DialogKind;
   prompt: HitlPrompt;
@@ -111,6 +99,7 @@ export function AppShell() {
   // Track if we're actively receiving streaming data for visual feedback
   const [isStreamingActive, setIsStreamingActive] = useState(false);
   const streamingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hitlRecheckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Activity instrumentation: track timestamps for different event types
   const [lastEventAt, setLastEventAt] = useState<number | null>(null);
@@ -353,7 +342,7 @@ export function AppShell() {
       finalizeStreamingAssistantMessage();
       return;
     }
-  }, [finalizeStreamingAssistantMessage]);
+  }, [appendThinking, ensureStreamingAssistantMessage, finalizeStreamingAssistantMessage, maybeOpenHitl]);
 
   useEffect(() => {
     if (!job) return;
@@ -400,23 +389,36 @@ export function AppShell() {
     setComposerText("");
     setThinkingLines([]);
 
-    const response = await createSkillJob(task, userId);
-    const jobId = asString(response.job_id);
-    if (!jobId) {
+    try {
+      const response = await createSkillJob(task, userId);
+      const jobId = asString(response.job_id);
+      if (!jobId) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: makeId("m"),
+            role: "system",
+            content: `Failed to create job: ${asString(response.error)}`,
+            createdAt: nowMs(),
+            status: "done",
+          },
+        ]);
+        return;
+      }
+
+      setJob({ id: jobId, status: "running", phase: "", module: "" });
+    } catch (err) {
       setMessages((prev) => [
         ...prev,
         {
           id: makeId("m"),
           role: "system",
-          content: `Failed to create job: ${asString(response.error)}`,
+          content: `Failed to create job: ${err instanceof Error ? err.message : String(err)}`,
           createdAt: nowMs(),
           status: "done",
         },
       ]);
-      return;
     }
-
-    setJob({ id: jobId, status: "running", phase: "", module: "" });
   }, [composerText, userId]);
 
   const submitHitl = useCallback(async (payload: Record<string, unknown>) => {
@@ -453,7 +455,11 @@ export function AppShell() {
 
     // Check if backend has a new HITL prompt waiting (common in multi-round flows)
     // Use longer delay to allow backend to process the response first
-    setTimeout(() => {
+    // Clear any existing recheck timeout to avoid duplicates
+    if (hitlRecheckTimeoutRef.current) {
+      clearTimeout(hitlRecheckTimeoutRef.current);
+    }
+    hitlRecheckTimeoutRef.current = setTimeout(() => {
       void maybeOpenHitl(job.id);
     }, 1500);
   }, [job, maybeOpenHitl]);
@@ -507,7 +513,7 @@ export function AppShell() {
         {layoutThinking}
       </box>
 
-      <Footer theme={THEME} left={footerLeft} right={footerRight} activity={activity} />
+      <Footer theme={THEME} left={footerLeft} right={footerRight} activity={activity} currentTime={currentTime} />
 
       {dialog ? (
         <InputDialog

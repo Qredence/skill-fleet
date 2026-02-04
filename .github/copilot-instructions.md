@@ -1,43 +1,76 @@
-# Copilot instructions: skill-fleet
+# Copilot Instructions: Skill Fleet
 
-## What this repo is
+## Project Overview
 
-- Python 3.12+ project for **draft-first skill generation** (DSPy) with a **FastAPI server** and **Typer CLI**.
-- “Skills” are on-disk artifacts under `skills/` (plus a DB for jobs/analytics/coordination).
+- **Name**: skill-fleet
+- **Language**: Python 3.12+
+- **Core Frameworks**: FastAPI (API), Typer (CLI), DSPy (LLM orchestration)
+- **PackageManager**: `uv` (Universal Package Manager)
+- **Purpose**: Draft-first skill generation platform. Creates "skills" (directories with `SKILL.md`) via a 3-phase workflow: Understanding -> Generation -> Validation.
 
-## Entry points & boundaries
+## Development Standards
 
-- **API server**: `uv run skill-fleet serve` → `uvicorn skill_fleet.api.main:app`.
-  - FastAPI factory: `src/skill_fleet/api/factory.py` (CORS + middleware + exception mapping).
-  - Routes: `src/skill_fleet/api/v1/router.py` (mounted at `/api/v1/*`).
-- **CLI**: `src/skill_fleet/cli/app.py` (global `--api-url` / `SKILL_FLEET_API_URL`; most commands call the API via `SkillFleetClient`).
+- **Dependency Management**: ALWAYS use `uv`.
+  - Install: `uv sync --group dev`
+  - Add package: `uv add <package>`
+- **Linting & Formatting**:
+  - Run: `uv run ruff check --fix .` && `uv run ruff format .`
+  - Configuration: `pyproject.toml` (strict rules, 2026 best practices).
+  - Note: `skills/` directory is excluded from linting.
+- **Testing**:
+  - Run: `uv run pytest`
+  - Markers: `@pytest.mark.integration` for LLM tests (require keys), `@pytest.mark.slow`.
 
-## Day-to-day dev loop (use uv)
+## Architectural Patterns
 
-- Install: `uv sync --group dev`
-- Lint/format: `uv run ruff check --fix .` then `uv run ruff format .`
-  - Note: `skills/**` is excluded from ruff (see `pyproject.toml`).
-- Tests: `uv run pytest` (see `tests/conftest.py` for default env wiring).
+### 1. DSPy & LLM Orchestration
 
-## Critical runtime configuration
+- **Thread Safety**: NEVER modify global DSPy settings in async code.
+  - **CORRECT**: Use `with dspy_context():` context manager for per-request configuration.
+  - **INCORRECT**: `dspy.settings.configure(...)` at module level or inside async functions.
+- **Configuration**: Centralized in `src/skill_fleet/dspy/config.py`.
 
-- **LLM config** is loaded by `configure_dspy()` from `src/skill_fleet/config/config.yaml` (`src/skill_fleet/dspy/config.py`).
-  - Requires `GOOGLE_API_KEY` (or `LITELLM_API_KEY` fallback); see `.env.example`.
-- **Database** is initialized during API lifespan (`src/skill_fleet/api/lifespan.py`) and by `skill_fleet.infrastructure.db.database.init_db()`.
-  - Expect to set `DATABASE_URL` (PostgreSQL) when running the server; see `.env.example`.
+### 2. File System Security
 
-## Core flow (draft-first)
+- **Untrusted Input**: Treat ALL file paths from users or LLMs as untrusted.
+- **Safe Access**: MUST use `skill_fleet.common.security.resolve_path_within_root(path)` before reading/writing.
+- **Root Directory**: `skills/` is the sandbox.
 
-1. CLI creates a job via `POST /api/v1/skills` (`src/skill_fleet/api/v1/skills.py`).
-2. Workflow writes to `skills/_drafts/<job_id>/...` (draft artifacts).
-3. Promote explicitly via `uv run skill-fleet promote <job_id>` or `POST /api/v1/drafts/{job_id}/promote`
-   (`src/skill_fleet/api/v1/drafts.py`).
+### 3. API & CLI Boundaries
 
-## Skill validation rules (what the code enforces)
+- **API**: `src/skill_fleet/api`
+  - Maintainer of state and coordination.
+  - Entry: `uvicorn skill_fleet.api.main:app` via `uv run skill-fleet serve`.
+  - Pattern: Architecture separates Routers (`api/v1`) from Use Cases/Workflows (`core/workflows`).
+- **CLI**: `src/skill_fleet/cli`
+  - Entry: `skill-fleet` command.
+  - Pattern: CLI is a thin client; calls the API via `SkillFleetClient` for logic.
 
-- Validator: `src/skill_fleet/validators/skill_validator.py`.
-- A directory-skill must have `SKILL.md` with **YAML frontmatter** and a **`## When to Use`** section.
-- Preferred subdirs for new skills: `references/`, `guides/`, `templates/`, `scripts/`, `examples/` (+ `assets/`, `images/`, `static/`).
-  Legacy dirs (`capabilities/`, `resources/`, `tests/`) are tolerated but discouraged.
-- Treat filesystem paths as **untrusted input** in API code: use `skill_fleet.common.security` helpers
-  (e.g., `resolve_path_within_root`, `sanitize_relative_file_path`, `sanitize_taxonomy_path`).
+## Core Workflows (The "Brain")
+
+### 1. Draft-First Lifecycle
+
+1.  **Create**: Job initialized via `POST /api/v1/skills`.
+2.  **Draft**: Workflow writes to `skills/_drafts/<job_id>/` (isolated).
+3.  **Promote**: User explicitly calls `promote`. Only then is the skill moved to the main taxonomy.
+
+### 2. Job Status Machine
+
+- **Models**: `src/skill_fleet/infrastructure/db/models.py`
+- **States**: `PENDING` → `RUNNING` → `PENDING_HITL` (Human-in-the-Loop) → `COMPLETED`.
+- **HITL**: Conversations can suspend execution for user input (`clarify`, `confirm`, `review`).
+
+## Key Files & Locations
+
+- **Routes**: `src/skill_fleet/api/v1/`
+- **Validators**: `src/skill_fleet/validators/`
+- **Memory/Context**: `skills/memory_blocks/`
+  - Files here (`interaction_history.json`, `project_context.json`) are **ALWAYS LOADED** context.
+  - Must have `"load_priority": "always"`.
+- **Env Config**: `.env` (managed by `python-dotenv`).
+
+## Skill Validation Rules
+
+- **Structure**: Every skill must have a `SKILL.md`.
+- **Content**: Must include YAML frontmatter and `## When to Use` section.
+- **Allowed Subdirs**: `references/`, `guides/`, `templates/`, `scripts/`, `examples/` (+ `assets/`, `images/`, `static/`).

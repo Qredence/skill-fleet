@@ -1,7 +1,7 @@
 # Skill Fleet Documentation
 
-**Version**: 0.5.0
-**Last Updated**: 2026-01-31
+**Version**: 0.3.6
+**Last Updated**: 2026-02-03
 
 Welcome to Skill Fleet - a system for creating, managing, and validating AI agent skills using a 3-phase DSPy-powered workflow.
 

@@ -18,6 +18,14 @@ uv sync --group dev
 
 # API server (development)
 uv run skill-fleet dev
+#
+# Note: `skill-fleet dev` starts the API and interactive chat, and forces
+# `SKILL_FLEET_ENV=development` to avoid production DB requirements.
+#
+# LLM proxy env (LiteLLM):
+#   export LITELLM_API_KEY=...
+#   export LITELLM_BASE_URL=http://localhost:4000
+# Do not set provider endpoints (e.g., generateContent) as LITELLM_BASE_URL.
 
 # create skill (non-interactive)
 uv run skill-fleet create "Create a Python decorators skill" --auto-approve

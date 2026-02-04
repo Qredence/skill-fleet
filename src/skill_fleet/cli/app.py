@@ -8,6 +8,8 @@ Ref: https://typer.tiangolo.com/tutorial/commands/context/
 
 from __future__ import annotations
 
+from importlib.metadata import PackageNotFoundError, version
+
 import typer
 from rich.console import Console
 
@@ -35,6 +37,22 @@ app = typer.Typer(
 )
 
 console = Console()
+
+
+def _print_version_and_exit() -> None:
+    try:
+        package_version = version("skill-fleet")
+    except PackageNotFoundError:
+        package_version = "unknown"
+
+    console.print(package_version)
+    raise typer.Exit(0)
+
+
+def _version_callback(value: bool) -> bool:
+    if value:
+        _print_version_and_exit()
+    return value
 
 
 class CLIConfig:
@@ -65,6 +83,13 @@ class CLIConfig:
 @app.callback()
 def main_callback(
     ctx: typer.Context,
+    _show_version: bool = typer.Option(
+        False,
+        "--version",
+        help="Show version and exit",
+        is_eager=True,
+        callback=_version_callback,
+    ),
     api_url: str = typer.Option(
         "http://localhost:8000",
         "--api-url",

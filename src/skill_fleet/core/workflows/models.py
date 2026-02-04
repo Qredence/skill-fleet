@@ -410,7 +410,8 @@ class Phase1UnderstandingOutput(BaseModel):
                 "requirements": self.requirements.model_dump(),
                 "intent": self.intent.model_dump(),
                 "taxonomy": self.taxonomy.model_dump(),
-                "dependencies": self.dependencies.model_dump(),
+                "dependencies": dependencies_to_generation_list(self.dependencies),
+                "dependency_analysis": self.dependencies.model_dump(),
             },
         }
 
@@ -725,6 +726,29 @@ def dict_to_dependencies(data: dict[str, Any]) -> DependencyOutput:
         dependency_rationale=data.get("dependency_rationale", ""),
         reasoning=data.get("reasoning", ""),
     )
+
+
+def dependencies_to_generation_list(dependencies: Any) -> list[str]:
+    """
+    Normalize dependency output into a list format expected by generation.
+
+    Phase 1 dependency analysis returns a dict-shaped object with keys like
+    'prerequisite_skills'. Phase 2 content generation expects `dependencies`
+    as a simple list of prerequisite skill IDs/strings.
+    """
+    if dependencies is None:
+        return []
+    if isinstance(dependencies, list):
+        return [d for d in dependencies if isinstance(d, str)]
+    if isinstance(dependencies, dict):
+        prereqs = dependencies.get("prerequisite_skills", [])
+        if isinstance(prereqs, list):
+            return [d for d in prereqs if isinstance(d, str)]
+        return []
+    prerequisite_skills = getattr(dependencies, "prerequisite_skills", None)
+    if isinstance(prerequisite_skills, list):
+        return [d for d in prerequisite_skills if isinstance(d, str)]
+    return []
 
 
 def dict_to_plan(data: dict[str, Any]) -> PlanOutput:

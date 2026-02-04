@@ -9,7 +9,7 @@ from collections.abc import AsyncGenerator
 from collections.abc import Generator as SyncGenerator
 from contextlib import contextmanager
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import CheckConstraint, create_engine, text
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -195,6 +195,16 @@ def init_db() -> None:
     This should only be used for development. In production,
     use Alembic migrations instead.
     """
+    if _IS_SQLITE:
+        for table in Base.metadata.tables.values():
+            regex_constraints = [
+                constraint
+                for constraint in table.constraints
+                if isinstance(constraint, CheckConstraint) and "~" in str(constraint.sqltext)
+            ]
+            for constraint in regex_constraints:
+                table.constraints.remove(constraint)
+
     # Ensure uuid-ossp extension exists (Postgres only)
     if not _IS_SQLITE:
         with engine.connect() as conn:

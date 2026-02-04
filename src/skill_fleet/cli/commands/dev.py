@@ -12,6 +12,8 @@ import httpx
 import typer
 from rich.console import Console
 
+from ..client import SkillFleetClient
+from ..commands.chat import chat_command
 from ..utils.security import sanitize_user_id
 
 console = Console()
@@ -61,12 +63,34 @@ def _derive_api_url(host: str, port: int, configured_api_url: str | None) -> str
 
 def dev_command(
     ctx: typer.Context,
+    task: str | None = typer.Argument(None, help="Optional task to run immediately"),
     port: int = typer.Option(8000, "--port", "-p", help="Port to run the API server on"),
     host: str = typer.Option("127.0.0.1", "--host", help="Host to bind the API server to"),
     reload: bool = typer.Option(
         False,
         "--reload/--no-reload",
         help="Enable auto-reload on file changes (default: disabled to prevent port conflicts)",
+    ),
+    auto_approve: bool = typer.Option(False, "--auto-approve", help="Skip interactive prompts"),
+    show_thinking: bool = typer.Option(
+        True,
+        "--show-thinking/--no-show-thinking",
+        help="Show rationale/thinking panels when available",
+    ),
+    force_plain_text: bool = typer.Option(
+        False,
+        "--force-plain-text",
+        help="Disable arrow-key dialogs and use plain-text prompts",
+    ),
+    fast: bool = typer.Option(
+        True,
+        "--fast/--slow",
+        help="Use fast polling (100ms) for real-time updates",
+    ),
+    stream: bool = typer.Option(
+        True,
+        "--stream/--poll",
+        help="Use streaming mode with live progress (default) or polling-only mode",
     ),
 ):
     """
@@ -96,6 +120,15 @@ def dev_command(
     console.print(f"[dim]Reload: {'enabled' if reload else 'disabled'}[/dim]")
 
     api_env = os.environ.copy()
+    env_mode = api_env.get("SKILL_FLEET_ENV")
+    if env_mode not in {"development", "dev"}:
+        api_env["SKILL_FLEET_ENV"] = "development"
+        if env_mode:
+            console.print(
+                f"[bold yellow]⚠️  Overriding SKILL_FLEET_ENV={env_mode} → development for dev server[/bold yellow]"
+            )
+        else:
+            console.print("[dim]SKILL_FLEET_ENV=development[/dim]")
 
     api_cmd = [
         sys.executable,
@@ -134,8 +167,33 @@ def dev_command(
         raise typer.Exit(code=1) from exc
 
     try:
-        api_proc.wait()
-        raise typer.Exit(code=api_proc.returncode or 0)
+        if not _wait_for_api_ready(api_url):
+            console.print(
+                "[bold red]API did not become ready in time. See the log for details:[/bold red]"
+            )
+            if api_log_path.exists():
+                console.print(f"[dim]{api_log_path}[/dim]")
+                try:
+                    log_tail = api_log_path.read_text(encoding="utf-8").splitlines()[-40:]
+                    for line in log_tail:
+                        console.print(line)
+                except OSError:
+                    console.print("[yellow]Unable to read API log.[/yellow]")
+            raise typer.Exit(code=1)
+
+        if ctx and ctx.obj:
+            ctx.obj.api_url = api_url
+            ctx.obj.client = SkillFleetClient(api_url)
+
+        chat_command(
+            ctx,
+            task=task,
+            auto_approve=auto_approve,
+            show_thinking=show_thinking,
+            force_plain_text=force_plain_text,
+            fast=fast,
+            stream=stream,
+        )
     except KeyboardInterrupt:
         console.print("\n[dim]Shutting down...[/dim]")
     finally:

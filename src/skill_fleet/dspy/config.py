@@ -11,7 +11,7 @@ import asyncio
 import os
 from contextlib import contextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import dspy
 import yaml
@@ -30,8 +30,19 @@ def _in_async_task() -> bool:
 
 
 def _create_default_lm() -> dspy.LM:
-    model = os.getenv("DSPY_MODEL", "gemini-3-flash-preview")
-    return dspy.LM(model=model)
+    from ..common.env_utils import resolve_api_credentials
+
+    model = os.getenv("DSPY_MODEL", "gemini/gemini-3-flash-preview")
+    creds = resolve_api_credentials(prefer_litellm=True)
+    kwargs: dict[str, Any] = {}
+    api_key = creds.get("api_key")
+    if api_key:
+        kwargs["api_key"] = api_key
+    base_url = creds.get("base_url")
+    if base_url:
+        kwargs["api_base"] = base_url
+        kwargs.setdefault("custom_llm_provider", "litellm_proxy")
+    return dspy.LM(model=model, **kwargs)
 
 
 def get_task_lm(task: str | None = None) -> dspy.LM:
@@ -259,7 +270,18 @@ def configure_dspy(
     # Use environment overrides
     litellm_model = os.getenv("LITELLM_MODEL")
     if lm is None and litellm_model:
-        lm = dspy.LM(model=litellm_model)
+        from ..common.env_utils import resolve_api_credentials
+
+        creds = resolve_api_credentials(prefer_litellm=True)
+        kwargs: dict[str, Any] = {}
+        api_key = creds.get("api_key")
+        if api_key:
+            kwargs["api_key"] = api_key
+        base_url = creds.get("base_url")
+        if base_url:
+            kwargs["api_base"] = base_url
+            kwargs.setdefault("custom_llm_provider", "litellm_proxy")
+        lm = dspy.LM(model=litellm_model, **kwargs)
 
     if adapter is None:
         adapter = create_adapter("chat")

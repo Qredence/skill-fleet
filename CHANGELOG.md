@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.6] - 2026-02-03
+
 ### Added
 
 - **Typed Phase Output Models** (February 2026)
@@ -265,8 +267,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI interface for skill operations
 - Memory block skills for agent memory management
 
-[Unreleased]: https://github.com/Qredence/skill-fleet/compare/v0.3.5...HEAD
-[0.3.5]: https://github.com/Qredence/skill-fleet/compare/v0.2.0...v0.3.5
-[0.2.0]: https://github.com/Qredence/skill-fleet/compare/v0.1.1...v0.2.0
+[Unreleased]: https://github.com/Qredence/skill-fleet/compare/v0.3.6...HEAD
+[0.3.6]: https://github.com/Qredence/skill-fleet/compare/5a743bf...v0.3.6
+[0.3.5]: https://github.com/Qredence/skill-fleet/compare/8d571bf...5a743bf
+[0.2.0]: https://github.com/Qredence/skill-fleet/compare/v0.1.2...8d571bf
 [0.1.1]: https://github.com/Qredence/skill-fleet/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Qredence/skill-fleet/releases/tag/v0.1.0

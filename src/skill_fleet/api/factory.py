@@ -121,13 +121,16 @@ def create_app() -> FastAPI:
         from skill_fleet.infrastructure.tracing.config import ConfigModelLoader
 
         loader = ConfigModelLoader()
-        lm = dspy.LM("gemini/gemini-3-flash-preview")
+        lm = loader.get_model_for_task("conversational_agent")
         dspy.configure(lm=lm)
 
         # Configure DSPy caching from config.yaml for improved performance
         # Caching stores LLM responses to avoid redundant API calls
         loader.configure_cache()
         logger.info("DSPy configured successfully with caching enabled")
+    except ValueError as e:
+        logger.error(f"Failed to configure DSPy: {e}")
+        raise
     except Exception as e:
         logger.error(f"Failed to configure DSPy: {e}")
 

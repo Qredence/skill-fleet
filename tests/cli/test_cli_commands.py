@@ -1,8 +1,11 @@
 """Tests for CLI commands."""
 
+import re
+from importlib.metadata import version
 from unittest.mock import MagicMock, patch
 
 import pytest
+from typer.testing import CliRunner
 
 from skill_fleet.cli.app import app
 from skill_fleet.cli.main import create_skill, validate_skill
@@ -92,6 +95,16 @@ class TestCreateSkillCommand:
 
 class TestTyperApp:
     """Test Typer-based CLI app."""
+
+    def test_version_flag_prints_package_version(self):
+        """Test --version prints the installed package version."""
+        runner = CliRunner()
+
+        result = runner.invoke(app, ["--version"])
+
+        assert result.exit_code == 0
+        assert re.match(r"^\d+\.\d+\.\d+\s*$", result.stdout) is not None
+        assert result.stdout.strip() == version("skill-fleet")
 
     def test_app_initialization(self):
         """Test Typer app is properly initialized."""

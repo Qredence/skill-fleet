@@ -22,6 +22,7 @@ from skill_fleet.core.signatures.generation.content import (
     SkillPlan,
     SkillUnderstanding,
 )
+from skill_fleet.core.workflows.models import dependencies_to_generation_list
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -111,7 +112,7 @@ class GenerateSkillContentModule(BaseModule):
             requirements=understanding.get("requirements", {}),
             intent=understanding.get("intent", {}),
             taxonomy=understanding.get("taxonomy", {}),
-            dependencies=understanding.get("dependencies", []),
+            dependencies=dependencies_to_generation_list(understanding.get("dependencies")),
         )
 
     def _process_generation_result(

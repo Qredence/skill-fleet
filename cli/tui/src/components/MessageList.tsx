@@ -1,5 +1,5 @@
 import { MessageItem } from "./MessageItem";
-import type { HitlPrompt } from "../types";
+import type { ActivitySummary, HitlPrompt } from "../types";
 
 type Theme = {
   border: string;
@@ -26,9 +26,12 @@ type Props = {
   messages: ChatMessage[];
   onHitlSubmit?: (messageId: string, payload: Record<string, unknown>) => void;
   activeHitlMessageId?: string | null;
+  /** Activity summary for showing work-in-progress indicator */
+  activity?: ActivitySummary;
 };
 
-export function MessageList({ theme, messages, onHitlSubmit, activeHitlMessageId }: Props) {
+export function MessageList({ theme, messages, onHitlSubmit, activeHitlMessageId, activity }: Props) {
+  const lastIdx = messages.length - 1;
   return (
     <scrollbox
       flexGrow={1}
@@ -40,12 +43,14 @@ export function MessageList({ theme, messages, onHitlSubmit, activeHitlMessageId
       viewportCulling
     >
       <box flexDirection="column" gap={1}>
-        {messages.map((m) => (
+        {messages.map((m, idx) => (
           <MessageItem
             key={m.id}
             message={m}
             onHitlSubmit={onHitlSubmit}
             focused={m.id === activeHitlMessageId}
+            activity={activity}
+            isLast={idx === lastIdx}
           />
         ))}
       </box>

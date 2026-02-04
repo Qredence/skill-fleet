@@ -74,4 +74,6 @@ export type ActivitySummary = {
   lastStatusAt: number | null;
   isActive: boolean;
   timeSinceLastEvent: number | null;
+  /** True if we received token_stream events recently (within 2s) */
+  hasRecentTokens: boolean;
 };

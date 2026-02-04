@@ -27,6 +27,9 @@ const PHASE_ICONS: Record<string, string> = {
 
 const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
+// Pulse frames for non-token activity (slower, subtler animation)
+const PULSE_FRAMES = ["◐", "◓", "◑", "◒"];
+
 /**
  * Format time since last event in human-readable form.
  */
@@ -41,28 +44,49 @@ function formatTimeSince(ms: number | null): string {
 
 export function ProgressIndicator({ theme, phase, module, status, isStreaming, activity }: Props) {
   const [spinnerIdx, setSpinnerIdx] = useState(0);
+  const [pulseIdx, setPulseIdx] = useState(0);
 
   // Use activity.isActive for enhanced activity detection
   const showActivity = isStreaming || activity?.isActive;
+  // Show token streaming animation (fast spinner) vs general activity (slower pulse)
+  const hasTokens = activity?.hasRecentTokens ?? false;
 
+  // Fast spinner for token streaming
   useEffect(() => {
-    if (!showActivity) return;
+    if (!showActivity || !hasTokens) return;
 
     const interval = setInterval(() => {
       setSpinnerIdx((i) => (i + 1) % SPINNER_FRAMES.length);
     }, 80);
 
     return () => clearInterval(interval);
-  }, [showActivity]);
+  }, [showActivity, hasTokens]);
 
-  const spinner = showActivity ? (SPINNER_FRAMES[spinnerIdx] ?? "⠋") : " ";
+  // Slower pulse for general activity (no token_stream)
+  useEffect(() => {
+    if (!showActivity || hasTokens) return;
+
+    const interval = setInterval(() => {
+      setPulseIdx((i) => (i + 1) % PULSE_FRAMES.length);
+    }, 250);
+
+    return () => clearInterval(interval);
+  }, [showActivity, hasTokens]);
+
+  // Choose animation based on activity type
+  const spinner = (() => {
+    if (!showActivity) return " ";
+    if (hasTokens) return SPINNER_FRAMES[spinnerIdx] ?? "⠋";
+    return PULSE_FRAMES[pulseIdx] ?? "◐";
+  })();
+
   const icon = phase ? PHASE_ICONS[phase] || "●" : "●";
 
   const statusText = (() => {
     if (status === "completed") return "Done";
     if (status === "failed") return "Failed";
     if (status === "cancelled") return "Cancelled";
-    if (isStreaming) return "Streaming...";
+    if (hasTokens) return "Streaming...";
     if (activity?.isActive) return "Working...";
     return "Ready";
   })();

@@ -120,12 +120,16 @@ export function AppShell() {
     const timeSinceLastEvent = lastEventAt ? currentTime - lastEventAt : null;
     // Consider activity "active" if we received an event in the last 3 seconds
     const isActive = timeSinceLastEvent !== null && timeSinceLastEvent < 3000;
+    // Detect if we received token_stream events recently (within 2s)
+    const timeSinceLastToken = lastTokenAt ? currentTime - lastTokenAt : null;
+    const hasRecentTokens = timeSinceLastToken !== null && timeSinceLastToken < 2000;
     return {
       lastEventAt,
       lastTokenAt,
       lastStatusAt,
       isActive,
       timeSinceLastEvent,
+      hasRecentTokens,
     };
   }, [lastEventAt, lastTokenAt, lastStatusAt, currentTime]);
 
@@ -277,6 +281,17 @@ export function AppShell() {
 
     // Record activity timestamp for all events
     setLastEventAt(eventTime);
+
+    // Keep isStreamingActive "hot" for any WorkflowEvent, not just token_stream
+    // This provides responsive UI feedback during non-token events (progress, phase, module, etc.)
+    setIsStreamingActive(true);
+    if (streamingTimeoutRef.current) {
+      clearTimeout(streamingTimeoutRef.current);
+    }
+    // Clear active state after 2s of no events (longer window for non-token activity)
+    streamingTimeoutRef.current = setTimeout(() => {
+      setIsStreamingActive(false);
+    }, 2000);
 
     if (type === "status") {
       const status = asString(event.status);
@@ -487,6 +502,7 @@ export function AppShell() {
             messages={messages}
             onHitlSubmit={submitInlineHitl}
             activeHitlMessageId={activeHitlMessageId}
+            activity={activity}
           />
 
           {job ? (

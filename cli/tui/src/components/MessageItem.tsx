@@ -1,8 +1,10 @@
-import { memo, useCallback } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import { MarkdownView } from "./MarkdownView";
 import { Streamdown } from "./Streamdown";
 import { HitlMessage } from "./HitlMessage";
+import { StreamingText } from "./StreamingText";
 import type { ChatMessage } from "./MessageList";
+import type { ActivitySummary } from "../types";
 
 const ROLE = {
   system: { label: "SYSTEM", fg: "#737373", border: "#2a2a2a", bg: "#0a0a0a" },
@@ -15,6 +17,10 @@ type Props = {
   message: ChatMessage;
   onHitlSubmit?: (messageId: string, payload: Record<string, unknown>) => void;
   focused?: boolean;
+  /** Activity summary for showing work-in-progress indicator on last message */
+  activity?: ActivitySummary;
+  /** Whether this is the last message in the list (used for activity indicator) */
+  isLast?: boolean;
 };
 
 const THEME = {
@@ -28,10 +34,45 @@ const THEME = {
   error: "#ef4444",
 };
 
-export const MessageItem = memo(function MessageItem({ message, onHitlSubmit, focused = false }: Props) {
+// Pulse frames for activity indicator (when working but not streaming tokens)
+const PULSE_FRAMES = ["◐", "◓", "◑", "◒"];
+
+export const MessageItem = memo(function MessageItem({
+  message,
+  onHitlSubmit,
+  focused = false,
+  activity,
+  isLast = false,
+}: Props) {
   const style = ROLE[message.role];
-  const title = message.status === "streaming" && message.role === "assistant" ? `${style.label} (streaming)` : style.label;
-  const isStreamingAssistant = message.role === "assistant" && message.status === "streaming";
+  const isStreaming = message.status === "streaming";
+  const isStreamingAssistant = message.role === "assistant" && isStreaming;
+
+  // Show activity pulse on the last assistant message when working but not streaming tokens
+  const showActivityPulse = isLast &&
+    message.role === "assistant" &&
+    !isStreaming &&
+    activity?.isActive &&
+    !activity?.hasRecentTokens;
+
+  const [pulseIdx, setPulseIdx] = useState(0);
+
+  useEffect(() => {
+    if (!showActivityPulse) return;
+
+    const interval = setInterval(() => {
+      setPulseIdx((i) => (i + 1) % PULSE_FRAMES.length);
+    }, 250);
+
+    return () => clearInterval(interval);
+  }, [showActivityPulse]);
+
+  // Dynamic title with streaming or activity indicator
+  const title = (() => {
+    if (isStreamingAssistant) return `${style.label} ●`;
+    if (showActivityPulse) return `${style.label} ${PULSE_FRAMES[pulseIdx] ?? "◐"}`;
+    return style.label;
+  })();
 
   const handleHitlSubmit = useCallback((payload: Record<string, unknown>) => {
     if (onHitlSubmit) {
@@ -55,13 +96,22 @@ export const MessageItem = memo(function MessageItem({ message, onHitlSubmit, fo
   }
 
   return (
-    <box flexDirection="column" border borderColor={style.border} backgroundColor={style.bg} padding={1} gap={0}>
-      <text fg={style.fg}>
-        <strong>{title}</strong>
+    <box flexDirection="column" paddingLeft={1} gap={0}>
+      <text fg={isStreaming ? "#22c55e" : style.fg}>
+        {title}{isStreamingAssistant ? " ●" : ""}
       </text>
-      <box flexDirection="column" paddingTop={0}>
+      <box flexDirection="column" paddingTop={0} paddingBottom={1}>
         {isStreamingAssistant ? (
-          <Streamdown content={message.content} streaming />
+          <>
+            <Streamdown content={message.content} streaming />
+            <StreamingText
+              theme={THEME}
+              content=""
+              isStreaming={true}
+              showCursor={true}
+              typingEffect={false}
+            />
+          </>
         ) : (
           <MarkdownView content={message.content} streaming={false} />
         )}

@@ -98,7 +98,7 @@ export const MessageItem = memo(function MessageItem({
   return (
     <box flexDirection="column" paddingLeft={1} gap={0}>
       <text fg={isStreaming ? "#22c55e" : style.fg}>
-        {title}{isStreamingAssistant ? " ●" : ""}
+        {title}
       </text>
       <box flexDirection="column" paddingTop={0} paddingBottom={1}>
         {isStreamingAssistant ? (

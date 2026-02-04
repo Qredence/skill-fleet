@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { MessageItem } from "./MessageItem";
 import type { ActivitySummary, HitlPrompt } from "../types";
 
@@ -30,7 +31,13 @@ type Props = {
   activity?: ActivitySummary;
 };
 
-export function MessageList({ theme, messages, onHitlSubmit, activeHitlMessageId, activity }: Props) {
+export const MessageList = memo(function MessageList({
+  theme,
+  messages,
+  onHitlSubmit,
+  activeHitlMessageId,
+  activity,
+}: Props) {
   const lastIdx = messages.length - 1;
   return (
     <scrollbox
@@ -56,4 +63,4 @@ export function MessageList({ theme, messages, onHitlSubmit, activeHitlMessageId
       </box>
     </scrollbox>
   );
-}
+});

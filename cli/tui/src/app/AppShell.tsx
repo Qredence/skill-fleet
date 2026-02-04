@@ -115,6 +115,14 @@ export function AppShell() {
     return () => clearInterval(interval);
   }, []);
 
+  // Cleanup timeout refs on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (streamingTimeoutRef.current) clearTimeout(streamingTimeoutRef.current);
+      if (hitlRecheckTimeoutRef.current) clearTimeout(hitlRecheckTimeoutRef.current);
+    };
+  }, []);
+
   // Compute activity summary for child components
   const activity: ActivitySummary = useMemo(() => {
     const timeSinceLastEvent = lastEventAt ? currentTime - lastEventAt : null;

@@ -136,7 +136,7 @@ export function ProgressIndicator({ theme, phase, module, status, isStreaming, a
 
   return (
     <box flexDirection="row" gap={1} paddingLeft={1} paddingTop={0} paddingBottom={1}>
-      <text fg={isWaitingForInput ? theme.accent : theme.accent}>
+      <text fg={theme.accent}>
         {spinner} {icon}
       </text>
       <text fg={theme.muted}>

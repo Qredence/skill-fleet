@@ -10,10 +10,13 @@ import {
 } from "../api";
 import { InputArea } from "../components/InputArea";
 import { InputDialog, type DialogKind } from "../components/InputDialog";
-import { MessageList, type ChatMessage } from "../components/MessageList";
+import { MessageList, type ChatMessage, type MessageListHandle } from "../components/MessageList";
 import { ThinkingPanel } from "../components/ThinkingPanel";
 import { ProgressIndicator } from "../components/ProgressIndicator";
 import { Footer } from "../components/Footer";
+
+// Duration to show the "jumped to bottom" indicator
+const JUMP_INDICATOR_DURATION_MS = 1200;
 
 const THEME = {
   background: "#000000",
@@ -73,6 +76,8 @@ export function AppShell() {
   const streamAbortRef = useRef<AbortController | null>(null);
   const lastHitlOpenRef = useRef<number>(0);
   const jobRef = useRef<JobState | null>(null);
+  const messageListRef = useRef<MessageListHandle>(null);
+  const jumpIndicatorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
     {
@@ -95,6 +100,7 @@ export function AppShell() {
 
   const [thinkingOpen, setThinkingOpen] = useState(false);
   const [thinkingLines, setThinkingLines] = useState<string[]>([]);
+  const [showJumpedToBottom, setShowJumpedToBottom] = useState(false);
 
   // Track if we're actively receiving streaming data for visual feedback
   const [isStreamingActive, setIsStreamingActive] = useState(false);
@@ -120,6 +126,7 @@ export function AppShell() {
     return () => {
       if (streamingTimeoutRef.current) clearTimeout(streamingTimeoutRef.current);
       if (hitlRecheckTimeoutRef.current) clearTimeout(hitlRecheckTimeoutRef.current);
+      if (jumpIndicatorTimeoutRef.current) clearTimeout(jumpIndicatorTimeoutRef.current);
     };
   }, []);
 
@@ -404,7 +411,19 @@ export function AppShell() {
     return () => controller.abort();
   }, [job?.id, handleStreamEvent]);
 
+  // Helper to show jump-to-bottom indicator with auto-hide
+  const showJumpIndicator = useCallback(() => {
+    setShowJumpedToBottom(true);
+    if (jumpIndicatorTimeoutRef.current) {
+      clearTimeout(jumpIndicatorTimeoutRef.current);
+    }
+    jumpIndicatorTimeoutRef.current = setTimeout(() => {
+      setShowJumpedToBottom(false);
+    }, JUMP_INDICATOR_DURATION_MS);
+  }, []);
+
   useKeyboard((key) => {
+    // Core navigation shortcuts (always active)
     if (key.ctrl && key.name === "t") {
       setThinkingOpen((v) => !v);
       return;
@@ -413,6 +432,42 @@ export function AppShell() {
       renderer.destroy();
       return;
     }
+
+    // Scroll navigation (works without stealing focus from input)
+    // PageUp / Ctrl+U: scroll up half-page
+    if (key.name === "pageup" || (key.ctrl && key.name === "u")) {
+      messageListRef.current?.scrollPageUp();
+      return;
+    }
+
+    // PageDown / Ctrl+D: scroll down half-page
+    if (key.name === "pagedown" || (key.ctrl && key.name === "d")) {
+      messageListRef.current?.scrollPageDown();
+      return;
+    }
+
+    // End: jump to bottom with visual confirmation
+    if (key.name === "end") {
+      messageListRef.current?.scrollToBottom();
+      showJumpIndicator();
+      return;
+    }
+
+    // Home: jump to top
+    if (key.name === "home") {
+      messageListRef.current?.scrollToTop();
+      return;
+    }
+
+    // Shift+G: jump to bottom (vim-style, Shift to avoid conflict with text input)
+    if (key.shift && key.name === "g") {
+      messageListRef.current?.scrollToBottom();
+      showJumpIndicator();
+      return;
+    }
+
+    // Shift+g (lowercase g with shift): also jump to bottom
+    // gg would be nice for top, but conflicts with typing
   });
 
   const startJob = useCallback(async () => {
@@ -520,11 +575,13 @@ export function AppShell() {
           flexGrow={1}
         >
           <MessageList
+            ref={messageListRef}
             theme={THEME}
             messages={messages}
             onHitlSubmit={submitInlineHitl}
             activeHitlMessageId={activeHitlMessageId}
             activity={activity}
+            showJumpedToBottom={showJumpedToBottom}
           />
 
           {job ? (

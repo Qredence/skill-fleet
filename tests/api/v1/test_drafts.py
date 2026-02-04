@@ -65,6 +65,8 @@ def test_promote_draft_delete_draft_deletes_session_and_draft_dir(
         assert target_dir.exists()
     finally:
         jobs.JOBS.pop(job_id, None)
+
+
 def test_promote_draft_without_delete_draft_keeps_session_and_draft_dir(
     client, temp_skills_root, dependency_override_cleanup, monkeypatch, tmp_path
 ):

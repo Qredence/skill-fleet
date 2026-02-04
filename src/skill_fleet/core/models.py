@@ -52,7 +52,10 @@ class DictLikeAccessMixin:
             The attribute value.
 
         """
-        return getattr(self, key)
+        try:
+            return getattr(self, key)
+        except AttributeError as exc:
+            raise KeyError(key) from exc
 
 
 # =============================================================================

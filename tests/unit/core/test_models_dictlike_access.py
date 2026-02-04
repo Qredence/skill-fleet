@@ -17,7 +17,7 @@ def test_skillmetadata_dictlike_access():
     assert meta.get("name") == "test-skill"
     assert meta.get("missing", "default") == "default"
     assert meta["name"] == "test-skill"
-    with pytest.raises(AttributeError):
+    with pytest.raises(KeyError):
         _ = meta["missing"]
 
 
@@ -27,5 +27,5 @@ def test_validationreport_dictlike_access():
     assert report.get("passed") is True
     assert report.get("missing", 123) == 123
     assert report["passed"] is True
-    with pytest.raises(AttributeError):
+    with pytest.raises(KeyError):
         _ = report["missing"]

@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 _FENCE_START_RE = re.compile(r"^\s*```(?P<lang>[a-zA-Z0-9_+-]*)\s*$")
 _HEADING_BACKTICK_RE = re.compile(r"^\s{0,3}#{2,6}\s+`(?P<name>[^`]+)`\s*$")
+_VALID_SUBDIRS = {"references", "guides", "templates", "scripts", "examples"}
 
 
 def _safe_single_filename(candidate: str) -> str | None:
@@ -241,9 +242,8 @@ def _write_subdirectory_files(full_path: Path, edit_result: Any) -> None:
     if not subdir_files or not isinstance(subdir_files, dict):
         return
 
-    valid_subdirs = {"references", "guides", "templates", "scripts", "examples"}
     for subdir_name, files in subdir_files.items():
-        if subdir_name not in valid_subdirs:
+        if subdir_name not in _VALID_SUBDIRS:
             logger.warning("Skipping invalid subdirectory: %s", subdir_name)
             continue
         if not isinstance(files, dict):

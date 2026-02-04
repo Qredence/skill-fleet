@@ -62,9 +62,9 @@ def _resolve_skills_root(skills_root: SkillsRoot) -> Path:
 
     """
     try:
-        skills_root_resolved = skills_root.resolve()
-        if not skills_root_resolved.is_absolute():
+        if not skills_root.is_absolute():
             raise ValueError("skills_root must be an absolute path")
+        skills_root_resolved = skills_root.resolve()
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid skills root: {e}") from e
     return skills_root_resolved

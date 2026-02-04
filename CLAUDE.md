@@ -35,6 +35,27 @@ uv run skill-fleet validate skills/_drafts/<job_id>
 uv run skill-fleet promote <job_id> --delete-draft
 ```
 
+### TUI (OpenTUI)
+
+```bash
+# from repo root
+uv run skill-fleet tui
+
+# or (manual)
+cd cli/tui
+bun install
+SKILL_FLEET_API_URL=http://localhost:8000 SKILL_FLEET_USER_ID=default bun run dev
+```
+
+Keybinds (TUI):
+
+- `Enter` send/confirm
+- `Shift+Enter` newline (composer + dialog textareas)
+- `Ctrl+Enter` submit (best-effort; some terminals may not distinguish it)
+- `Ctrl+S` submit (dialog fallback)
+- `Ctrl+T` toggle thinking panel
+- `Esc` exit
+
 ### Makefile Shortcuts
 
 ```bash

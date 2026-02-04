@@ -72,6 +72,8 @@ class UnderstandingWorkflow:
         user_context: dict | None = None,
         taxonomy_structure: dict | None = None,
         existing_skills: list[str] | None = None,
+        enable_hitl_confirm: bool = False,
+        user_confirmation: str = "",
         manager: StreamingWorkflowManager | None = None,
     ) -> AsyncIterator[WorkflowEvent]:
         """
@@ -82,6 +84,8 @@ class UnderstandingWorkflow:
             user_context: Optional user context
             taxonomy_structure: Current taxonomy structure
             existing_skills: List of existing skill paths
+            enable_hitl_confirm: Enable recap + confirm/revise/cancel checkpoint after plan synthesis
+            user_confirmation: Feedback from the user when revising the recap/plan
             manager: Optional workflow manager
 
         Yields:
@@ -97,6 +101,8 @@ class UnderstandingWorkflow:
                 user_context=user_context,
                 taxonomy_structure=taxonomy_structure,
                 existing_skills=existing_skills,
+                enable_hitl_confirm=enable_hitl_confirm,
+                user_confirmation=user_confirmation,
                 manager=manager,
             )
         )
@@ -120,6 +126,8 @@ class UnderstandingWorkflow:
         user_context: dict | None = None,
         taxonomy_structure: dict | None = None,
         existing_skills: list[str] | None = None,
+        enable_hitl_confirm: bool = False,
+        user_confirmation: str = "",
         manager: StreamingWorkflowManager | None = None,
     ) -> None:
         """Execute the actual workflow logic."""
@@ -141,6 +149,18 @@ class UnderstandingWorkflow:
                     task_description=task_description,
                     user_context=user_context or {},
                 )
+
+                # If user provided structure fixes earlier, apply them before validation/HITL.
+                # This avoids a loop where the model keeps proposing an invalid name/description.
+                if user_context and isinstance(user_context, dict):
+                    override = user_context.get("structure_fix")
+                    if isinstance(override, dict):
+                        fixed_name = override.get("skill_name")
+                        fixed_desc = override.get("description")
+                        if isinstance(fixed_name, str) and fixed_name.strip():
+                            requirements["suggested_skill_name"] = fixed_name.strip()
+                        if isinstance(fixed_desc, str) and fixed_desc.strip():
+                            requirements["description"] = fixed_desc.strip()
 
                 # Step 1b: Validate structure early to catch common errors
                 await manager.emit(
@@ -249,6 +269,7 @@ class UnderstandingWorkflow:
                     intent_analysis=intent,
                     taxonomy_analysis=taxonomy,
                     dependency_analysis=dependencies,
+                    user_confirmation=user_confirmation,
                 )
 
                 result = {
@@ -259,6 +280,50 @@ class UnderstandingWorkflow:
                     "dependencies": dependencies,
                     "plan": plan,
                 }
+                if enable_hitl_confirm:
+                    summary = self._build_recap_summary(
+                        requirements=requirements,
+                        intent=intent,
+                        taxonomy=taxonomy,
+                        plan=plan,
+                    )
+                    hitl_data = {
+                        "summary": summary,
+                        "path": str(
+                            plan.get("taxonomy_path") or taxonomy.get("recommended_path") or ""
+                        ),
+                        "key_assumptions": self._build_key_assumptions(
+                            requirements=requirements,
+                            intent=intent,
+                            plan=plan,
+                        ),
+                    }
+                    context = {
+                        "requirements": requirements,
+                        "intent": intent,
+                        "taxonomy": taxonomy,
+                        "dependencies": dependencies,
+                        "plan": plan,
+                    }
+                    pending = {
+                        "status": "pending_hitl",
+                        "hitl_type": "confirm",
+                        "hitl_data": hitl_data,
+                        "context": context,
+                        "plan": plan,
+                        "requirements": requirements,
+                        "intent": intent,
+                        "taxonomy": taxonomy,
+                        "dependencies": dependencies,
+                    }
+                    await manager.suspend_for_hitl(
+                        hitl_type="confirm",
+                        data=hitl_data,
+                        context=context,
+                    )
+                    await manager.complete(pending)
+                    return
+
                 await manager.complete(result)
 
         except Exception as e:
@@ -276,6 +341,8 @@ class UnderstandingWorkflow:
         user_context: dict | None = None,
         taxonomy_structure: dict | None = None,
         existing_skills: list[str] | None = None,
+        enable_hitl_confirm: bool = False,
+        user_confirmation: str = "",
         manager: StreamingWorkflowManager | None = None,
     ) -> dict[str, Any]:
         """
@@ -286,6 +353,8 @@ class UnderstandingWorkflow:
             user_context: Optional user context
             taxonomy_structure: Current taxonomy structure
             existing_skills: List of existing skill paths
+            enable_hitl_confirm: Enable recap + confirm/revise/cancel checkpoint after plan synthesis
+            user_confirmation: Feedback from the user when revising the recap/plan
             manager: Optional streaming workflow manager (for event emission)
 
         Returns:
@@ -301,6 +370,8 @@ class UnderstandingWorkflow:
             user_context=user_context,
             taxonomy_structure=taxonomy_structure,
             existing_skills=existing_skills,
+            enable_hitl_confirm=enable_hitl_confirm,
+            user_confirmation=user_confirmation,
             manager=manager,
         ):
             if event.event_type == WorkflowEventType.COMPLETED:
@@ -309,6 +380,67 @@ class UnderstandingWorkflow:
                 raise RuntimeError(event.message)
 
         return {"status": "failed", "error": "Workflow did not complete"}
+
+    @staticmethod
+    def _build_recap_summary(
+        *,
+        requirements: dict[str, Any],
+        intent: dict[str, Any],
+        taxonomy: dict[str, Any],
+        plan: dict[str, Any],
+    ) -> str:
+        """Build a human-readable recap for the confirm step (markdown-ish plain text)."""
+        skill_name = (
+            plan.get("skill_name") or requirements.get("suggested_skill_name") or "unnamed-skill"
+        )
+        desc = plan.get("skill_description") or requirements.get("description") or ""
+        path = plan.get("taxonomy_path") or taxonomy.get("recommended_path") or ""
+        topics = requirements.get("topics") if isinstance(requirements.get("topics"), list) else []
+        target_level = requirements.get("target_level") or ""
+        scope = intent.get("scope") or ""
+        criteria = (
+            plan.get("success_criteria") if isinstance(plan.get("success_criteria"), list) else []
+        )
+
+        lines: list[str] = []
+        lines.append(f"Skill: {skill_name}")
+        if desc:
+            lines.append(f"Description: {desc}")
+        if path:
+            lines.append(f"Taxonomy path: {path}")
+        if target_level:
+            lines.append(f"Target level: {target_level}")
+        if topics:
+            lines.append(f"Topics: {', '.join(str(t) for t in topics[:8])}")
+        if scope:
+            lines.append("")
+            lines.append("Scope:")
+            lines.extend(str(scope).splitlines())
+        if criteria:
+            lines.append("")
+            lines.append("Success criteria:")
+            for c in criteria[:8]:
+                lines.append(f"- {c}")
+        return "\n".join(lines).strip()
+
+    @staticmethod
+    def _build_key_assumptions(
+        *, requirements: dict[str, Any], intent: dict[str, Any], plan: dict[str, Any]
+    ) -> list[str]:
+        assumptions: list[str] = []
+        target = requirements.get("target_level")
+        if target:
+            assumptions.append(f"Target level is {target}.")
+        constraints = requirements.get("constraints")
+        if isinstance(constraints, list) and constraints:
+            assumptions.append(f"Constraints: {', '.join(str(c) for c in constraints[:4])}.")
+        audience = intent.get("target_audience")
+        if audience:
+            assumptions.append(f"Audience: {audience}.")
+        style = plan.get("estimated_length")
+        if style:
+            assumptions.append(f"Expected length: {style}.")
+        return assumptions[:6]
 
     def _needs_clarification(self, requirements: dict) -> bool:
         """Determine if HITL clarification is needed."""

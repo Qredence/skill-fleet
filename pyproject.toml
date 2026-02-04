@@ -222,6 +222,8 @@ skips = [
   # Skip hardcoded_password_func - we use environment variables for secrets
   "B105",
   "B106",
+  # Skip start_process_with_partial_path - CLI tools rely on PATH for bun, uv, etc.
+  "B607",
 ]
 assert_used = false
 

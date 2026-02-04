@@ -191,7 +191,13 @@ async def wait_for_hitl_response(job_id: str, timeout: float = 3600.0) -> dict[s
 
     Uses asyncio.Event on the JobState instance for atomic signaling.
     """
-    job = JOBS[job_id]
+    job = JOBS.get(job_id)
+    if job is None:
+        # Fall back to JobManager-backed lookup (e.g., tests that only use JobManager).
+        job = await get_job(job_id)
+        if job is None:
+            raise KeyError(job_id)
+        JOBS[job_id] = job
 
     # Ensure event is initialized (handles loaded sessions)
     if job.hitl_event is None:
@@ -227,24 +233,38 @@ async def notify_hitl_response(job_id: str, response: dict[str, Any]) -> None:
     This is race-safe: the event is set before storing the response,
     ensuring that any waiters will see the new response.
     """
+    # Prefer the in-memory JOBS object for signaling, since wait_for_hitl_response()
+    # blocks on JOBS[job_id].hitl_event. JobManager may return a distinct instance
+    # in some persistence paths, so we ensure both are updated.
+    job = JOBS.get(job_id)
+
+    if job is not None:
+        if job.hitl_event is None:
+            job.hitl_event = asyncio.Event()
+        job.hitl_response = response
+        job.hitl_event.set()
+        job.updated_at = datetime.now(UTC)
+
     from .job_manager import get_job_manager
 
     manager = get_job_manager()
-    job = await manager.get_job(job_id)
-    if job is None:
+    job_manager_job = await manager.get_job(job_id)
+    if job_manager_job is None:
         return
 
-    # Ensure event is initialized
-    if job.hitl_event is None:
-        job.hitl_event = asyncio.Event()
+    if job_manager_job.hitl_event is None:
+        job_manager_job.hitl_event = asyncio.Event()
+    job_manager_job.hitl_response = response
+    job_manager_job.hitl_event.set()
+    job_manager_job.updated_at = datetime.now(UTC)
 
-    # Store response first (atomic with event set)
-    job.hitl_response = response
-    job.hitl_event.set()  # Notify any waiting coroutines
-    job.updated_at = datetime.now(UTC)
+    # Keep JOBS in sync even if it didn't exist (e.g., loaded from DB-only paths).
+    JOBS[job_id] = job_manager_job
 
-    # Update both memory and database
-    await manager.update_job(job_id, {"updated_at": job.updated_at, "hitl_response": response})
+    await manager.update_job(
+        job_id,
+        {"updated_at": job_manager_job.updated_at, "hitl_response": response},
+    )
 
 
 # =============================================================================

@@ -25,6 +25,7 @@ from .commands.migrate import migrate_command
 from .commands.promote import promote_command
 from .commands.serve import serve_command
 from .commands.terminal import terminal_command
+from .commands.tui import tui_command
 from .commands.validate import validate_command
 from .utils.security import sanitize_user_id, validate_api_url
 
@@ -147,6 +148,7 @@ app.command(name="serve")(serve_command)
 app.command(name="dev")(dev_command)
 app.command(name="chat")(chat_command)
 app.command(name="terminal")(terminal_command)
+app.command(name="tui")(tui_command)
 app.command(name="validate")(validate_command)
 app.command(name="analytics")(analytics_command)
 app.command(name="migrate")(migrate_command)

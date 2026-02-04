@@ -53,8 +53,16 @@ class JobStatus:
     PENDING_REVIEW = "pending_review"
 
 
-TERMINAL_STATUSES = {JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED}
-HITL_STATUSES = {JobStatus.PENDING_USER_INPUT, JobStatus.PENDING_HITL, JobStatus.PENDING_REVIEW}
+# pending_review is a terminal state for streaming purposes: the workflow is finished,
+# but the result needs human attention (e.g., failed validation). Clients should stop
+# streaming and show the final prompt/result.
+TERMINAL_STATUSES = {
+    JobStatus.COMPLETED,
+    JobStatus.FAILED,
+    JobStatus.CANCELLED,
+    JobStatus.PENDING_REVIEW,
+}
+HITL_STATUSES = {JobStatus.PENDING_USER_INPUT, JobStatus.PENDING_HITL}
 
 
 class StreamCreateRequest(BaseModel):

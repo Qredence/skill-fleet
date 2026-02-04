@@ -3,11 +3,21 @@
 
 import asyncio
 import json
+import os
 import sys
 
 import httpx
+import pytest
+
+RUN_LIVE = os.getenv("SKILL_FLEET_RUN_LIVE_API_TESTS") == "1"
 
 
+@pytest.mark.asyncio
+@pytest.mark.integration
+@pytest.mark.skipif(
+    not RUN_LIVE,
+    reason="Requires a running Skill Fleet API server (set SKILL_FLEET_RUN_LIVE_API_TESTS=1)",
+)
 async def test_hitl_clarifying_questions():
     """Test that clarifying questions appear in HITL workflow."""
     base_url = "http://127.0.0.1:8000"

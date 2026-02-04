@@ -53,7 +53,6 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const core = require('@actions/core');
             try {
               const token = await core.getIDToken('api://pypi');
               core.setOutput('token', token);

@@ -18,6 +18,20 @@ from skill_fleet.common.serialization import normalize_dict_output
 
 logger = logging.getLogger(__name__)
 
+# Global sequence counter for monotonic event ordering
+_event_sequence: int = 0
+_sequence_lock: asyncio.Lock | None = None
+
+
+async def _get_next_sequence() -> int:
+    """Get next monotonic sequence number."""
+    global _event_sequence, _sequence_lock
+    if _sequence_lock is None:
+        _sequence_lock = asyncio.Lock()
+    async with _sequence_lock:
+        _event_sequence += 1
+        return _event_sequence
+
 
 class WorkflowEventType(Enum):
     """Types of workflow events."""
@@ -43,6 +57,7 @@ class WorkflowEvent:
     message: str
     data: dict[str, Any] = field(default_factory=dict)
     timestamp: float = field(default_factory=lambda: asyncio.get_event_loop().time())
+    sequence: int = field(default=0)  # Monotonic sequence number (set at creation)
 
     def to_dict(self) -> dict[str, Any]:
         """Convert event to dictionary for JSON serialization."""
@@ -52,6 +67,7 @@ class WorkflowEvent:
             "message": self.message,
             "data": self.data,
             "timestamp": self.timestamp,
+            "sequence": self.sequence,
         }
 
 
@@ -95,11 +111,13 @@ class StreamingWorkflowManager:
         data: dict[str, Any] | None = None,
     ) -> None:
         """Emit a workflow event."""
+        sequence = await _get_next_sequence()
         event = WorkflowEvent(
             event_type=event_type,
             phase=self._current_phase,
             message=message,
             data=data or {},
+            sequence=sequence,
         )
         await self.event_queue.put(event)
         # Sanitize message for logging to avoid log injection (e.g., forged new log lines)

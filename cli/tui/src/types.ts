@@ -5,6 +5,8 @@ export type WorkflowEvent = {
   data?: Record<string, unknown>;
   timestamp?: string;
   status?: string;
+  /** Monotonic sequence number for detecting gaps (stale connections) */
+  sequence?: number;
 };
 
 export type QuestionOption = {

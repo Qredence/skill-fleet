@@ -172,6 +172,11 @@ export function AppShell() {
   }, [activeHitlMessageId, dialog, isWaitingForInput, job]);
 
   const footerLeft = useMemo(() => {
+    // Show stale connection warning if present
+    if (staleConnectionWarning) {
+      return staleConnectionWarning;
+    }
+
     if (!job) return "Enter send | Shift+Enter newline | Ctrl+T thinking | Esc exit";
 
     // When waiting for HITL input, show prominent message
@@ -189,7 +194,7 @@ export function AppShell() {
       parts.push(`✓ ${job.status}`);
     }
     return parts.join(" ");
-  }, [job]);
+  }, [job, staleConnectionWarning]);
 
   const footerRight = useMemo(() => {
     if (dialog) return "Dialog: Enter confirm | Ctrl+S submit";
@@ -506,6 +511,8 @@ export function AppShell() {
     setComposerText("");
     setThinkingLines([]);
     setJobError(null);
+    setStaleConnectionWarning(null);
+    lastSequenceRef.current = null;
 
     try {
       const response = await createSkillJob(task, userId);

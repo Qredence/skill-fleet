@@ -102,6 +102,10 @@ export function AppShell() {
   const [thinkingLines, setThinkingLines] = useState<string[]>([]);
   const [showJumpedToBottom, setShowJumpedToBottom] = useState(false);
   const [jobError, setJobError] = useState<string | null>(null);
+  const [staleConnectionWarning, setStaleConnectionWarning] = useState<string | null>(null);
+
+  // Track last sequence number for stale detection
+  const lastSequenceRef = useRef<number | null>(null);
 
   // Track if we're actively receiving streaming data for visual feedback
   const [isStreamingActive, setIsStreamingActive] = useState(false);
@@ -320,6 +324,17 @@ export function AppShell() {
 
     // Record activity timestamp for all events
     setLastEventAt(eventTime);
+
+    // Detect stale connections via sequence gaps (ignore heartbeats and meta-events with sequence -1)
+    if (typeof event.sequence === "number" && event.sequence > 0) {
+      if (lastSequenceRef.current !== null && event.sequence !== lastSequenceRef.current + 1) {
+        const gap = event.sequence - (lastSequenceRef.current + 1);
+        setStaleConnectionWarning(`⚠ Stale connection: ${gap} event(s) missed`);
+        // Auto-clear warning after 3 seconds
+        setTimeout(() => setStaleConnectionWarning(null), 3000);
+      }
+      lastSequenceRef.current = event.sequence;
+    }
 
     // Keep isStreamingActive "hot" for any WorkflowEvent, not just token_stream
     // This provides responsive UI feedback during non-token events (progress, phase, module, etc.)
@@ -635,6 +650,19 @@ export function AppShell() {
           onSubmit={submitHitl}
           onClose={() => setDialog(null)}
         />
+      ) : null}
+
+      {staleConnectionWarning ? (
+        <box
+          position="absolute"
+          bottom={2}
+          left={2}
+          width={staleConnectionWarning.length + 2}
+          height={1}
+          backgroundColor={THEME.error}
+        >
+          <text fg="#ffffff">{staleConnectionWarning}</text>
+        </box>
       ) : null}
 
     </box>

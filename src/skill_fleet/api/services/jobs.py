@@ -230,7 +230,7 @@ async def notify_hitl_response(job_id: str, response: dict[str, Any]) -> None:
     """
     Notify the in-flight HITL waiter that a response arrived.
 
-    This is race-safe: the event is set before storing the response,
+    This is race-safe: the response is stored before setting the event,
     ensuring that any waiters will see the new response.
     """
     # Prefer the in-memory JOBS object for signaling, since wait_for_hitl_response()

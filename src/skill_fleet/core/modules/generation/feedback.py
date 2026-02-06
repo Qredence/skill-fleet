@@ -36,7 +36,7 @@ class IncorporateFeedbackModule(BaseModule):
 
     @timed_execution()
     @with_llm_fallback(default_return=None)
-    async def aforward(self, payload) -> dspy.Prediction:
+    async def aforward(self, *args, **kwargs) -> dspy.Prediction:
         """
         Return revised content by applying user feedback to an existing SKILL.md.
 
@@ -47,6 +47,15 @@ class IncorporateFeedbackModule(BaseModule):
         - a plain string, in which case it is treated as ``current_content`` with
           empty feedback.
         """
+        # Maintain backward compatibility with previous `aforward(self, payload)`
+        if "payload" in kwargs:
+            payload = kwargs["payload"]
+        elif args:
+            # Use the first positional argument as payload, ignoring any extras.
+            payload = args[0]
+        else:
+            payload = None
+
         current_content = None
         feedback = ""
 

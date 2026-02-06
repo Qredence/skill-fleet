@@ -70,36 +70,7 @@ class TestHITLWorkflows:
         # Setup SkillService (TaxonomyManager is mocked via patch)
         service = SkillService(skills_root=Path("/tmp/skills"), drafts_root=Path("/tmp/drafts"))
 
-        # 1. Understanding returns pending_user_input (HITL)
-        mock_workflows["understanding"].execute.return_value = {
-            "status": "pending_user_input",
-            "hitl_type": "clarify",
-            "hitl_data": {
-                "questions": ["What is the domain?", "Who is the audience?"],
-                "priority": "important",
-            },
-            "context": {"requirements": {}},
-        }
-
-        # Create request
-        request = CreateSkillRequest(task_description="Ambiguous task", user_id="test-user")
-
-        # Call create_skill
-        result = await service.create_skill(request, enable_mlflow=False)
-
-        # Verify HITL state
-        assert result.status == "pending_user_input"
-        assert result.message == "Clarification needed from user"
-        assert result.hitl_context is not None
-        assert "questions" in result.hitl_context
-        assert result.job_id is not None
-
-        # Verify job state
-        job = await mock_job_manager.get_job(result.job_id)
-        assert job.status == "pending_user_input"
-        assert job.hitl_type == "clarify"
-
-        # 2. Simulate user providing answers (Resume)
+        # 1. Understanding returns pending_user_input (HITL), then completes after user response.
         answers = {
             "questions": [
                 {"question": "What is the domain?", "answer": "Web Dev"},
@@ -107,21 +78,31 @@ class TestHITLWorkflows:
             ]
         }
 
-        # Mock understanding to pass this time
-        mock_workflows["understanding"].execute.return_value = {
-            "status": "completed",
-            "plan": {
-                "taxonomy_path": "web/basics",
-                "skill_metadata": {
-                    "skill_id": "web/basics/my-skill",
-                    "name": "my-skill",
-                    "description": "A description",
-                    "type": "technical",
-                    "weight": "lightweight",
+        mock_workflows["understanding"].execute.side_effect = [
+            {
+                "status": "pending_user_input",
+                "hitl_type": "clarify",
+                "hitl_data": {
+                    "questions": ["What is the domain?", "Who is the audience?"],
+                    "priority": "important",
                 },
+                "context": {"requirements": {}},
             },
-            "requirements": {},
-        }
+            {
+                "status": "completed",
+                "plan": {
+                    "taxonomy_path": "web/basics",
+                    "skill_metadata": {
+                        "skill_id": "web/basics/my-skill",
+                        "name": "my-skill",
+                        "description": "A description",
+                        "type": "technical",
+                        "weight": "lightweight",
+                    },
+                },
+                "requirements": {},
+            },
+        ]
 
         # Mock generation to pass
         mock_workflows["generation"].execute.return_value = {
@@ -135,18 +116,25 @@ class TestHITLWorkflows:
             "quality_assessment": {},
         }
 
-        # Call resume_skill_creation
-        resume_result = await service.resume_skill_creation(result.job_id, answers)
+        # Patch HITL waiter to immediately provide answers.
+        with patch(
+            "skill_fleet.api.services.skill_service.wait_for_hitl_response",
+            new=AsyncMock(return_value=answers),
+        ):
+            request = CreateSkillRequest(task_description="Ambiguous task", user_id="test-user")
+            result = await service.create_skill(request, enable_mlflow=False)
 
         # Verify completion
-        assert resume_result.status == "completed"
-        assert resume_result.skill_content == "# Web Dev Skill"
+        assert result.status == "completed"
+        assert result.skill_content == "# Web Dev Skill"
+        assert result.job_id is not None
 
-        # Verify job state updated
+        # Verify job state updated (SkillService persists terminal state)
         job = await mock_job_manager.get_job(result.job_id)
         assert job is not None
         assert job.status == "completed"
-        # resume_skill_creation updates the job to a terminal status after running create_skill.
+        assert job.deep_understanding.answers
+        assert answers in job.deep_understanding.answers
 
     async def test_skill_preview_approval(self, mock_job_manager, mock_workflows):
         """Test Scenario B: Preview approval flow."""

@@ -46,4 +46,4 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-SKILL_FLEET_API_URL="$API_URL" SKILL_FLEET_USER_ID="$USER_ID" npm run dev
+SKILL_FLEET_API_URL="$API_URL" SKILL_FLEET_USER_ID="$USER_ID" bun run dev

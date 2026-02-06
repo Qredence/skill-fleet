@@ -263,7 +263,7 @@ class ValidationWorkflow:
                         test_cases=test_cases,
                     )
                     await manager.suspend_for_hitl(
-                        hitl_type="review",
+                        hitl_type="validate",
                         data=result["hitl_data"],
                         context=result["context"],
                     )
@@ -542,15 +542,31 @@ class ValidationWorkflow:
         weaknesses = quality.get("weaknesses", [])[:3] if isinstance(quality, dict) else []
         issues = compliance.get("issues", []) if isinstance(compliance, dict) else []
 
+        passed = bool(compliance_score >= 0.9 and quality_score >= 0.75 and not issues)
+        report_lines: list[str] = []
+        report_lines.append(f"Compliance score: {compliance_score:.2f}")
+        report_lines.append(f"Quality score: {quality_score:.2f}")
+        report_lines.append("")
+        if strengths:
+            report_lines.append("Strengths:")
+            report_lines.extend([f"- {s}" for s in strengths])
+            report_lines.append("")
+        if weaknesses:
+            report_lines.append("Weaknesses:")
+            report_lines.extend([f"- {w}" for w in weaknesses])
+            report_lines.append("")
+        if issues:
+            report_lines.append("Compliance issues:")
+            report_lines.extend([f"- {i}" for i in issues[:10]])
+
         hitl_data = {
-            "skill_content_preview": skill_content[:2000] + "..."
-            if len(skill_content) > 2000
-            else skill_content,
-            "compliance_score": compliance_score,
-            "quality_score": quality_score,
-            "strengths": strengths,
-            "weaknesses": weaknesses,
+            "report": "\n".join(report_lines).strip(),
+            "passed": passed,
+            "validation_score": round(min(compliance_score, quality_score), 3),
+            "content": skill_content,
+            "highlights": strengths or [],
             "issues": issues,
+            "weaknesses": weaknesses,
         }
 
         if structure and isinstance(structure, dict):
@@ -565,7 +581,7 @@ class ValidationWorkflow:
 
         return {
             "status": "pending_hitl",
-            "hitl_type": "review",
+            "hitl_type": "validate",
             "hitl_data": hitl_data,
             "context": {
                 "full_content": skill_content,

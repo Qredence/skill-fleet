@@ -29,5 +29,5 @@ section "Python tests"
 section "TUI type-check"
 (
   cd "$ROOT_DIR/cli/tui"
-  npm run type-check
+  bun run type-check
 )

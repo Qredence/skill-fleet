@@ -648,6 +648,104 @@ class ValidateHandler(InteractionHandler):
         await client.post_hitl_response(job_id, payload)
 
 
+class StructureFixHandler(InteractionHandler):
+    """
+    Handler for structure_fix interaction type.
+
+    Shows structure validation issues and warnings, offers to accept
+    suggested fixes or let the user edit the skill name and description.
+
+    User Actions:
+    - accept: Apply suggested fixes
+    - edit: Manually supply name/description
+    - cancel: Cancel skill creation
+    """
+
+    async def handle(
+        self,
+        job_id: str,
+        prompt_data: dict[str, Any],
+        client: Any,
+    ) -> None:
+        """Handle structure fix interaction and post response to API."""
+        issues = prompt_data.get("structure_issues", [])
+        warnings = prompt_data.get("structure_warnings", [])
+        suggested_fixes = prompt_data.get("suggested_fixes", [])
+        current_name = prompt_data.get("current_skill_name", "")
+        current_desc = prompt_data.get("current_description", "")
+
+        # Show issues
+        if issues:
+            self.console.print(
+                Panel(
+                    "\n".join(f"  ✗ {issue}" for issue in issues),
+                    title="[bold red]⚠️  Structure Issues[/bold red]",
+                    border_style="red",
+                )
+            )
+
+        # Show warnings
+        if warnings:
+            self.console.print(
+                Panel(
+                    "\n".join(f"  ⚡ {w}" for w in warnings),
+                    title="[bold yellow]⚡ Improvement Suggestions[/bold yellow]",
+                    border_style="yellow",
+                )
+            )
+
+        # Show suggested fixes
+        if suggested_fixes:
+            self.console.print("[dim]Suggested fixes:[/dim]")
+            for fix in suggested_fixes:
+                if isinstance(fix, dict):
+                    field = fix.get("field", "?")
+                    suggested = fix.get("suggested", "")
+                    reason = fix.get("reason", "")
+                    self.console.print(f"  • [bold]{field}[/bold]: {suggested}")
+                    if reason:
+                        self.console.print(f"    [dim]{reason}[/dim]")
+
+        action = await self.ui.choose_one(
+            "How would you like to fix?",
+            [
+                ("accept", "Accept suggested fixes"),
+                ("edit", "Edit manually"),
+                ("cancel", "Cancel"),
+            ],
+            default_id="accept",
+        )
+
+        if action == "cancel":
+            await client.post_hitl_response(job_id, {"action": "cancel"})
+            return
+
+        accept_suggestions = action == "accept"
+        if accept_suggestions:
+            # Use suggested values
+            skill_name = current_name
+            description = current_desc
+            for fix in suggested_fixes:
+                if isinstance(fix, dict):
+                    if fix.get("field") == "skill_name" and fix.get("suggested"):
+                        skill_name = fix["suggested"]
+                    if fix.get("field") == "description" and fix.get("suggested"):
+                        description = fix["suggested"]
+        else:
+            # Manual edit
+            skill_name = await self.ui.ask_text("Skill name", default=current_name)
+            description = await self.ui.ask_text("Description", default=current_desc)
+
+        await client.post_hitl_response(
+            job_id,
+            {
+                "skill_name": skill_name,
+                "description": description,
+                "accept_suggestions": accept_suggestions,
+            },
+        )
+
+
 # Handler registry - maps interaction types to handler classes
 HANDLERS: dict[str, type[InteractionHandler]] = {
     "deep_understanding": DeepUnderstandingHandler,
@@ -658,6 +756,7 @@ HANDLERS: dict[str, type[InteractionHandler]] = {
     "confirm": ConfirmHandler,
     "preview": PreviewHandler,
     "validate": ValidateHandler,
+    "structure_fix": StructureFixHandler,
 }
 
 
@@ -691,5 +790,6 @@ __all__ = [
     "ConfirmHandler",
     "PreviewHandler",
     "ValidateHandler",
+    "StructureFixHandler",
     "get_handler",
 ]

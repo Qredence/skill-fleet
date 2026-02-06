@@ -1,6 +1,6 @@
 [project]
 name = "skill-fleet"
-version = "0.3.6"
+version = "0.3.7"
 description = "Hierarchical skills taxonomy + DSPy workflow prototype"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -215,13 +215,23 @@ skip-magic-trailing-comma = false
 
 [tool.bandit]
 # Bandit security linter configuration
-exclude_dirs = ["tests", ".venv", "venv", ".git", "src/frontend", "node_modules", ".pnpm"]
+exclude_dirs = [
+  "tests",
+  ".venv",
+  "venv",
+  ".git",
+  "src/frontend",
+  "node_modules",
+  ".pnpm",
+]
 skips = [
   # Skip assert_used - we use assertions for internal consistency checks
   "B101",
   # Skip hardcoded_password_func - we use environment variables for secrets
   "B105",
   "B106",
+  # Skip start_process_with_partial_path - CLI tools rely on PATH for bun, uv, etc.
+  "B607",
 ]
 assert_used = false
 

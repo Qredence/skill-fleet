@@ -191,7 +191,13 @@ async def wait_for_hitl_response(job_id: str, timeout: float = 3600.0) -> dict[s
 
     Uses asyncio.Event on the JobState instance for atomic signaling.
     """
-    job = JOBS[job_id]
+    job = JOBS.get(job_id)
+    if job is None:
+        # Fall back to JobManager-backed lookup (e.g., tests that only use JobManager).
+        job = await get_job(job_id)
+        if job is None:
+            raise KeyError(job_id)
+        JOBS[job_id] = job
 
     # Ensure event is initialized (handles loaded sessions)
     if job.hitl_event is None:
@@ -224,27 +230,41 @@ async def notify_hitl_response(job_id: str, response: dict[str, Any]) -> None:
     """
     Notify the in-flight HITL waiter that a response arrived.
 
-    This is race-safe: the event is set before storing the response,
+    This is race-safe: the response is stored before setting the event,
     ensuring that any waiters will see the new response.
     """
+    # Prefer the in-memory JOBS object for signaling, since wait_for_hitl_response()
+    # blocks on JOBS[job_id].hitl_event. JobManager may return a distinct instance
+    # in some persistence paths, so we ensure both are updated.
+    job = JOBS.get(job_id)
+
+    if job is not None:
+        if job.hitl_event is None:
+            job.hitl_event = asyncio.Event()
+        job.hitl_response = response
+        job.hitl_event.set()
+        job.updated_at = datetime.now(UTC)
+
     from .job_manager import get_job_manager
 
     manager = get_job_manager()
-    job = await manager.get_job(job_id)
-    if job is None:
+    job_manager_job = await manager.get_job(job_id)
+    if job_manager_job is None:
         return
 
-    # Ensure event is initialized
-    if job.hitl_event is None:
-        job.hitl_event = asyncio.Event()
+    if job_manager_job.hitl_event is None:
+        job_manager_job.hitl_event = asyncio.Event()
+    job_manager_job.hitl_response = response
+    job_manager_job.hitl_event.set()
+    job_manager_job.updated_at = datetime.now(UTC)
 
-    # Store response first (atomic with event set)
-    job.hitl_response = response
-    job.hitl_event.set()  # Notify any waiting coroutines
-    job.updated_at = datetime.now(UTC)
+    # Keep JOBS in sync even if it didn't exist (e.g., loaded from DB-only paths).
+    JOBS[job_id] = job_manager_job
 
-    # Update both memory and database
-    await manager.update_job(job_id, {"updated_at": job.updated_at, "hitl_response": response})
+    await manager.update_job(
+        job_id,
+        {"updated_at": job_manager_job.updated_at, "hitl_response": response},
+    )
 
 
 # =============================================================================
@@ -281,6 +301,53 @@ def save_job_session(job_id: str) -> bool:
         session_file = resolve_path_within_root(SESSION_DIR, f"{job_id}.json")
         session_data = job.model_dump(mode="json", exclude_none=True)
         session_file.write_text(json.dumps(session_data, indent=2, default=str), encoding="utf-8")
+        logger.debug("Saved session for job %s", sanitize_for_log(job_id))
+        return True
+    except ValueError as e:
+        logger.warning(
+            "Cannot save session for job %s: %s",
+            sanitize_for_log(job_id),
+            sanitize_for_log(e),
+        )
+        return False
+    except Exception as e:
+        logger.error(
+            "Failed to save session for job %s: %s",
+            sanitize_for_log(job_id),
+            sanitize_for_log(e),
+        )
+        return False
+
+
+async def save_job_session_async(job_id: str) -> bool:
+    """
+    Save job state to disk for persistence (async version).
+
+    This function runs the blocking file I/O in a thread pool to avoid
+    blocking the event loop.
+
+    Args:
+        job_id: The job ID to save
+
+    Returns:
+        True if save succeeded, False otherwise
+
+    """
+    if not _is_safe_job_id(job_id):
+        logger.warning("Cannot save session: unsafe job id %s", sanitize_for_log(job_id))
+        return False
+
+    job = JOBS.get(job_id)
+    if not job:
+        logger.warning("Cannot save session: job %s not found", sanitize_for_log(job_id))
+        return False
+
+    try:
+        session_file = resolve_path_within_root(SESSION_DIR, f"{job_id}.json")
+        session_data = job.model_dump(mode="json", exclude_none=True)
+        json_str = json.dumps(session_data, indent=2, default=str)
+        # Run blocking I/O in thread pool
+        await asyncio.to_thread(session_file.write_text, json_str, encoding="utf-8")
         logger.debug("Saved session for job %s", sanitize_for_log(job_id))
         return True
     except ValueError as e:

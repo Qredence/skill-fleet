@@ -24,6 +24,26 @@ class CreateSkillRequest(BaseModel):
         min_length=10,
     )
     user_id: str = Field(default="default", description="User ID for context")
+    enable_hitl_confirm: bool = Field(
+        default=False,
+        description="Enable AI recap + confirm/revise/cancel step after understanding/planning",
+    )
+    enable_hitl_preview: bool = Field(
+        default=False,
+        description="Enable preview + proceed/refine/cancel step after generation",
+    )
+    enable_hitl_review: bool = Field(
+        default=False,
+        description="Enable validation review + proceed/refine/cancel step after validation",
+    )
+    enable_token_streaming: bool = Field(
+        default=False,
+        description="Enable token-level streaming during generation (emits token_stream events)",
+    )
+    auto_save_draft_on_preview_confirm: bool = Field(
+        default=False,
+        description="If preview is confirmed, automatically save the final skill into the draft area",
+    )
 
 
 class CreateSkillResponse(BaseModel):

@@ -822,17 +822,16 @@ class TestEndToEndValidation:
 
         # Should return pending_hitl status
         assert result["status"] == "pending_hitl"
-        assert result["hitl_type"] == "review"
+        assert result["hitl_type"] == "validate"
         assert "hitl_data" in result
         assert "context" in result
 
         # Check HITL data contents
         hitl_data = result["hitl_data"]
-        assert "skill_content_preview" in hitl_data
-        assert "compliance_score" in hitl_data
-        assert "quality_score" in hitl_data
-        assert "strengths" in hitl_data
-        assert "weaknesses" in hitl_data
+        assert "report" in hitl_data
+        assert "passed" in hitl_data
+        assert "validation_score" in hitl_data
+        assert "content" in hitl_data
 
 
 # =============================================================================

@@ -183,7 +183,7 @@ def dev_command(
 
         if ctx and ctx.obj:
             ctx.obj.api_url = api_url
-            ctx.obj.client = SkillFleetClient(api_url)
+            ctx.obj.client = SkillFleetClient(api_url, user_id=ctx.obj.user_id)
 
         chat_command(
             ctx,

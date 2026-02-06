@@ -12,6 +12,7 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 from skill_fleet.core.modules.generation.content import GenerateSkillContentModule
+from skill_fleet.core.modules.generation.feedback import IncorporateFeedbackModule
 from skill_fleet.core.modules.generation.refined_content import RefinedContentModule
 from skill_fleet.core.workflows.models import (
     DEFAULT_QUALITY_THRESHOLDS,
@@ -58,6 +59,7 @@ class GenerationWorkflow:
         self.content_generator = GenerateSkillContentModule()
         # Use RefinedContentModule for async-compatible quality improvement
         self.content_refiner = RefinedContentModule()
+        self.feedback_incorporator = IncorporateFeedbackModule()
 
     async def execute_streaming(
         self,
@@ -213,7 +215,8 @@ class GenerationWorkflow:
                     )
 
                     hitl_data: dict[str, Any] = {
-                        "skill_content": skill_content,
+                        "content": skill_content,
+                        "highlights": self._extract_highlights(skill_content),
                         "sections_count": len(content_result.get("sections_generated", [])),
                         "examples_count": content_result.get("code_examples_count", 0),
                         "reading_time": content_result.get("estimated_reading_time", 0),
@@ -263,6 +266,7 @@ class GenerationWorkflow:
         enable_hitl_preview: bool = False,
         skill_style: str = "comprehensive",
         quality_threshold: float | None = None,
+        enable_token_streaming: bool = False,
         manager: StreamingWorkflowManager | None = None,
     ) -> dict[str, Any]:
         """
@@ -274,6 +278,7 @@ class GenerationWorkflow:
             enable_hitl_preview: Whether to show preview for feedback
             skill_style: Content style
             quality_threshold: Minimum quality score (uses DEFAULT_QUALITY_THRESHOLDS if None)
+            enable_token_streaming: Enable token-level streaming during content generation
             manager: Optional streaming workflow manager (for event emission)
 
         Returns:
@@ -289,6 +294,7 @@ class GenerationWorkflow:
             enable_hitl_preview=enable_hitl_preview,
             skill_style=skill_style,
             quality_threshold=quality_threshold,
+            enable_token_streaming=enable_token_streaming,
             manager=manager,
         ):
             if event.event_type == WorkflowEventType.COMPLETED:
@@ -298,17 +304,44 @@ class GenerationWorkflow:
 
         return {"status": "failed", "error": "Workflow did not complete"}
 
+    @staticmethod
+    def _extract_highlights(content: str) -> list[str]:
+        """Best-effort highlights for preview UI (no extra LLM calls)."""
+        highlights: list[str] = []
+        for line in content.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            if line.startswith("#"):
+                title = line.lstrip("#").strip()
+                if title and title.lower() not in {"instructions"}:
+                    highlights.append(title)
+            if len(highlights) >= 5:
+                break
+        if not highlights:
+            highlights.append("Review generated content and confirm before saving.")
+        return highlights[:6]
+
+    def extract_highlights(self, content: str) -> list[str]:
+        """Public wrapper for highlights extraction (used by API service/UI)."""
+        return self._extract_highlights(content)
+
     async def incorporate_feedback(
         self, current_content: str, feedback: str, change_requests: list[str]
     ) -> dict[str, Any]:
         """Incorporate user feedback into content."""
         logger.info("Incorporating user feedback")
-
-        # For now, return original with note
-        # In full implementation, would use IncorporateFeedbackModule
+        revised = await self.feedback_incorporator.aforward(
+            current_content=current_content,
+            feedback=feedback,
+        )
+        revised_content = getattr(revised, "revised_content", None)
+        if not isinstance(revised_content, str) or not revised_content.strip():
+            revised_content = current_content
         return {
             "status": "completed",
-            "skill_content": current_content,
+            "skill_content": revised_content,
             "feedback_incorporated": True,
-            "changes_made": change_requests,
+            "changes_made": list(getattr(revised, "changes_made", []) or change_requests),
+            "changes_rejected": list(getattr(revised, "changes_rejected", []) or []),
         }

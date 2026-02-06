@@ -1,537 +1,429 @@
-# PRD: Comprehensive Code Review Fixes for Skill Fleet
+# PRD: API-CLI Communication Optimization
 
-## What is the API Workflows Process?
-
-The Skill Fleet API follows a synchronous async workflow pattern where skill creation runs within the API/CLI request lifecycle. The "Job" abstraction is used for state tracking during execution, not for background processing:
-
-### Core Workflow Flow
-
-1. **Request Initiation** (`POST /api/v1/skills/` or CLI command)
-   - Client submits task description
-   - `SkillService.create_skill()` creates a `JobState` with unique `job_id`
-   - **Workflow executes synchronously** - the request/CLI waits for completion
-   - Job state is persisted to memory + database for durability and progress tracking
-
-2. **Synchronous Execution** (Within Request/CLI Lifecycle)
-   - Workflow runs through phases: Understanding → Generation → Validation
-   - Each phase can trigger HITL checkpoints (clarifying questions)
-   - For HITL: workflow pauses, prompts user, waits for response, then resumes
-   - Streaming events emitted via `StreamingWorkflowManager` for real-time feedback
-   - **The request/CLI remains active** until skill creation completes or errors
-
-3. **State Management** (Dual-Layer Persistence)
-   - **Memory Layer**: `JobMemoryStore` provides fast access during active execution
-   - **Database Layer**: PostgreSQL via SQLAlchemy for durability across HITL pauses
-   - `JobManager` persists state at checkpoints for recovery
-   - Jobs are short-lived (minutes, not hours) - duration of skill creation
-
-4. **HITL Integration** (Within Same Session)
-   - When clarification needed, workflow pauses and prompts user
-   - For API: client receives SSE events with HITL prompts
-   - For CLI: interactive prompts in terminal
-   - User responds within the same request/CLI session
-   - Workflow resumes immediately after response
-
-5. **Completion** (Request Returns)
-   - Final result returned to client: skill path, validation score, content
-   - Job state cleaned up from memory (kept in DB for history)
-   - Request/CLI command completes
-
-### Critical Concurrency Points
-
-While individual workflow executions are single-threaded within a request, **shared services are accessed concurrently** by multiple simultaneous requests:
-- **JobMemoryStore**: Multiple concurrent API requests access/modify job states
-- **EventQueueRegistry**: SSE streams register/unregister from different requests
-- **TaxonomyManager**: Skill metadata cache updated during concurrent registrations
-- **Workflow Managers**: Phase transition events emitted to shared queues
-
-### Current Architecture Issues
-
-The existing implementation has **7 critical race conditions** in shared services:
-1. Job lookup falls back to DB without proper locking (TOCTOU)
-2. In-memory cache uses plain dict without locks
-3. Event registry read operations bypass locks
-4. Taxonomy metadata cache mutated concurrently
-5. Wrong lock type (threading.RLock in async context)
-6. Workflow phase transitions not synchronized
-7. Lazy initialization of DSPy refiners racy
-
-These issues can cause:
-- Duplicate job entries when multiple requests arrive simultaneously
-- State corruption when concurrent requests modify shared caches
-- Lost HITL responses in high-concurrency scenarios
-- Inconsistent validation results
-- Event delivery failures
+**Status:** Draft
+**Author:** Engineering
+**Created:** 2026-02-04
+**Last Updated:** 2026-02-04
 
 ---
 
-## Overview
+## Problem Statement
 
-This PRD documents the comprehensive fixes required to address 47 code quality issues identified in the Skill Fleet codebase. The issues span concurrency safety, code duplication, complexity reduction, and utility modernization.
+The Skill Fleet API and client layer (CLI/TUI) exhibit significant communication inefficiencies that degrade user experience and system reliability:
 
-**Scope**: All fixes in `src/skill_fleet/` directory
-**Priority**: Critical concurrency fixes must be deployed before production
-**Impact**: ~40 files modified, ~500 lines changed
-**Estimated Effort**: 4-6 hours implementation + 2 hours testing
+1. **Excessive HITL Polling**: Clients poll `GET /api/v1/hitl/{job_id}/prompt` every ~1 second during HITL states, generating 100+ redundant requests per interaction
+2. **Streaming Timeouts**: "No events for 5.0s" warnings flood logs during long-running LLM operations
+3. **Critical Validation Crash**: Jobs fail with `validation_report.passed Field required` error when validation phase doesn't complete
+4. **Resource Leaks**: Event queues are never cleaned up if jobs crash mid-execution
+5. **Silent Failures**: Background task errors don't propagate to streaming clients
+
+### Evidence from Terminal Logs
+
+```
+WARNING:skill_fleet.api.v1.streaming:Job b079ff87...: No events for 5.0s, falling back to status
+(repeated 50+ times)
+
+ERROR:skill_fleet.api.v1.skills:Skill creation job b079ff87... failed:
+1 validation error for SkillCreationResult
+validation_report.passed
+  Field required [type=missing, input_value={}, input_type=dict]
+```
 
 ---
 
 ## Goals
 
-### Primary Goals
-
-1. **Eliminate Critical Race Conditions** (7 issues)
-   - Fix all shared-state mutation points in async context
-   - Ensure thread-safe access to JobMemoryStore, EventQueueRegistry, TaxonomyManager
-   - Replace threading.RLock with asyncio.Lock
-   - Add proper synchronization for lazy initialization
-
-2. **Centralize Duplicate Code** (3 major patterns)
-   - Extract `_sanitize_for_log()` to shared utility (4 implementations → 1)
-   - Create `@with_llm_fallback` decorator (7+ occurrences → 1)
-   - Create `@timed_execution` decorator (20 occurrences → 1)
-
-3. **Reduce Code Complexity** (3 functions)
-   - Break up ValidationWorkflow._execute_workflow (230 lines)
-   - Break up UnderstandingWorkflow._execute_workflow (155 lines)
-   - Break up SkillService.create_skill (233 lines)
-
-4. **Modernize Utilities** (3 opportunities)
-   - Replace custom InMemoryCache with cachetools.TTLCache
-   - Replace custom run_async() with anyio.run()
-   - Replace serialize_pydantic_object() with Pydantic v2 native
-
-5. **Improve Architecture** (2 structural changes)
-   - Create BaseWorkflow class for common workflow patterns
-   - Extend BaseModule with validate_with_defaults() helper
-
-### Secondary Goals
-
-6. **Improve Testability**
-   - Add concurrency stress tests
-   - Make methods async where appropriate for better testability
-   - Reduce coupling through dependency injection
-
-7. **Maintain Backward Compatibility**
-   - Where possible, preserve existing APIs
-   - Update callers to use new async signatures
-   - Provide migration path for deprecated utilities
-
----
+| Goal                       | Metric                              | Target            |
+| -------------------------- | ----------------------------------- | ----------------- |
+| Reduce HITL polling        | Requests per HITL interaction       | < 5 (from 100+)   |
+| Eliminate timeout warnings | Warning log entries per job         | 0                 |
+| Fix validation crashes     | Job failure rate from schema errors | 0%                |
+| Clean up stale resources   | Orphaned event queues               | 0 after 5 minutes |
 
 ## Non-Goals
 
-### Out of Scope
-
-1. **Feature Changes**: No new features or behavior changes - only refactoring
-2. **Database Schema**: No database migrations or schema changes
-3. **API Contracts**: Public API endpoints remain unchanged
-4. **Performance Optimization**: Not focusing on performance gains (though concurrency fixes may improve stability under load)
-5. **Major Rewrites**: Keeping changes surgical and focused
-6. **Documentation**: API documentation updates are follow-up work
-
-### Explicitly Excluded
-
-- Refactoring CLI UI code (rich text formatting, prompts)
-- Changing DSPy signature definitions beyond adding reasoning fields
-- Adding new validation rules or quality criteria
-- Migrating from Pydantic v1 to v2 (only using existing v2 features)
-- Changing error message text or logging formats
-- Modifying MLflow integration logic
+- WebSocket implementation (SSE is sufficient)
+- Real-time collaborative editing
+- Mobile TUI support
 
 ---
 
-## Technical Requirements
+## Client Strategy: CLI vs TUI
 
-### Phase 1: Critical Concurrency Fixes
+### Option A: Focus on Python CLI (`src/skill_fleet/cli/`)
 
-#### 1.1 JobManager.get_job() Race Condition
-**File**: `src/skill_fleet/api/services/job_manager.py`
+**Pros:**
 
-```python
-# Current (Race Condition):
-def get_job(self, job_id: str) -> JobState | None:
-    job = self.memory.get(job_id)  # Check
-    if job:
-        return job
-    # ... DB fetch ...
-    if not self.memory.get(job_id):  # Second check - TOCTOU gap!
-        self.memory.set(job_id, job_state)
+- Same language as API (Python) - easier debugging
+- Mature codebase with established patterns
+- `streaming_runner.py` already handles SSE consumption
+- Typer-based, well-tested command structure
+- HITL handlers in `cli/hitl/` are comprehensive
 
-# Required:
-# - Add _lock = asyncio.Lock()
-# - Make method async
-# - Wrap check-then-act with lock
-```
+**Cons:**
 
-**Requirements**:
-- Add `asyncio.Lock` to `JobManager`
-- Convert `get_job()` from sync to async
-- Update all callers to use `await`
-- Ensure lock is acquired before second check
+- Terminal UI limitations (Rich/Textual)
+- Less interactive than TUI
 
-#### 1.2 JobMemoryStore Synchronization
-**File**: `src/skill_fleet/api/services/job_manager.py`
+### Option B: Focus on OpenTUI (`cli/tui/`)
 
-**Requirements**:
-- Convert `JobMemoryStore` methods from sync to async
-- Add `asyncio.Lock()` instance variable
-- Protect all dict operations with lock
-- Ensure atomicity of `set()` operations
-- Consider lock granularity (one lock vs. fine-grained)
+**Pros:**
 
-#### 1.3 EventQueueRegistry.get() Lock
-**File**: `src/skill_fleet/api/services/event_registry.py`
+- Modern React-like component model
+- Rich interactive UI (dialogs, panels)
+- Streaming markdown rendering
 
-**Requirements**:
-- Add lock protection to `get()` method
-- Ensure consistency with `register()`/`unregister()` which already use locks
+**Cons:**
 
-#### 1.4 TaxonomyManager Cache Lock
-**File**: `src/skill_fleet/taxonomy/manager.py`
+- TypeScript/Bun stack separate from main codebase
+- OpenTUI is newer, less battle-tested
+- Requires maintaining two SSE parsers
+- Current implementation has polling patterns baked in
 
-**Requirements**:
-- Add `_cache_lock = asyncio.Lock()`
-- Protect `metadata_cache` mutations in:
-  - `_load_skill_file()`
-  - `_load_skill_dir_metadata()`
-  - `register_skill()`
-  - `_load_always_loaded_skills()`
+### Recommendation: **Prioritize CLI, keep TUI compatible**
 
-#### 1.5 InMemoryCache Lock Type
-**File**: `src/skill_fleet/api/cache.py`
+The Python CLI at `src/skill_fleet/cli/streaming_runner.py` is the more stable foundation. Fixes should:
 
-**Requirements**:
-- Replace `threading.RLock()` with `asyncio.Lock()`
-- Convert all methods to async where needed
-- Ensure no blocking calls remain
-
-#### 1.6 StreamingWorkflowManager Lock
-**File**: `src/skill_fleet/core/workflows/streaming.py`
-
-**Requirements**:
-- Add lock for `_current_phase` and `_completed_phases` mutations
-- Protect `set_phase()` method
-- Ensure event emission is thread-safe
-
-#### 1.7 ValidationWorkflow Lazy Init Lock
-**File**: `src/skill_fleet/core/workflows/skill_creation/validation.py`
-
-**Requirements**:
-- Add lock for `quality_refiner` lazy initialization
-- Create `_get_refiner()` async method
-- Ensure only one instance created even with concurrent calls
-
-### Phase 2: Duplicate Code Centralization
-
-#### 2.1 Common Logging Utilities
-**New File**: `src/skill_fleet/common/logging_utils.py`
-
-**Requirements**:
-```python
-def _sanitize_for_log(value: Any, max_length: int = 500) -> str:
-    """Sanitize value for logging.
-
-    - Removes newlines and control characters
-    - Masks secrets/tokens
-    - Truncates to max_length
-    - Handles ANSI codes
-    """
-```
-
-**Migration**:
-- Update `job_manager.py`
-- Update `jobs.py`
-- Update `cached_taxonomy.py`
-- Update `taxonomy.py`
-
-#### 2.2 LLM Fallback Decorator
-**New File**: `src/skill_fleet/common/llm_fallback.py`
-
-**Requirements**:
-```python
-def with_llm_fallback(default_return: Any = None, log_message: str = "Module failed"):
-    """Decorator for DSPy module methods with LLM fallback.
-
-    Catches exceptions and returns default if llm_fallback_enabled().
-    """
-```
-
-**Migration** (7+ files):
-- `requirements.py`
-- `intent.py`
-- `taxonomy.py`
-- `dependencies.py`
-- `plan.py`
-- `compliance.py`
-- `test_cases.py`
-
-#### 2.3 Timed Execution Decorator
-**File**: `src/skill_fleet/common/utils.py`
-
-**Requirements**:
-```python
-def timed_execution(metric_name: str | None = None):
-    """Decorator to time function execution.
-
-    Automatically calculates duration_ms and logs via _log_execution.
-    """
-```
-
-**Migration** (20+ occurrences):
-- All DSPy module `aforward()` methods
-- Workflow execution methods
-- Validation methods
-
-### Phase 3: Utility Modernization
-
-#### 3.1 Cachetools Integration
-**File**: `src/skill_fleet/api/cache.py`
-
-**Requirements**:
-- Verify `cachetools` in dependencies
-- Replace `InMemoryCache` with `cachetools.TTLCache`
-- Maintain same API surface
-- Ensure TTL behavior preserved
-
-#### 3.2 Anyio Integration
-**File**: `src/skill_fleet/common/async_utils.py`
-
-**Requirements**:
-- Verify `anyio` in dependencies
-- Replace custom `run_async()` implementation
-- Use `anyio.run()` for nested event loops
-- Maintain backward compatibility
-
-#### 3.3 Pydantic v2 Native Serialization
-**File**: `src/skill_fleet/common/serialization.py`
-
-**Requirements**:
-- Replace `serialize_pydantic_object()` with `model_dump()`
-- Remove v1 compatibility code if no longer needed
-- Update all callers
-
-### Phase 4: Architecture Improvements
-
-#### 4.1 BaseWorkflow Class
-**New File**: `src/skill_fleet/core/workflows/base.py`
-
-**Requirements**:
-```python
-class BaseWorkflow:
-    """Base class for skill creation workflows.
-
-    Handles common patterns:
-    - Streaming event emission
-    - Phase management
-    - Error handling
-    - HITL checkpointing
-    """
-
-    async def execute_streaming(self, ...) -> AsyncIterator[WorkflowEvent]:
-        """Template method for streaming execution."""
-
-    async def execute(self, ...) -> dict:
-        """Non-streaming wrapper."""
-```
-
-**Migration**:
-- Refactor `understanding.py`
-- Refactor `generation.py`
-- Refactor `validation.py`
-
-#### 4.2 BaseModule Extension
-**File**: `src/skill_fleet/core/modules/base.py`
-
-**Requirements**:
-```python
-def validate_with_defaults(
-    self,
-    output: dict,
-    required_defaults: dict[str, Any]
-) -> dict:
-    """Validate result and apply defaults for missing fields."""
-```
-
-**Migration** (6+ files):
-- All understanding modules
-- All validation modules
-
-#### 4.3 Workflow Phase Extraction
-
-**ValidationWorkflow** (`validation.py`):
-- Extract `_step_initial_validation()`
-- Extract `_step_quality_refinement()`
-- Extract `_step_hitl_checkpoint()`
-- Extract `_step_final_validation()`
-
-**UnderstandingWorkflow** (`understanding.py`):
-- Extract `_step_gather_requirements()`
-- Extract `_step_analyze_intent()`
-- Extract `_step_find_taxonomy()`
-- Extract `_step_analyze_dependencies()`
-- Extract `_step_synthesize_plan()`
-
-**SkillService** (`skill_service.py`):
-- Extract `_phase_understanding()`
-- Extract `_phase_generation()`
-- Extract `_phase_validation()`
-
-### Phase 5: Testing
-
-#### 5.1 Concurrency Stress Tests
-**New File**: `tests/integration/test_concurrency.py`
-
-**Requirements**:
-```python
-async def test_concurrent_job_creation():
-    """Create 100 jobs concurrently, verify no duplicates."""
-
-async def test_concurrent_job_access():
-    """Multiple readers + writers to same job."""
-
-async def test_taxonomy_cache_concurrent_update():
-    """Concurrent skill registrations."""
-```
-
-#### 5.2 Regression Tests
-**Requirements**:
-- Run full test suite
-- Verify all existing tests pass
-- Fix any broken async/sync transitions
+1. Land in the API first (backend-driven)
+2. Be consumed by CLI automatically via existing SSE
+3. TUI can adopt the improved events without code changes (if event schema is stable)
 
 ---
 
-## Success Criteria
+## Technical Design
 
-### Functional Criteria
+### Step 1: Fix Validation Error Crash (Critical)
 
-1. **Concurrency Safety** ✅
-   - [ ] No race conditions detected by stress tests
-   - [ ] 1000 concurrent job creations complete without duplicates
-   - [ ] Concurrent job reads/writes don't corrupt state
-   - [ ] Taxonomy cache handles concurrent registrations
-   - [ ] Event queues work correctly under concurrent access
+**Problem**: `ValidationReport.passed` has no default; when validation doesn't run, `{}` is passed and Pydantic fails.
 
-2. **Code Quality** ✅
-   - [ ] All 7 critical concurrency issues resolved
-   - [ ] All 3 duplicate code patterns centralized
-   - [ ] Complexity of 3 workflow functions reduced by 50%
-   - [ ] No functions >200 lines
-   - [ ] No functions with >4 nesting levels (orchestrators exempted)
+**Files**:
 
-3. **Functionality Preserved** ✅
-   - [ ] All existing tests pass
-   - [ ] Skill creation workflow works end-to-end
-   - [ ] HITL interactions function correctly
-   - [ ] Streaming events delivered properly
-   - [ ] No API contract changes
+- `src/skill_fleet/core/models.py#L584`
+- `src/skill_fleet/api/services/skill_service.py#L521`
+- `src/skill_fleet/api/v1/skills.py#L313`
+- `src/skill_fleet/api/v1/quality.py#L109, L280`
+- `src/skill_fleet/cli/streaming_runner.py#L559`
 
-### Technical Criteria
+**Changes**:
 
-4. **Type Safety** ✅
-   - [ ] `ty check` passes with no errors
-   - [ ] `ruff check .` passes with no warnings
-   - [ ] All new code has proper type hints
+```python
+# models.py - Add default
+passed: bool = Field(default=False, description="Whether all required checks passed")
 
-5. **Performance** ✅
-   - [ ] No significant performance regression (<10% slower)
-   - [ ] Lock contention minimal (measured with profiling)
-   - [ ] Memory usage stable
+# All consumers - Return None instead of {}
+validation_report = phase3_result.get("validation_report") or None
+```
 
-6. **Maintainability** ✅
-   - [ ] New utilities documented
-   - [ ] Code coverage maintained or improved
-   - [ ] No new lint warnings introduced
-   - [ ] Follows existing code style
-
-### Operational Criteria
-
-7. **Deployment** ✅
-   - [ ] Zero-downtime deployment possible
-   - [ ] Can be rolled back if issues arise
-   - [ ] No database migrations required
-   - [ ] Compatible with existing environment variables
+**Why CLI benefits**: `streaming_runner.py#L559` has the same pattern and will crash on the same error.
 
 ---
 
-## Dependencies
+### Step 2: Push HITL Prompt via SSE (Backend)
 
-### Required Libraries
+**Problem**: Stream only sends `{"type": "hitl_pause"}` without prompt data, forcing clients to poll.
 
-Verify these are in `pyproject.toml`:
-- `cachetools` (likely already present via DSPy)
-- `anyio` (may need to add)
+**Files**:
 
-### Development Dependencies
+- `src/skill_fleet/api/v1/streaming.py#L167`
+- `src/skill_fleet/api/v1/hitl.py#L127`
 
-For stress testing:
-- `pytest-asyncio` (likely already present)
-- `pytest-xdist` for parallel test execution
+**Changes**:
 
----
+1. Extract `build_hitl_prompt_response(job_id)` from GET endpoint into shared function
+2. Emit full prompt in `hitl_pause` event:
 
-## Risks and Mitigations
+```python
+# streaming.py
+if status in HITL_STATUSES:
+    prompt_data = await build_hitl_prompt_response(job_id)
+    yield f"data: {json.dumps({'type': 'hitl_pause', 'status': status, 'prompt': prompt_data})}\n\n"
+```
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Breaking existing tests | High | Run full test suite after each phase; fix immediately |
-| Async/sync mismatch | High | Update all callers systematically; type checker will catch |
-| Lock contention | Medium | Use fine-grained locks; profile before/after |
-| Race conditions not caught | Medium | Comprehensive stress tests; monitor in staging |
-| Dependency conflicts | Low | Verify versions before adding new deps |
+**Why CLI benefits**: `streaming_runner.py` can display HITL prompts directly from stream without extra fetch.
 
 ---
 
-## Timeline
+### Step 3: CLI Streaming Runner Update
 
-### Phase 1: Critical Concurrency (Day 1)
-- Morning: JobManager, JobMemoryStore, EventQueueRegistry
-- Afternoon: TaxonomyManager, InMemoryCache, Workflow managers
+**Problem**: CLI's `streaming_runner.py` may still poll or miss prompt data.
 
-### Phase 2: Duplicate Code (Day 2)
-- Morning: Create utilities, update 4 log sanitization files
-- Afternoon: Apply decorators to 7+ DSPy modules
+**Files**:
 
-### Phase 3: Utilities (Day 3)
-- Morning: Replace InMemoryCache
-- Afternoon: Replace run_async and serialization
+- `src/skill_fleet/cli/streaming_runner.py`
+- `src/skill_fleet/cli/hitl/runner.py`
 
-### Phase 4: Refactoring (Day 4-5)
-- Day 4: BaseWorkflow, BaseModule extensions
-- Day 5: Extract phase methods from 3 workflow classes
+**Changes**:
 
-### Phase 5: Testing (Day 6)
-- Morning: Write concurrency stress tests
-- Afternoon: Full test suite run, bug fixes
+1. Handle `hitl_pause` event with embedded prompt:
 
-**Total: 6 days** (including buffer for unexpected issues)
+```python
+elif event_type == "hitl_pause":
+    prompt = event.get("prompt")
+    if prompt:
+        # Directly invoke HITL handler without fetch
+        await handle_hitl_prompt(job_id, prompt)
+    else:
+        # Fallback to fetch (backward compat)
+        prompt = await fetch_hitl_prompt(job_id)
+```
+
+2. Remove redundant polling loop if prompt is embedded
 
 ---
 
-## Appendix: Affected Files
+### Step 4: Add Heartbeat Events (Backend)
 
-### Critical Changes (~15 files)
-- `src/skill_fleet/api/services/job_manager.py`
-- `src/skill_fleet/api/services/event_registry.py`
-- `src/skill_fleet/api/cache.py`
-- `src/skill_fleet/taxonomy/manager.py`
+**Problem**: Empty event queue during LLM calls triggers timeout warnings.
+
+**Files**:
+
+- `src/skill_fleet/api/v1/streaming.py#L163`
 - `src/skill_fleet/core/workflows/streaming.py`
-- `src/skill_fleet/core/workflows/skill_creation/validation.py`
 
-### New Files (~5 files)
-- `src/skill_fleet/common/logging_utils.py`
-- `src/skill_fleet/common/llm_fallback.py`
-- `src/skill_fleet/core/workflows/base.py`
-- `tests/integration/test_concurrency.py`
+**Changes**:
 
-### Modified Modules (~20 files)
-- All understanding modules (requirements, intent, taxonomy, dependencies, plan)
-- All validation modules (compliance, structure, metrics, test_cases, best_of_n)
-- Generation modules (content, refined_content)
-- API service files (jobs, cached_taxonomy, taxonomy endpoints)
-- Common utilities (utils, async_utils, serialization)
+```python
+# streaming.py
+HEARTBEAT_INTERVAL = 3.0
+last_heartbeat = time.monotonic()
+
+# In event loop timeout handler:
+if (time.monotonic() - last_heartbeat) >= HEARTBEAT_INTERVAL:
+    yield f"data: {json.dumps({'type': 'keepalive'})}\n\n"
+    last_heartbeat = time.monotonic()
+    timeout_count = 0  # Reset counter
+
+# Rate-limit warning
+if timeout_count >= MAX_CONSECUTIVE_TIMEOUTS and not logged_timeout_warning:
+    logger.warning(f"Job {job_id}: No events for extended period")
+    logged_timeout_warning = True
+```
+
+**Why CLI benefits**: Prevents stream disconnection during long LLM operations.
 
 ---
 
-**Next Step**: Review and approve this PRD, then proceed to TODOS.md creation.
+### Step 5: Implement Event Queue Cleanup (Backend)
+
+**Problem**: `cleanup_expired()` is a placeholder; crashed jobs leak queues.
+
+**Files**:
+
+- `src/skill_fleet/api/services/event_registry.py#L72`
+- `src/skill_fleet/api/lifespan.py`
+
+**Changes**:
+
+```python
+# event_registry.py
+class EventQueueRegistry:
+    def __init__(self):
+        self._queues: dict[str, tuple[asyncio.Queue, float]] = {}  # (queue, created_at)
+
+    async def cleanup_expired(self, max_age: int = 3600, job_manager=None) -> int:
+        async with self._lock:
+            now = time.monotonic()
+            to_remove = []
+            for job_id, (queue, created_at) in self._queues.items():
+                # Remove if too old
+                if (now - created_at) > max_age:
+                    to_remove.append(job_id)
+                    continue
+                # Remove if job is terminal
+                if job_manager:
+                    job = await job_manager.get_job(job_id)
+                    if not job or job.status in TERMINAL_STATUSES:
+                        to_remove.append(job_id)
+            for job_id in to_remove:
+                del self._queues[job_id]
+            return len(to_remove)
+
+# lifespan.py - Add background task
+async def cleanup_task():
+    while True:
+        await asyncio.sleep(300)  # 5 minutes
+        cleaned = await get_event_registry().cleanup_expired(job_manager=get_job_manager())
+        if cleaned:
+            logger.info(f"Cleaned up {cleaned} stale event queues")
+```
+
+---
+
+### Step 6: Propagate Errors to Stream (Backend)
+
+**Problem**: Background task exceptions don't reach streaming clients.
+
+**Files**:
+
+- `src/skill_fleet/api/v1/skills.py#L130-L155`
+
+**Changes**:
+
+```python
+# skills.py - Background task wrapper
+async def run_skill_creation_bg(job_id: str, request: CreateSkillRequest):
+    event_registry = get_event_registry()
+    try:
+        result = await skill_service.create_skill(request, job_id)
+        # Emit completion
+        queue = await event_registry.get(job_id)
+        if queue:
+            await queue.put(WorkflowEvent(
+                event_type=WorkflowEventType.COMPLETED,
+                phase="complete",
+                message="Skill creation finished",
+                data={"result": result.model_dump()}
+            ))
+    except Exception as e:
+        logger.exception(f"Job {job_id} failed")
+        queue = await event_registry.get(job_id)
+        if queue:
+            await queue.put(WorkflowEvent(
+                event_type=WorkflowEventType.ERROR,
+                phase="error",
+                message=str(e),
+                data={"error": str(e)}
+            ))
+        raise
+    finally:
+        await event_registry.unregister(job_id)
+```
+
+**Why CLI benefits**: `streaming_runner.py` will receive ERROR events instead of timing out.
+
+---
+
+### Step 7: Suppress MLflow Git Warning (Backend)
+
+**Problem**: MLflow auto-detects git and fails on truncated commit hash.
+
+**Files**:
+
+- `src/skill_fleet/infrastructure/tracing/mlflow.py#L298`
+
+**Changes**:
+
+```python
+import warnings
+
+def start_parent_run(...):
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message=".*Can't locate revision.*")
+        # existing mlflow.start_run() call
+```
+
+---
+
+## TUI Compatibility Notes
+
+If the TUI (`cli/tui/`) is kept, these changes ensure compatibility:
+
+1. **Event schema unchanged**: `hitl_pause` gains optional `prompt` field - TUI can ignore it and keep polling
+2. **Heartbeat events**: TUI should ignore `keepalive` type (no-op)
+3. **Error events**: TUI already handles `error` type in `handleStreamEvent()`
+
+Future TUI optimization (optional):
+
+- Update `AppShell.tsx#L159-205` to use embedded prompt from `hitl_pause` event
+- Remove `fetchHitlPrompt()` calls when prompt is present in event
+
+---
+
+## Verification Plan
+
+```bash
+# 1. Run API server
+uv run skill-fleet dev
+
+# 2. Create skill via CLI (tests Steps 1-6)
+uv run skill-fleet create "Create a Python logging skill" --auto-approve
+
+# 3. Verify in logs:
+#    - No "validation_report.passed" errors (Step 1)
+#    - HITL prompt data in stream events (Step 2)
+#    - Keepalive events every 3s during LLM calls (Step 4)
+#    - No "No events for 5.0s" warnings (Step 4)
+#    - ERROR event on forced failure (Step 6)
+
+# 4. Test cleanup (Step 5)
+#    - Start job, kill API mid-execution
+#    - Restart API, wait 5 minutes
+#    - Check orphaned queues are cleaned
+
+# 5. Run unit tests
+uv run pytest tests/unit/ -v
+uv run pytest tests/integration/test_hitl_integration.py -v
+```
+
+---
+
+## Decisions Log
+
+| Decision                     | Rationale                                                |
+| ---------------------------- | -------------------------------------------------------- |
+| Prioritize CLI over TUI      | Same language, mature codebase, single SSE parser        |
+| SSE push over WebSocket      | Unidirectional events suffice; WebSocket adds complexity |
+| `default=False` for `passed` | Prevents crash while maintaining type safety             |
+| 3s heartbeat interval        | Balances responsiveness vs. network overhead             |
+| Backend-first changes        | CLI/TUI benefit automatically from improved events       |
+
+---
+
+## Risks & Mitigations
+
+| Risk                          | Impact | Mitigation                                            |
+| ----------------------------- | ------ | ----------------------------------------------------- |
+| Breaking existing CLI clients | Medium | Event schema is additive (new fields optional)        |
+| Heartbeats increase bandwidth | Low    | 3s interval = ~20 events/min, negligible              |
+| Cleanup deletes active queues | High   | Only clean jobs in TERMINAL_STATUSES; add 5min buffer |
+| TUI falls further behind      | Low    | TUI can ignore new fields; document upgrade path      |
+
+---
+
+## Timeline Estimate
+
+| Step                       | Effort | Dependencies |
+| -------------------------- | ------ | ------------ |
+| 1. Fix validation crash    | 1h     | None         |
+| 2. Push HITL via SSE       | 2h     | None         |
+| 3. CLI streaming update    | 1h     | Step 2       |
+| 4. Add heartbeat events    | 1h     | None         |
+| 5. Event queue cleanup     | 2h     | None         |
+| 6. Propagate errors        | 1h     | None         |
+| 7. Suppress MLflow warning | 0.5h   | None         |
+
+**Total**: ~8.5 hours
+
+**Parallelization**: Steps 1, 4, 5, 6, 7 can run in parallel (no dependencies)
+
+---
+
+## Appendix: File Reference
+
+### Backend (API)
+
+| File                                               | Purpose                             |
+| -------------------------------------------------- | ----------------------------------- |
+| `src/skill_fleet/api/v1/streaming.py`              | SSE endpoint, heartbeat, event loop |
+| `src/skill_fleet/api/v1/hitl.py`                   | HITL prompt GET/POST endpoints      |
+| `src/skill_fleet/api/v1/skills.py`                 | Skill creation, background task     |
+| `src/skill_fleet/api/services/event_registry.py`   | Event queue management              |
+| `src/skill_fleet/api/services/skill_service.py`    | Workflow orchestration              |
+| `src/skill_fleet/core/models.py`                   | Pydantic models (ValidationReport)  |
+| `src/skill_fleet/infrastructure/tracing/mlflow.py` | MLflow integration                  |
+
+### CLI
+
+| File                                      | Purpose                     |
+| ----------------------------------------- | --------------------------- |
+| `src/skill_fleet/cli/streaming_runner.py` | SSE consumer, event handler |
+| `src/skill_fleet/cli/hitl/runner.py`      | HITL prompt handling        |
+| `src/skill_fleet/cli/commands/create.py`  | Create skill command        |
+
+### TUI (Optional)
+
+| File                           | Purpose                 |
+| ------------------------------ | ----------------------- |
+| `cli/tui/src/app/AppShell.tsx` | Main UI, event handling |
+| `cli/tui/src/api.ts`           | API client, SSE parser  |
+| `cli/tui/src/types.ts`         | TypeScript types        |

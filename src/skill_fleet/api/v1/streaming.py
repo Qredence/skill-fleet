@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import time
 from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING
 
@@ -39,6 +40,7 @@ router = APIRouter()
 STATUS_POLL_INTERVAL = 0.5  # seconds
 HITL_CHECK_INTERVAL = 1.0  # seconds
 MAX_CONSECUTIVE_TIMEOUTS = 10
+HEARTBEAT_INTERVAL = 15.0  # seconds - emit heartbeat to keep connection alive
 
 
 # Job status constants
@@ -53,8 +55,16 @@ class JobStatus:
     PENDING_REVIEW = "pending_review"
 
 
-TERMINAL_STATUSES = {JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED}
-HITL_STATUSES = {JobStatus.PENDING_USER_INPUT, JobStatus.PENDING_HITL, JobStatus.PENDING_REVIEW}
+# pending_review is a terminal state for streaming purposes: the workflow is finished,
+# but the result needs human attention (e.g., failed validation). Clients should stop
+# streaming and show the final prompt/result.
+TERMINAL_STATUSES = {
+    JobStatus.COMPLETED,
+    JobStatus.FAILED,
+    JobStatus.CANCELLED,
+    JobStatus.PENDING_REVIEW,
+}
+HITL_STATUSES = {JobStatus.PENDING_USER_INPUT, JobStatus.PENDING_HITL}
 
 
 class StreamCreateRequest(BaseModel):
@@ -67,13 +77,14 @@ class StreamCreateRequest(BaseModel):
 
 
 async def _format_sse_event(event: WorkflowEvent) -> str:
-    """Format workflow event as SSE."""
+    """Format workflow event as SSE with monotonic sequence for stale detection."""
     data = {
         "type": event.event_type.value,
         "phase": event.phase,
         "message": event.message,
         "data": event.data,
         "timestamp": event.timestamp,
+        "sequence": event.sequence,  # Monotonic counter for detecting gaps
     }
     return f"data: {json.dumps(data)}\n\n"
 
@@ -272,6 +283,8 @@ async def get_job_stream(
         """Stream workflow events from the registered queue."""
         last_status = None
         timeout_count = 0
+        timeout_warning_issued = False
+        last_heartbeat = time.time()
 
         try:
             while True:
@@ -280,18 +293,26 @@ async def get_job_stream(
                     logger.info(f"Client disconnected from job {job_id} stream")
                     break
 
+                # Emit heartbeat to keep connection alive
+                current_time = time.time()
+                if current_time - last_heartbeat >= HEARTBEAT_INTERVAL:
+                    yield f"data: {json.dumps({'type': 'heartbeat', 'timestamp': current_time, 'sequence': -1})}\n\n"
+                    last_heartbeat = current_time
+
                 # Check if job is still active
                 job = await job_manager.get_job(job_id)
                 if not job:
-                    yield f"data: {json.dumps({'type': 'error', 'message': 'Job not found'})}\n\n"
+                    yield f"data: {json.dumps({'type': 'error', 'message': 'Job not found', 'sequence': -1})}\n\n"
                     break
 
                 status = job.status
 
                 # Emit status update if changed
                 if status != last_status:
-                    yield f"data: {json.dumps({'type': 'status', 'status': status, 'message': f'Job status: {status}'})}\n\n"
+                    yield f"data: {json.dumps({'type': 'status', 'status': status, 'message': f'Job status: {status}', 'sequence': -1})}\n\n"
                     last_status = status
+                    # Reset heartbeat on status change to avoid redundant heartbeats
+                    last_heartbeat = current_time
 
                 # Terminal states
                 if status in TERMINAL_STATUSES:
@@ -311,6 +332,7 @@ async def get_job_stream(
                             event_queue.get(), timeout=STATUS_POLL_INTERVAL
                         )
                         timeout_count = 0  # Reset timeout counter on successful event
+                        timeout_warning_issued = False  # Reset warning flag
                         yield await _format_sse_event(event)
 
                         # Check for completion/error events
@@ -320,17 +342,18 @@ async def get_job_stream(
                         }:
                             break
                         if event.event_type == WorkflowEventType.HITL_REQUIRED:
-                            yield f"data: {json.dumps({'type': 'hitl_pause', 'message': 'HITL required'})}\n\n"
+                            yield f"data: {json.dumps({'type': 'hitl_pause', 'message': 'HITL required', 'sequence': event.sequence})}\n\n"
                             await asyncio.sleep(HITL_CHECK_INTERVAL)
 
                     except TimeoutError:
                         timeout_count += 1
                         # Fall back to status polling if too many timeouts
-                        if timeout_count >= MAX_CONSECUTIVE_TIMEOUTS:
+                        if timeout_count >= MAX_CONSECUTIVE_TIMEOUTS and not timeout_warning_issued:
                             logger.warning(
                                 f"Job {job_id}: No events for {MAX_CONSECUTIVE_TIMEOUTS * STATUS_POLL_INTERVAL}s, falling back to status"
                             )
-                            await asyncio.sleep(STATUS_POLL_INTERVAL)
+                            timeout_warning_issued = True
+                        await asyncio.sleep(STATUS_POLL_INTERVAL)
                 else:
                     # No event queue registered, fall back to status polling
                     await asyncio.sleep(STATUS_POLL_INTERVAL)

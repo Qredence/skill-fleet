@@ -36,8 +36,31 @@ class IncorporateFeedbackModule(BaseModule):
 
     @timed_execution()
     @with_llm_fallback(default_return=None)
-    async def aforward(self, current_content: str, feedback: str) -> dspy.Prediction:
-        """Return revised content by applying user feedback to an existing SKILL.md."""
+    async def aforward(self, payload) -> dspy.Prediction:
+        """Return revised content by applying user feedback to an existing SKILL.md.
+
+        The `payload` argument is expected to contain both the current content and
+        the feedback. It may be:
+        - a mapping with keys ``"current_content"`` and ``"feedback"``, or
+        - a sequence ``(current_content, feedback)``, or
+        - a plain string, in which case it is treated as ``current_content`` with
+          empty feedback.
+        """
+        current_content = None
+        feedback = ""
+
+        # Mapping-like payload: payload["current_content"], payload["feedback"]
+        if isinstance(payload, dict):
+            current_content = payload.get("current_content", "")
+            feedback = payload.get("feedback", "")
+        # Tuple/list-like payload: (current_content, feedback)
+        elif isinstance(payload, (list, tuple)) and len(payload) >= 2:
+            current_content, feedback = payload[0], payload[1]
+        # Fallback: treat payload as current_content only
+        else:
+            current_content = str(payload) if payload is not None else ""
+            feedback = ""
+
         change_requests = self._to_change_requests(feedback)
         result = await self.revise.acall(
             current_content=current_content,

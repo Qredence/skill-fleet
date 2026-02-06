@@ -19,11 +19,11 @@ import logging
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Header
 from pydantic import BaseModel, Field
 
 from ..dependencies import SkillServiceDep
-from ..exceptions import NotFoundException
+from ..exceptions import ForbiddenException, NotFoundException
 from ..schemas import (
     StructuredQuestion,
     StructureFixSuggestion,
@@ -150,24 +150,39 @@ async def get_hitl_config() -> HITLConfigResponse:
 
 
 @router.get("/{job_id}/prompt")
-async def get_prompt(job_id: str) -> HITLPromptResponse:
+async def get_prompt(
+    job_id: str,
+    x_user_id: str | None = Header(None, alias="X-User-Id"),
+) -> HITLPromptResponse:
     """
     Retrieve the current HITL prompt for a job.
 
     Args:
         job_id: The job ID to retrieve the prompt for
+        x_user_id: Optional user ID header for ownership verification
 
     Returns:
         HITLPromptResponse: Current HITL prompt data including questions, content, and status
 
     Raises:
         NotFoundException: If job not found (404)
+        ForbiddenException: If user_id doesn't match the job creator (403)
 
     """
     manager = get_job_manager()
     job = await manager.get_job(job_id)
     if not job:
         raise NotFoundException("Job", job_id)
+
+    # Ownership verification: if a user_id header is provided, it must match
+    if x_user_id and job.user_id and x_user_id != job.user_id:
+        logger.warning(
+            "HITL prompt access denied for job %s: user %s != owner %s",
+            job_id,
+            x_user_id,
+            job.user_id,
+        )
+        raise ForbiddenException(detail=f"User '{x_user_id}' is not the owner of job '{job_id}'")
 
     # Extract all possible HITL data fields
     hitl_data = job.hitl_data or {}
@@ -271,6 +286,7 @@ async def post_response(
     job_id: str,
     response: dict,
     skill_service: SkillServiceDep,  # noqa: ARG001 - retained for backward compatibility
+    x_user_id: str | None = Header(None, alias="X-User-Id"),
 ) -> HITLResponseResult:
     """
     Submit a response to an HITL prompt.
@@ -285,18 +301,30 @@ async def post_response(
     Args:
         job_id: The job ID to respond to
         response: Response data (format depends on interaction type)
+        x_user_id: Optional user ID header for ownership verification
 
     Returns:
         HITLResponseResult: Response status (accepted/ignored) with optional detail
 
     Raises:
         NotFoundException: If job not found (404)
+        ForbiddenException: If user_id doesn't match the job creator (403)
 
     """
     manager = get_job_manager()
     job = await manager.get_job(job_id)
     if not job:
         raise NotFoundException("Job", job_id)
+
+    # Ownership verification: if a user_id header is provided, it must match
+    if x_user_id and job.user_id and x_user_id != job.user_id:
+        logger.warning(
+            "HITL response access denied for job %s: user %s != owner %s",
+            job_id,
+            x_user_id,
+            job.user_id,
+        )
+        raise ForbiddenException(detail=f"User '{x_user_id}' is not the owner of job '{job_id}'")
 
     # Ensure lock is initialized (handles loaded sessions)
     if job.hitl_lock is None:

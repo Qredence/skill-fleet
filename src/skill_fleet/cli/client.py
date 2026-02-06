@@ -15,11 +15,22 @@ logger = logging.getLogger(__name__)
 class SkillFleetClient:
     """Async HTTP client for Skill Fleet API."""
 
-    def __init__(self, base_url: str = "http://localhost:8000"):
-        """Initialize the client."""
+    def __init__(self, base_url: str = "http://localhost:8000", user_id: str | None = None):
+        """
+        Initialize the client.
+
+        Args:
+            base_url: API server base URL.
+            user_id: Optional user ID sent as ``X-User-Id`` header for
+                ownership verification on HITL and other endpoints.
+        """
         self.base_url = base_url.rstrip("/")
+        self.user_id = user_id
+        headers: dict[str, str] = {}
+        if user_id:
+            headers["X-User-Id"] = user_id
         # Increase timeout for long-running operations (5 minutes)
-        self.client = httpx.AsyncClient(base_url=self.base_url, timeout=300.0)
+        self.client = httpx.AsyncClient(base_url=self.base_url, timeout=300.0, headers=headers)
 
     async def close(self):
         """Close the HTTP client."""

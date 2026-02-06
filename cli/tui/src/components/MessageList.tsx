@@ -17,7 +17,14 @@ export type ChatMessage = {
 
   // HITL-specific data for inline interactive prompts
   hitlData?: {
-    kind: "clarify" | "confirm" | "structure_fix" | "deep_understanding";
+    kind:
+      | "clarify"
+      | "confirm"
+      | "structure_fix"
+      | "deep_understanding"
+      | "tdd_red"
+      | "tdd_green"
+      | "tdd_refactor";
     prompt: HitlPrompt;
     answered?: boolean;
     answer?: Record<string, unknown>;
@@ -51,8 +58,15 @@ const HALF_PAGE_SCROLL_LINES = 10;
 
 export const MessageList = memo(
   forwardRef<MessageListHandle, Props>(function MessageList(
-    { theme, messages, onHitlSubmit, activeHitlMessageId, activity, showJumpedToBottom },
-    ref
+    {
+      theme,
+      messages,
+      onHitlSubmit,
+      activeHitlMessageId,
+      activity,
+      showJumpedToBottom,
+    },
+    ref,
   ) {
     const scrollboxRef = useRef<ScrollBoxRenderable>(null);
 
@@ -82,7 +96,7 @@ export const MessageList = memo(
           }
         },
       }),
-      []
+      [],
     );
 
     const lastIdx = messages.length - 1;
@@ -135,5 +149,5 @@ export const MessageList = memo(
         ) : null}
       </box>
     );
-  })
+  }),
 );

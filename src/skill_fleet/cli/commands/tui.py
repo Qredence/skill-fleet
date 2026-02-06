@@ -47,7 +47,10 @@ def tui_command(ctx: typer.Context) -> None:
     console.print(f"[dim]Launching TUI…[/dim] (API={api_url}, user={user_id})")
 
     try:
-        subprocess.run(["bun", "install"], cwd=str(tui_dir), env=env, check=True)  # nosec B607,B603
+        node_modules_dir = tui_dir / "node_modules"
+        if not node_modules_dir.is_dir():
+            console.print("[dim]Installing TUI dependencies...[/dim]")
+            subprocess.run(["bun", "install"], cwd=str(tui_dir), env=env, check=True)  # nosec B607,B603
         subprocess.run(["bun", "run", "dev"], cwd=str(tui_dir), env=env, check=True)  # nosec B607,B603
     except FileNotFoundError as exc:
         console.print(

@@ -51,9 +51,17 @@ export type WorkflowEvent = {
  */
 export function isKnownEventType(type: string): type is WorkflowEventType {
   const knownTypes = new Set<string>([
-    "status", "hitl_pause", "phase_start", "phase_end",
-    "module_start", "module_end", "reasoning", "progress",
-    "token_stream", "error", "complete"
+    "status",
+    "hitl_pause",
+    "phase_start",
+    "phase_end",
+    "module_start",
+    "module_end",
+    "reasoning",
+    "progress",
+    "token_stream",
+    "error",
+    "complete",
   ]);
   return knownTypes.has(type);
 }
@@ -107,6 +115,19 @@ export type HitlPrompt = {
   suggested_fixes?: Record<string, unknown>[] | null;
   current_skill_name?: string | null;
   current_description?: string | null;
+  // TDD Red fields
+  test_requirements?: string | null;
+  acceptance_criteria?: string[] | null;
+  checklist_items?: Array<{ text: string; done?: boolean } | string> | null;
+  rationalizations_identified?: string[] | null;
+  // TDD Green fields
+  failing_test?: string | null;
+  test_location?: string | null;
+  minimal_implementation_hint?: string | null;
+  // TDD Refactor fields
+  refactor_opportunities?: string[] | null;
+  code_smells?: string[] | null;
+  coverage_report?: string | null;
 };
 
 export type CreateJobResponse = {

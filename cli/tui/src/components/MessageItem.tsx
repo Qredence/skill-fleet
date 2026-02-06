@@ -1,4 +1,5 @@
-import { memo, useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { stripAnsiEscapes } from "../utils/sanitize";
 import { MarkdownView } from "./MarkdownView";
 import { Streamdown } from "./Streamdown";
 import { HitlMessage } from "./HitlMessage";
@@ -49,7 +50,8 @@ export const MessageItem = memo(function MessageItem({
   const isStreamingAssistant = message.role === "assistant" && isStreaming;
 
   // Show activity pulse on the last assistant message when working but not streaming tokens
-  const showActivityPulse = isLast &&
+  const showActivityPulse =
+    isLast &&
     message.role === "assistant" &&
     !isStreaming &&
     activity?.isActive &&
@@ -70,15 +72,25 @@ export const MessageItem = memo(function MessageItem({
   // Dynamic title with streaming or activity indicator
   const title = (() => {
     if (isStreamingAssistant) return `${style.label} ●`;
-    if (showActivityPulse) return `${style.label} ${PULSE_FRAMES[pulseIdx] ?? "◐"}`;
+    if (showActivityPulse)
+      return `${style.label} ${PULSE_FRAMES[pulseIdx] ?? "◐"}`;
     return style.label;
   })();
 
-  const handleHitlSubmit = useCallback((payload: Record<string, unknown>) => {
-    if (onHitlSubmit) {
-      onHitlSubmit(message.id, payload);
-    }
-  }, [onHitlSubmit, message.id]);
+  // Sanitize AI-generated content to prevent terminal escape sequence injection
+  const safeContent = useMemo(
+    () => stripAnsiEscapes(message.content),
+    [message.content],
+  );
+
+  const handleHitlSubmit = useCallback(
+    (payload: Record<string, unknown>) => {
+      if (onHitlSubmit) {
+        onHitlSubmit(message.id, payload);
+      }
+    },
+    [onHitlSubmit, message.id],
+  );
 
   // Handle HITL interactive messages
   if (message.role === "hitl" && message.hitlData) {
@@ -97,13 +109,11 @@ export const MessageItem = memo(function MessageItem({
 
   return (
     <box flexDirection="column" paddingLeft={1} gap={0}>
-      <text fg={isStreaming ? "#22c55e" : style.fg}>
-        {title}
-      </text>
+      <text fg={isStreaming ? "#22c55e" : style.fg}>{title}</text>
       <box flexDirection="column" paddingTop={0} paddingBottom={1}>
         {isStreamingAssistant ? (
           <>
-            <Streamdown content={message.content} streaming />
+            <Streamdown content={safeContent} streaming />
             <StreamingText
               theme={THEME}
               content=""
@@ -113,7 +123,7 @@ export const MessageItem = memo(function MessageItem({
             />
           </>
         ) : (
-          <MarkdownView content={message.content} streaming={false} />
+          <MarkdownView content={safeContent} streaming={false} />
         )}
       </box>
     </box>

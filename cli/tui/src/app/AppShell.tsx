@@ -6,12 +6,18 @@ import {
   fetchHitlPrompt,
   getApiUrl,
   postHitlResponse,
-  streamJobEvents,
+  streamJobEventsWithReconnect,
+  promoteDraft,
+  type PromoteDraftResponse,
 } from "../api";
 import { getConfig } from "../config";
 import { InputArea } from "../components/InputArea";
 import { InputDialog, type DialogKind } from "../components/InputDialog";
-import { MessageList, type ChatMessage, type MessageListHandle } from "../components/MessageList";
+import {
+  MessageList,
+  type ChatMessage,
+  type MessageListHandle,
+} from "../components/MessageList";
 import { ThinkingPanel } from "../components/ThinkingPanel";
 import { ProgressIndicator } from "../components/ProgressIndicator";
 import { Footer } from "../components/Footer";
@@ -41,15 +47,24 @@ const THEME = {
   panel: "#0a0a0a",
   panelAlt: "#121212",
   border: "#2a2a2a",
-  accent: "#22c55e",  // Green accent for activity
+  accent: "#22c55e", // Green accent for activity
   text: "#e5e5e5",
   muted: "#737373",
   error: "#ef4444",
   success: "#22c55e",
 };
 
-const HITL_STATUSES = new Set(["pending_user_input", "pending_hitl", "pending_review"]);
-const TERMINAL_STATUSES = new Set(["completed", "failed", "cancelled", "pending_review"]);
+const HITL_STATUSES = new Set([
+  "pending_user_input",
+  "pending_hitl",
+  "pending_review",
+]);
+const TERMINAL_STATUSES = new Set([
+  "completed",
+  "failed",
+  "cancelled",
+  "pending_review",
+]);
 
 function nowMs(): number {
   return Date.now();
@@ -98,8 +113,7 @@ export function AppShell() {
     {
       id: makeId("m"),
       role: "system",
-      content:
-        "Skill Fleet TUI - Ready",
+      content: "Skill Fleet TUI - Ready",
       createdAt: nowMs(),
       status: "done",
     },
@@ -109,13 +123,23 @@ export function AppShell() {
   const [userId] = useState(config.SKILL_FLEET_USER_ID);
   const [job, setJob] = useState<JobState | null>(null);
   const [dialog, setDialog] = useState<DialogState | null>(null);
-  const [activeHitlMessageId, setActiveHitlMessageId] = useState<string | null>(null);
+  const [activeHitlMessageId, setActiveHitlMessageId] = useState<string | null>(
+    null,
+  );
 
   const [thinkingOpen, setThinkingOpen] = useState(false);
   const [thinkingLines, setThinkingLines] = useState<string[]>([]);
   const [showJumpedToBottom, setShowJumpedToBottom] = useState(false);
   const [jobError, setJobError] = useState<string | null>(null);
-  const [staleConnectionWarning, setStaleConnectionWarning] = useState<string | null>(null);
+  const [staleConnectionWarning, setStaleConnectionWarning] = useState<
+    string | null
+  >(null);
+  const [promotionInProgress, setPromotionInProgress] = useState(false);
+  const [promotionResult, setPromotionResult] =
+    useState<PromoteDraftResponse | null>(null);
+  const [reconnectionStatus, setReconnectionStatus] = useState<string | null>(
+    null,
+  );
 
   // Track last sequence number for stale detection
   const lastSequenceRef = useRef<number | null>(null);
@@ -137,9 +161,12 @@ export function AppShell() {
   // Cleanup timeout refs on unmount to prevent memory leaks
   useEffect(() => {
     return () => {
-      if (streamingTimeoutRef.current) clearTimeout(streamingTimeoutRef.current);
-      if (hitlRecheckTimeoutRef.current) clearTimeout(hitlRecheckTimeoutRef.current);
-      if (jumpIndicatorTimeoutRef.current) clearTimeout(jumpIndicatorTimeoutRef.current);
+      if (streamingTimeoutRef.current)
+        clearTimeout(streamingTimeoutRef.current);
+      if (hitlRecheckTimeoutRef.current)
+        clearTimeout(hitlRecheckTimeoutRef.current);
+      if (jumpIndicatorTimeoutRef.current)
+        clearTimeout(jumpIndicatorTimeoutRef.current);
     };
   }, []);
 
@@ -147,10 +174,15 @@ export function AppShell() {
     jobRef.current = job;
   }, [job]);
 
-  const composerDisabled = Boolean(dialog) || Boolean(activeHitlMessageId) || (job != null && !TERMINAL_STATUSES.has(job.status));
-
   // Detect if job is in HITL waiting state
   const isWaitingForInput = job ? HITL_STATUSES.has(job.status) : false;
+
+  // Job is in terminal state: allow starting a new session
+  const jobIsTerminal = job != null && TERMINAL_STATUSES.has(job.status);
+  const composerDisabled =
+    Boolean(dialog) ||
+    Boolean(activeHitlMessageId) ||
+    (job != null && !jobIsTerminal);
 
   // Compute disabled reason for InputArea
   const inputDisabledReason = useMemo(() => {
@@ -162,36 +194,48 @@ export function AppShell() {
   }, [activeHitlMessageId, dialog, isWaitingForInput, job]);
 
   const footerLeft = useMemo(() => {
+    // Show reconnection status if present (highest priority)
+    if (reconnectionStatus) {
+      return reconnectionStatus;
+    }
+
     // Show stale connection warning if present
     if (staleConnectionWarning) {
       return staleConnectionWarning;
     }
 
-    if (!job) return "Enter send | Shift+Enter newline | Ctrl+T thinking | Esc exit";
+    if (!job)
+      return "Enter send | Shift+Enter newline | Ctrl+T thinking | Esc exit";
 
     // When waiting for HITL input, show prominent message
     if (HITL_STATUSES.has(job.status)) {
       return `[${job.id}] ⚠ WAITING FOR INPUT - respond to continue`;
     }
 
+    // When job is terminal, show prompt to start new session
+    if (TERMINAL_STATUSES.has(job.status)) {
+      return `[${job.id}] ✓ ${job.status} - Enter new task to start another session`;
+    }
+
     // Concise format: Job ID → Phase → Status
     const parts: string[] = [`[${job.id}]`];
     if (job.phase) parts.push(job.phase);
     if (job.module) parts.push(`→ ${job.module}`);
-    if (job.status && !TERMINAL_STATUSES.has(job.status)) {
+    if (job.status) {
       parts.push(`(${job.status})`);
-    } else if (job.status) {
-      parts.push(`✓ ${job.status}`);
     }
     return parts.join(" ");
-  }, [job, staleConnectionWarning]);
+  }, [job, staleConnectionWarning, reconnectionStatus]);
 
   const footerRight = useMemo(() => {
     if (dialog) return "Dialog: Enter confirm | Ctrl+S submit";
     if (isWaitingForInput) return "↑ Answer above to continue";
+    if (jobIsTerminal && !promotionResult) return "Ctrl+P promote to taxonomy";
+    if (jobIsTerminal && promotionResult)
+      return `Promoted: ${promotionResult.final_path}`;
     if (!job) return `API ${apiUrl}`;
     return `API ${apiUrl}`;
-  }, [apiUrl, dialog, isWaitingForInput, job]);
+  }, [apiUrl, dialog, isWaitingForInput, job, jobIsTerminal, promotionResult]);
 
   const ensureStreamingAssistantMessage = useCallback((chunk: string) => {
     if (!chunk) return;
@@ -208,7 +252,9 @@ export function AppShell() {
 
     setMessages((prev) => {
       const next = [...prev];
-      const existingIndex = next.findIndex((m) => m.role === "assistant" && m.status === "streaming");
+      const existingIndex = next.findIndex(
+        (m) => m.role === "assistant" && m.status === "streaming",
+      );
       if (existingIndex >= 0) {
         const cur = next[existingIndex]!;
         next[existingIndex] = { ...cur, content: cur.content + chunk };
@@ -228,7 +274,11 @@ export function AppShell() {
 
   const finalizeStreamingAssistantMessage = useCallback(() => {
     setMessages((prev) =>
-      prev.map((m) => (m.role === "assistant" && m.status === "streaming" ? { ...m, status: "done" } : m)),
+      prev.map((m) =>
+        m.role === "assistant" && m.status === "streaming"
+          ? { ...m, status: "done" }
+          : m,
+      ),
     );
   }, []);
 
@@ -247,17 +297,25 @@ export function AppShell() {
     const prompt = await fetchHitlPrompt(jobId);
     const kind = (prompt.type || "clarify") as DialogKind;
 
-    // Inline types: clarify, confirm, structure_fix, deep_understanding
-    const inlineTypes = new Set(["clarify", "confirm", "structure_fix", "deep_understanding"]);
+    // Inline types: clarify, confirm, structure_fix, deep_understanding, tdd_*
+    const inlineTypes = new Set([
+      "clarify",
+      "confirm",
+      "structure_fix",
+      "deep_understanding",
+      "tdd_red",
+      "tdd_green",
+      "tdd_refactor",
+    ]);
 
     if (inlineTypes.has(kind)) {
       // Check if we already have an unanswered HITL message - prevent duplicates
       const messageId = makeId("hitl");
-      let shouldSetActive = false;
+      const shouldSetActiveRef = { current: false };
 
       setMessages((prev) => {
         const hasPendingHitl = prev.some(
-          (m) => m.role === "hitl" && m.hitlData && !m.hitlData.answered
+          (m) => m.role === "hitl" && m.hitlData && !m.hitlData.answered,
         );
         if (hasPendingHitl) {
           // Don't add duplicate - already have a pending HITL
@@ -266,7 +324,9 @@ export function AppShell() {
 
         // Check if this prompt is identical to the most recent HITL message
         // This prevents creating duplicate messages when the backend hasn't processed the answer yet
-        const lastHitlMessage = [...prev].reverse().find((m) => m.role === "hitl" && m.hitlData);
+        const lastHitlMessage = [...prev]
+          .reverse()
+          .find((m) => m.role === "hitl" && m.hitlData);
         if (lastHitlMessage?.hitlData) {
           const lastPrompt = lastHitlMessage.hitlData.prompt;
           const lastQuestions = JSON.stringify(lastPrompt.questions || []);
@@ -281,7 +341,8 @@ export function AppShell() {
         }
 
         // Mark that we should set this as active after the state update
-        shouldSetActive = true;
+        // Use ref to avoid closure issues with state updates
+        shouldSetActiveRef.current = true;
 
         // Create an inline HITL message
         return [
@@ -293,17 +354,24 @@ export function AppShell() {
             createdAt: nowMs(),
             status: "pending_response",
             hitlData: {
-              kind: kind as "clarify" | "confirm" | "structure_fix" | "deep_understanding",
+              kind: kind as
+                | "clarify"
+                | "confirm"
+                | "structure_fix"
+                | "deep_understanding"
+                | "tdd_red"
+                | "tdd_green"
+                | "tdd_refactor",
               prompt,
               answered: false,
             },
           },
-        ]
+        ];
       });
 
       // Set active HITL message ID after the message is added
-      // This is done outside setMessages to follow React patterns
-      if (shouldSetActive) {
+      // Check ref to ensure we only set active when a message was actually added
+      if (shouldSetActiveRef.current) {
         setActiveHitlMessageId(messageId);
       }
     } else {
@@ -312,101 +380,124 @@ export function AppShell() {
     }
   }, []);
 
-  const handleStreamEvent = useCallback((event: WorkflowEvent) => {
-    const type = asString(event.type);
-    const currentJob = jobRef.current;
-    const eventTime = nowMs();
+  const handleStreamEvent = useCallback(
+    (event: WorkflowEvent) => {
+      const type = asString(event.type);
+      const currentJob = jobRef.current;
+      const eventTime = nowMs();
 
-    // Record activity timestamp for all events
-    setLastEventAt(eventTime);
+      // Record activity timestamp for all events
+      setLastEventAt(eventTime);
 
-    // Detect stale connections via sequence gaps (ignore heartbeats and meta-events with sequence -1)
-    if (typeof event.sequence === "number" && event.sequence > 0) {
-      if (lastSequenceRef.current !== null && event.sequence !== lastSequenceRef.current + 1) {
-        const gap = event.sequence - (lastSequenceRef.current + 1);
-        setStaleConnectionWarning(`⚠ Stale connection: ${gap} event(s) missed`);
-        // Auto-clear warning after 3 seconds
-        setTimeout(() => setStaleConnectionWarning(null), 3000);
+      // Detect stale connections via sequence gaps (ignore heartbeats and meta-events with sequence -1)
+      if (typeof event.sequence === "number" && event.sequence > 0) {
+        if (
+          lastSequenceRef.current !== null &&
+          event.sequence !== lastSequenceRef.current + 1
+        ) {
+          const gap = event.sequence - (lastSequenceRef.current + 1);
+          setStaleConnectionWarning(
+            `⚠ Stale connection: ${gap} event(s) missed`,
+          );
+          // Auto-clear warning after 3 seconds
+          setTimeout(() => setStaleConnectionWarning(null), 3000);
+        }
+        lastSequenceRef.current = event.sequence;
       }
-      lastSequenceRef.current = event.sequence;
-    }
 
-    // Keep isStreamingActive "hot" for any WorkflowEvent, not just token_stream
-    // This provides responsive UI feedback during non-token events (progress, phase, module, etc.)
-    setIsStreamingActive(true);
-    if (streamingTimeoutRef.current) {
-      clearTimeout(streamingTimeoutRef.current);
-    }
-    // Clear active state after 2s of no events (longer window for non-token activity)
-    streamingTimeoutRef.current = setTimeout(() => {
-      setIsStreamingActive(false);
-    }, 2000);
-
-    if (type === "status") {
-      const status = asString(event.status);
-      setLastStatusAt(eventTime);
-      setJob((prev) => {
-        if (!prev) return prev;
-        return { ...prev, status: status || prev.status };
-      });
-      if (currentJob && HITL_STATUSES.has(status)) {
-        void maybeOpenHitl(currentJob.id);
+      // Keep isStreamingActive "hot" for any WorkflowEvent, not just token_stream
+      // This provides responsive UI feedback during non-token events (progress, phase, module, etc.)
+      setIsStreamingActive(true);
+      if (streamingTimeoutRef.current) {
+        clearTimeout(streamingTimeoutRef.current);
       }
-      if (TERMINAL_STATUSES.has(status)) {
+      // Clear active state after 2s of no events (longer window for non-token activity)
+      streamingTimeoutRef.current = setTimeout(() => {
+        setIsStreamingActive(false);
+      }, 2000);
+
+      if (type === "status") {
+        const status = asString(event.status);
+        setLastStatusAt(eventTime);
+        setJob((prev) => {
+          if (!prev) return prev;
+          return { ...prev, status: status || prev.status };
+        });
+        if (currentJob && HITL_STATUSES.has(status)) {
+          void maybeOpenHitl(currentJob.id);
+        }
+        if (TERMINAL_STATUSES.has(status)) {
+          finalizeStreamingAssistantMessage();
+        }
+        return;
+      }
+
+      if (type === "hitl_pause") {
+        if (currentJob) void maybeOpenHitl(currentJob.id);
+        return;
+      }
+
+      if (type === "phase_start" || type === "phase_end") {
+        const phase = asString(event.phase);
+        setJob((prev) =>
+          prev ? { ...prev, phase: phase || prev.phase } : prev,
+        );
+        appendThinking(`${type}: ${asString(event.message)}`);
+        return;
+      }
+
+      if (type === "module_start" || type === "module_end") {
+        const moduleName = asString(event.data?.module);
+        setJob((prev) =>
+          prev ? { ...prev, module: moduleName || prev.module } : prev,
+        );
+        appendThinking(`${type}: ${asString(event.message)}`);
+        return;
+      }
+
+      if (type === "reasoning" || type === "progress") {
+        const msg = asString(event.message);
+        const reasoning = asString(event.data?.reasoning);
+        const detail = reasoning ? `${msg}\n${reasoning}` : msg;
+        appendThinking(detail);
+        return;
+      }
+
+      if (type === "token_stream") {
+        const chunk = asString(event.data?.chunk) || asString(event.message);
+        setLastTokenAt(eventTime);
+        ensureStreamingAssistantMessage(chunk);
+        return;
+      }
+
+      if (type === "error") {
+        const msg = asString(event.message);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: makeId("m"),
+            role: "system",
+            content: `Error: ${msg}`,
+            createdAt: nowMs(),
+            status: "done",
+          },
+        ]);
         finalizeStreamingAssistantMessage();
+        return;
       }
-      return;
-    }
 
-    if (type === "hitl_pause") {
-      if (currentJob) void maybeOpenHitl(currentJob.id);
-      return;
-    }
-
-    if (type === "phase_start" || type === "phase_end") {
-      const phase = asString(event.phase);
-      setJob((prev) => (prev ? { ...prev, phase: phase || prev.phase } : prev));
-      appendThinking(`${type}: ${asString(event.message)}`);
-      return;
-    }
-
-    if (type === "module_start" || type === "module_end") {
-      const moduleName = asString(event.data?.module);
-      setJob((prev) => (prev ? { ...prev, module: moduleName || prev.module } : prev));
-      appendThinking(`${type}: ${asString(event.message)}`);
-      return;
-    }
-
-    if (type === "reasoning" || type === "progress") {
-      const msg = asString(event.message);
-      const reasoning = asString(event.data?.reasoning);
-      const detail = reasoning ? `${msg}\n${reasoning}` : msg;
-      appendThinking(detail);
-      return;
-    }
-
-    if (type === "token_stream") {
-      const chunk = asString(event.data?.chunk) || asString(event.message);
-      setLastTokenAt(eventTime);
-      ensureStreamingAssistantMessage(chunk);
-      return;
-    }
-
-    if (type === "error") {
-      const msg = asString(event.message);
-      setMessages((prev) => [
-        ...prev,
-        { id: makeId("m"), role: "system", content: `Error: ${msg}`, createdAt: nowMs(), status: "done" },
-      ]);
-      finalizeStreamingAssistantMessage();
-      return;
-    }
-
-    if (type === "complete") {
-      finalizeStreamingAssistantMessage();
-      return;
-    }
-  }, [appendThinking, ensureStreamingAssistantMessage, finalizeStreamingAssistantMessage, maybeOpenHitl]);
+      if (type === "complete") {
+        finalizeStreamingAssistantMessage();
+        return;
+      }
+    },
+    [
+      appendThinking,
+      ensureStreamingAssistantMessage,
+      finalizeStreamingAssistantMessage,
+      maybeOpenHitl,
+    ],
+  );
 
   // Keep the ref updated with the latest handler
   useEffect(() => {
@@ -425,7 +516,45 @@ export function AppShell() {
       handleStreamEventRef.current(event);
     };
 
-    void streamJobEvents(job.id, stableHandler, controller.signal).catch((err) => {
+    void streamJobEventsWithReconnect(
+      job.id,
+      stableHandler,
+      controller.signal,
+      {
+        maxRetries: 5,
+        baseDelayMs: 1000,
+        maxDelayMs: 30000,
+        onReconnectStart: (attemptNumber, delayMs) => {
+          const delaySeconds = Math.round(delayMs / 1000);
+          setReconnectionStatus(
+            `⚠ Connection lost, reconnecting in ${delaySeconds}s (attempt ${attemptNumber}/5)`,
+          );
+        },
+        onReconnectSuccess: (attemptNumber) => {
+          setReconnectionStatus(
+            `✓ Reconnected successfully after ${attemptNumber} attempt(s)`,
+          );
+          // Auto-clear success message after 3 seconds
+          setTimeout(() => setReconnectionStatus(null), 3000);
+        },
+        onReconnectFailed: (attemptNumber, error) => {
+          setReconnectionStatus(
+            `✗ Reconnection failed after ${attemptNumber} attempts`,
+          );
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: makeId("m"),
+              role: "system",
+              content: `Stream error (exhausted retries): ${asString(error)}`,
+              createdAt: nowMs(),
+              status: "done",
+            },
+          ]);
+        },
+      },
+    ).catch((err) => {
+      // Final handler for unrecoverable errors
       setMessages((prev) => [
         ...prev,
         {
@@ -460,6 +589,14 @@ export function AppShell() {
     }
     if (key.name === "escape") {
       renderer.destroy();
+      return;
+    }
+
+    // Promotion shortcut (Ctrl+P) when job is terminal and not yet promoted
+    if (key.ctrl && key.name === "p") {
+      if (jobIsTerminal && !promotionInProgress && !promotionResult) {
+        void handlePromoteDraft();
+      }
       return;
     }
 
@@ -504,15 +641,53 @@ export function AppShell() {
     const task = composerText.trim();
     if (task.length < 3) return;
 
-    setMessages((prev) => [
-      ...prev,
-      { id: makeId("m"), role: "user", content: task, createdAt: nowMs(), status: "done" },
-    ]);
+    // If a job exists and is terminal, archive old messages and reset for new session
+    const startingNewSession = jobIsTerminal;
+    if (startingNewSession) {
+      setMessages((prev) => [
+        {
+          id: makeId("m"),
+          role: "system",
+          content: `─── Starting new session ───`,
+          createdAt: nowMs(),
+          status: "done",
+        },
+        {
+          id: makeId("m"),
+          role: "user",
+          content: task,
+          createdAt: nowMs(),
+          status: "done",
+        },
+      ]);
+      // Reset state for new job
+      setJob(null);
+      setDialog(null);
+      setActiveHitlMessageId(null);
+      setThinkingLines([]);
+      setJobError(null);
+      setStaleConnectionWarning(null);
+      setPromotionInProgress(false);
+      setPromotionResult(null);
+      lastSequenceRef.current = null;
+    } else {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: makeId("m"),
+          role: "user",
+          content: task,
+          createdAt: nowMs(),
+          status: "done",
+        },
+      ]);
+      setThinkingLines([]);
+      setJobError(null);
+      setStaleConnectionWarning(null);
+      lastSequenceRef.current = null;
+    }
+
     setComposerText("");
-    setThinkingLines([]);
-    setJobError(null);
-    setStaleConnectionWarning(null);
-    lastSequenceRef.current = null;
 
     try {
       const response = await createSkillJob(task, userId);
@@ -547,70 +722,116 @@ export function AppShell() {
       ]);
       setJobError(errMsg);
     }
-  }, [composerText, userId]);
+  }, [composerText, userId, jobIsTerminal]);
 
-  const submitHitl = useCallback(async (payload: Record<string, unknown>) => {
-    if (!job) return;
-    await postHitlResponse(job.id, payload);
-    setDialog(null);
-  }, [job]);
+  const submitHitl = useCallback(
+    async (payload: Record<string, unknown>) => {
+      if (!job) return;
+      await postHitlResponse(job.id, payload);
+      setDialog(null);
+    },
+    [job],
+  );
 
-  const submitInlineHitl = useCallback(async (messageId: string, payload: Record<string, unknown>) => {
-    if (!job) return;
+  const submitInlineHitl = useCallback(
+    async (messageId: string, payload: Record<string, unknown>) => {
+      if (!job) return;
 
-    // Mark the message as answered with the response
-    setMessages((prev) =>
-      prev.map((m) =>
-        m.id === messageId && m.hitlData
-          ? {
-              ...m,
-              status: "done" as const,
-              hitlData: {
-                ...m.hitlData,
-                answered: true,
-                answer: payload,
-              },
-            }
-          : m,
-      ),
-    );
+      // Mark the message as answered with the response
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId && m.hitlData
+            ? {
+                ...m,
+                status: "done" as const,
+                hitlData: {
+                  ...m.hitlData,
+                  answered: true,
+                  answer: payload,
+                },
+              }
+            : m,
+        ),
+      );
 
-    // Clear active HITL message
-    setActiveHitlMessageId(null);
+      // Clear active HITL message
+      setActiveHitlMessageId(null);
 
-    // Submit to backend
-    await postHitlResponse(job.id, payload);
+      // Submit to backend
+      await postHitlResponse(job.id, payload);
 
-    // Check if backend has a new HITL prompt waiting (common in multi-round flows)
-    // Use longer delay to allow backend to process the response first
-    // Clear any existing recheck timeout to avoid duplicates
-    if (hitlRecheckTimeoutRef.current) {
-      clearTimeout(hitlRecheckTimeoutRef.current);
+      // Check if backend has a new HITL prompt waiting (common in multi-round flows)
+      // Use longer delay to allow backend to process the response first
+      // Clear any existing recheck timeout to avoid duplicates
+      if (hitlRecheckTimeoutRef.current) {
+        clearTimeout(hitlRecheckTimeoutRef.current);
+      }
+      const currentJobId = job.id;
+      hitlRecheckTimeoutRef.current = setTimeout(() => {
+        hitlRecheckTimeoutRef.current = null; // Clear ref after execution to prevent stale cleanup
+        void maybeOpenHitl(currentJobId);
+      }, 1500);
+    },
+    [job, maybeOpenHitl],
+  );
+
+  const handlePromoteDraft = useCallback(async () => {
+    if (!job || !jobIsTerminal) return;
+
+    setPromotionInProgress(true);
+    setPromotionResult(null);
+
+    try {
+      const result = await promoteDraft(job.id, {
+        overwrite: true,
+        deleteDraft: false,
+        force: false,
+      });
+
+      setPromotionResult(result);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: makeId("m"),
+          role: "system",
+          content: `✓ Draft promoted to taxonomy: ${result.final_path}`,
+          createdAt: nowMs(),
+          status: "done",
+        },
+      ]);
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: makeId("m"),
+          role: "system",
+          content: `✗ Promotion failed: ${errMsg}`,
+          createdAt: nowMs(),
+          status: "done",
+        },
+      ]);
+    } finally {
+      setPromotionInProgress(false);
     }
-    const currentJobId = job.id;
-    hitlRecheckTimeoutRef.current = setTimeout(() => {
-      hitlRecheckTimeoutRef.current = null; // Clear ref after execution to prevent stale cleanup
-      void maybeOpenHitl(currentJobId);
-    }, 1500);
-  }, [job, maybeOpenHitl]);
+  }, [job, jobIsTerminal]);
 
   const layoutThinking = thinkingOpen ? (
-    <ThinkingPanel
-      theme={THEME}
-      lines={thinkingLines}
-    />
+    <ThinkingPanel theme={THEME} lines={thinkingLines} />
   ) : null;
 
   // Check if any message is currently streaming
   const hasStreamingMessage = messages.some((m) => m.status === "streaming");
 
   return (
-    <box flexDirection="column" width="100%" height="100%" backgroundColor={THEME.background}>
+    <box
+      flexDirection="column"
+      width="100%"
+      height="100%"
+      backgroundColor={THEME.background}
+    >
       <box flexDirection="row" flexGrow={1}>
-        <box
-          flexDirection="column"
-          flexGrow={1}
-        >
+        <box flexDirection="column" flexGrow={1}>
           <MessageList
             ref={messageListRef}
             theme={THEME}
@@ -621,7 +842,7 @@ export function AppShell() {
             showJumpedToBottom={showJumpedToBottom}
           />
 
-             {job ? (
+          {job ? (
             <ProgressIndicator
               theme={THEME}
               phase={job.phase}
@@ -647,7 +868,13 @@ export function AppShell() {
         {layoutThinking}
       </box>
 
-      <Footer theme={THEME} left={footerLeft} right={footerRight} activity={activity} currentTime={currentTime} />
+      <Footer
+        theme={THEME}
+        left={footerLeft}
+        right={footerRight}
+        activity={activity}
+        currentTime={currentTime}
+      />
 
       {dialog ? (
         <InputDialog
@@ -672,7 +899,6 @@ export function AppShell() {
           <text fg="#ffffff">{staleConnectionWarning}</text>
         </box>
       ) : null}
-
     </box>
   );
 }

@@ -78,7 +78,7 @@ class CLIConfig:
         """
         self.api_url = api_url
         self.user_id = user_id
-        self.client = SkillFleetClient(base_url=api_url)
+        self.client = SkillFleetClient(base_url=api_url, user_id=user_id)
 
 
 @app.callback()

@@ -1,10 +1,8 @@
 import type { CreateJobResponse, HitlPrompt, WorkflowEvent } from "./types";
-
-const DEFAULT_API_URL = "http://localhost:8000";
+import { getConfig } from "./config";
 
 export function getApiUrl(): string {
-  const raw = process.env.SKILL_FLEET_API_URL || DEFAULT_API_URL;
-  return raw.replace(/\/$/, "");
+  return getConfig().SKILL_FLEET_API_URL;
 }
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {

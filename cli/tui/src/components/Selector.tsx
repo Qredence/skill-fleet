@@ -112,22 +112,22 @@ export function Selector(props: SingleProps | MultiProps) {
   });
 
   return (
-    <box flexDirection="column" border borderColor={props.theme.border} backgroundColor={props.theme.panel} padding={1} gap={0}>
+    <box flexDirection="column" gap={0}>
       {windowed.map((opt, idx) => {
         const absoluteIndex = scrollStart + idx;
         const isCursor = absoluteIndex === cursor;
         const checked = selectedIds.includes(opt.id);
-        const prefix = checked ? "[x]" : "[ ]";
-        const cursorMark = isCursor ? ">" : " ";
-        const line = `${cursorMark} ${prefix} ${opt.label}`;
+        const mark = checked ? "●" : "○";
+        const cursorMark = isCursor ? "→" : " ";
+        const line = `${cursorMark} ${mark} ${opt.label}`;
 
         return (
-          <text key={opt.id} fg={isCursor ? props.theme.text : props.theme.muted}>
+          <text key={opt.id} fg={isCursor ? props.theme.accent : props.theme.text}>
             {line}
           </text>
         );
       })}
-      <text fg={props.theme.muted}>Arrows move | Space toggle | Enter confirm</text>
+      <text fg={props.theme.muted}>↑↓ move | space toggle | enter done</text>
     </box>
   );
 }

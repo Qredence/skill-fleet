@@ -56,12 +56,8 @@ export function InputDialog({ theme, kind, prompt, onSubmit, onClose }: Props) {
   }, [kind]);
 
   useKeyboard((key) => {
-    // Debug logging
-    console.log("[InputDialog] key event:", key.name, "ctrl:", key.ctrl, "shift:", key.shift);
-
     const isEnter = key.name === "enter" || key.name === "return";
     if ((key.ctrl && key.name === "s") || (key.ctrl && isEnter)) {
-      console.log("[InputDialog] Ctrl+S or Ctrl+Enter detected, submitting dialog");
       onSubmit({ action, feedback });
       return;
     }

@@ -319,6 +319,53 @@ def save_job_session(job_id: str) -> bool:
         return False
 
 
+async def save_job_session_async(job_id: str) -> bool:
+    """
+    Save job state to disk for persistence (async version).
+
+    This function runs the blocking file I/O in a thread pool to avoid
+    blocking the event loop.
+
+    Args:
+        job_id: The job ID to save
+
+    Returns:
+        True if save succeeded, False otherwise
+
+    """
+    if not _is_safe_job_id(job_id):
+        logger.warning("Cannot save session: unsafe job id %s", sanitize_for_log(job_id))
+        return False
+
+    job = JOBS.get(job_id)
+    if not job:
+        logger.warning("Cannot save session: job %s not found", sanitize_for_log(job_id))
+        return False
+
+    try:
+        session_file = resolve_path_within_root(SESSION_DIR, f"{job_id}.json")
+        session_data = job.model_dump(mode="json", exclude_none=True)
+        json_str = json.dumps(session_data, indent=2, default=str)
+        # Run blocking I/O in thread pool
+        await asyncio.to_thread(session_file.write_text, json_str, encoding="utf-8")
+        logger.debug("Saved session for job %s", sanitize_for_log(job_id))
+        return True
+    except ValueError as e:
+        logger.warning(
+            "Cannot save session for job %s: %s",
+            sanitize_for_log(job_id),
+            sanitize_for_log(e),
+        )
+        return False
+    except Exception as e:
+        logger.error(
+            "Failed to save session for job %s: %s",
+            sanitize_for_log(job_id),
+            sanitize_for_log(e),
+        )
+        return False
+
+
 def load_job_session(job_id: str) -> JobState | None:
     """
     Load job state from disk.

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useKeyboard, useRenderer } from "@opentui/react";
-import type { ActivitySummary, HitlPrompt, WorkflowEvent } from "../types";
+import type { HitlPrompt, WorkflowEvent } from "../types";
 import {
   createSkillJob,
   fetchHitlPrompt,
@@ -8,15 +8,33 @@ import {
   postHitlResponse,
   streamJobEvents,
 } from "../api";
+import { getConfig } from "../config";
 import { InputArea } from "../components/InputArea";
 import { InputDialog, type DialogKind } from "../components/InputDialog";
 import { MessageList, type ChatMessage, type MessageListHandle } from "../components/MessageList";
 import { ThinkingPanel } from "../components/ThinkingPanel";
 import { ProgressIndicator } from "../components/ProgressIndicator";
 import { Footer } from "../components/Footer";
+import { useActivityTracking } from "../hooks/useActivityTracking";
 
 // Duration to show the "jumped to bottom" indicator
 const JUMP_INDICATOR_DURATION_MS = 1200;
+
+/**
+ * Maximum number of messages to retain in the chat history.
+ * When this limit is exceeded, oldest messages are silently removed.
+ * This prevents memory issues during long sessions while keeping
+ * the most recent context visible.
+ *
+ * Note: Old messages are removed without notification to the user.
+ * Consider adding a visual indicator if this becomes confusing.
+ */
+const MAX_MESSAGE_HISTORY = 250;
+
+/**
+ * Maximum number of thinking lines to retain in the thinking panel.
+ */
+const MAX_THINKING_LINES = 1200;
 
 const THEME = {
   background: "#000000",
@@ -49,13 +67,6 @@ function asString(value: unknown): string {
   return typeof value === "string" ? value : value == null ? "" : String(value);
 }
 
-function sanitizeUserId(input: string): string {
-  // Allow only alphanumeric, dash, underscore; max 64 chars
-  // This prevents terminal escape sequences and other control characters
-  const sanitized = input.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 64);
-  return sanitized || "default";
-}
-
 type JobState = {
   id: string;
   status: string;
@@ -71,6 +82,7 @@ type DialogState = {
 
 export function AppShell() {
   const renderer = useRenderer();
+  const config = getConfig();
   const apiUrl = getApiUrl();
 
   const streamAbortRef = useRef<AbortController | null>(null);
@@ -78,6 +90,9 @@ export function AppShell() {
   const jobRef = useRef<JobState | null>(null);
   const messageListRef = useRef<MessageListHandle>(null);
   const jumpIndicatorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Ref to hold latest stream event handler to avoid re-subscription on callback changes
+  const handleStreamEventRef = useRef<(event: WorkflowEvent) => void>(() => {});
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
     {
@@ -91,9 +106,7 @@ export function AppShell() {
   ]);
 
   const [composerText, setComposerText] = useState("");
-  const [userId, setUserId] = useState(
-    sanitizeUserId(process.env.SKILL_FLEET_USER_ID || "default")
-  );
+  const [userId] = useState(config.SKILL_FLEET_USER_ID);
   const [job, setJob] = useState<JobState | null>(null);
   const [dialog, setDialog] = useState<DialogState | null>(null);
   const [activeHitlMessageId, setActiveHitlMessageId] = useState<string | null>(null);
@@ -113,18 +126,13 @@ export function AppShell() {
   const hitlRecheckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Activity instrumentation: track timestamps for different event types
-  const [lastEventAt, setLastEventAt] = useState<number | null>(null);
-  const [lastTokenAt, setLastTokenAt] = useState<number | null>(null);
-  const [lastStatusAt, setLastStatusAt] = useState<number | null>(null);
-  const [currentTime, setCurrentTime] = useState<number>(nowMs());
-
-  // Update current time periodically for "time since last event" display
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(nowMs());
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
+  const {
+    activity,
+    currentTime,
+    setLastEventAt,
+    setLastTokenAt,
+    setLastStatusAt,
+  } = useActivityTracking();
 
   // Cleanup timeout refs on unmount to prevent memory leaks
   useEffect(() => {
@@ -134,24 +142,6 @@ export function AppShell() {
       if (jumpIndicatorTimeoutRef.current) clearTimeout(jumpIndicatorTimeoutRef.current);
     };
   }, []);
-
-  // Compute activity summary for child components
-  const activity: ActivitySummary = useMemo(() => {
-    const timeSinceLastEvent = lastEventAt ? currentTime - lastEventAt : null;
-    // Consider activity "active" if we received an event in the last 3 seconds
-    const isActive = timeSinceLastEvent !== null && timeSinceLastEvent < 3000;
-    // Detect if we received token_stream events recently (within 2s)
-    const timeSinceLastToken = lastTokenAt ? currentTime - lastTokenAt : null;
-    const hasRecentTokens = timeSinceLastToken !== null && timeSinceLastToken < 2000;
-    return {
-      lastEventAt,
-      lastTokenAt,
-      lastStatusAt,
-      isActive,
-      timeSinceLastEvent,
-      hasRecentTokens,
-    };
-  }, [lastEventAt, lastTokenAt, lastStatusAt, currentTime]);
 
   useEffect(() => {
     jobRef.current = job;
@@ -222,7 +212,7 @@ export function AppShell() {
       if (existingIndex >= 0) {
         const cur = next[existingIndex]!;
         next[existingIndex] = { ...cur, content: cur.content + chunk };
-        return next.slice(-250);
+        return next.slice(-MAX_MESSAGE_HISTORY);
       }
 
       next.push({
@@ -232,7 +222,7 @@ export function AppShell() {
         createdAt: nowMs(),
         status: "streaming",
       });
-      return next.slice(-250);
+      return next.slice(-MAX_MESSAGE_HISTORY);
     });
   }, []);
 
@@ -245,7 +235,7 @@ export function AppShell() {
   const appendThinking = useCallback((line: string) => {
     const trimmed = line.trim();
     if (!trimmed) return;
-    setThinkingLines((prev) => [...prev, trimmed].slice(-1200));
+    setThinkingLines((prev) => [...prev, trimmed].slice(-MAX_THINKING_LINES));
   }, []);
 
   const maybeOpenHitl = useCallback(async (jobId: string) => {
@@ -418,6 +408,11 @@ export function AppShell() {
     }
   }, [appendThinking, ensureStreamingAssistantMessage, finalizeStreamingAssistantMessage, maybeOpenHitl]);
 
+  // Keep the ref updated with the latest handler
+  useEffect(() => {
+    handleStreamEventRef.current = handleStreamEvent;
+  }, [handleStreamEvent]);
+
   useEffect(() => {
     if (!job) return;
 
@@ -425,7 +420,12 @@ export function AppShell() {
     const controller = new AbortController();
     streamAbortRef.current = controller;
 
-    void streamJobEvents(job.id, handleStreamEvent, controller.signal).catch((err) => {
+    // Use ref-based handler to avoid re-subscription when callbacks change
+    const stableHandler = (event: WorkflowEvent) => {
+      handleStreamEventRef.current(event);
+    };
+
+    void streamJobEvents(job.id, stableHandler, controller.signal).catch((err) => {
       setMessages((prev) => [
         ...prev,
         {
@@ -439,7 +439,7 @@ export function AppShell() {
     });
 
     return () => controller.abort();
-  }, [job?.id, handleStreamEvent]);
+  }, [job?.id]); // Only re-subscribe when job ID changes
 
   // Helper to show jump-to-bottom indicator with auto-hide
   const showJumpIndicator = useCallback(() => {
@@ -587,8 +587,10 @@ export function AppShell() {
     if (hitlRecheckTimeoutRef.current) {
       clearTimeout(hitlRecheckTimeoutRef.current);
     }
+    const currentJobId = job.id;
     hitlRecheckTimeoutRef.current = setTimeout(() => {
-      void maybeOpenHitl(job.id);
+      hitlRecheckTimeoutRef.current = null; // Clear ref after execution to prevent stale cleanup
+      void maybeOpenHitl(currentJobId);
     }, 1500);
   }, [job, maybeOpenHitl]);
 

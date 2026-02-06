@@ -1,5 +1,42 @@
+/**
+ * Known workflow event types for documentation and autocomplete.
+ * The runtime code uses `asString()` for safe property access since
+ * events may have optional or missing properties.
+ */
+export type WorkflowEventType =
+  | "status"
+  | "hitl_pause"
+  | "phase_start"
+  | "phase_end"
+  | "module_start"
+  | "module_end"
+  | "reasoning"
+  | "progress"
+  | "token_stream"
+  | "error"
+  | "complete";
+
+/**
+ * Workflow event from the SSE stream.
+ *
+ * Event types and their key properties:
+ * - `status`: Contains `status` field with job status
+ * - `hitl_pause`: Signals HITL interaction needed
+ * - `phase_start/phase_end`: Contains `phase` field
+ * - `module_start/module_end`: Contains `data.module`
+ * - `reasoning/progress`: Contains `message` and optionally `data.reasoning`
+ * - `token_stream`: Contains `data.chunk` or `message` with text
+ * - `error`: Contains `message` with error description
+ * - `complete`: Signals job completion
+ *
+ * @example
+ * // Type narrowing with event.type
+ * if (event.type === "status") {
+ *   const status = asString(event.status);
+ * }
+ */
 export type WorkflowEvent = {
-  type: string;
+  type: WorkflowEventType | string;
   phase?: string;
   message?: string;
   data?: Record<string, unknown>;
@@ -8,6 +45,18 @@ export type WorkflowEvent = {
   /** Monotonic sequence number for detecting gaps (stale connections) */
   sequence?: number;
 };
+
+/**
+ * Type guard to check if an event type is a known type.
+ */
+export function isKnownEventType(type: string): type is WorkflowEventType {
+  const knownTypes = new Set<string>([
+    "status", "hitl_pause", "phase_start", "phase_end",
+    "module_start", "module_end", "reasoning", "progress",
+    "token_stream", "error", "complete"
+  ]);
+  return knownTypes.has(type);
+}
 
 export type QuestionOption = {
   id: string;

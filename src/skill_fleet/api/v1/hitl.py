@@ -14,6 +14,8 @@ Endpoints:
 from __future__ import annotations
 
 import asyncio
+import json
+import logging
 from datetime import UTC, datetime
 from typing import Any
 
@@ -28,9 +30,22 @@ from ..schemas import (
     normalize_questions,
 )
 from ..services.job_manager import get_job_manager
-from ..services.jobs import notify_hitl_response
+from ..services.jobs import notify_hitl_response, save_job_session_async
 
 router = APIRouter()
+
+logger = logging.getLogger(__name__)
+
+# Rate limiting for HITL responses (best-effort): prevent duplicate rapid submits.
+MIN_HITL_INTERVAL = 1.0  # Minimum seconds between identical responses
+
+
+def _fingerprint_payload(payload: dict) -> str:
+    """Create a stable fingerprint for HITL payloads to detect duplicates."""
+    try:
+        return json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    except Exception:
+        return repr(payload)
 
 
 class HITLConfigResponse(BaseModel):
@@ -299,6 +314,24 @@ async def post_response(
 
         payload = response
 
+        # Duplicate-submit guard: only block identical payloads for the same prompt
+        now = datetime.now(UTC).timestamp()
+        hitl_data = job.hitl_data or {}
+        if isinstance(hitl_data, dict):
+            last_fp = hitl_data.get("_last_response_fingerprint")
+            last_at = hitl_data.get("_last_response_at", 0.0)
+            current_fp = _fingerprint_payload(payload)
+            if (
+                last_fp == current_fp
+                and isinstance(last_at, (int, float))
+                and now - float(last_at) < MIN_HITL_INTERVAL
+            ):
+                logger.warning("Duplicate HITL response throttled for job %s", job_id)
+                return HITLResponseResult(
+                    status="ignored",
+                    detail=f"Duplicate response ignored. Please wait {MIN_HITL_INTERVAL}s.",
+                )
+
         # Normalize structure_fix responses to ensure skill_name/description are always present
         # when the user chooses "accept suggestions".
         if job.hitl_type == "structure_fix":
@@ -338,6 +371,8 @@ async def post_response(
         if isinstance(hitl_data, dict):
             hitl_data["_resolved"] = True
             hitl_data["_resolved_at"] = datetime.now(UTC).isoformat()
+            hitl_data["_last_response_fingerprint"] = _fingerprint_payload(payload)
+            hitl_data["_last_response_at"] = now
             job.hitl_data = hitl_data
 
         await manager.update_job(
@@ -346,8 +381,11 @@ async def post_response(
         )
 
     # Auto-save session on each HITL response
-    from ..services.jobs import save_job_session
-
-    save_job_session(job_id)
+    try:
+        success = await save_job_session_async(job_id)
+        if not success:
+            logger.warning("Failed to save session for job %s", job_id)
+    except Exception:
+        logger.exception("Unexpected error saving session for job %s", job_id)
 
     return HITLResponseResult(status="accepted")

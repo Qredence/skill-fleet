@@ -472,9 +472,17 @@ class SkillService:
                 phase3_result.get("validation_report") if isinstance(phase3_result, dict) else None
             )
             validation_report: ValidationReport | None = None
+            passed = False
             if isinstance(raw_validation_report, dict):
-                validation_report = ValidationReport(**raw_validation_report)
-            passed = validation_report.passed if validation_report else False
+                try:
+                    validation_report = ValidationReport.model_validate(
+                        raw_validation_report, strict=False
+                    )
+                    passed = validation_report.passed
+                except Exception as exc:
+                    logger.warning("Invalid validation report format for job %s: %s", job_id, exc)
+                    # Fall back to dict's passed field if available
+                    passed = raw_validation_report.get("passed", False)
 
             result = SkillCreationResult(
                 job_id=job_id,

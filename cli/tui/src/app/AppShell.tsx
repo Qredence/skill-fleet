@@ -598,7 +598,6 @@ export function AppShell() {
     <ThinkingPanel
       theme={THEME}
       lines={thinkingLines}
-      isActive={isStreamingActive || Boolean(job && !TERMINAL_STATUSES.has(job.status))}
     />
   ) : null;
 

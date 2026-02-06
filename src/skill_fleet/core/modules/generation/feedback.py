@@ -37,7 +37,8 @@ class IncorporateFeedbackModule(BaseModule):
     @timed_execution()
     @with_llm_fallback(default_return=None)
     async def aforward(self, payload) -> dspy.Prediction:
-        """Return revised content by applying user feedback to an existing SKILL.md.
+        """
+        Return revised content by applying user feedback to an existing SKILL.md.
 
         The `payload` argument is expected to contain both the current content and
         the feedback. It may be:

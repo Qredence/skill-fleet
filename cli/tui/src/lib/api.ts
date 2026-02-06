@@ -112,7 +112,10 @@ export async function streamJobEvents(
   const apiUrl = getApiUrl();
   const response = await fetch(`${apiUrl}/api/v1/skills/${jobId}/stream`, {
     method: "GET",
-    headers: { Accept: "text/event-stream" },
+    headers: {
+      Accept: "text/event-stream",
+      "X-User-Id": getUserId(),
+    },
     signal,
   });
 

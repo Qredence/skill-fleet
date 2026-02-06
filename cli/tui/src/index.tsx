@@ -1,6 +1,3 @@
-import { createCliRenderer } from "@opentui/core";
-import { createRoot } from "@opentui/react";
-import { AppShell } from "./app/AppShell";
+import { main } from "./app/App";
 
-const renderer = await createCliRenderer({ exitOnCtrlC: true });
-createRoot(renderer).render(<AppShell />);
+main();

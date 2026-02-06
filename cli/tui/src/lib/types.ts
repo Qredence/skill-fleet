@@ -46,26 +46,6 @@ export type WorkflowEvent = {
   sequence?: number;
 };
 
-/**
- * Type guard to check if an event type is a known type.
- */
-export function isKnownEventType(type: string): type is WorkflowEventType {
-  const knownTypes = new Set<string>([
-    "status",
-    "hitl_pause",
-    "phase_start",
-    "phase_end",
-    "module_start",
-    "module_end",
-    "reasoning",
-    "progress",
-    "token_stream",
-    "error",
-    "complete",
-  ]);
-  return knownTypes.has(type);
-}
-
 export type QuestionOption = {
   id: string;
   label: string;

@@ -54,17 +54,14 @@ def _canonicalize_session_job_id(job_id: str) -> str | None:
         return None
 
 
-def _resolve_session_file_path(job_id: str) -> Path:
+def _resolve_session_file_path(canonical_job_id: str) -> Path:
     """
-    Resolve a session file path from a job ID using canonicalized identifiers.
+    Resolve a session file path from a canonicalized job ID.
 
     Raises:
-        ValueError: If the job ID is unsafe for filesystem usage.
+        ValueError: If the path escapes the root directory.
 
     """
-    canonical_job_id = _canonicalize_session_job_id(job_id)
-    if canonical_job_id is None:
-        raise ValueError("Unsafe job id for session file path")
     return resolve_path_within_root(SESSION_DIR, f"{canonical_job_id}.json")
 
 

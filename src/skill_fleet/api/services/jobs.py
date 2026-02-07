@@ -331,7 +331,6 @@ def save_job_session(job_id: str) -> bool:
 
     try:
         session_file = _resolve_session_file_path(canonical_job_id)
-        session_file = _resolve_session_file_path(canonical_job_id)
         session_data = job.model_dump(mode="json", exclude_none=True)
         session_data["job_id"] = canonical_job_id
         session_file.write_text(json.dumps(session_data, indent=2, default=str), encoding="utf-8")

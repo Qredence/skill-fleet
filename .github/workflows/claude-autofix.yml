@@ -35,15 +35,46 @@ jobs:
     # Only run if the triggering workflow failed
     if: |
       (github.event_name == 'workflow_dispatch') ||
-      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'failure')
+      (
+        github.event_name == 'workflow_run' &&
+        github.event.workflow_run.conclusion == 'failure' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_repository.full_name == github.repository
+      )
 
     runs-on: ubuntu-latest
 
     steps:
+      - name: Resolve and validate checkout ref
+        id: resolve-ref
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          WORKFLOW_RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          WORKFLOW_RUN_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          INPUTS_BRANCH: ${{ github.event.inputs.branch }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_run" ]; then
+            if [ -z "$WORKFLOW_RUN_HEAD_SHA" ] || [ "$WORKFLOW_RUN_HEAD_SHA" = "null" ]; then
+              echo "Missing workflow_run.head_sha; refusing checkout."
+              exit 1
+            fi
+            echo "ref=$WORKFLOW_RUN_HEAD_SHA" >> "$GITHUB_OUTPUT"
+            echo "branch=$WORKFLOW_RUN_HEAD_BRANCH" >> "$GITHUB_OUTPUT"
+          else
+            BRANCH="${INPUTS_BRANCH:-$REF_NAME}"
+            if ! [[ "$BRANCH" =~ ^[A-Za-z0-9._/-]+$ ]] || [[ "$BRANCH" == *".."* ]] || [[ "$BRANCH" == -* ]]; then
+              echo "Invalid branch input: $BRANCH"
+              exit 1
+            fi
+            echo "ref=$BRANCH" >> "$GITHUB_OUTPUT"
+            echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_branch || github.event.inputs.branch || github.ref }}
+          ref: ${{ steps.resolve-ref.outputs.ref }}
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -52,22 +83,20 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
-          WORKFLOW_RUN_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          SAFE_BRANCH: ${{ steps.resolve-ref.outputs.branch }}
           WORKFLOW_RUN_NAME: ${{ github.event.workflow_run.name }}
           INPUTS_RUN_ID: ${{ github.event.inputs.run_id }}
-          INPUTS_BRANCH: ${{ github.event.inputs.branch }}
-          REF_NAME: ${{ github.ref_name }}
           GITHUB_RUN_ID: ${{ github.run_id }}
           REPO: ${{ github.repository }}
         run: |
           if [ "$EVENT_NAME" = "workflow_run" ]; then
             echo "run_id=$WORKFLOW_RUN_ID" >> $GITHUB_OUTPUT
-            echo "branch=$WORKFLOW_RUN_BRANCH" >> $GITHUB_OUTPUT
+            echo "branch=$SAFE_BRANCH" >> $GITHUB_OUTPUT
             echo "workflow_name=$WORKFLOW_RUN_NAME" >> $GITHUB_OUTPUT
             echo "workflow_url=https://github.com/$REPO/actions/runs/$WORKFLOW_RUN_ID" >> $GITHUB_OUTPUT
           else
             echo "run_id=$INPUTS_RUN_ID" >> $GITHUB_OUTPUT
-            echo "branch=${INPUTS_BRANCH:-$REF_NAME}" >> $GITHUB_OUTPUT
+            echo "branch=$SAFE_BRANCH" >> $GITHUB_OUTPUT
             echo "workflow_name=Manual CI Fix" >> $GITHUB_OUTPUT
             echo "workflow_url=https://github.com/$REPO/actions/runs/$GITHUB_RUN_ID" >> $GITHUB_OUTPUT
           fi
@@ -98,7 +127,7 @@ jobs:
           head -50 /tmp/ci-full.log 2>/dev/null || echo 'No logs available for preview'
 
       - name: Claude Code Auto-Fix
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@b113f49a56229d8276e2bf05743ad6900121239c # v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |

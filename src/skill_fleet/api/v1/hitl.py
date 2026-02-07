@@ -22,6 +22,8 @@ from typing import Any
 from fastapi import APIRouter, Header
 from pydantic import BaseModel, Field
 
+from skill_fleet.common.logging_utils import sanitize_for_log
+
 from ..dependencies import SkillServiceDep
 from ..exceptions import ForbiddenException, NotFoundException
 from ..schemas import (
@@ -38,6 +40,47 @@ logger = logging.getLogger(__name__)
 
 # Rate limiting for HITL responses (best-effort): prevent duplicate rapid submits.
 MIN_HITL_INTERVAL = 1.0  # Minimum seconds between identical responses
+
+
+def _enforce_job_ownership(
+    job_id: str, owner_id: str | None, x_user_id: str | None, *, action: str
+) -> None:
+    """
+    Enforce HITL ownership for non-default users.
+
+    The default user remains backward-compatible: requests without X-User-Id are
+    still accepted. For non-default owners, the header must be present and match.
+    """
+    if not owner_id:
+        return
+
+    if owner_id == "default":
+        if isinstance(x_user_id, str) and x_user_id and x_user_id != owner_id:
+            logger.warning(
+                "HITL %s access denied for job %s: user %s != owner %s",
+                action,
+                sanitize_for_log(job_id),
+                sanitize_for_log(x_user_id),
+                sanitize_for_log(owner_id),
+            )
+            raise ForbiddenException(
+                detail=f"User '{x_user_id}' is not the owner of job '{job_id}'"
+            )
+        return
+
+    if not isinstance(x_user_id, str) or not x_user_id or x_user_id != owner_id:
+        logger.warning(
+            "HITL %s access denied for job %s: user %s != owner %s",
+            action,
+            sanitize_for_log(job_id),
+            sanitize_for_log(x_user_id),
+            sanitize_for_log(owner_id),
+        )
+        if isinstance(x_user_id, str) and x_user_id:
+            detail = f"User '{x_user_id}' is not the owner of job '{job_id}'"
+        else:
+            detail = f"Owner header required for job '{job_id}'"
+        raise ForbiddenException(detail=detail)
 
 
 def _fingerprint_payload(payload: dict) -> str:
@@ -174,15 +217,7 @@ async def get_prompt(
     if not job:
         raise NotFoundException("Job", job_id)
 
-    # Ownership verification: if a user_id header is provided, it must match
-    if x_user_id and job.user_id and x_user_id != job.user_id:
-        logger.warning(
-            "HITL prompt access denied for job %s: user %s != owner %s",
-            job_id,
-            x_user_id,
-            job.user_id,
-        )
-        raise ForbiddenException(detail=f"User '{x_user_id}' is not the owner of job '{job_id}'")
+    _enforce_job_ownership(job_id, job.user_id, x_user_id, action="prompt")
 
     # Extract all possible HITL data fields
     hitl_data = job.hitl_data or {}
@@ -316,15 +351,7 @@ async def post_response(
     if not job:
         raise NotFoundException("Job", job_id)
 
-    # Ownership verification: if a user_id header is provided, it must match
-    if x_user_id and job.user_id and x_user_id != job.user_id:
-        logger.warning(
-            "HITL response access denied for job %s: user %s != owner %s",
-            job_id,
-            x_user_id,
-            job.user_id,
-        )
-        raise ForbiddenException(detail=f"User '{x_user_id}' is not the owner of job '{job_id}'")
+    _enforce_job_ownership(job_id, job.user_id, x_user_id, action="response")
 
     # Ensure lock is initialized (handles loaded sessions)
     if job.hitl_lock is None:
@@ -354,7 +381,10 @@ async def post_response(
                 and isinstance(last_at, (int, float))
                 and now - float(last_at) < MIN_HITL_INTERVAL
             ):
-                logger.warning("Duplicate HITL response throttled for job %s", job_id)
+                logger.warning(
+                    "Duplicate HITL response throttled for job %s",
+                    sanitize_for_log(job_id),
+                )
                 return HITLResponseResult(
                     status="ignored",
                     detail=f"Duplicate response ignored. Please wait {MIN_HITL_INTERVAL}s.",
@@ -412,8 +442,8 @@ async def post_response(
     try:
         success = await save_job_session_async(job_id)
         if not success:
-            logger.warning("Failed to save session for job %s", job_id)
+            logger.warning("Failed to save session for job %s", sanitize_for_log(job_id))
     except Exception:
-        logger.exception("Unexpected error saving session for job %s", job_id)
+        logger.exception("Unexpected error saving session for job %s", sanitize_for_log(job_id))
 
     return HITLResponseResult(status="accepted")

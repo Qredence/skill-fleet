@@ -20,6 +20,7 @@ from pydantic import BaseModel
 
 from skill_fleet.api.services.event_registry import get_event_registry
 from skill_fleet.api.services.job_manager import get_job_manager
+from skill_fleet.common.logging_utils import sanitize_for_log
 from skill_fleet.core.workflows.skill_creation.generation import GenerationWorkflow
 from skill_fleet.core.workflows.skill_creation.understanding import UnderstandingWorkflow
 from skill_fleet.core.workflows.skill_creation.validation import ValidationWorkflow
@@ -290,7 +291,10 @@ async def get_job_stream(
             while True:
                 # Check for client disconnect
                 if await request.is_disconnected():
-                    logger.info(f"Client disconnected from job {job_id} stream")
+                    logger.info(
+                        "Client disconnected from job %s stream",
+                        sanitize_for_log(job_id),
+                    )
                     break
 
                 # Emit heartbeat to keep connection alive
@@ -350,7 +354,9 @@ async def get_job_stream(
                         # Fall back to status polling if too many timeouts
                         if timeout_count >= MAX_CONSECUTIVE_TIMEOUTS and not timeout_warning_issued:
                             logger.warning(
-                                f"Job {job_id}: No events for {MAX_CONSECUTIVE_TIMEOUTS * STATUS_POLL_INTERVAL}s, falling back to status"
+                                "Job %s: No events for %ss, falling back to status",
+                                sanitize_for_log(job_id),
+                                MAX_CONSECUTIVE_TIMEOUTS * STATUS_POLL_INTERVAL,
                             )
                             timeout_warning_issued = True
                         await asyncio.sleep(STATUS_POLL_INTERVAL)
@@ -358,9 +364,15 @@ async def get_job_stream(
                     # No event queue registered, fall back to status polling
                     await asyncio.sleep(STATUS_POLL_INTERVAL)
 
-        except Exception as e:
-            logger.error(f"Streaming error for job {job_id}: {e}")
-            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+        except Exception:
+            logger.exception("Streaming error for job %s", sanitize_for_log(job_id))
+            error_payload = {
+                "type": "error",
+                "error_code": "stream_internal_error",
+                "message": "An internal error occurred while streaming job updates.",
+                "sequence": -1,
+            }
+            yield f"data: {json.dumps(error_payload)}\n\n"
 
         finally:
             yield "data: [DONE]\n\n"

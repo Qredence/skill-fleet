@@ -2,6 +2,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from skill_fleet.api.exceptions import ForbiddenException
 from skill_fleet.api.schemas.models import JobState
 from skill_fleet.api.services.job_manager import JobManager
 from skill_fleet.api.v1.hitl import post_response
@@ -157,3 +158,58 @@ async def test_post_response_saves_session_async() -> None:
 
     assert resp.status == "accepted"
     save_session.assert_awaited_once_with(job.job_id)
+
+
+@pytest.mark.asyncio
+async def test_post_response_requires_owner_header_for_non_default_owner() -> None:
+    manager = JobManager()
+    job = JobState(
+        job_id="job-owner-1",
+        status="pending_user_input",
+        user_id="alice",
+        hitl_type="clarify",
+        hitl_data={"questions": [{"text": "Q?", "options": [{"id": "a", "label": "A"}]}]},
+    )
+    await manager.create_job(job)
+
+    notify = AsyncMock()
+    with (
+        patch("skill_fleet.api.v1.hitl.get_job_manager", return_value=manager),
+        patch("skill_fleet.api.v1.hitl.notify_hitl_response", notify),
+        pytest.raises(ForbiddenException, match="Owner header required"),
+    ):
+        await post_response(
+            job_id=job.job_id,
+            response={"answers": {"response": "ok"}},
+            skill_service=MagicMock(),
+        )
+
+    notify.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_post_response_accepts_matching_owner_header_for_non_default_owner() -> None:
+    manager = JobManager()
+    job = JobState(
+        job_id="job-owner-2",
+        status="pending_user_input",
+        user_id="alice",
+        hitl_type="clarify",
+        hitl_data={"questions": [{"text": "Q?", "options": [{"id": "a", "label": "A"}]}]},
+    )
+    await manager.create_job(job)
+
+    notify = AsyncMock()
+    with (
+        patch("skill_fleet.api.v1.hitl.get_job_manager", return_value=manager),
+        patch("skill_fleet.api.v1.hitl.notify_hitl_response", notify),
+    ):
+        resp = await post_response(
+            job_id=job.job_id,
+            response={"answers": {"response": "ok"}},
+            skill_service=MagicMock(),
+            x_user_id="alice",
+        )
+
+    assert resp.status == "accepted"
+    notify.assert_awaited_once()

@@ -35,3 +35,4 @@ def test_job_stream_redacts_internal_exception_details(client) -> None:
     assert "sensitive runtime details should never leak" not in body
     assert '"error_code": "stream_internal_error"' in body
     assert '"message": "An internal error occurred while streaming job updates."' in body
+    assert '"sequence": -1' in body

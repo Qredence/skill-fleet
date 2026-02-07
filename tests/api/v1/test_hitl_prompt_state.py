@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
+from skill_fleet.api.exceptions import ForbiddenException
 from skill_fleet.api.schemas.models import JobState
 from skill_fleet.api.services.job_manager import JobManager
 from skill_fleet.api.v1.hitl import get_prompt
@@ -97,3 +98,40 @@ async def test_get_prompt_supports_pydantic_job_result() -> None:
 
     assert resp.status == "completed"
     assert resp.skill_content == "# Skill\n\nContent"
+
+
+@pytest.mark.asyncio
+async def test_get_prompt_requires_owner_header_for_non_default_owner() -> None:
+    manager = JobManager()
+    job = JobState(
+        job_id="job-5",
+        status="pending_user_input",
+        user_id="alice",
+        hitl_type="clarify",
+        hitl_data={"questions": [{"text": "Q?", "options": [{"id": "a", "label": "A"}]}]},
+    )
+    await manager.create_job(job)
+
+    with (
+        patch("skill_fleet.api.v1.hitl.get_job_manager", return_value=manager),
+        pytest.raises(ForbiddenException, match="Owner header required"),
+    ):
+        await get_prompt(job.job_id)
+
+
+@pytest.mark.asyncio
+async def test_get_prompt_accepts_matching_owner_header_for_non_default_owner() -> None:
+    manager = JobManager()
+    job = JobState(
+        job_id="job-6",
+        status="pending_user_input",
+        user_id="alice",
+        hitl_type="clarify",
+        hitl_data={"questions": [{"text": "Q?", "options": [{"id": "a", "label": "A"}]}]},
+    )
+    await manager.create_job(job)
+
+    with patch("skill_fleet.api.v1.hitl.get_job_manager", return_value=manager):
+        resp = await get_prompt(job.job_id, x_user_id="alice")
+
+    assert resp.status == "pending_user_input"

@@ -371,7 +371,6 @@ async def get_job_stream(
                 "error_code": "stream_internal_error",
                 "message": "An internal error occurred while streaming job updates.",
                 "sequence": -1,
-                "sequence": -1,
             }
             yield f"data: {json.dumps(error_payload)}\n\n"
 

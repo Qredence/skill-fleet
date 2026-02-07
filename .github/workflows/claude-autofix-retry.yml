@@ -42,31 +42,56 @@ jobs:
     name: Check Retry Eligibility
     if: |
       (github.event_name == 'workflow_dispatch') ||
-      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'failure')
+      (
+        github.event_name == 'workflow_run' &&
+        github.event.workflow_run.conclusion == 'failure' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_repository.full_name == github.repository
+      )
     runs-on: ubuntu-latest
     outputs:
       should_proceed: ${{ steps.check.outputs.proceed }}
       attempt: ${{ steps.check.outputs.attempt }}
       branch: ${{ steps.check.outputs.branch }}
       run_id: ${{ steps.check.outputs.run_id }}
+      checkout_ref: ${{ steps.check.outputs.checkout_ref }}
     steps:
       - name: Determine current attempt
         id: check
         env:
+          EVENT_NAME: ${{ github.event_name }}
           INPUTS_ATTEMPT: ${{ github.event.inputs.attempt }}
           WORKFLOW_RUN_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          WORKFLOW_RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
           INPUTS_BRANCH: ${{ github.event.inputs.branch }}
           REF_NAME: ${{ github.ref_name }}
           WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
           INPUTS_RUN_ID: ${{ github.event.inputs.run_id }}
         run: |
           ATTEMPT="${INPUTS_ATTEMPT:-1}"
-          BRANCH="${WORKFLOW_RUN_BRANCH:-${INPUTS_BRANCH:-$REF_NAME}}"
+          if [ "$EVENT_NAME" = "workflow_run" ]; then
+            BRANCH="$WORKFLOW_RUN_BRANCH"
+            CHECKOUT_REF="$WORKFLOW_RUN_HEAD_SHA"
+          else
+            BRANCH="${INPUTS_BRANCH:-$REF_NAME}"
+            CHECKOUT_REF="$BRANCH"
+          fi
           RUN_ID="${WORKFLOW_RUN_ID:-$INPUTS_RUN_ID}"
+
+          if ! [[ "$BRANCH" =~ ^[A-Za-z0-9._/-]+$ ]] || [[ "$BRANCH" == *".."* ]] || [[ "$BRANCH" == -* ]]; then
+            echo "Invalid branch input: $BRANCH"
+            exit 1
+          fi
+
+          if [ -z "$CHECKOUT_REF" ] || [ "$CHECKOUT_REF" = "null" ]; then
+            echo "Missing checkout ref."
+            exit 1
+          fi
 
           echo "Current attempt: $ATTEMPT / $MAX_ATTEMPTS"
           echo "Branch: $BRANCH"
           echo "Run ID: $RUN_ID"
+          echo "Checkout ref: $CHECKOUT_REF"
 
           if [ "$ATTEMPT" -gt "$MAX_ATTEMPTS" ]; then
             echo "🛑 Maximum attempts ($MAX_ATTEMPTS) reached. Stopping."
@@ -79,6 +104,7 @@ jobs:
           echo "attempt=$ATTEMPT" >> $GITHUB_OUTPUT
           echo "branch=$BRANCH" >> $GITHUB_OUTPUT
           echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+          echo "checkout_ref=$CHECKOUT_REF" >> $GITHUB_OUTPUT
 
   auto-fix:
     name: Auto-Fix Attempt
@@ -92,7 +118,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.check-retry-status.outputs.branch }}
+          ref: ${{ needs.check-retry-status.outputs.checkout_ref }}
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -129,7 +155,7 @@ jobs:
 
       - name: Claude Code Auto-Fix
         id: claude-fix
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@b113f49a56229d8276e2bf05743ad6900121239c # v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |

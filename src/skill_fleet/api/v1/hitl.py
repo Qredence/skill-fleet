@@ -22,6 +22,8 @@ from typing import Any
 from fastapi import APIRouter, Header
 from pydantic import BaseModel, Field
 
+from skill_fleet.common.logging_utils import sanitize_for_log
+
 from ..dependencies import SkillServiceDep
 from ..exceptions import ForbiddenException, NotFoundException
 from ..schemas import (
@@ -175,12 +177,12 @@ async def get_prompt(
         raise NotFoundException("Job", job_id)
 
     # Ownership verification: if a user_id header is provided, it must match
-    if x_user_id and job.user_id and x_user_id != job.user_id:
+    if isinstance(x_user_id, str) and x_user_id and job.user_id and x_user_id != job.user_id:
         logger.warning(
             "HITL prompt access denied for job %s: user %s != owner %s",
-            job_id,
-            x_user_id,
-            job.user_id,
+            sanitize_for_log(job_id),
+            sanitize_for_log(x_user_id),
+            sanitize_for_log(job.user_id),
         )
         raise ForbiddenException(detail=f"User '{x_user_id}' is not the owner of job '{job_id}'")
 
@@ -317,12 +319,12 @@ async def post_response(
         raise NotFoundException("Job", job_id)
 
     # Ownership verification: if a user_id header is provided, it must match
-    if x_user_id and job.user_id and x_user_id != job.user_id:
+    if isinstance(x_user_id, str) and x_user_id and job.user_id and x_user_id != job.user_id:
         logger.warning(
             "HITL response access denied for job %s: user %s != owner %s",
-            job_id,
-            x_user_id,
-            job.user_id,
+            sanitize_for_log(job_id),
+            sanitize_for_log(x_user_id),
+            sanitize_for_log(job.user_id),
         )
         raise ForbiddenException(detail=f"User '{x_user_id}' is not the owner of job '{job_id}'")
 
@@ -354,7 +356,10 @@ async def post_response(
                 and isinstance(last_at, (int, float))
                 and now - float(last_at) < MIN_HITL_INTERVAL
             ):
-                logger.warning("Duplicate HITL response throttled for job %s", job_id)
+                logger.warning(
+                    "Duplicate HITL response throttled for job %s",
+                    sanitize_for_log(job_id),
+                )
                 return HITLResponseResult(
                     status="ignored",
                     detail=f"Duplicate response ignored. Please wait {MIN_HITL_INTERVAL}s.",
@@ -412,8 +417,8 @@ async def post_response(
     try:
         success = await save_job_session_async(job_id)
         if not success:
-            logger.warning("Failed to save session for job %s", job_id)
+            logger.warning("Failed to save session for job %s", sanitize_for_log(job_id))
     except Exception:
-        logger.exception("Unexpected error saving session for job %s", job_id)
+        logger.exception("Unexpected error saving session for job %s", sanitize_for_log(job_id))
 
     return HITLResponseResult(status="accepted")

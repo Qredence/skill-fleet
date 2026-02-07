@@ -193,6 +193,9 @@ Model overrides (advanced):
 - No `print()` in library code; use `logging.getLogger(__name__)`.
 - Async-first modules implement `aforward()` (see `src/skill_fleet/core/modules/base.py`).
 - Use `resolve_path_within_root(...)` for any filesystem access involving user input (`src/skill_fleet/common/security.py`).
+- Sanitize user-influenced values before logging (use `sanitize_for_log(...)` from `src/skill_fleet/common/logging_utils.py`).
+- In GitHub workflows, pin third-party actions to commit SHAs (do not use mutable tags like `@v1`).
+- For privileged `workflow_run` jobs, only trust same-repo `push` events and prefer checking out immutable `head_sha`.
 
 ## References
 

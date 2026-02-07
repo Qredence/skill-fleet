@@ -34,6 +34,38 @@ def _is_safe_job_id(job_id: str) -> bool:
     return all(ch.isalnum() or ch in "-_" for ch in job_id)
 
 
+def _canonicalize_session_job_id(job_id: str) -> str | None:
+    """
+    Canonicalize and validate job IDs used for session file paths.
+
+    UUID-shaped IDs are normalized to lowercase canonical form. Non-UUID IDs are
+    accepted only if they pass the strict allowlist in `_is_safe_job_id`.
+    """
+    if not job_id:
+        return None
+
+    try:
+        return str(uuid.UUID(job_id))
+    except (ValueError, AttributeError, TypeError):
+        if _is_safe_job_id(job_id):
+            return job_id
+        return None
+
+
+def _resolve_session_file_path(job_id: str) -> Path:
+    """
+    Resolve a session file path from a job ID using canonicalized identifiers.
+
+    Raises:
+        ValueError: If the job ID is unsafe for filesystem usage.
+
+    """
+    canonical_job_id = _canonicalize_session_job_id(job_id)
+    if canonical_job_id is None:
+        raise ValueError("Unsafe job id for session file path")
+    return resolve_path_within_root(SESSION_DIR, f"{canonical_job_id}.json")
+
+
 # In-memory job store with TTL eviction (use Redis in production)
 class JobStore:
     """
@@ -288,17 +320,18 @@ def save_job_session(job_id: str) -> bool:
         True if save succeeded, False otherwise
 
     """
-    if not _is_safe_job_id(job_id):
+    canonical_job_id = _canonicalize_session_job_id(job_id)
+    if canonical_job_id is None:
         logger.warning("Cannot save session: unsafe job id %s", sanitize_for_log(job_id))
         return False
 
-    job = JOBS.get(job_id)
+    job = JOBS.get(canonical_job_id) or JOBS.get(job_id)
     if not job:
         logger.warning("Cannot save session: job %s not found", sanitize_for_log(job_id))
         return False
 
     try:
-        session_file = resolve_path_within_root(SESSION_DIR, f"{job_id}.json")
+        session_file = _resolve_session_file_path(canonical_job_id)
         session_data = job.model_dump(mode="json", exclude_none=True)
         session_file.write_text(json.dumps(session_data, indent=2, default=str), encoding="utf-8")
         logger.debug("Saved session for job %s", sanitize_for_log(job_id))
@@ -333,17 +366,18 @@ async def save_job_session_async(job_id: str) -> bool:
         True if save succeeded, False otherwise
 
     """
-    if not _is_safe_job_id(job_id):
+    canonical_job_id = _canonicalize_session_job_id(job_id)
+    if canonical_job_id is None:
         logger.warning("Cannot save session: unsafe job id %s", sanitize_for_log(job_id))
         return False
 
-    job = JOBS.get(job_id)
+    job = JOBS.get(canonical_job_id) or JOBS.get(job_id)
     if not job:
         logger.warning("Cannot save session: job %s not found", sanitize_for_log(job_id))
         return False
 
     try:
-        session_file = resolve_path_within_root(SESSION_DIR, f"{job_id}.json")
+        session_file = _resolve_session_file_path(canonical_job_id)
         session_data = job.model_dump(mode="json", exclude_none=True)
         json_str = json.dumps(session_data, indent=2, default=str)
         # Run blocking I/O in thread pool
@@ -377,12 +411,13 @@ def load_job_session(job_id: str) -> JobState | None:
         JobState if found, None otherwise
 
     """
-    if not _is_safe_job_id(job_id):
+    canonical_job_id = _canonicalize_session_job_id(job_id)
+    if canonical_job_id is None:
         logger.warning("Cannot load session: unsafe job id %s", sanitize_for_log(job_id))
         return None
 
     try:
-        session_file = resolve_path_within_root(SESSION_DIR, f"{job_id}.json")
+        session_file = _resolve_session_file_path(canonical_job_id)
         if not session_file.exists():
             return None
 
@@ -405,7 +440,7 @@ def load_job_session(job_id: str) -> JobState | None:
         job.hitl_event = asyncio.Event()
         job.hitl_lock = asyncio.Lock()
 
-        JOBS[job_id] = job
+        JOBS[job.job_id] = job
         logger.info("Loaded session for job %s", sanitize_for_log(job_id))
         return job
 
@@ -451,12 +486,13 @@ def delete_job_session(job_id: str) -> bool:
         True if deletion succeeded, False otherwise
 
     """
-    if not _is_safe_job_id(job_id):
+    canonical_job_id = _canonicalize_session_job_id(job_id)
+    if canonical_job_id is None:
         logger.warning("Cannot delete session: unsafe job id %s", sanitize_for_log(job_id))
         return False
 
     try:
-        session_file = resolve_path_within_root(SESSION_DIR, f"{job_id}.json")
+        session_file = _resolve_session_file_path(canonical_job_id)
         if session_file.exists():
             session_file.unlink()
             return True

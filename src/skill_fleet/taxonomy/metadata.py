@@ -4,9 +4,9 @@ Skill metadata models for taxonomy.
 This module provides infrastructure-level dataclass models for skill metadata,
 used for loading skills from disk (metadata.json, SKILL.md frontmatter).
 
-NOTE: This is different from domain.models.SkillMetadata:
-- taxonomy.metadata: Infrastructure model with 'path' field (disk location)
-- domain.models.SkillMetadata: Domain model without 'path' field (pure business)
+NOTE: This is different from core.models.SkillMetadata:
+- taxonomy.metadata.InfrastructureSkillMetadata: Infrastructure model with 'path' field
+- core.models.SkillMetadata: Domain model without 'path' field (pure business)
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 
 @dataclass(frozen=True, slots=True)
-class SkillMetadata:
+class InfrastructureSkillMetadata:
     """
     Lightweight representation of a skill's metadata from disk.
 

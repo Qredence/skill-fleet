@@ -19,6 +19,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from .analytics import router as analytics_router
 from .conversational import router as conversational_router
 from .drafts import router as drafts_router
 from .hitl import router as hitl_router
@@ -41,3 +42,4 @@ router.include_router(optimization_router, prefix="/optimization", tags=["optimi
 router.include_router(hitl_router, prefix="/hitl", tags=["hitl"])
 router.include_router(jobs_router, prefix="/jobs", tags=["jobs"])
 router.include_router(drafts_router, prefix="/drafts", tags=["drafts"])
+router.include_router(analytics_router, prefix="/analytics", tags=["analytics"])

@@ -169,25 +169,6 @@ async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
             await session.close()
 
 
-@contextmanager
-def get_db_context_manager() -> SyncGenerator[Session, None, None]:
-    """
-    Alias for get_db_context() for backward compatibility.
-
-    .. deprecated:: 2026.02
-        Use :func:`get_db_context` directly. Will be removed in 2026.04.
-    """
-    import warnings
-
-    warnings.warn(
-        "get_db_context_manager() is deprecated; use get_db_context() instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    with get_db_context() as db:
-        yield db
-
-
 def init_db() -> None:
     """
     Initialize the database by creating all tables.

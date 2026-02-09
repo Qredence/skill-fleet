@@ -1,14 +1,7 @@
 ---
 name: rlm
 description: Process very large context files (logs, docs, transcripts, scraped webpages) that exceed context limits by chunking content, delegating analysis to subagents, and synthesizing results. Use when files are >100k characters and require iterative inspection and extraction across the entire document.
-allowed-tools:
-  - Read
-  - Write
-  - Edit
-  - Grep
-  - Glob
-  - Bash
-  - Task
+allowed-tools: Read Write Edit Grep Glob Bash Task
 ---
 
 # RLM (Recursive Language Model Workflow)

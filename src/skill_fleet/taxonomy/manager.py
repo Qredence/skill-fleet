@@ -41,7 +41,7 @@ from .skill_registration import (
 )
 
 if TYPE_CHECKING:
-    from .metadata import SkillMetadata
+    from .metadata import InfrastructureSkillMetadata
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +120,7 @@ class TaxonomyManager:
         self.skills_root = Path(skills_root).resolve()
         self.meta_path = self.skills_root / "taxonomy_meta.json"
         self.index_path = self.skills_root / "taxonomy_index.json"
-        self.metadata_cache: dict[str, SkillMetadata] = {}
+        self.metadata_cache: dict[str, InfrastructureSkillMetadata] = {}
         self.meta: dict[str, Any] = {}
         self.index: TaxonomyIndex = TaxonomyIndex()
         self._cache_lock = asyncio.Lock()
@@ -185,6 +185,32 @@ class TaxonomyManager:
         """
         return resolve_skill_location(skill_identifier, self.skills_root, self.index)
 
+    async def aresolve_skill_location(
+        self, skill_identifier: str, progress_callback: Any | None = None
+    ) -> str:
+        """
+        Async version of resolve_skill_location with optional progress reporting.
+
+        Args:
+            skill_identifier: Skill ID, path, or alias
+            progress_callback: Optional async callable for progress updates
+
+        Returns:
+            Canonical storage path
+
+        """
+        if progress_callback:
+            await progress_callback(f"Resolving skill: {skill_identifier}")
+
+        result = await asyncio.to_thread(
+            resolve_skill_location, skill_identifier, self.skills_root, self.index
+        )
+
+        if progress_callback:
+            await progress_callback(f"Resolved to: {result}")
+
+        return result
+
     def _load_always_loaded_skills(self) -> None:
         """Load always-loaded skill files into the metadata cache."""
         for relative_dir in self._ALWAYS_LOADED_DIRS:
@@ -195,13 +221,13 @@ class TaxonomyManager:
             for skill_file in skills_dir.glob("*.json"):
                 self._load_skill_file(skill_file)
 
-    def _load_skill_file(self, skill_file: Path) -> SkillMetadata:
+    def _load_skill_file(self, skill_file: Path) -> InfrastructureSkillMetadata:
         """Load a skill definition stored as a single JSON file."""
         metadata = load_skill_file(skill_file)
         self.metadata_cache[metadata.skill_id] = metadata
         return metadata
 
-    def _load_skill_dir_metadata(self, skill_dir: Path) -> SkillMetadata:
+    def _load_skill_dir_metadata(self, skill_dir: Path) -> InfrastructureSkillMetadata:
         """
         Load a skill definition stored as a directory containing `metadata.json`.
 
@@ -211,6 +237,14 @@ class TaxonomyManager:
         metadata = load_skill_dir_metadata(skill_dir)
         self.metadata_cache[metadata.skill_id] = metadata
         return metadata
+
+    async def aload_skill_dir_metadata(self, skill_dir: Path) -> InfrastructureSkillMetadata:
+        """
+        Async version of _load_skill_dir_metadata.
+
+        Wraps blocking I/O in asyncio.to_thread for concurrent execution.
+        """
+        return await asyncio.to_thread(self._load_skill_dir_metadata, skill_dir)
 
     def parse_skill_frontmatter(self, skill_md_path: Path) -> dict[str, Any]:
         """
@@ -231,7 +265,7 @@ class TaxonomyManager:
         except FileNotFoundError:
             return False
 
-    def get_skill_metadata(self, skill_id: str) -> SkillMetadata | None:
+    def get_skill_metadata(self, skill_id: str) -> InfrastructureSkillMetadata | None:
         """Retrieve cached skill metadata by `skill_id`."""
         return self.metadata_cache.get(skill_id)
 
@@ -397,7 +431,7 @@ class TaxonomyManager:
 
         return len(missing) == 0, missing
 
-    def _try_load_skill_by_id(self, skill_id: str) -> SkillMetadata | None:
+    def _try_load_skill_by_id(self, skill_id: str) -> InfrastructureSkillMetadata | None:
         """Try to load skill metadata from disk, caching it on success."""
         try:
             canonical_path = self.resolve_skill_location(skill_id)

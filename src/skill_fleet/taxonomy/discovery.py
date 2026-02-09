@@ -18,13 +18,13 @@ from .naming import skill_id_to_name
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from .metadata import SkillMetadata
+    from .metadata import InfrastructureSkillMetadata
 
 logger = logging.getLogger(__name__)
 
 
 def generate_available_skills_xml(
-    metadata_cache: dict[str, SkillMetadata],
+    metadata_cache: dict[str, InfrastructureSkillMetadata],
     skills_root: Path,
     user_id: str | None = None,
 ) -> str:
@@ -35,7 +35,7 @@ def generate_available_skills_xml(
     for injecting skill metadata into agent system prompts.
 
     Args:
-        metadata_cache: Dictionary mapping skill IDs to SkillMetadata
+        metadata_cache: Dictionary mapping skill IDs to InfrastructureSkillMetadata
         skills_root: Root directory of the taxonomy
         user_id: Optional user ID to filter skills (not yet implemented)
 
@@ -70,7 +70,7 @@ def generate_available_skills_xml(
 
 def ensure_all_skills_loaded(
     skills_root: Path,
-    metadata_cache: dict[str, SkillMetadata],
+    metadata_cache: dict[str, InfrastructureSkillMetadata],
     load_dir_func: Callable,
 ) -> None:
     """
@@ -78,7 +78,7 @@ def ensure_all_skills_loaded(
 
     Args:
         skills_root: Root directory of the taxonomy
-        metadata_cache: Dictionary mapping skill IDs to SkillMetadata
+        metadata_cache: Dictionary mapping skill IDs to InfrastructureSkillMetadata
         load_dir_func: Function to load skill directory metadata
 
     """
@@ -94,7 +94,7 @@ def ensure_all_skills_loaded(
 
 def get_skill_for_prompt(
     skill_id: str,
-    metadata_cache: dict[str, SkillMetadata],
+    metadata_cache: dict[str, InfrastructureSkillMetadata],
 ) -> str | None:
     """
     Get the full SKILL.md content for loading into an agent's context.
@@ -103,7 +103,7 @@ def get_skill_for_prompt(
 
     Args:
         skill_id: The skill identifier
-        metadata_cache: Dictionary mapping skill IDs to SkillMetadata
+        metadata_cache: Dictionary mapping skill IDs to InfrastructureSkillMetadata
 
     Returns:
         Full SKILL.md content or None if not found

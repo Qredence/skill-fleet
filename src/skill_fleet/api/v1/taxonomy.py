@@ -18,6 +18,7 @@ from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Path
+from fastapi.responses import PlainTextResponse
 
 from skill_fleet.common.logging_utils import sanitize_for_log
 from skill_fleet.common.security import sanitize_taxonomy_path
@@ -326,3 +327,62 @@ async def invalidate_taxonomy_cache(
     except Exception as e:
         logger.exception(f"Error invalidating taxonomy cache: {e}")
         raise HTTPException(status_code=500, detail="Failed to invalidate cache") from e
+
+
+@router.get("/xml", response_class=PlainTextResponse)
+async def generate_taxonomy_xml(
+    taxonomy_manager: TaxonomyManagerDep,
+    user_id: str | None = None,
+) -> str:
+    """
+    Generate agentskills.io <available_skills> XML for prompt injection.
+
+    This endpoint provides a standardized XML representation of the skill taxonomy,
+    suitable for embedding in agent prompts. Used by CLI `generate-xml` command.
+
+    Args:
+        taxonomy_manager: Injected TaxonomyManager for taxonomy access
+        user_id: Optional user ID for personalized taxonomy (filters mounted skills)
+
+    Returns:
+        XML string in agentskills.io format with <available_skills> root
+
+    Example:
+        GET /api/v1/taxonomy/xml?user_id=alice
+
+    Returns:
+        ```xml
+        <available_skills>
+          <skill>
+            <name>dspy-basics</name>
+            <description>Core DSPy fundamentals...</description>
+            <file>.agents/skills/dspy-basics/SKILL.md</file>
+          </skill>
+          ...
+        </available_skills>
+        ```
+
+    """
+    try:
+        from ...taxonomy.discovery import generate_available_skills_xml
+
+        # Generate XML using discovery module
+        xml_content = generate_available_skills_xml(
+            metadata_cache=taxonomy_manager.metadata_cache,
+            skills_root=taxonomy_manager.skills_root,
+            user_id=user_id,
+        )
+
+        logger.info(
+            f"Generated taxonomy XML ({len(xml_content)} bytes)"
+            + (f" for user {sanitize_for_log(user_id)}" if user_id else "")
+        )
+
+        return xml_content
+
+    except Exception as e:
+        logger.exception(f"Error generating taxonomy XML: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate XML: {str(e)}",
+        ) from e

@@ -248,3 +248,120 @@ class SkillFleetClient:
                         yield {"type": current_event_type, "data": data}
                     except json.JSONDecodeError:
                         logger.warning(f"Failed to parse SSE data: {data_str}")
+
+    async def validate_skill(self, skill_path: str, use_llm: bool = True) -> dict[str, Any]:
+        """
+        Validate a skill by path.
+
+        Supports both published skills and drafts in _drafts/.
+
+        Args:
+            skill_path: Taxonomy-relative path (e.g., 'dspy-basics' or '_drafts/job-123/my-skill')
+            use_llm: Enable LLM-based validation (requires API keys)
+
+        Returns:
+            Validation results with passed, status, score, errors, warnings, and checks
+
+        Example:
+            result = await client.validate_skill("dspy-basics", use_llm=True)
+            if result["passed"]:
+                print(f"Validation passed! Score: {result['score']}")
+        """
+        try:
+            response = await self.client.post(
+                "/api/v1/skills/validate",
+                json={"skill_path": skill_path, "use_llm": use_llm},
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.ConnectError as e:
+            raise ValueError(
+                "Failed to connect to the API server. "
+                "Make sure the server is running at the configured URL."
+            ) from e
+
+    async def generate_xml(self, user_id: str | None = None) -> str:
+        """
+        Generate agentskills.io <available_skills> XML for prompt injection.
+
+        Args:
+            user_id: Optional user ID for personalized taxonomy (filters mounted skills)
+
+        Returns:
+            XML string in agentskills.io format with <available_skills> root
+
+        Example:
+            xml = await client.generate_xml(user_id="alice")
+            Path("skills.xml").write_text(xml)
+        """
+        try:
+            params = {"user_id": user_id} if user_id else {}
+            response = await self.client.get("/api/v1/taxonomy/xml", params=params)
+            response.raise_for_status()
+            return response.text
+        except httpx.ConnectError as e:
+            raise ValueError(
+                "Failed to connect to the API server. "
+                "Make sure the server is running at the configured URL."
+            ) from e
+
+    async def get_analytics(self, user_id: str | None = None) -> dict[str, Any]:
+        """
+        Get usage analytics and statistics.
+
+        Analyzes skill usage patterns including total events, success rate,
+        most used skills, common combinations, and cold/underutilized skills.
+
+        Args:
+            user_id: Optional user ID to filter analytics (omit for all users)
+
+        Returns:
+            Analytics data with total_events, unique_skills_used, success_rate,
+            most_used_skills, common_combinations, and cold_skills
+
+        Example:
+            stats = await client.get_analytics(user_id="alice")
+            print(f"Success rate: {stats['success_rate']:.1%}")
+        """
+        try:
+            params = {"user_id": user_id} if user_id else {}
+            response = await self.client.get("/api/v1/analytics", params=params)
+            response.raise_for_status()
+            return response.json()
+        except httpx.ConnectError as e:
+            raise ValueError(
+                "Failed to connect to the API server. "
+                "Make sure the server is running at the configured URL."
+            ) from e
+
+    async def get_recommendations(self, user_id: str) -> dict[str, Any]:
+        """
+        Get skill recommendations for a user.
+
+        Generates personalized skill recommendations based on usage patterns,
+        dependencies, and taxonomy structure.
+
+        Args:
+            user_id: User ID for personalized recommendations (required)
+
+        Returns:
+            Recommendations data with user_id, recommendations list (skill_id, reason, priority),
+            and total_recommendations count
+
+        Example:
+            recs = await client.get_recommendations(user_id="alice")
+            for rec in recs["recommendations"]:
+                print(f"{rec['skill_id']}: {rec['reason']} [{rec['priority']}]")
+        """
+        try:
+            response = await self.client.get(
+                "/api/v1/analytics/recommendations",
+                params={"user_id": user_id},
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.ConnectError as e:
+            raise ValueError(
+                "Failed to connect to the API server. "
+                "Make sure the server is running at the configured URL."
+            ) from e

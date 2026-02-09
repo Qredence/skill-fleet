@@ -183,15 +183,6 @@ class JobManager:
         self.persistence_enabled = True
         logger.info("JobManager persistence enabled (using transactional sessions)")
 
-    def set_db_repo(self, db_repo: Any) -> None:
-        """
-        Deprecated: Enable persistence.
-
-        Kept for backward compatibility. The db_repo argument is ignored
-        as we now use transactional sessions created on demand.
-        """
-        self.enable_persistence()
-
     async def get_job(self, job_id: str) -> JobState | None:
         """
         Retrieve job from memory (fast), fall back to DB (durable).

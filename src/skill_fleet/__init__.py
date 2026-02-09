@@ -8,9 +8,9 @@ workflow for generating new skills on demand.
 from __future__ import annotations
 
 from .taxonomy.manager import TaxonomyManager
-from .taxonomy.metadata import SkillMetadata
+from .taxonomy.metadata import InfrastructureSkillMetadata
 
 __all__ = [
-    "SkillMetadata",
+    "InfrastructureSkillMetadata",
     "TaxonomyManager",
 ]

@@ -39,8 +39,8 @@ async for event in workflow.execute_streaming(
     plan={},
     taxonomy_path=skill_path,
 ):
-    if event.event_type == "phase_complete":
-        validation_report = event.data["validation_report"]
+    if event.event_type == WorkflowEventType.COMPLETED:
+        validation_report = event.data["result"]["validation_report"]
 ```
 
 ---
@@ -69,10 +69,9 @@ async for event in workflow.execute_streaming(
 
 ### Cleaned: `core/models.py`
 
-- ✅ Removed `DictLikeAccessMixin` class entirely (~35 lines)
-- ✅ Removed `DictLikeAccessMixin` from `SkillMetadata` and `ValidationReport` base classes
 - ✅ Removed `from_validation_result()` classmethod from `ValidationReport` (~45 lines)
 - ✅ Removed legacy `capabilities/` and `resources/` from `SkillSkeleton` defaults
+- ✅ Kept `DictLikeAccessMixin` on `SkillMetadata` and `ValidationReport` for backward compatibility
 
 ### Cleaned: `api/schemas/skills.py`
 
@@ -120,7 +119,7 @@ async for event in workflow.execute_streaming(
 
 - **Single validation path**: `ValidationWorkflow` (DSPy-based) for API/CLI
 - **Clean rule-based validator**: `SkillValidator` for basic structure checks (no deprecated params)
-- **No compatibility shims**: `DictLikeAccessMixin`, `from_validation_result`, `get_db_context_manager`, `set_db_repo` all removed
+- **Deprecated shims removed**: `from_validation_result`, `get_db_context_manager`, `set_db_repo`
 - **v2 Golden Standard only**: New skills no longer create legacy `capabilities/` / `resources/` directories
 
 ### Validation Flow (Current)
@@ -160,7 +159,6 @@ dict
 
 - ⚠️ `SkillValidator(skills_root, use_llm=True)` → remove `use_llm` param (no longer accepted)
 - ⚠️ `from skill_fleet.cli.main import create_skill, validate_skill` → deleted, use API
-- ⚠️ `from skill_fleet.core.models import DictLikeAccessMixin` → removed
 - ⚠️ `ValidationReport.from_validation_result()` → removed, construct `ValidationReport` directly
 - ⚠️ `get_db_context_manager()` → use `get_db_context()`
 - ⚠️ `job_manager.set_db_repo()` → use `job_manager.enable_persistence()`
@@ -177,8 +175,8 @@ workflow = ValidationWorkflow()
 async for event in workflow.execute_streaming(
     skill_content=content, plan={}, taxonomy_path=path,
 ):
-    if event.event_type == "phase_complete":
-        report = event.data["validation_report"]
+    if event.event_type == WorkflowEventType.COMPLETED:
+        report = event.data["result"]["validation_report"]
 
 # Rule-based only (OLD → NEW)
 # OLD: SkillValidator(root, use_llm=False)
@@ -215,7 +213,7 @@ with get_db_context() as db: ...
 | `cli/main.py`                    | **DELETED** | Deprecated entrypoints removed (Phase 2)                                   |
 | `validators/skill_validator.py`  | **CLEANED** | Removed `use_llm`, `_validate_with_dspy_if_available`, deprecation notices |
 | `validators/__init__.py`         | **CLEANED** | Clean docstring, no deprecation warnings                                   |
-| `core/models.py`                 | **CLEANED** | Removed `DictLikeAccessMixin`, `from_validation_result`, legacy dirs       |
+| `core/models.py`                 | **CLEANED** | Removed `from_validation_result`, removed legacy dirs, retained dict-like compatibility |
 | `api/schemas/skills.py`          | **CLEANED** | Removed `issues` field, cleaned descriptions                               |
 | `api/v1/skills.py`               | **CLEANED** | Uses `ValidationWorkflow`, removed `issues`                                |
 | `cli/client.py`                  | **CLEANED** | Removed "DSPy bridge" reference                                            |
@@ -236,8 +234,8 @@ with get_db_context() as db: ...
 
 ### Documentation
 
-- [ ] Update `docs/how-to-guides/cli.md` (CLI requires API server)
-- [ ] Update `docs/reference/api.md` (new endpoints, removed `issues` field)
+- [x] Update `docs/how-to-guides/cli-usage.md` (CLI requires API server)
+- [x] Update `docs/reference/api/endpoints.md` (new endpoints, removed `issues` field)
 - [ ] Update migration guide with breaking changes
 
 ---

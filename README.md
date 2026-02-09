@@ -124,9 +124,10 @@ Draft Ready for Review → Promote to Taxonomy
 | `dev` | Start server + TUI | `uv run skill-fleet dev` |
 | `chat` | Interactive skill creation | `uv run skill-fleet chat "Create..."` |
 | `create` | Non-interactive creation | `uv run skill-fleet create "..." --auto-approve` |
-| `validate` | Validate skill directory | `uv run skill-fleet validate ./skills/_drafts/job_123` |
+| `validate` | Validate skill directory via API | `uv run skill-fleet validate skills/_drafts/<job_id>/<skill-name>` |
 | `promote` | Promote draft to taxonomy | `uv run skill-fleet promote job_123` |
-| `generate-xml` | Export skills as XML | `uv run skill-fleet generate-xml` |
+| `generate-xml` | Export skills as XML via API | `uv run skill-fleet generate-xml` |
+| `analytics` | Show usage analytics via API | `uv run skill-fleet analytics --user-id all` |
 
 ### Server Options
 
@@ -147,8 +148,11 @@ uv run skill-fleet serve --port 8080
 # Validate with JSON output for scripting
 uv run skill-fleet validate ./my-skill --json
 
-# Strict validation (fail on warnings)
-uv run skill-fleet validate ./my-skill --strict
+# Disable LLM-backed validation (rule-based only)
+uv run skill-fleet validate ./my-skill --no-llm
+
+# Override API server URL
+uv run skill-fleet validate ./my-skill --api-url http://localhost:8000
 ```
 
 ---
@@ -167,6 +171,8 @@ Create `.env` file (copy from `.env.example`):
 | `DATABASE_URL` | Production | PostgreSQL connection string |
 | `SKILL_FLEET_ENV` | No | `development` (default) or `production` |
 | `SKILL_FLEET_CORS_ORIGINS` | Production | Comma-separated allowed origins |
+| `SKILL_FLEET_API_URL` | CLI | API base URL for API-first CLI commands |
+| `SKILL_FLEET_USER_ID` | CLI | Default user id for CLI context |
 
 \* Choose either Google API key OR LiteLLM credentials.
 
@@ -201,10 +207,14 @@ When the server is running, access interactive documentation:
 |----------|--------|-------------|
 | `/health` | GET | Health check |
 | `/api/v1/skills` | POST | Create skill (returns job ID) |
-| `/api/v1/skills/stream` | POST | Create skill with SSE streaming |
+| `/api/v1/skills/validate` | POST | Validate by taxonomy-relative skill path |
 | `/api/v1/skills/{id}` | GET | Get skill by ID |
+| `/api/v1/skills/{id}/validate` | POST | Validate existing skill |
 | `/api/v1/jobs/{id}` | GET | Get job status and results |
 | `/api/v1/taxonomy` | GET | List taxonomy categories |
+| `/api/v1/taxonomy/xml` | GET | Export `<available_skills>` XML |
+| `/api/v1/analytics` | GET | Usage analytics |
+| `/api/v1/analytics/recommendations` | GET | Personalized recommendations |
 | `/api/v1/hitl/responses` | POST | Submit HITL response |
 
 ### Streaming API

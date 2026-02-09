@@ -1,7 +1,7 @@
 # Implementation Progress: Validators, Taxonomy, Templates Alignment & API-CLI Architecture
 
 **Session Date**: February 8–9, 2026
-**Status**: Phases 1–3 Complete, Phase 4 (Testing & Docs) Pending
+**Status**: Phases 1–3 Complete, Phase 4 (Testing & Docs) In Progress
 
 ---
 
@@ -72,7 +72,7 @@
 
 - [x] `validators/skill_validator.py` — removed `use_llm` param, `_validate_with_dspy_if_available()`, deprecation notices, `import warnings`
 - [x] `validators/__init__.py` — clean docstring, no deprecation warnings
-- [x] `core/models.py` — removed `DictLikeAccessMixin`, `from_validation_result()`, legacy `capabilities/`/`resources/` from `SkillSkeleton`
+- [x] `core/models.py` — removed `from_validation_result()`, removed legacy `capabilities/`/`resources/` from `SkillSkeleton`, kept/restored `DictLikeAccessMixin` for compatibility
 - [x] `api/schemas/skills.py` — removed deprecated `issues` field, cleaned "DSPy bridge" reference
 - [x] `api/v1/skills.py` — removed `issues=[]`, cleaned fallback path, removed unused `warnings_list`
 - [x] `cli/client.py` — removed "via DSPy bridge" reference
@@ -92,33 +92,33 @@
 
 ---
 
-## 📋 Phase 4: Testing & Documentation (Pending)
+## 📋 Phase 4: Testing & Documentation (In Progress)
 
 ### Integration Tests
 
-- [ ] Test API endpoints:
+- [x] Test API endpoints:
   - `/api/v1/skills/validate` with various skill paths
   - `/api/v1/taxonomy/xml` with filters
   - `/api/v1/analytics/*` endpoints
-- [ ] Test CLI commands via API:
+- [x] Test CLI commands via API:
   - `skill-fleet validate <path>` calls API correctly
   - `skill-fleet generate-xml` produces correct XML
   - `skill-fleet analytics` shows correct metrics
-- [ ] Test error handling:
+- [x] Test error handling:
   - Network failures (API unreachable)
   - Invalid skill paths
 
 ### End-to-End Tests
 
 - [ ] Full workflow: Create skill → Validate → Generate XML → Promote
-- [ ] Multi-user scenario (different user_id values)
+- [x] Multi-user scenario (different user_id values)
 
 ### Documentation Updates
 
-- [ ] Update `docs/how-to-guides/cli.md` (CLI requires API server)
-- [ ] Update `docs/reference/api.md` (new endpoints, removed `issues` field)
-- [ ] Update `README.md` (API-first architecture)
-- [ ] Create `docs/internal/migration-guide.md` (breaking changes)
+- [x] Update `docs/how-to-guides/cli-usage.md` (CLI requires API server)
+- [x] Update `docs/reference/api/endpoints.md` (new endpoints, removed `issues` field)
+- [x] Update `README.md` (API-first architecture)
+- [x] Create `docs/internal/migration-guide.md` (breaking changes)
 
 ---
 
@@ -158,8 +158,8 @@
 | Phase 1: Infrastructure Alignment | ✅ Complete | 13/13             |
 | Phase 2: API-CLI Architecture     | ✅ Complete | 19/19             |
 | Phase 3: Deprecated Code Removal  | ✅ Complete | 14/14             |
-| Phase 4: Testing & Documentation  | ⏳ Pending  | 0/9               |
-| **Total**                         |             | **46/55 (83.6%)** |
+| Phase 4: Testing & Documentation  | 🚧 In Progress | 8/9               |
+| **Total**                         |             | **54/55 (98.2%)** |
 
 ---
 
@@ -189,4 +189,4 @@
 
 **Last Updated**: February 9, 2026
 **Phases 1–3 Complete**: Infrastructure alignment, API-first CLI, deprecated code removal
-**Next**: Phase 4 — integration tests and documentation updates
+**Next**: Complete remaining full end-to-end workflow test (Create → Validate → Generate XML → Promote)

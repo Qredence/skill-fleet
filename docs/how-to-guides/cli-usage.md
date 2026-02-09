@@ -1,6 +1,6 @@
 # CLI Usage Guide
 
-**Last Updated**: 2026-01-31
+**Last Updated**: 2026-02-09
 
 This guide covers common CLI workflows for skill creation, validation, and management.
 
@@ -16,7 +16,8 @@ uv run skill-fleet --help
 
 ### 1. Start the API Server
 
-The CLI requires a running API server for most operations:
+The CLI is API-first and requires a running API server for operations like `validate`,
+`generate-xml`, and `analytics`:
 
 ```bash
 uv run skill-fleet serve
@@ -30,6 +31,21 @@ This starts the server on `http://localhost:8000` with:
 **Production mode:**
 ```bash
 uv run skill-fleet serve --port 8080 --host 0.0.0.0 --no-reload
+```
+
+---
+
+## API Connection Settings
+
+Use global CLI options or environment variables to target the API:
+
+```bash
+# Global option
+uv run skill-fleet --api-url http://localhost:8000 validate dspy-basics
+
+# Environment variable
+export SKILL_FLEET_API_URL=http://localhost:8000
+uv run skill-fleet validate dspy-basics
 ```
 
 ---
@@ -107,9 +123,9 @@ uv run skill-fleet validate technical/programming/python/async
 
 Output:
 ```
-validation: passed
+validation: passed (score: 0.91)
 warnings:
-- Description could be more specific
+  - Description could be more specific
 ```
 
 ### JSON Output for Scripting
@@ -125,6 +141,16 @@ if uv run skill-fleet validate "$SKILL_PATH" --json | jq -e '.passed'; then
 else
     echo "Validation failed"
 fi
+```
+
+### Validation Modes
+
+```bash
+# LLM-backed validation (default)
+uv run skill-fleet validate path/to/skill --use-llm
+
+# Rule-based validation only (no LLM calls)
+uv run skill-fleet validate path/to/skill --no-llm
 ```
 
 ---
@@ -164,6 +190,24 @@ This exports all skills in the agentskills.io XML format for:
 - Skill registries
 - Backup purposes
 
+Filter by user:
+
+```bash
+uv run skill-fleet generate-xml --user-id alice
+```
+
+---
+
+## Analytics
+
+```bash
+# Human-readable output
+uv run skill-fleet analytics --user-id all
+
+# JSON output for automation
+uv run skill-fleet analytics --user-id default --json
+```
+
 ---
 
 ## Common Workflows
@@ -181,7 +225,7 @@ uv run skill-fleet serve --reload
 uv run skill-fleet chat "Create a React hooks skill"
 
 # 4. Validate before promoting
-uv run skill-fleet validate .skills/drafts/react-hooks
+uv run skill-fleet validate skills/_drafts/<job_id>/<skill-name>
 
 # 5. Promote to taxonomy
 uv run skill-fleet promote <job_id> --delete-draft

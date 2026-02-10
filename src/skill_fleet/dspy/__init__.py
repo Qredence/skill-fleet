@@ -1,37 +1,34 @@
 """
 Modernized DSPy integration for skill-fleet.
 
-This package provides centralized DSPy configuration, adapters, streaming,
-and utilities for building robust LLM-powered workflows.
+This package provides DSPy utilities for building robust LLM-powered workflows.
+
+Configuration is now handled in the API lifespan (see api/lifespan.py) via
+ConfigModelLoader from infrastructure.tracing.config.
 
 Usage:
-    from skill_fleet.dspy import configure_dspy, get_task_lm
-    from skill_fleet.dspy.config import dspy_context
-
-    # Configure once at startup
-    configure_dspy()
+    from skill_fleet.dspy import dspy_context
 
     # Use context for scoped configuration
     with dspy_context(lm=custom_lm):
         result = await module.aforward(...)
+
+Deprecated (removed):
+    - DSPyConfig (singleton) - use ConfigModelLoader instead
+    - configure_dspy() - configuration now in api/lifespan.py
+    - get_task_lm() - use ConfigModelLoader.get_lm() instead
 """
 
 from __future__ import annotations
 
 from skill_fleet.dspy.config import (
-    DSPyConfig,
-    configure_dspy,
     create_adapter,
     dspy_context,
     get_default_adapter,
-    get_task_lm,
 )
 
 __all__ = [
-    "DSPyConfig",
-    "configure_dspy",
     "create_adapter",
     "dspy_context",
     "get_default_adapter",
-    "get_task_lm",
 ]

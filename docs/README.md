@@ -121,25 +121,24 @@ See [agentskills.io Compliance Guide](concepts/agentskills-compliance.md) for de
 
 ## DSPy Integration
 
-### Centralized Configuration
+### Configuration Management
 
-Skills Fleet provides centralized DSPy configuration through `src/skill_fleet/llm/dspy_config.py`. This module ensures consistent language model settings across all workflow steps:
+Skills Fleet uses `ConfigModelLoader` from `src/skill_fleet/infrastructure/tracing/config.py` for DSPy configuration. Configuration is handled at application startup in `api/lifespan.py`:
 
-- **`configure_dspy()`** — One-time initialization that sets up DSPy's global LM from `src/skill_fleet/config/config.yaml`
-- **`get_task_lm(task_name)`** — Returns task-specific LM instances without changing global settings
+- **Lifespan initialization** — DSPy is configured once at API startup with the default LM and adapter
+- **Context manager** — Use `dspy_context()` from `src/skill_fleet/dspy` for scoped (per-request/per-task) configuration
 - **Environment variables** — Supports `DSPY_CACHEDIR` and `DSPY_TEMPERATURE` for overrides
 - **Configuration priority** — Environment variables → config.yaml → defaults
 
-The CLI automatically calls `configure_dspy()` at startup, ensuring all commands use consistent LM settings.
+For scoped configuration (e.g., per-task or per-request):
 
 ```python
-from skill_fleet.llm.dspy_config import configure_dspy, get_task_lm
+from skill_fleet.dspy import dspy_context
 
-# Configure once at startup
-lm = configure_dspy(default_task="skill_understand")
-
-# Get task-specific LM when needed
-edit_lm = get_task_lm("skill_edit")
+# Use custom LM for this scope
+with dspy_context(lm=custom_lm):
+    result = await module.aforward(...)
+```
 ```
 
 ### Evolution Tracking

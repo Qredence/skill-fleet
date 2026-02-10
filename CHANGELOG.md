@@ -10,6 +10,10 @@ All notable changes to this project will be documented in this file.
   - Added API tests for `POST /api/v1/drafts/{job_id}/promote` (including `delete_draft=true`)
   - Added unit tests for safe filename handling and code block extraction in draft saves
   - Added unit tests for dict-like access helpers on core models
+- Regression coverage for runtime drift hardening
+  - Added API test for conversational SSE endpoint (`POST /api/v1/chat/stream`)
+  - Added unit tests for MLflow autologging enable/skip/failure signaling
+  - Added unit tests for API MLflow tracking URI defaults and env override behavior
 
 ### Changed
 
@@ -18,12 +22,30 @@ All notable changes to this project will be documented in this file.
   - Validation workflow refactored to centralize threshold resolution and refinement logic
   - Conversation service response routing split into clearer helper methods
 - CI release workflow can now be manually dispatched to publish an existing tag
+- Dependency and SDK alignment (conservative patch/minor policy)
+  - Updated core SDK ranges: DSPy, FastAPI, google-genai, LiteLLM, MLflow, SQLAlchemy
+  - Added conservative bounds for runtime stability (`<0.32` for uvicorn track)
+  - Moved optional provider/optimizer dependencies out of required runtime set:
+    - `openai` → `provider-openai` extra
+    - `gepa` → `optimization` extra
+  - Refreshed `uv.lock` to match aligned dependency policy
+- Documentation and environment guidance alignment
+  - Standardized setup commands on `uv sync --group dev`
+  - Standardized draft paths to `skills/_drafts/...`
+  - Standardized Python baseline references to 3.12+
+  - Updated provider guidance to Gemini/LiteLLM-first defaults
+  - Added dependency policy guidance for major-version upgrade tracks
 
 ### Fixed
 
 - Draft promotion `delete_draft=true` no longer deletes the session file and then recreates it
 - Draft promotion rollback paths preserve original tracebacks (bare `raise`)
 - Draft save warning logs include traceback context for easier debugging
+- DSPy/MLflow startup drift in API lifecycle
+  - Moved MLflow DSPy autologging setup into synchronous app startup path
+  - Removed async-lifespan autologging initialization that could trigger cross-task DSPy configure errors
+  - `setup_dspy_autologging(...)` now returns success status for truthful caller logging
+  - API settings now default MLflow tracking URI to `sqlite:///mlflow.db` to avoid filesystem-backend warnings
 
 ## [0.3.6] - 2026-02-03
 

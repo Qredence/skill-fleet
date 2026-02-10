@@ -15,6 +15,7 @@ from skill_fleet.api.services.react_agent_service import ReActAgentService
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+_GENERIC_ERROR_DETAIL = "Internal server error"
 
 
 # Keep a process-local singleton to preserve in-memory session continuity.
@@ -58,7 +59,7 @@ async def send_agent_message(request: AgentMessageRequest) -> AgentMessageRespon
         return AgentMessageResponse(**payload)
     except Exception as exc:
         logger.error("ReAct /message failure", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        raise HTTPException(status_code=500, detail=_GENERIC_ERROR_DETAIL) from exc
 
 
 @router.post("/stream")
@@ -68,18 +69,22 @@ async def stream_agent_message(request: AgentMessageRequest) -> StreamingRespons
     session_id = request.session_id or "default"
 
     async def event_generator() -> AsyncIterator[str]:
-        ui_action_payload = request.ui_action.model_dump() if request.ui_action else None
-        async for event in service.stream_message(
-            message=request.message,
-            session_id=session_id,
-            user_id=request.user_id,
-            context=request.context,
-            active_job_id=request.active_job_id,
-            workflow_intent=request.workflow_intent,
-            ui_action=ui_action_payload,
-        ):
-            yield f"data: {json.dumps(event)}\n\n"
-
-        yield "data: [DONE]\n\n"
+        try:
+            ui_action_payload = request.ui_action.model_dump() if request.ui_action else None
+            async for event in service.stream_message(
+                message=request.message,
+                session_id=session_id,
+                user_id=request.user_id,
+                context=request.context,
+                active_job_id=request.active_job_id,
+                workflow_intent=request.workflow_intent,
+                ui_action=ui_action_payload,
+            ):
+                yield f"data: {json.dumps(event)}\n\n"
+        except Exception:
+            logger.error("ReAct /stream failure", exc_info=True)
+            yield (f"data: {json.dumps({'type': 'error', 'message': _GENERIC_ERROR_DETAIL})}\n\n")
+        finally:
+            yield "data: [DONE]\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")

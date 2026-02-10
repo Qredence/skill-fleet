@@ -21,7 +21,8 @@ from typing import Annotated
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 
-from skill_fleet.common.security import resolve_path_within_root
+from skill_fleet.common.logging_utils import sanitize_for_log
+from skill_fleet.common.security import resolve_skill_md_path
 from skill_fleet.core.workflows.skill_creation.validation import ValidationWorkflow
 from skill_fleet.core.workflows.streaming import WorkflowEventType
 from skill_fleet.validators import SkillValidator
@@ -190,34 +191,21 @@ async def validate_skill_by_path(
     from ...core.models import ValidationReport
 
     try:
-        # Resolve skill path safely within skills root
         skills_root = skill_service.taxonomy_manager.skills_root
+
         try:
-            skill_path = resolve_path_within_root(skills_root, request.skill_path)
+            skill_md_path = resolve_skill_md_path(skills_root, request.skill_path)
+            skill_path = skill_md_path.parent
         except ValueError as e:
             raise HTTPException(
                 status_code=400,
                 detail=f"Invalid skill path: {request.skill_path}",
             ) from e
-
-        if not skill_path.exists():
+        except FileNotFoundError as e:
             raise HTTPException(
                 status_code=404,
                 detail=f"Skill path not found: {request.skill_path}",
-            )
-        if not skill_path.is_dir():
-            raise HTTPException(
-                status_code=400,
-                detail=f"Skill path must be a directory: {request.skill_path}",
-            )
-
-        # Read SKILL.md content
-        skill_md_path = skill_path / "SKILL.md"
-        if not skill_md_path.exists():
-            raise HTTPException(
-                status_code=400,
-                detail=f"SKILL.md not found in {request.skill_path}",
-            )
+            ) from e
 
         skill_content = skill_md_path.read_text(encoding="utf-8")
 
@@ -309,7 +297,11 @@ async def validate_skill_by_path(
     except HTTPException:
         raise
     except Exception as e:
-        logger.exception(f"Validation failed for {request.skill_path}: {e}")
+        logger.exception(
+            "Validation failed for %s: %s",
+            sanitize_for_log(request.skill_path),
+            sanitize_for_log(e),
+        )
         raise HTTPException(status_code=500, detail=f"Validation failed: {str(e)}") from e
 
 

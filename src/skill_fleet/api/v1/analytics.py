@@ -15,6 +15,7 @@ import logging
 from fastapi import APIRouter, HTTPException, Query
 
 from ...analytics.engine import AnalyticsEngine, RecommendationEngine
+from ...common.logging_utils import sanitize_for_log
 from ..dependencies import TaxonomyManagerDep
 from ..schemas.analytics import AnalyticsResponse, RecommendationItem, RecommendationsResponse
 
@@ -137,7 +138,11 @@ async def get_recommendations(
         )
 
     except Exception as e:
-        logger.exception(f"Error getting recommendations for user {user_id}: {e}")
+        logger.exception(
+            "Error getting recommendations for user %s: %s",
+            sanitize_for_log(user_id),
+            sanitize_for_log(e),
+        )
         raise HTTPException(
             status_code=500,
             detail=f"Failed to generate recommendations: {str(e)}",

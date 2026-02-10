@@ -241,9 +241,9 @@ class TestAnalyticsEndpoints:
 
         manager = SimpleNamespace(
             skills_root=skills_root,
-            get_skill_metadata=lambda skill_id: _Meta()
-            if skill_id == "technical/fastapi"
-            else None,
+            get_skill_metadata=lambda skill_id: (
+                _Meta() if skill_id == "technical/fastapi" else None
+            ),
         )
 
         _override_taxonomy_manager(client, manager)

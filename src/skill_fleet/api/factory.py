@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 
-import dspy
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -116,43 +115,11 @@ def create_app() -> FastAPI:
     # Configure logging
     _configure_logging()
 
-    # Configure DSPy globally for the API
-    try:
-        from skill_fleet.infrastructure.tracing.config import ConfigModelLoader
-
-        loader = ConfigModelLoader()
-        lm = loader.get_model_for_task("conversational_agent")
-        dspy.configure(lm=lm)
-
-        # Configure DSPy caching from config.yaml for improved performance
-        # Caching stores LLM responses to avoid redundant API calls
-        loader.configure_cache()
-        logger.info("DSPy configured successfully with caching enabled")
-    except ValueError as e:
-        logger.error(f"Failed to configure DSPy: {e}")
-        raise
-    except Exception as e:
-        logger.error(f"Failed to configure DSPy: {e}")
-
-    if settings.mlflow_enabled:
-        try:
-            from skill_fleet.infrastructure.monitoring.mlflow_setup import setup_dspy_autologging
-
-            enabled = setup_dspy_autologging(
-                tracking_uri=settings.mlflow_tracking_uri,
-                experiment_name=settings.mlflow_experiment_name,
-            )
-            if enabled:
-                logger.info(
-                    "MLflow DSPy autologging enabled "
-                    f"(experiment: {settings.mlflow_experiment_name})"
-                )
-            else:
-                logger.warning(
-                    "MLflow DSPy autologging not enabled. See earlier warning logs for details."
-                )
-        except Exception as e:
-            logger.warning(f"MLflow DSPy autologging setup failed: {e}")
+    # DSPy and MLflow configuration moved to lifespan (see lifespan.py)
+    # This ensures:
+    # - No import-time side effects from global dspy.configure()
+    # - Configuration happens after database initialization
+    # - Thread-safe initialization within the lifespan context
 
     app = FastAPI(
         title=settings.api_title,
@@ -271,7 +238,11 @@ _app: FastAPI | None = None
 
 def get_app() -> FastAPI:
     """
-    Get or create the FastAPI application instance.
+    Get or create the FastAPI application instance (singleton pattern).
+
+    This function provides a cached app instance for testing and scenarios where
+    environment configuration needs to be set before app creation. For production,
+    prefer importing app directly from main.py.
 
     Returns:
         Cached FastAPI instance
@@ -283,6 +254,6 @@ def get_app() -> FastAPI:
     return _app
 
 
-# Module-level app for backward compatibility with uvicorn
-# Usage: uvicorn skill_fleet.api.factory:app
-app = get_app()
+# Module-level app removed from factory.py to prevent import-time initialization
+# For production uvicorn entrypoint, use: skill_fleet.api.main:app
+# For testing, use create_app() or get_app() directly from fixtures

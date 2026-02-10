@@ -18,8 +18,8 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from skill_fleet.api.dependencies import JobManagerDep
 from skill_fleet.api.services.event_registry import get_event_registry
-from skill_fleet.api.services.job_manager import get_job_manager
 from skill_fleet.common.logging_utils import sanitize_for_log
 from skill_fleet.core.workflows.skill_creation.generation import GenerationWorkflow
 from skill_fleet.core.workflows.skill_creation.understanding import UnderstandingWorkflow
@@ -263,6 +263,7 @@ async def create_skill_streaming(
 @router.get("/{job_id}/stream")
 async def get_job_stream(
     job_id: str,
+    job_manager: JobManagerDep,
     request: Request,  # noqa: B008
 ):
     """
@@ -270,8 +271,13 @@ async def get_job_stream(
 
     Streams workflow events (reasoning, progress, phase transitions) for a job in progress.
     Falls back to status polling if no event queue is registered.
+
+    Args:
+        job_id: The job ID to stream
+        job_manager: Job manager instance (injected)
+        request: Request object for disconnect detection
+
     """
-    job_manager = get_job_manager()
     job = await job_manager.get_job(job_id)
 
     if not job:

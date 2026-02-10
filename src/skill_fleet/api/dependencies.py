@@ -18,14 +18,17 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
-from fastapi import Depends
+from fastapi import Depends, Request
 
 from skill_fleet.taxonomy.manager import TaxonomyManager
 
 from ..common.paths import ensure_skills_root_initialized
 from .services.skill_service import SkillService
+
+if TYPE_CHECKING:
+    from .services.job_manager import JobManager
 
 
 @lru_cache(maxsize=1)
@@ -124,11 +127,34 @@ def get_skill_service(
     return SkillService(skills_root=skills_root, drafts_root=drafts_root)
 
 
+def get_job_manager(request: Request) -> JobManager:
+    """
+    Get the JobManager instance from app state.
+
+    The JobManager is initialized during application startup (see lifespan.py)
+    and stored on app.state for dependency injection.
+
+    Args:
+        request: FastAPI request object (provides access to app.state)
+
+    Returns:
+        JobManager instance
+
+    Raises:
+        RuntimeError: If JobManager has not been initialized
+
+    """
+    if not hasattr(request.app.state, "job_manager"):
+        raise RuntimeError("JobManager not initialized. Ensure lifespan startup completed.")
+    return request.app.state.job_manager
+
+
 # Type aliases for cleaner route signatures
 SkillsRoot = Annotated[Path, Depends(get_skills_root)]
 DraftsRoot = Annotated[Path, Depends(get_drafts_root)]
 TaxonomyManagerDep = Annotated[TaxonomyManager, Depends(get_taxonomy_manager)]
 SkillServiceDep = Annotated[SkillService, Depends(get_skill_service)]
+JobManagerDep = Annotated["JobManager", Depends(get_job_manager)]
 
 
 __all__ = [
@@ -137,8 +163,10 @@ __all__ = [
     "get_taxonomy_manager",
     "clear_taxonomy_manager_cache",
     "get_skill_service",
+    "get_job_manager",
     "SkillsRoot",
     "DraftsRoot",
     "TaxonomyManagerDep",
     "SkillServiceDep",
+    "JobManagerDep",
 ]

@@ -19,6 +19,7 @@ The service layer provides:
 
 from __future__ import annotations
 
+from .react_agent_service import ReActAgentService
 from .skill_service import SkillService
 
-__all__ = ["SkillService"]
+__all__ = ["SkillService", "ReActAgentService"]

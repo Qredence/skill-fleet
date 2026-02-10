@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 import pytest
 
 from skill_fleet.api.exceptions import ForbiddenException
@@ -28,8 +26,7 @@ async def test_get_prompt_self_heals_running_to_pending_user_input() -> None:
     )
     await manager.create_job(job)
 
-    with patch("skill_fleet.api.v1.hitl.get_job_manager", return_value=manager):
-        resp = await get_prompt(job.job_id)
+    resp = await get_prompt(job.job_id, manager=manager)
 
     assert resp.status == "pending_user_input"
     job_state = await manager.get_job(job.job_id)
@@ -57,8 +54,7 @@ async def test_get_prompt_does_not_revive_resolved_prompt() -> None:
     )
     await manager.create_job(job)
 
-    with patch("skill_fleet.api.v1.hitl.get_job_manager", return_value=manager):
-        resp = await get_prompt(job.job_id)
+    resp = await get_prompt(job.job_id, manager=manager)
 
     assert resp.status == "running"
     job_state = await manager.get_job(job.job_id)
@@ -76,8 +72,7 @@ async def test_get_prompt_supports_dict_job_result() -> None:
     )
     await manager.create_job(job)
 
-    with patch("skill_fleet.api.v1.hitl.get_job_manager", return_value=manager):
-        resp = await get_prompt(job.job_id)
+    resp = await get_prompt(job.job_id, manager=manager)
 
     assert resp.status == "completed"
     assert resp.skill_content == "# Skill\n\nContent"
@@ -93,8 +88,7 @@ async def test_get_prompt_supports_pydantic_job_result() -> None:
     )
     await manager.create_job(job)
 
-    with patch("skill_fleet.api.v1.hitl.get_job_manager", return_value=manager):
-        resp = await get_prompt(job.job_id)
+    resp = await get_prompt(job.job_id, manager=manager)
 
     assert resp.status == "completed"
     assert resp.skill_content == "# Skill\n\nContent"
@@ -112,11 +106,8 @@ async def test_get_prompt_requires_owner_header_for_non_default_owner() -> None:
     )
     await manager.create_job(job)
 
-    with (
-        patch("skill_fleet.api.v1.hitl.get_job_manager", return_value=manager),
-        pytest.raises(ForbiddenException, match="Owner header required"),
-    ):
-        await get_prompt(job.job_id)
+    with pytest.raises(ForbiddenException, match="Owner header required"):
+        await get_prompt(job.job_id, manager=manager)
 
 
 @pytest.mark.asyncio
@@ -131,7 +122,6 @@ async def test_get_prompt_accepts_matching_owner_header_for_non_default_owner() 
     )
     await manager.create_job(job)
 
-    with patch("skill_fleet.api.v1.hitl.get_job_manager", return_value=manager):
-        resp = await get_prompt(job.job_id, x_user_id="alice")
+    resp = await get_prompt(job.job_id, x_user_id="alice", manager=manager)
 
     assert resp.status == "pending_user_input"

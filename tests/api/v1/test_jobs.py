@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch
-
 import pytest
 
+from skill_fleet.api.dependencies import get_job_manager
 from skill_fleet.api.schemas.models import JobState
 from skill_fleet.api.services.job_manager import JobManager
 
@@ -24,8 +23,13 @@ class TestGetJobStatus:
         )
         await manager.create_job(job)
 
-        with patch("skill_fleet.api.v1.jobs.get_job_manager", return_value=manager):
+        # Use FastAPI dependency override instead of mocking
+        client.app.dependency_overrides[get_job_manager] = lambda: manager
+        try:
             resp = client.get("/api/v1/jobs/job-123")
+        finally:
+            # Clean up
+            client.app.dependency_overrides.clear()
 
         assert resp.status_code == 200
         data = resp.json()

@@ -20,14 +20,12 @@ async def test_post_response_notifies_waiter_for_pending_user_input() -> None:
     await manager.create_job(job)
 
     notify = AsyncMock()
-    with (
-        patch("skill_fleet.api.v1.hitl.get_job_manager", return_value=manager),
-        patch("skill_fleet.api.v1.hitl.notify_hitl_response", notify),
-    ):
+    with patch("skill_fleet.api.v1.hitl.notify_hitl_response", notify):
         resp = await post_response(
             job_id=job.job_id,
             response={"answers": {"response": "ok"}},
             skill_service=MagicMock(),
+            manager=manager,
         )
 
     assert resp.status == "accepted"
@@ -51,14 +49,12 @@ async def test_post_response_notifies_waiter_for_pending_hitl() -> None:
     await manager.create_job(job)
 
     notify = AsyncMock()
-    with (
-        patch("skill_fleet.api.v1.hitl.get_job_manager", return_value=manager),
-        patch("skill_fleet.api.v1.hitl.notify_hitl_response", notify),
-    ):
+    with patch("skill_fleet.api.v1.hitl.notify_hitl_response", notify):
         resp = await post_response(
             job_id=job.job_id,
             response={"action": "proceed"},
             skill_service=MagicMock(),
+            manager=manager,
         )
 
     assert resp.status == "accepted"
@@ -75,14 +71,12 @@ async def test_post_response_ignores_when_not_pending() -> None:
     await manager.create_job(job)
 
     notify = AsyncMock()
-    with (
-        patch("skill_fleet.api.v1.hitl.get_job_manager", return_value=manager),
-        patch("skill_fleet.api.v1.hitl.notify_hitl_response", notify),
-    ):
+    with patch("skill_fleet.api.v1.hitl.notify_hitl_response", notify):
         resp = await post_response(
             job_id=job.job_id,
             response={"action": "proceed"},
             skill_service=MagicMock(),
+            manager=manager,
         )
 
     assert resp.status == "ignored"
@@ -103,7 +97,6 @@ async def test_post_response_throttles_duplicate_payload() -> None:
 
     notify = AsyncMock()
     with (
-        patch("skill_fleet.api.v1.hitl.get_job_manager", return_value=manager),
         patch("skill_fleet.api.v1.hitl.notify_hitl_response", notify),
         patch("skill_fleet.api.v1.hitl.save_job_session_async", AsyncMock(return_value=True)),
     ):
@@ -113,6 +106,7 @@ async def test_post_response_throttles_duplicate_payload() -> None:
             job_id=job.job_id,
             response=payload,
             skill_service=MagicMock(),
+            manager=manager,
         )
         assert resp1.status == "accepted"
 
@@ -125,6 +119,7 @@ async def test_post_response_throttles_duplicate_payload() -> None:
             job_id=job.job_id,
             response=payload,
             skill_service=MagicMock(),
+            manager=manager,
         )
         assert resp2.status == "ignored"
         assert "Duplicate response" in (resp2.detail or "")
@@ -146,7 +141,6 @@ async def test_post_response_saves_session_async() -> None:
     save_session = AsyncMock(return_value=True)
 
     with (
-        patch("skill_fleet.api.v1.hitl.get_job_manager", return_value=manager),
         patch("skill_fleet.api.v1.hitl.notify_hitl_response", notify),
         patch("skill_fleet.api.v1.hitl.save_job_session_async", save_session),
     ):
@@ -154,6 +148,7 @@ async def test_post_response_saves_session_async() -> None:
             job_id=job.job_id,
             response={"answers": {"response": "ok"}},
             skill_service=MagicMock(),
+            manager=manager,
         )
 
     assert resp.status == "accepted"
@@ -174,7 +169,6 @@ async def test_post_response_requires_owner_header_for_non_default_owner() -> No
 
     notify = AsyncMock()
     with (
-        patch("skill_fleet.api.v1.hitl.get_job_manager", return_value=manager),
         patch("skill_fleet.api.v1.hitl.notify_hitl_response", notify),
         pytest.raises(ForbiddenException, match="Owner header required"),
     ):
@@ -182,6 +176,7 @@ async def test_post_response_requires_owner_header_for_non_default_owner() -> No
             job_id=job.job_id,
             response={"answers": {"response": "ok"}},
             skill_service=MagicMock(),
+            manager=manager,
         )
 
     notify.assert_not_awaited()
@@ -200,15 +195,13 @@ async def test_post_response_accepts_matching_owner_header_for_non_default_owner
     await manager.create_job(job)
 
     notify = AsyncMock()
-    with (
-        patch("skill_fleet.api.v1.hitl.get_job_manager", return_value=manager),
-        patch("skill_fleet.api.v1.hitl.notify_hitl_response", notify),
-    ):
+    with patch("skill_fleet.api.v1.hitl.notify_hitl_response", notify):
         resp = await post_response(
             job_id=job.job_id,
             response={"answers": {"response": "ok"}},
             skill_service=MagicMock(),
             x_user_id="alice",
+            manager=manager,
         )
 
     assert resp.status == "accepted"

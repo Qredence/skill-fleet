@@ -73,6 +73,40 @@ uv run skill-fleet validate skills/_drafts/<job_id>
 uv run skill-fleet promote <job_id>
 ```
 
+### Optional: Run Web UI + FastAPI Chat
+
+```bash
+# terminal 1 (repo root): start FastAPI
+uv run skill-fleet serve --auto-accept
+
+# terminal 2 (repo root): start frontend
+cd src/frontend
+bun install
+# optional override (defaults to http://127.0.0.1:8000)
+export VITE_API_BASE_URL=http://127.0.0.1:8000
+bun run dev
+```
+
+The frontend package implements the dark `chat-ai` frame (`4041:3`) and now wires chat UI to:
+
+- `POST /api/v1/chat/stream` (primary SSE transport)
+- `POST /api/v1/chat/message` (fallback transport)
+- `POST /api/v1/agent/stream` (ReAct SSE transport, feature-flagged)
+- `POST /api/v1/agent/message` (ReAct fallback transport)
+
+Notes:
+
+- Runtime is split: Vite frontend + FastAPI backend (no static mount in this pass).
+- Session history/listing endpoints remain backend stubs (`/api/v1/chat/session*`).
+- Toggle frontend backend mode with `VITE_CHAT_BACKEND_MODE=chat|agent` (default: `chat`).
+- Optional frontend user context for agent calls: `VITE_CHAT_USER_ID` (default: `default`).
+- In `agent` mode, ReAct orchestrates the skill lifecycle across existing endpoints:
+  - starts `/api/v1/skills` workflows
+  - tracks `/api/v1/jobs/{job_id}`
+  - handles `/api/v1/hitl/{job_id}/prompt|response`
+  - optionally promotes via `/api/v1/drafts/{job_id}/promote`
+- Agent stream emits workflow-aware events (`workflow_status`, `hitl_required`, `hitl_submitted`, `workflow_complete`) while preserving `stream`/`prediction` compatibility.
+
 ---
 
 ## 🏗️ Architecture
@@ -259,7 +293,17 @@ uv run pytest
 
 # Run specific test
 uv run pytest tests/unit/test_async_utils.py -v
+
+# Frontend package checks
+cd src/frontend
+bun run typecheck
+bun run build
+bun run test
 ```
+
+Frontend runtime env:
+
+- `VITE_API_BASE_URL` (default: `http://127.0.0.1:8000`)
 
 ### Pre-commit Hooks
 

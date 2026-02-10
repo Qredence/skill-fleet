@@ -83,6 +83,41 @@ Keybinds (TUI):
 - `Ctrl+T` toggle thinking panel
 - `Esc` exit
 
+### Web UI (Figma Frame 4041:3)
+
+React + TypeScript + Vite implementation of the dark `chat-ai` main surface lives in `src/frontend` and is wired to FastAPI chat endpoints via AI Elements components.
+
+```bash
+# terminal 1 (repo root): API
+uv run skill-fleet serve --auto-accept
+
+# terminal 2 (repo root): frontend
+cd src/frontend
+bun install
+# optional override (defaults to http://127.0.0.1:8000)
+export VITE_API_BASE_URL=http://127.0.0.1:8000
+bun run dev
+
+# validation
+bun run typecheck
+bun run build
+bun run test
+```
+
+Notes:
+
+- Frontend chat transport uses `POST /api/v1/chat/stream` with fallback to `POST /api/v1/chat/message`.
+- Optional ReAct mode uses `POST /api/v1/agent/stream` with fallback to `POST /api/v1/agent/message`.
+- Set `VITE_CHAT_BACKEND_MODE=agent` in `src/frontend` to enable ReAct frontend wiring.
+- Set `VITE_CHAT_USER_ID` to propagate frontend user context (defaults to `default`).
+- ReAct mode orchestrates existing workflow endpoints (`/skills`, `/jobs`, `/hitl`, `/drafts`) rather than introducing parallel creation logic.
+- Agent SSE emits workflow events (`workflow_status`, `hitl_required`, `hitl_submitted`, `workflow_complete`) in addition to backward-compatible `stream`/`prediction`.
+- Runtime is split (Vite + FastAPI), no static mount in this pass.
+- Session history/list endpoints (`/api/v1/chat/session*`) remain backend stubs in this pass.
+- Styling is tokenized from Figma frame `4041:3` variables (`src/frontend/src/styles/tokens.css`).
+- Assets are vendored under `src/frontend/src/assets/figma`.
+- Ensure API CORS allows the frontend origin (in development, wildcard is allowed by default).
+
 ### Makefile Shortcuts
 
 ```bash

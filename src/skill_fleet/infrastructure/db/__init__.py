@@ -6,13 +6,11 @@ and repositories for the skills fleet system.
 """
 
 from .database import (
-    AsyncSessionLocal,
-    SessionLocal,
-    async_engine,
-    engine,
     get_async_db,
+    get_database_state,
     get_db,
     get_db_context,
+    init_database,
     init_db,
 )
 from .repositories import (
@@ -29,11 +27,9 @@ from .repositories import (
 )
 
 __all__ = [
-    # Database connection
-    "engine",
-    "async_engine",
-    "SessionLocal",
-    "AsyncSessionLocal",
+    # Database connection and initialization
+    "init_database",
+    "get_database_state",
     "get_db",
     "get_async_db",
     "get_db_context",

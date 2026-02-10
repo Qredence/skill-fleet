@@ -5,7 +5,8 @@ This is the main application package. The FastAPI app serves as the primary
 interface for skill creation, taxonomy management, and all DSPy workflows.
 
 Directory Structure:
-- factory.py: FastAPI application entry point and factory
+- main.py: FastAPI application entry point (module-level app for uvicorn)
+- factory.py: Application factory functions
 - config.py: Application configuration (Pydantic settings)
 - dependencies.py: FastAPI dependency injection
 - middleware/: Custom middleware (logging, auth, etc.)
@@ -16,12 +17,12 @@ Directory Structure:
 
 Usage:
     # Run the server
-    uvicorn skill_fleet.api.factory:app --reload
+    uvicorn skill_fleet.api.main:app --reload
 
     # Or via CLI
     skill-fleet serve
 """
 
-from .factory import app, create_app, get_app
+from .factory import create_app, get_app
 
-__all__ = ["create_app", "get_app", "app"]
+__all__ = ["create_app", "get_app"]

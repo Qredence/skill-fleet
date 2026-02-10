@@ -24,12 +24,34 @@ os.environ.setdefault(
     f"sqlite:///{os.path.join(tempfile.gettempdir(), f'skill_fleet_mlflow_{os.getpid()}.db')}",
 )
 
-# Use in-memory SQLite for tests unless DATABASE_URL is explicitly set
-if "DATABASE_URL" not in os.environ:
-    os.environ["DATABASE_URL"] = "sqlite:///./test_skill_fleet.db"
+# Database will be initialized explicitly in test fixtures (no longer at import time)
 
 if TYPE_CHECKING:
     pass
+
+
+# =============================================================================
+# Database Initialization
+# =============================================================================
+
+
+@pytest.fixture(scope="session", autouse=True)
+def init_test_database():
+    """
+    Initialize database engines for test session.
+
+    This must run before any app creation or database access. Uses SQLite
+    for tests unless DATABASE_URL is explicitly set.
+    """
+    from skill_fleet.infrastructure.db.database import init_database
+
+    # Initialize with test SQLite database
+    test_db_url = os.getenv("DATABASE_URL", "sqlite:///./test_skill_fleet.db")
+    init_database(database_url=test_db_url, env="test")
+
+    yield
+
+    # Cleanup is handled by lifespan shutdown
 
 
 # =============================================================================
@@ -38,7 +60,7 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture
-def app():
+def app(init_test_database):
     """Create FastAPI app instance for testing."""
     from skill_fleet.api.factory import create_app
 

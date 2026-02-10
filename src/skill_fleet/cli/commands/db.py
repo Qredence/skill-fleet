@@ -32,10 +32,18 @@ def init(
     Creates all necessary tables for skills-fleet persistence.
     Idempotent - safe to run multiple times.
     """
-    from skill_fleet.infrastructure.db.database import SessionLocal, drop_db, init_db
+    from skill_fleet.infrastructure.db.database import (
+        drop_db,
+        get_database_state,
+        init_database,
+        init_db,
+    )
     from skill_fleet.infrastructure.db.models import HITLInteraction, Job, Skill
 
     try:
+        # Ensure database engines are initialized
+        init_database()
+
         if force:
             typer.confirm(
                 "⚠️  This will DELETE all data. Are you sure?",
@@ -50,7 +58,8 @@ def init(
         logger.info("✅ Database schema initialized")
 
         # Verify tables exist
-        session = SessionLocal()
+        state = get_database_state()
+        session = state.session_factory()
         try:
             # Try a simple query to each main table
             session.query(Skill).first()
@@ -79,11 +88,15 @@ def status() -> None:
     Verifies that the database is accessible and all required
     tables exist.
     """
-    from skill_fleet.infrastructure.db.database import SessionLocal
+    from skill_fleet.infrastructure.db.database import get_database_state, init_database
     from skill_fleet.infrastructure.db.models import HITLInteraction, Job, Skill, TaxonomyCategory
 
     try:
-        session = SessionLocal()
+        # Ensure database engines are initialized
+        init_database()
+
+        state = get_database_state()
+        session = state.session_factory()
         try:
             # Check connection
             session.execute(text("SELECT 1"))
@@ -154,9 +167,12 @@ def reset_db(
             abort=True,
         )
 
-    from skill_fleet.infrastructure.db.database import drop_db, init_db
+    from skill_fleet.infrastructure.db.database import drop_db, init_database, init_db
 
     try:
+        # Ensure database engines are initialized
+        init_database()
+
         logger.info("Dropping database...")
         drop_db()
         logger.info("✅ Database dropped")

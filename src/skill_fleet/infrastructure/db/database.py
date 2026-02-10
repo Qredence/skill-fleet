@@ -8,9 +8,11 @@ import os
 from collections.abc import AsyncGenerator
 from collections.abc import Generator as SyncGenerator
 from contextlib import contextmanager
+from dataclasses import dataclass
 
-from sqlalchemy import CheckConstraint, create_engine, text
+from sqlalchemy import CheckConstraint, Engine, create_engine, text
 from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
@@ -34,86 +36,152 @@ def _with_postgres_driver(url: str, driver: str, *, override: bool = False) -> s
     return url
 
 
-# Database URL from environment
-# In production: DATABASE_URL is required
-# In development/test: falls back to SQLite for convenience
-RAW_DATABASE_URL = os.getenv("DATABASE_URL")
-_ENV = os.getenv("SKILL_FLEET_ENV", "production")
+@dataclass
+class _DatabaseState:
+    """Holds database engine and session factory instances."""
 
-if not RAW_DATABASE_URL:
-    if _ENV in ("development", "test", "testing"):
-        # Use SQLite for development/testing if no DATABASE_URL is provided
-        RAW_DATABASE_URL = "sqlite:///./skill_fleet_dev.db"
-    else:
-        raise ValueError(
-            "DATABASE_URL environment variable is required in production. "
-            "Set it to a PostgreSQL connection string, e.g.: "
-            "postgresql://user:pass@host/dbname?sslmode=require"
+    engine: Engine
+    session_factory: sessionmaker
+    async_engine: AsyncEngine
+    async_session_factory: async_sessionmaker
+    database_url: str
+    async_database_url: str
+    is_sqlite: bool
+
+
+# Module-level state holder (initialized by init_database)
+_state: _DatabaseState | None = None
+
+
+def init_database(
+    database_url: str | None = None,
+    env: str | None = None,
+) -> _DatabaseState:
+    """
+    Initialize database engines and session factories.
+
+    Must be called before any database operations. Safe to call multiple times
+    (will recreate engines).
+
+    Args:
+        database_url: Database URL. If None, reads from DATABASE_URL env var.
+        env: Environment name. If None, reads from SKILL_FLEET_ENV env var.
+
+    Returns:
+        The initialized database state.
+
+    Raises:
+        ValueError: If database_url is None and DATABASE_URL env var is not set
+                   in production environment.
+
+    """
+    global _state
+
+    # Read environment
+    raw_database_url = database_url or os.getenv("DATABASE_URL")
+    _env = env or os.getenv("SKILL_FLEET_ENV", "production")
+
+    if not raw_database_url:
+        if _env in ("development", "test", "testing"):
+            # Use SQLite for development/testing if no DATABASE_URL is provided
+            raw_database_url = "sqlite:///./skill_fleet_dev.db"
+        else:
+            raise ValueError(
+                "DATABASE_URL environment variable is required in production. "
+                "Set it to a PostgreSQL connection string, e.g.: "
+                "postgresql://user:pass@host/dbname?sslmode=require"
+            )
+
+    # Use psycopg (v3) for sync engine when driver isn't specified
+    sync_database_url = _with_postgres_driver(raw_database_url, "psycopg")
+
+    # Async database URL (derive from raw unless explicitly set)
+    async_database_url = os.getenv("ASYNC_DATABASE_URL")
+    if not async_database_url:
+        if raw_database_url.startswith("sqlite"):
+            # SQLite async uses aiosqlite driver
+            async_database_url = raw_database_url.replace("sqlite:", "sqlite+aiosqlite:")
+        else:
+            async_database_url = _with_postgres_driver(raw_database_url, "asyncpg", override=True)
+
+    # Check if we're using SQLite (different engine configuration)
+    is_sqlite = sync_database_url.startswith("sqlite")
+
+    # Configure connection args
+    connect_args = {"check_same_thread": False} if is_sqlite else {}
+    if not is_sqlite:
+        connect_args.update(
+            {
+                "connect_timeout": 10,
+                "options": "-c idle_in_transaction_session_timeout=60000",  # 60s timeout
+            }
         )
 
-# Use psycopg (v3) for sync engine when driver isn't specified.
-# SQLite URLs pass through unchanged.
-DATABASE_URL = _with_postgres_driver(RAW_DATABASE_URL, "psycopg")
-
-# Async database URL (derive from DATABASE_URL unless explicitly set).
-# For SQLite, use aiosqlite driver for async support.
-ASYNC_DATABASE_URL = os.getenv("ASYNC_DATABASE_URL")
-if not ASYNC_DATABASE_URL:
-    if RAW_DATABASE_URL.startswith("sqlite"):
-        # SQLite async uses aiosqlite driver
-        ASYNC_DATABASE_URL = RAW_DATABASE_URL.replace("sqlite:", "sqlite+aiosqlite:")
-    else:
-        ASYNC_DATABASE_URL = _with_postgres_driver(RAW_DATABASE_URL, "asyncpg", override=True)
-
-# Check if we're using SQLite (different engine configuration)
-_IS_SQLITE = DATABASE_URL.startswith("sqlite")
-
-# Synchronous engine
-# SQLite doesn't support connection pooling like PostgreSQL
-connect_args = {"check_same_thread": False} if _IS_SQLITE else {}
-if not _IS_SQLITE:
-    connect_args.update(
-        {
-            "connect_timeout": 10,
-            "options": "-c idle_in_transaction_session_timeout=60000",  # 60s timeout
-        }
+    # Create synchronous engine
+    engine = create_engine(
+        sync_database_url,
+        pool_pre_ping=bool(not is_sqlite),
+        pool_size=20 if not is_sqlite else 0,
+        max_overflow=30 if not is_sqlite else 0,
+        pool_recycle=300 if not is_sqlite else -1,
+        pool_timeout=30,
+        echo=os.getenv("SQL_ECHO", "false").lower() == "true",
+        connect_args=connect_args,
     )
 
-engine = create_engine(
-    DATABASE_URL,
-    pool_pre_ping=bool(not _IS_SQLITE),
-    pool_size=20 if not _IS_SQLITE else 0,  # Increased from 10
-    max_overflow=30 if not _IS_SQLITE else 0,  # Increased from 20
-    pool_recycle=300 if not _IS_SQLITE else -1,  # Recycle connections every 5 min
-    pool_timeout=30,  # Wait up to 30s for connection
-    echo=os.getenv("SQL_ECHO", "false").lower() == "true",
-    connect_args=connect_args,
-)
+    # Create synchronous session factory
+    session_factory = sessionmaker(
+        autocommit=False,
+        autoflush=False,
+        bind=engine,
+    )
 
-# Synchronous session factory
-SessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine,
-)
+    # Create async engine
+    async_engine = create_async_engine(
+        async_database_url,
+        pool_pre_ping=bool(not is_sqlite),
+        pool_size=10 if not is_sqlite else 0,
+        max_overflow=20 if not is_sqlite else 0,
+        pool_recycle=300 if not is_sqlite else -1,
+        echo=os.getenv("SQL_ECHO", "false").lower() == "true",
+    )
 
-# Async engine
-# SQLite async doesn't support connection pooling
-async_engine = create_async_engine(
-    ASYNC_DATABASE_URL,
-    pool_pre_ping=bool(not _IS_SQLITE),
-    pool_size=10 if not _IS_SQLITE else 0,
-    max_overflow=20 if not _IS_SQLITE else 0,
-    pool_recycle=300 if not _IS_SQLITE else -1,  # Recycle connections every 5 min
-    echo=os.getenv("SQL_ECHO", "false").lower() == "true",
-)
+    # Create async session factory
+    async_session_factory = async_sessionmaker(
+        async_engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
 
-# Async session factory
-AsyncSessionLocal = async_sessionmaker(
-    async_engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
+    _state = _DatabaseState(
+        engine=engine,
+        session_factory=session_factory,
+        async_engine=async_engine,
+        async_session_factory=async_session_factory,
+        database_url=sync_database_url,
+        async_database_url=async_database_url,
+        is_sqlite=is_sqlite,
+    )
+
+    return _state
+
+
+def get_database_state() -> _DatabaseState:
+    """
+    Get the current database state.
+
+    Returns:
+        The initialized database state.
+
+    Raises:
+        RuntimeError: If init_database() has not been called yet.
+
+    """
+    if _state is None:
+        raise RuntimeError(
+            "Database not initialized. Call init_database() before using database operations."
+        )
+    return _state
 
 
 def get_db() -> SyncGenerator[Session, None, None]:
@@ -125,7 +193,8 @@ def get_db() -> SyncGenerator[Session, None, None]:
         def read_skills(db: Session = Depends(get_db)):
             return db.query(Skill).all()
     """
-    db = SessionLocal()
+    state = get_database_state()
+    db = state.session_factory()
     try:
         yield db
     finally:
@@ -141,7 +210,8 @@ def get_db_context() -> SyncGenerator[Session, None, None]:
         with get_db_context() as db:
             skills = db.query(Skill).all()
     """
-    db = SessionLocal()
+    state = get_database_state()
+    db = state.session_factory()
     try:
         yield db
         db.commit()
@@ -162,7 +232,8 @@ async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
             result = await db.execute(select(Skill))
             return result.scalars().all()
     """
-    async with AsyncSessionLocal() as session:
+    state = get_database_state()
+    async with state.async_session_factory() as session:
         try:
             yield session
         finally:
@@ -176,7 +247,9 @@ def init_db() -> None:
     This should only be used for development. In production,
     use Alembic migrations instead.
     """
-    if _IS_SQLITE:
+    state = get_database_state()
+
+    if state.is_sqlite:
         for table in Base.metadata.tables.values():
             regex_constraints = [
                 constraint
@@ -187,12 +260,12 @@ def init_db() -> None:
                 table.constraints.remove(constraint)
 
     # Ensure uuid-ossp extension exists (Postgres only)
-    if not _IS_SQLITE:
-        with engine.connect() as conn:
+    if not state.is_sqlite:
+        with state.engine.connect() as conn:
             conn.execute(text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
             conn.commit()
 
-    Base.metadata.create_all(bind=engine)
+    Base.metadata.create_all(bind=state.engine)
 
 
 def drop_db() -> None:
@@ -201,8 +274,10 @@ def drop_db() -> None:
 
     WARNING: This will delete all data!
     """
+    state = get_database_state()
+
     # Drop dependent views/materialized views first
-    with engine.connect() as conn:
+    with state.engine.connect() as conn:
         conn.execute(text("DROP MATERIALIZED VIEW IF EXISTS skill_statistics CASCADE"))
         conn.execute(text("DROP VIEW IF EXISTS popular_skills_view CASCADE"))
         conn.execute(text("DROP VIEW IF EXISTS skills_attention_view CASCADE"))
@@ -261,7 +336,7 @@ def drop_db() -> None:
 
         conn.commit()
 
-    Base.metadata.drop_all(bind=engine)
+    Base.metadata.drop_all(bind=state.engine)
 
 
 async def init_async_db() -> None:
@@ -271,7 +346,8 @@ async def init_async_db() -> None:
     This should only be used for development. In production,
     use Alembic migrations instead.
     """
-    async with async_engine.begin() as conn:
+    state = get_database_state()
+    async with state.async_engine.begin() as conn:
         await conn.execute(text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
         await conn.run_sync(Base.metadata.create_all)
 
@@ -282,15 +358,18 @@ async def drop_async_db() -> None:
 
     WARNING: This will delete all data!
     """
-    async with async_engine.begin() as conn:
+    state = get_database_state()
+    async with state.async_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
 
 
 def close_db() -> None:
     """Close the database connection."""
-    engine.dispose()
+    if _state is not None:
+        _state.engine.dispose()
 
 
 async def close_async_db() -> None:
     """Close the async database connection."""
-    await async_engine.dispose()
+    if _state is not None:
+        await _state.async_engine.dispose()

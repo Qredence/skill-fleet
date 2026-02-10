@@ -24,14 +24,13 @@ from pydantic import BaseModel, Field
 
 from skill_fleet.common.logging_utils import sanitize_for_log
 
-from ..dependencies import SkillServiceDep
+from ..dependencies import JobManagerDep, SkillServiceDep
 from ..exceptions import ForbiddenException, NotFoundException
 from ..schemas import (
     StructuredQuestion,
     StructureFixSuggestion,
     normalize_questions,
 )
-from ..services.job_manager import get_job_manager
 from ..services.jobs import notify_hitl_response, save_job_session_async
 
 router = APIRouter()
@@ -195,6 +194,7 @@ async def get_hitl_config() -> HITLConfigResponse:
 @router.get("/{job_id}/prompt")
 async def get_prompt(
     job_id: str,
+    manager: JobManagerDep,
     x_user_id: str | None = Header(None, alias="X-User-Id"),
 ) -> HITLPromptResponse:
     """
@@ -202,6 +202,7 @@ async def get_prompt(
 
     Args:
         job_id: The job ID to retrieve the prompt for
+        manager: Job manager instance (injected)
         x_user_id: Optional user ID header for ownership verification
 
     Returns:
@@ -212,7 +213,6 @@ async def get_prompt(
         ForbiddenException: If user_id doesn't match the job creator (403)
 
     """
-    manager = get_job_manager()
     job = await manager.get_job(job_id)
     if not job:
         raise NotFoundException("Job", job_id)
@@ -320,6 +320,7 @@ async def get_prompt(
 async def post_response(
     job_id: str,
     response: dict,
+    manager: JobManagerDep,
     skill_service: SkillServiceDep,  # noqa: ARG001 - retained for backward compatibility
     x_user_id: str | None = Header(None, alias="X-User-Id"),
 ) -> HITLResponseResult:
@@ -336,6 +337,8 @@ async def post_response(
     Args:
         job_id: The job ID to respond to
         response: Response data (format depends on interaction type)
+        manager: Job manager instance (injected)
+        skill_service: Skill service (retained for backward compatibility)
         x_user_id: Optional user ID header for ownership verification
 
     Returns:
@@ -346,7 +349,6 @@ async def post_response(
         ForbiddenException: If user_id doesn't match the job creator (403)
 
     """
-    manager = get_job_manager()
     job = await manager.get_job(job_id)
     if not job:
         raise NotFoundException("Job", job_id)

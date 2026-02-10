@@ -19,6 +19,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from .agent import router as agent_router
 from .analytics import router as analytics_router
 from .conversational import router as conversational_router
 from .drafts import router as drafts_router
@@ -33,6 +34,7 @@ from .taxonomy import router as taxonomy_router
 router = APIRouter()
 
 # Include sub-routers with prefixes
+router.include_router(agent_router, prefix="/agent", tags=["agent"])
 router.include_router(conversational_router, prefix="/chat", tags=["conversational"])
 router.include_router(skills_router, prefix="/skills", tags=["skills"])
 router.include_router(streaming_router, prefix="/skills", tags=["streaming"])

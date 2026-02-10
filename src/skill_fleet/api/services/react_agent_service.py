@@ -208,7 +208,10 @@ class ReActAgentService:
             data = prompt.model_dump() if hasattr(prompt, "model_dump") else dict(prompt)
             return {"found": True, "prompt": data}
         except Exception:  # pragma: no cover
-            logger.exception("Failed to retrieve HITL prompt for job_id %s", job_id)
+            logger.exception(
+                "Failed to retrieve HITL prompt for job_id %s",
+                sanitize_for_log(job_id),
+            )
             return {
                 "found": False,
                 "error": "Failed to retrieve HITL prompt.",

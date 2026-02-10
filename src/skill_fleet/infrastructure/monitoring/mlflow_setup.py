@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import importlib
 import logging
@@ -21,6 +22,15 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _in_async_task() -> bool:
+    """Return whether the current code is running in an active asyncio task."""
+    try:
+        return asyncio.current_task() is not None
+    except RuntimeError:
+        # No event loop in this thread.
+        return False
+
+
 def setup_dspy_autologging(
     tracking_uri: str | None = None,
     experiment_name: str = "skill-fleet",
@@ -28,7 +38,7 @@ def setup_dspy_autologging(
     log_compiles: bool = True,
     log_evals: bool = True,
     log_traces: bool = False,
-) -> None:
+) -> bool:
     """
     Enable MLflow autologging for DSPy operations.
 
@@ -40,16 +50,28 @@ def setup_dspy_autologging(
         log_evals: Track evaluations
         log_traces: Track execution traces (heavy)
 
+    Returns:
+        bool: True when autologging was enabled (or explicitly disabled), False otherwise.
+
     """
     if mlflow is None:
         logger.debug("MLflow not installed; skipping autologging setup.")
-        return
+        return False
     mlflow_mod: Any = mlflow
 
     if disable:
         with contextlib.suppress(AttributeError):
             mlflow_mod.dspy.disable_autologging()
-        return
+        return True
+
+    # DSPy configuration is task-local. Running autologging setup from an async
+    # task can trigger configure() in a different task than startup.
+    if _in_async_task():
+        logger.warning(
+            "Skipping MLflow DSPy autologging setup in async task context. "
+            "Initialize it during synchronous app startup."
+        )
+        return False
 
     if tracking_uri:
         mlflow_mod.set_tracking_uri(tracking_uri)
@@ -64,6 +86,7 @@ def setup_dspy_autologging(
             log_traces_from_compile=log_traces,
         )
         logger.info(f"MLflow autologging enabled: {tracking_uri or 'default'}/{experiment_name}")
+        return True
     except AttributeError:
         import warnings
 
@@ -72,8 +95,10 @@ def setup_dspy_autologging(
             "Ensure DSPy 3.1.2+ is installed for automatic DSPy tracking.",
             stacklevel=2,
         )
+        return False
     except Exception as e:
         logger.warning(f"Failed to setup MLflow autologging: {e}")
+        return False
 
 
 def get_current_run_id() -> str | None:

@@ -9,10 +9,11 @@ Welcome to Skill Fleet - a system for creating, managing, and validating AI agen
 
 ```bash
 # Install dependencies
-uv sync
+uv sync --group dev
 
 # Configure environment
-echo "OPENAI_API_KEY=sk-..." > .env
+cp .env.example .env
+# Set GOOGLE_API_KEY or LITELLM_API_KEY (+ optional LITELLM_BASE_URL)
 
 # Initialize database
 uv run skill-fleet db init
@@ -102,7 +103,7 @@ Deep understanding of concepts and architecture.
 uv run skill-fleet chat "Create a React hooks skill"
 
 # 2. Check validation
-uv run skill-fleet validate .skills/drafts/react-hooks --json
+uv run skill-fleet validate skills/_drafts/<job_id>/<skill-name> --json
 
 # 3. Promote to taxonomy
 uv run skill-fleet promote <job-id>
@@ -115,7 +116,7 @@ uv run skill-fleet promote <job-id>
 uv run skill-fleet create "Python decorators skill" --auto-approve
 
 # Validate all drafts
-for draft in .skills/drafts/*/; do
+for draft in skills/_drafts/*/*/; do
     uv run skill-fleet validate "$draft"
 done
 ```
@@ -124,7 +125,7 @@ done
 
 ```bash
 # Create job
-curl -X POST http://localhost:8000/api/v1/skills/create \
+curl -X POST http://localhost:8000/api/v1/skills/ \
   -H "Content-Type: application/json" \
   -d '{"task_description": "Create Python skill"}'
 
@@ -132,9 +133,9 @@ curl -X POST http://localhost:8000/api/v1/skills/create \
 curl http://localhost:8000/api/v1/jobs/<job-id>
 
 # Respond to HITL
-curl -X POST http://localhost:8000/api/v1/hitl/<job-id>/response \
+curl -X POST http://localhost:8000/api/v1/hitl/responses \
   -H "Content-Type: application/json" \
-  -d '{"answers": ["Python 3.12"]}'
+  -d '{"job_id":"<job-id>","response":"Python 3.12"}'
 ```
 
 ---
@@ -190,22 +191,22 @@ Workflows can pause for human input at key points:
 
 | Variable                  | Description       | Default                    |
 | ------------------------- | ----------------- | -------------------------- |
-| `OPENAI_API_KEY`          | OpenAI API key    | Required                   |
-| `ANTHROPIC_API_KEY`       | Anthropic API key | Alternative                |
-| `SKILL_FLEET_DB_URL`      | Database URL      | `sqlite:///skill_fleet.db` |
+| `LITELLM_API_KEY`         | LiteLLM proxy key | Preferred when set         |
+| `LITELLM_BASE_URL`        | LiteLLM base URL  | Optional (`http://localhost:4000`) |
+| `GOOGLE_API_KEY`          | Gemini API key    | Fallback when LiteLLM not set |
+| `DATABASE_URL`            | Database URL      | `sqlite:///skill_fleet.db` |
 | `SKILL_FLEET_USER_ID`     | Default user ID   | `default`                  |
-| `SKILL_FLEET_SKILLS_ROOT` | Skills directory  | `.skills`                  |
+| `SKILL_FLEET_SKILLS_ROOT` | Skills directory  | `skills`                   |
 
 ### Config File (`src/skill_fleet/config/config.yaml`)
 
 ```yaml
-llm:
-  default_model: openai/gpt-4o-mini
-  fallback_model: anthropic/claude-3-haiku-20240307
-
-workflow:
-  quality_threshold: 0.75
-  max_refinement_iterations: 3
+models:
+  default: gemini/gemini-3-flash-preview
+  registry:
+    gemini/gemini-3-flash-preview:
+      env: LITELLM_API_KEY
+      env_fallback: GOOGLE_API_KEY
 ```
 
 ---

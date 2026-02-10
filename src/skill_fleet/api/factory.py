@@ -134,6 +134,26 @@ def create_app() -> FastAPI:
     except Exception as e:
         logger.error(f"Failed to configure DSPy: {e}")
 
+    if settings.mlflow_enabled:
+        try:
+            from skill_fleet.infrastructure.monitoring.mlflow_setup import setup_dspy_autologging
+
+            enabled = setup_dspy_autologging(
+                tracking_uri=settings.mlflow_tracking_uri,
+                experiment_name=settings.mlflow_experiment_name,
+            )
+            if enabled:
+                logger.info(
+                    "MLflow DSPy autologging enabled "
+                    f"(experiment: {settings.mlflow_experiment_name})"
+                )
+            else:
+                logger.warning(
+                    "MLflow DSPy autologging not enabled. See earlier warning logs for details."
+                )
+        except Exception as e:
+            logger.warning(f"MLflow DSPy autologging setup failed: {e}")
+
     app = FastAPI(
         title=settings.api_title,
         description=settings.api_description,

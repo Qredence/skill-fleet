@@ -217,6 +217,14 @@ Notes:
 - `skills/**` and `.skills/**` are excluded from Ruff (see `pyproject.toml`).
 - Integration tests may require live LLM credentials; use `-m "not integration"` when running offline.
 
+## Dependency Policy
+
+- Default policy is conservative patch/minor SDK upgrades with lockfile refresh (`uv lock`).
+- Major runtime upgrades (for example `uvicorn` series jumps) are handled in dedicated tracks, not bundled with routine drift cleanup.
+- Optional providers/optimizers are extras:
+  - `uv sync --extra provider-openai`
+  - `uv sync --extra optimization`
+
 ## Migration Notes (Post-Architecture Cleanup)
 
 - Validation response removed `issues`; use `errors`, `warnings`, and `checks`.

@@ -6,7 +6,7 @@
 
 ### Prerequisites
 
-- Python 3.11+
+- Python 3.12+
 - [uv](https://github.com/astral-sh/uv) for package management
 - Git
 
@@ -21,7 +21,7 @@ cd skill-fleet
 uv sync
 
 # Install development dependencies
-uv sync --extra dev
+uv sync --group dev
 
 # Set up pre-commit hooks
 uv run pre-commit install
@@ -33,12 +33,13 @@ Create a `.env` file:
 
 ```bash
 # Required: LLM API key
-OPENAI_API_KEY=sk-...
-# or ANTHROPIC_API_KEY=sk-ant-...
-# or GOOGLE_API_KEY=...
+LITELLM_API_KEY=your_litellm_key
+LITELLM_BASE_URL=http://localhost:4000
+# or fallback:
+GOOGLE_API_KEY=your_google_key
 
 # Optional: Database (defaults to SQLite)
-SKILL_FLEET_DB_URL=sqlite:///skill_fleet.db
+DATABASE_URL=sqlite:///skill_fleet.db
 
 # Optional: Development settings
 LOG_LEVEL=DEBUG

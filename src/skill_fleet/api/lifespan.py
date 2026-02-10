@@ -56,24 +56,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         initialize_job_manager()
         logger.info("✅ JobManager initialized with database persistence")
 
-        # Initialize MLflow DSPy autologging
-        from ..infrastructure.monitoring.mlflow_setup import setup_dspy_autologging
-        from .config import get_settings
-
-        settings = get_settings()
-        if settings.mlflow_enabled:
-            try:
-                setup_dspy_autologging(
-                    tracking_uri=settings.mlflow_tracking_uri,
-                    experiment_name=settings.mlflow_experiment_name,
-                )
-                logger.info(
-                    f"✅ MLflow DSPy autologging enabled "
-                    f"(experiment: {settings.mlflow_experiment_name})"
-                )
-            except Exception as e:
-                logger.warning(f"⚠️ MLflow autologging failed: {e}")
-
         # Resume any pending jobs from database using a short-lived session
         with transactional_session() as db:
             job_repo = JobRepository(db)

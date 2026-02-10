@@ -364,14 +364,9 @@ async def generate_taxonomy_xml(
 
     """
     try:
-        from ...taxonomy.discovery import generate_available_skills_xml
-
-        # Generate XML using discovery module
-        xml_content = generate_available_skills_xml(
-            metadata_cache=taxonomy_manager.metadata_cache,
-            skills_root=taxonomy_manager.skills_root,
-            user_id=user_id,
-        )
+        # Use TaxonomyManager helper so discovery/load behavior is consistent
+        # with other taxonomy operations and includes on-disk skills.
+        xml_content = taxonomy_manager.generate_available_skills_xml(user_id=user_id)
 
         logger.info(
             f"Generated taxonomy XML ({len(xml_content)} bytes)"

@@ -82,14 +82,20 @@ def ensure_all_skills_loaded(
         load_dir_func: Function to load skill directory metadata
 
     """
-    for skill_dir in skills_root.rglob("metadata.json"):
-        skill_id = str(skill_dir.parent.relative_to(skills_root))
+    candidate_dirs = {metadata_file.parent for metadata_file in skills_root.rglob("metadata.json")}
+    candidate_dirs.update(skill_md_file.parent for skill_md_file in skills_root.rglob("SKILL.md"))
+
+    for skill_dir in sorted(candidate_dirs):
+        skill_id = skill_dir.relative_to(skills_root).as_posix()
+        # Skip system/internal branches (e.g. _drafts) from discoverable XML output.
+        if any(part.startswith("_") for part in skill_dir.relative_to(skills_root).parts):
+            continue
         if skill_id not in metadata_cache:
             try:
-                load_dir_func(skill_dir.parent)
+                load_dir_func(skill_dir)
             except Exception as exc:
                 # Skip invalid skills - they may have malformed metadata
-                logger.debug("Skipping invalid skill %s: %s", skill_dir.parent, exc)
+                logger.debug("Skipping invalid skill %s: %s", skill_dir, exc)
 
 
 def get_skill_for_prompt(
@@ -116,6 +122,9 @@ def get_skill_for_prompt(
     # Determine SKILL.md path
     if meta.path.name == "metadata.json":
         skill_md_path = meta.path.parent / "SKILL.md"
+    elif meta.path.name == "SKILL.md":
+        # v2 skills can be represented directly by SKILL.md without metadata.json
+        skill_md_path = meta.path
     else:
         # Single-file JSON skill
         return None

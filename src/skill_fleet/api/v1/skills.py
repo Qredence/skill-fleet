@@ -464,6 +464,44 @@ async def validate_skill(
         )
 
         validation_report = result.get("validation_report", {})
+        raw_checks = validation_report.get("checks", [])
+        normalized_checks: list[dict[str, object]] = []
+        if isinstance(raw_checks, list):
+            for check in raw_checks:
+                if isinstance(check, dict):
+                    normalized_checks.append(check)
+                    continue
+
+                model_dump = getattr(check, "model_dump", None)
+                if callable(model_dump):
+                    dumped = model_dump()
+                    if isinstance(dumped, dict):
+                        status_value = dumped.get("status")
+                        passed = dumped.get("passed")
+                        if passed is None and isinstance(status_value, str):
+                            passed = status_value.lower() in {"pass", "passed", "success", "ok"}
+
+                        normalized_checks.append(
+                            {
+                                "check": str(
+                                    dumped.get("check")
+                                    or dumped.get("name")
+                                    or dumped.get("id")
+                                    or "validation_check"
+                                ),
+                                "passed": bool(passed) if passed is not None else False,
+                                "message": str(dumped.get("message") or dumped.get("detail") or ""),
+                            }
+                        )
+                        continue
+
+                normalized_checks.append(
+                    {
+                        "check": "validation_check",
+                        "passed": False,
+                        "message": str(check),
+                    }
+                )
 
         return ValidateSkillResponse(
             passed=validation_report.get("passed", False),
@@ -471,7 +509,7 @@ async def validate_skill(
             score=validation_report.get("score", 0.0),
             errors=validation_report.get("errors", []),
             warnings=validation_report.get("warnings", []),
-            checks=validation_report.get("checks", []),
+            checks=normalized_checks,
         )
 
     except Exception as e:

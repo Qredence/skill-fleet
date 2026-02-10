@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 
-from .metadata import SkillMetadata
+from .metadata import InfrastructureSkillMetadata
 from .naming import skill_id_to_name
 
 if TYPE_CHECKING:
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def load_skill_file(skill_file: Path) -> SkillMetadata:
+def load_skill_file(skill_file: Path) -> InfrastructureSkillMetadata:
     """
     Load a skill definition stored as a single JSON file.
 
@@ -36,7 +36,7 @@ def load_skill_file(skill_file: Path) -> SkillMetadata:
         skill_file: Path to the JSON skill file
 
     Returns:
-        SkillMetadata object containing the skill's metadata
+        InfrastructureSkillMetadata object containing the skill's metadata
 
     """
     skill_data = json.loads(skill_file.read_text(encoding="utf-8"))
@@ -46,7 +46,7 @@ def load_skill_file(skill_file: Path) -> SkillMetadata:
     name = skill_data.get("name") or skill_id_to_name(skill_id)
     description = skill_data.get("description", "")
 
-    metadata = SkillMetadata(
+    metadata = InfrastructureSkillMetadata(
         skill_id=skill_id,
         version=skill_data.get("version", "1.0.0"),
         type=skill_data.get("type", "technical"),
@@ -62,7 +62,7 @@ def load_skill_file(skill_file: Path) -> SkillMetadata:
     return metadata
 
 
-def load_skill_dir_metadata(skill_dir: Path) -> SkillMetadata:
+def load_skill_dir_metadata(skill_dir: Path) -> InfrastructureSkillMetadata:
     """
     Load a skill definition stored as a directory containing `metadata.json`.
 
@@ -73,7 +73,7 @@ def load_skill_dir_metadata(skill_dir: Path) -> SkillMetadata:
         skill_dir: Path to the skill directory
 
     Returns:
-        SkillMetadata object containing the skill's metadata
+        InfrastructureSkillMetadata object containing the skill's metadata
 
     """
     metadata_path = skill_dir / "metadata.json"
@@ -90,7 +90,7 @@ def load_skill_dir_metadata(skill_dir: Path) -> SkillMetadata:
     name = frontmatter.get("name") or skill_data.get("name") or skill_id_to_name(skill_id)
     description = frontmatter.get("description") or skill_data.get("description", "")
 
-    metadata = SkillMetadata(
+    metadata = InfrastructureSkillMetadata(
         skill_id=skill_id,
         version=skill_data.get("version", "1.0.0"),
         type=skill_data.get("type", "technical"),
@@ -143,7 +143,7 @@ def try_load_skill_by_id(
     skill_id: str,
     skills_root: Path,
     resolve_func: Callable,
-) -> SkillMetadata | None:
+) -> InfrastructureSkillMetadata | None:
     """
     Try to load skill metadata from disk by skill ID.
 
@@ -155,7 +155,7 @@ def try_load_skill_by_id(
         resolve_func: Function to resolve skill ID to canonical path
 
     Returns:
-        SkillMetadata if found, None otherwise
+        InfrastructureSkillMetadata if found, None otherwise
 
     """
     from ..common.security import resolve_path_within_root

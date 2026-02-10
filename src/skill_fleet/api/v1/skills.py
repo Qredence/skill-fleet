@@ -21,7 +21,11 @@ from typing import Annotated
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 
+from skill_fleet.common.logging_utils import sanitize_for_log
+from skill_fleet.common.security import resolve_skill_md_path
 from skill_fleet.core.workflows.skill_creation.validation import ValidationWorkflow
+from skill_fleet.core.workflows.streaming import WorkflowEventType
+from skill_fleet.validators import SkillValidator
 
 from ..dependencies import get_skill_service
 from ..exceptions import NotFoundException
@@ -33,6 +37,7 @@ from ..schemas.skills import (
     SkillDetailResponse,
     SkillListItem,
     UpdateSkillResponse,
+    ValidateSkillRequest,
     ValidateSkillResponse,
 )
 from ..services.skill_service import SkillService
@@ -158,6 +163,146 @@ async def create_skill(
     background_tasks.add_task(run_workflow)
 
     return CreateSkillResponse(job_id=job_id, status="pending")
+
+
+@router.post("/validate", response_model=ValidateSkillResponse)
+async def validate_skill_by_path(
+    request: ValidateSkillRequest,
+    skill_service: Annotated[SkillService, Depends(get_skill_service)],
+) -> ValidateSkillResponse:
+    """
+    Validate a skill by path (for drafts or existing skills).
+
+    This endpoint enables CLI validation without requiring a skill_id.
+    Supports both published skills and draft skills in _drafts/.
+    Uses modern ValidationWorkflow from core for comprehensive validation.
+
+    Args:
+        request: Validation request with skill_path and use_llm flag
+        skill_service: Injected SkillService for data access
+
+    Returns:
+        ValidateSkillResponse: Validation results with detailed feedback
+
+    Raises:
+        HTTPException: If skill path not found or validation fails
+
+    """
+    from ...core.models import ValidationReport
+
+    try:
+        skills_root = skill_service.taxonomy_manager.skills_root
+
+        try:
+            skill_md_path = resolve_skill_md_path(skills_root, request.skill_path)
+            skill_path = skill_md_path.parent
+        except ValueError as e:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid skill path: {request.skill_path}",
+            ) from e
+        except FileNotFoundError as e:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Skill path not found: {request.skill_path}",
+            ) from e
+
+        skill_content = skill_md_path.read_text(encoding="utf-8")
+
+        # Rule-based validation path for offline/no-LLM mode
+        if not request.use_llm:
+            validator = SkillValidator(
+                skills_root=skills_root,
+                taxonomy_manager=skill_service.taxonomy_manager,
+            )
+            rule_results = validator.validate_complete(skill_path)
+            passed = bool(rule_results.get("passed", False))
+            raw_checks = rule_results.get("checks", [])
+            checks: list[dict[str, str | bool]] = []
+            for check in raw_checks if isinstance(raw_checks, list) else []:
+                if isinstance(check, dict):
+                    checks.append(
+                        {
+                            "check": str(check.get("name", "")),
+                            "passed": check.get("status", "fail") == "pass",
+                            "message": "; ".join(check.get("messages", []))
+                            if isinstance(check.get("messages"), list)
+                            else "",
+                        }
+                    )
+
+            return ValidateSkillResponse(
+                passed=passed,
+                status="passed" if passed else "failed",
+                score=1.0 if passed else 0.0,
+                errors=rule_results.get("errors", []),
+                warnings=rule_results.get("warnings", []),
+                checks=checks,
+            )
+
+        # Use modern ValidationWorkflow
+        workflow = ValidationWorkflow()
+
+        # Collect validation events
+        validation_report: ValidationReport | None = None
+        errors_list: list[str] = []
+
+        async for event in workflow.execute_streaming(
+            skill_content=skill_content,
+            plan={},  # No plan needed for direct validation
+            taxonomy_path=request.skill_path,
+            enable_hitl_review=False,
+            quality_threshold=0.7,
+        ):
+            if event.event_type == WorkflowEventType.COMPLETED:
+                result = event.data.get("result", {})
+                if isinstance(result, dict):
+                    report_data = result.get("validation_report", {})
+                    if isinstance(report_data, dict):
+                        validation_report = ValidationReport.model_validate(report_data)
+            elif event.event_type == WorkflowEventType.ERROR:
+                errors_list.append(event.data.get("error") or event.message or "Unknown error")
+
+        # If no report generated, create a failure report
+        if validation_report is None:
+            validation_report = ValidationReport(
+                passed=False,
+                status="failed",
+                score=0.0,
+                errors=errors_list or ["Validation workflow did not complete"],
+                warnings=[],
+                checks=[],
+            )
+
+        # Extract validation data from report
+        passed = validation_report.passed
+        errors = validation_report.errors
+        warnings = validation_report.warnings
+        checks = [
+            {"check": check.check, "passed": check.passed, "message": check.message}
+            for check in validation_report.checks
+        ]
+        score = validation_report.score
+        status = validation_report.status
+
+        return ValidateSkillResponse(
+            passed=passed,
+            status=status,
+            score=max(0.0, score),
+            errors=errors,
+            warnings=warnings,
+            checks=checks,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(
+            "Validation failed for %s: %s",
+            sanitize_for_log(request.skill_path),
+            sanitize_for_log(e),
+        )
+        raise HTTPException(status_code=500, detail=f"Validation failed: {str(e)}") from e
 
 
 @router.get("/{skill_id}", response_model=SkillDetailResponse)
@@ -311,23 +456,52 @@ async def validate_skill(
         )
 
         validation_report = result.get("validation_report", {})
-        issues = validation_report.get("issues", [])
+        raw_checks = validation_report.get("checks", [])
+        normalized_checks: list[dict[str, object]] = []
+        if isinstance(raw_checks, list):
+            for check in raw_checks:
+                if isinstance(check, dict):
+                    normalized_checks.append(check)
+                    continue
 
-        # Build issues list
-        formatted_issues = []
-        for issue in issues:
-            formatted_issues.append(
-                {
-                    "severity": issue.get("severity", "warning"),
-                    "message": issue.get("message", str(issue)),
-                }
-            )
+                model_dump = getattr(check, "model_dump", None)
+                if callable(model_dump):
+                    dumped = model_dump()
+                    if isinstance(dumped, dict):
+                        status_value = dumped.get("status")
+                        passed = dumped.get("passed")
+                        if passed is None and isinstance(status_value, str):
+                            passed = status_value.lower() in {"pass", "passed", "success", "ok"}
+
+                        normalized_checks.append(
+                            {
+                                "check": str(
+                                    dumped.get("check")
+                                    or dumped.get("name")
+                                    or dumped.get("id")
+                                    or "validation_check"
+                                ),
+                                "passed": bool(passed) if passed is not None else False,
+                                "message": str(dumped.get("message") or dumped.get("detail") or ""),
+                            }
+                        )
+                        continue
+
+                normalized_checks.append(
+                    {
+                        "check": "validation_check",
+                        "passed": False,
+                        "message": str(check),
+                    }
+                )
 
         return ValidateSkillResponse(
             passed=validation_report.get("passed", False),
             status="passed" if validation_report.get("passed", False) else "failed",
             score=validation_report.get("score", 0.0),
-            issues=formatted_issues,
+            errors=validation_report.get("errors", []),
+            warnings=validation_report.get("warnings", []),
+            checks=normalized_checks,
         )
 
     except Exception as e:

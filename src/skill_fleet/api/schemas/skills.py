@@ -65,13 +65,31 @@ class SkillDetailResponse(BaseModel):
     content: str | None = None
 
 
+class ValidateSkillRequest(BaseModel):
+    """Request body for validating a skill."""
+
+    skill_path: str = Field(
+        ...,
+        description="Taxonomy-relative path to skill (e.g., 'dspy-basics' or '_drafts/job-123/my-skill')",
+    )
+    use_llm: bool = Field(
+        default=True,
+        description="Enable LLM-based validation (requires API keys)",
+    )
+
+
 class ValidateSkillResponse(BaseModel):
     """Response model for skill validation."""
 
-    passed: bool
-    status: str
-    score: float
-    issues: list[dict[str, Any]]
+    passed: bool = Field(description="Whether all validation checks passed")
+    status: str = Field(description="Overall validation status (passed, warnings, failed)")
+    score: float = Field(description="Overall quality score (0.0-1.0)")
+    errors: list[str] = Field(default_factory=list, description="Validation errors")
+    warnings: list[str] = Field(default_factory=list, description="Validation warnings")
+    checks: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Detailed validation checks performed",
+    )
 
 
 class RefineSkillRequest(BaseModel):

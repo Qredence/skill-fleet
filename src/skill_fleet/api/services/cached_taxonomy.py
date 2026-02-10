@@ -197,9 +197,9 @@ class CachedTaxonomyService:
         if meta is None:
             return None
 
-        from ...taxonomy.metadata import SkillMetadata
+        from ...taxonomy.metadata import InfrastructureSkillMetadata
 
-        if isinstance(meta, SkillMetadata):
+        if isinstance(meta, InfrastructureSkillMetadata):
             result = {
                 "skill_id": meta.skill_id,
                 "name": meta.name,

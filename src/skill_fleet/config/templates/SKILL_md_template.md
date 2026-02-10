@@ -50,6 +50,13 @@ license: License name or LICENSE file reference
 compatibility: Max 500 chars. Environment requirements
 metadata: Key-value pairs for frontmatter-level tooling data - skill_id, version, type, weight, load_priority - Note: prefer metadata.json for complex tooling data
 allowed-tools: Space-delimited tool list (experimental)
+model: Model override for this skill (Claude supports this in frontmatter)
+hooks: Hook config list (Claude supports this in frontmatter)
+context: Set to fork to run in a subagent (Claude supports this in frontmatter)
+agent: Subagent type to use when context: fork is set
+disable-model-invocation: Command-only boolean (preserve if present)
+user-invocable: Command-only boolean (preserve if present)
+argument-hint: Command-only string hint (preserve if present)
 
 ═══════════════════════════════════════════════════════════════════
 CLAUDE SEARCH OPTIMIZATION (CSO) - Critical for Discovery

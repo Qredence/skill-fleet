@@ -7,6 +7,8 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from skill_fleet.api.dependencies import get_skill_service
+from skill_fleet.core.models import ValidationCheckItem
+from skill_fleet.core.workflows.streaming import WorkflowEvent, WorkflowEventType
 
 
 def _override_skill_service(client, service):
@@ -157,6 +159,163 @@ class TestValidateSkill:
         try:
             response = client.post("/api/v1/skills/non-existent-id/validate")
             assert response.status_code == 404
+        finally:
+            _clear_overrides(client)
+
+    def test_validate_skill_accepts_model_check_items(self, client):
+        mock_service = MagicMock()
+        mock_service.get_skill_by_path.return_value = {
+            "skill_id": "test-skill",
+            "name": "Test Skill",
+            "description": "Use when testing.",
+            "type": "technical",
+            "metadata": {"taxonomy_path": "general/test-skill"},
+            "content": "---\nname: test-skill\ndescription: Use when testing.\n---\n\n# Test\n",
+        }
+
+        _override_skill_service(client, mock_service)
+        try:
+            with patch(
+                "skill_fleet.api.v1.skills.ValidationWorkflow.execute",
+                new=AsyncMock(
+                    return_value={
+                        "validation_report": {
+                            "passed": True,
+                            "score": 0.95,
+                            "errors": [],
+                            "warnings": [],
+                            "checks": [
+                                ValidationCheckItem(
+                                    check="frontmatter",
+                                    passed=True,
+                                    message="Frontmatter is valid",
+                                )
+                            ],
+                        }
+                    }
+                ),
+            ):
+                response = client.post("/api/v1/skills/test-skill/validate")
+                assert response.status_code == 200
+                data = response.json()
+                assert data["passed"] is True
+                assert isinstance(data["checks"], list)
+                assert data["checks"][0]["check"] == "frontmatter"
+                assert data["checks"][0]["passed"] is True
+        finally:
+            _clear_overrides(client)
+
+
+class TestValidateSkillByPath:
+    def test_validate_skill_by_path_rejects_traversal(self, client, tmp_path):
+        skills_root = tmp_path / "skills"
+        skills_root.mkdir(parents=True)
+
+        mock_service = MagicMock()
+        mock_service.taxonomy_manager.skills_root = skills_root
+
+        _override_skill_service(client, mock_service)
+        try:
+            response = client.post(
+                "/api/v1/skills/validate",
+                json={"skill_path": "../outside", "use_llm": False},
+            )
+            assert response.status_code == 400
+        finally:
+            _clear_overrides(client)
+
+    def test_validate_skill_by_path_missing_dir_returns_404(self, client, tmp_path):
+        skills_root = tmp_path / "skills"
+        skills_root.mkdir(parents=True)
+
+        mock_service = MagicMock()
+        mock_service.taxonomy_manager.skills_root = skills_root
+
+        _override_skill_service(client, mock_service)
+        try:
+            response = client.post(
+                "/api/v1/skills/validate",
+                json={"skill_path": "general/missing-skill", "use_llm": False},
+            )
+            assert response.status_code == 404
+        finally:
+            _clear_overrides(client)
+
+    def test_validate_skill_by_path_no_llm_uses_rule_validator(self, client, tmp_path):
+        skills_root = tmp_path / "skills"
+        skill_dir = skills_root / "general" / "rule-based"
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text(
+            "---\nname: rule-based\ndescription: Use when validating.\n---\n\n# Rule\n",
+            encoding="utf-8",
+        )
+
+        mock_service = MagicMock()
+        mock_service.taxonomy_manager.skills_root = skills_root
+        mock_service.taxonomy_manager.index.skills = {}
+
+        _override_skill_service(client, mock_service)
+        try:
+            with patch(
+                "skill_fleet.api.v1.skills.ValidationWorkflow.execute_streaming",
+                side_effect=AssertionError("streaming workflow should not run in no-LLM mode"),
+            ):
+                response = client.post(
+                    "/api/v1/skills/validate",
+                    json={"skill_path": "general/rule-based", "use_llm": False},
+                )
+                assert response.status_code == 200
+                data = response.json()
+                assert data["status"] in ("passed", "failed")
+                assert isinstance(data["checks"], list)
+        finally:
+            _clear_overrides(client)
+
+    def test_validate_skill_by_path_parses_completed_stream_event(self, client, tmp_path):
+        skills_root = tmp_path / "skills"
+        skill_dir = skills_root / "general" / "streamed"
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text(
+            "---\nname: streamed\ndescription: Use when validating streamed events.\n---\n\n# Streamed\n",
+            encoding="utf-8",
+        )
+
+        mock_service = MagicMock()
+        mock_service.taxonomy_manager.skills_root = skills_root
+
+        async def _fake_stream(*args, **kwargs):
+            yield WorkflowEvent(
+                event_type=WorkflowEventType.COMPLETED,
+                phase="Validation",
+                message="done",
+                data={
+                    "result": {
+                        "validation_report": {
+                            "passed": True,
+                            "status": "passed",
+                            "score": 0.92,
+                            "errors": [],
+                            "warnings": [],
+                            "checks": [],
+                        }
+                    }
+                },
+            )
+
+        _override_skill_service(client, mock_service)
+        try:
+            with patch(
+                "skill_fleet.api.v1.skills.ValidationWorkflow.execute_streaming",
+                new=_fake_stream,
+            ):
+                response = client.post(
+                    "/api/v1/skills/validate",
+                    json={"skill_path": "general/streamed", "use_llm": True},
+                )
+                assert response.status_code == 200
+                data = response.json()
+                assert data["passed"] is True
+                assert data["score"] == 0.92
         finally:
             _clear_overrides(client)
 

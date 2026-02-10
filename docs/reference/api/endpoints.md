@@ -1,6 +1,6 @@
 # API Endpoints Reference
 
-**Last Updated**: 2026-01-31
+**Last Updated**: 2026-02-09
 **Base URL**: `http://localhost:8000/api/v1`
 **Status**: Production/Stable
 
@@ -55,7 +55,9 @@ Content-Type: application/json
 {
     "task_description": "Create a Python async/await programming skill",
     "user_id": "user_123",
-    "auto_approve": false
+    "enable_hitl_confirm": false,
+    "enable_hitl_preview": false,
+    "enable_hitl_review": false
 }
 ```
 
@@ -64,14 +66,16 @@ Content-Type: application/json
 |-------|------|----------|-------------|
 | `task_description` | `string` | Yes | Description of the skill to create (min 10 chars) |
 | `user_id` | `string` | No | User identifier (default: "default") |
-| `auto_approve` | `bool` | No | Skip HITL checkpoints (default: false) |
+| `enable_hitl_confirm` | `bool` | No | Enable confirm/revise/cancel checkpoint after understanding |
+| `enable_hitl_preview` | `bool` | No | Enable preview checkpoint after generation |
+| `enable_hitl_review` | `bool` | No | Enable review checkpoint after validation |
+| `enable_token_streaming` | `bool` | No | Enable token-level streaming events |
 
-**Response (202 Accepted)**:
+**Response (200 OK)**:
 ```json
 {
     "job_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-    "status": "accepted",
-    "message": "Skill creation started"
+    "status": "pending"
 }
 ```
 
@@ -138,23 +142,41 @@ Update an existing skill.
 
 Validate a skill's content and structure.
 
+**Response (200 OK)**:
+```json
+{
+    "passed": true,
+    "status": "passed",
+    "score": 0.92,
+    "errors": [],
+    "warnings": ["Description could be more specific"],
+    "checks": []
+}
+```
+
+---
+
+### POST /api/v1/skills/validate
+
+Validate a skill by taxonomy-relative path (supports drafts and published skills).
+
 **Request**:
 ```json
 {
-    "content": "# Skill content to validate...",
-    "validation_type": "full"
+    "skill_path": "_drafts/job-123/my-skill",
+    "use_llm": true
 }
 ```
 
 **Response (200 OK)**:
 ```json
 {
-    "validation_report": {
-        "passed": true,
-        "score": 0.92,
-        "errors": [],
-        "warnings": ["Description could be more specific"]
-    }
+    "passed": true,
+    "status": "passed",
+    "score": 0.92,
+    "errors": [],
+    "warnings": [],
+    "checks": []
 }
 ```
 
@@ -350,6 +372,79 @@ Adapt taxonomy for a user.
 {
     "priorities": ["python", "web-development"],
     "experience_level": "intermediate"
+}
+```
+
+---
+
+### GET /api/v1/taxonomy/xml
+
+Generate `<available_skills>` XML for prompt injection.
+
+**Query Parameters**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `user_id` | `string` | No | Optional user id for personalized filtering |
+
+**Response (200 OK, text/plain)**:
+```xml
+<available_skills>
+  <skill>
+    <name>example-skill</name>
+    <description>Use when ...</description>
+    <location>/path/to/SKILL.md</location>
+  </skill>
+</available_skills>
+```
+
+---
+
+## Analytics
+
+### GET /api/v1/analytics
+
+Get usage analytics and aggregate metrics.
+
+**Query Parameters**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `user_id` | `string` | No | Filter analytics to a specific user |
+
+**Response (200 OK)**:
+```json
+{
+    "total_events": 42,
+    "unique_skills_used": 7,
+    "success_rate": 0.93,
+    "most_used_skills": [["technical/fastapi", 10]],
+    "common_combinations": [{"skills": ["technical/fastapi", "technical/httpx"], "count": 4}],
+    "cold_skills": ["technical/httpx"]
+}
+```
+
+---
+
+### GET /api/v1/analytics/recommendations
+
+Get personalized recommendations for a user.
+
+**Query Parameters**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `user_id` | `string` | Yes | User id for recommendation generation |
+
+**Response (200 OK)**:
+```json
+{
+    "user_id": "alice",
+    "recommendations": [
+        {
+            "skill_id": "technical/httpx",
+            "reason": "Required by frequently used skill: technical/fastapi",
+            "priority": "high"
+        }
+    ],
+    "total_recommendations": 1
 }
 ```
 

@@ -19,39 +19,14 @@ from pydantic import BaseModel, Field
 
 
 class DictLikeAccessMixin:
-    """
-    Provide dict-like access helpers for backward-compatible code.
-
-    Some parts of the codebase (and downstream tooling) historically treated
-    models like dicts via `.get()` / `obj[key]`. Pydantic BaseModel does not
-    implement these, so we provide them explicitly.
-    """
+    """Provide dict-like access helpers for backward-compatible code paths."""
 
     def get(self, key: str, default: Any = None) -> Any:
-        """
-        Get attribute by key with optional default.
-
-        Args:
-            key: Attribute name to retrieve.
-            default: Default value if attribute not found.
-
-        Returns:
-            The attribute value or default.
-
-        """
+        """Get attribute by key with optional default."""
         return getattr(self, key, default)
 
     def __getitem__(self, key: str) -> Any:
-        """
-        Enable dict-like access to attributes.
-
-        Args:
-            key: Attribute name to retrieve.
-
-        Returns:
-            The attribute value.
-
-        """
+        """Enable dict-style lookup for model attributes."""
         try:
             return getattr(self, key)
         except AttributeError as exc:
@@ -384,8 +359,6 @@ class SkillMetadata(DictLikeAccessMixin, BaseModel):
         "comprehensive (long self-contained), or minimal (focused single-purpose)",
     )
 
-    # DictLikeAccessMixin provides `.get()` and `__getitem__()` for deprecated dict-style access.
-
 
 class Capability(BaseModel):
     """A discrete, testable capability within a skill."""
@@ -478,13 +451,11 @@ class SkillSkeleton(BaseModel):
     files: list[FileSpec] = Field(default_factory=list, description="Files to create")
     directories: list[str] = Field(
         default_factory=lambda: [
-            "capabilities/",  # Legacy - use references/ for new skills
             "examples/",
             "tests/",
-            "resources/",  # Legacy - use guides/ for new skills
-            "references/",  # v2 standard
-            "guides/",  # v2 standard
-            "templates/",  # v2 standard
+            "references/",
+            "guides/",
+            "templates/",
             "scripts/",
             "assets/",
         ],
@@ -627,8 +598,6 @@ class ValidationReport(DictLikeAccessMixin, BaseModel):
 
     # Summary
     validation_summary: str = Field(default="", description="Human-readable validation summary")
-
-    # DictLikeAccessMixin provides `.get()` and `__getitem__()` for deprecated dict-style access.
 
 
 class TestCase(BaseModel):

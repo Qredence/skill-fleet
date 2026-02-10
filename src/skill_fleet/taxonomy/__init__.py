@@ -12,12 +12,12 @@ from . import (
     skill_registration,
 )
 from .manager import TaxonomyManager
-from .metadata import SkillMetadata
+from .metadata import InfrastructureSkillMetadata
 from .naming import name_to_skill_id, skill_id_to_name, validate_skill_name
 
 __all__ = [
     "TaxonomyManager",
-    "SkillMetadata",
+    "InfrastructureSkillMetadata",
     "skill_id_to_name",
     "name_to_skill_id",
     "validate_skill_name",

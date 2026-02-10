@@ -16,23 +16,50 @@ This repo is **Skill Fleet**: a local-first platform for creating, validating, a
 # install (dev)
 uv sync --group dev
 
-# API server (development)
-uv run skill-fleet dev
-#
-# Note: `skill-fleet dev` starts the API and interactive chat, and forces
-# `SKILL_FLEET_ENV=development` to avoid production DB requirements.
-#
-# LLM proxy env (LiteLLM):
-#   export LITELLM_API_KEY=...
-#   export LITELLM_BASE_URL=http://localhost:4000
-# Do not set provider endpoints (e.g., generateContent) as LITELLM_BASE_URL.
+# start API server (required for API-first CLI commands)
+uv run skill-fleet serve --auto-accept
+
+# dev workflow (starts API + interactive chat)
+uv run skill-fleet dev "Create a Python decorators skill"
+
+# optional global targeting
+uv run skill-fleet --api-url http://localhost:8000 --user default validate dspy-basics
 
 # create skill (non-interactive)
 uv run skill-fleet create "Create a Python decorators skill" --auto-approve
 
 # validate + promote
-uv run skill-fleet validate skills/_drafts/<job_id>
+uv run skill-fleet validate skills/_drafts/<job_id>/<skill-name>
 uv run skill-fleet promote <job_id> --delete-draft
+
+# API-first utility commands
+uv run skill-fleet generate-xml -o available_skills.xml
+uv run skill-fleet analytics --user-id all --json
+```
+
+Notes:
+
+- API-backed commands (`validate`, `generate-xml`, `analytics`) require a running API server.
+- `skill-fleet dev` forces `SKILL_FLEET_ENV=development`.
+- LiteLLM proxy settings:
+  - `export LITELLM_API_KEY=...`
+  - `export LITELLM_BASE_URL=http://localhost:4000`
+  - Do not set provider endpoints (e.g., `generateContent`) as `LITELLM_BASE_URL`.
+
+## CLI Command Surface
+
+```bash
+uv run skill-fleet create <task>
+uv run skill-fleet chat [task]
+uv run skill-fleet terminal [task]
+uv run skill-fleet tui
+uv run skill-fleet list
+uv run skill-fleet validate <skill_path> [--json] [--no-llm]
+uv run skill-fleet generate-xml [-o output.xml] [--user-id <id>]
+uv run skill-fleet analytics [--user-id all] [--json]
+uv run skill-fleet migrate [--dry-run] [--json]
+uv run skill-fleet promote <job_id> [--delete-draft] [--force]
+uv run skill-fleet db init|status|migrate|reset
 ```
 
 ### TUI (OpenTUI)
@@ -61,16 +88,37 @@ Keybinds (TUI):
 ```bash
 make help
 make install-dev
+make install
+make update
+make sync
+make clean
 make dev
+make serve
+make chat
 make test
+make test-unit
+make test-integration
+make test-cov
 make lint-fix
+make lint
 make format
+make format-check
 make type-check
 make security
 make db-migrate
+make db-revision NAME="add_jobs_table"
+make list-skills
+make validate-skill FILE=skills/_drafts/<job_id>/<skill-name>
+make promote-skill ID=<job_id>
 ```
 
 ## Core Workflows
+
+### API-First CLI Workflow (Current)
+
+1. Start API (`uv run skill-fleet serve` or `uv run skill-fleet dev`)
+2. Run API-backed commands (`validate`, `generate-xml`, `analytics`)
+3. Override target API with `--api-url` or `SKILL_FLEET_API_URL` when needed
 
 ### Draft-First Skill Lifecycle
 
@@ -90,6 +138,7 @@ Useful flags:
 
 - `uv run skill-fleet chat [TASK]` streams phases + HITL prompts
 - `uv run skill-fleet terminal [TASK]` is a simpler terminal chat interface
+- `uv run skill-fleet dev [TASK]` starts API + launches chat in one command
 - If arrow-key dialogs are flaky, pass `--force-plain-text`
 - For compatibility mode (polling-only), use `skill-fleet chat --poll`
 
@@ -110,7 +159,13 @@ The CLI includes database commands:
 uv run skill-fleet db status
 uv run skill-fleet db init
 uv run skill-fleet db migrate
+uv run skill-fleet db reset
 ```
+
+Notes:
+
+- `skill-fleet db migrate` currently reports migrations are handled via `db init`.
+- Alembic upgrade/revision operations are available via Make targets.
 
 The Makefile uses Alembic directly:
 
@@ -161,6 +216,17 @@ Notes:
 
 - `skills/**` and `.skills/**` are excluded from Ruff (see `pyproject.toml`).
 - Integration tests may require live LLM credentials; use `-m "not integration"` when running offline.
+
+## Migration Notes (Post-Architecture Cleanup)
+
+- Validation response removed `issues`; use `errors`, `warnings`, and `checks`.
+- `SkillValidator` no longer accepts `use_llm` in constructor.
+- Legacy `src/skill_fleet/cli/main.py` entrypoints were removed; use `uv run skill-fleet ...`.
+- New API-backed endpoints include:
+  - `POST /api/v1/skills/validate`
+  - `GET /api/v1/taxonomy/xml`
+  - `GET /api/v1/analytics`
+  - `GET /api/v1/analytics/recommendations`
 
 ## Configuration & Environment Variables
 

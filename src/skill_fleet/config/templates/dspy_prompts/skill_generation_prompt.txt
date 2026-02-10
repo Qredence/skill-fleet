@@ -1,0 +1,220 @@
+# Skill Generation Guidance for DSPy
+
+Generate agentskills.io-compliant SKILL.md content following these specifications.
+
+## Input Fields
+
+- skill_name: Kebab-case skill identifier (e.g., "fastapi-service-architecture")
+- description: 1-1024 char trigger-oriented description
+- requirements: Analyzed requirements and success criteria
+- plan: Detailed plan with structure and depth guidance
+- context: Relevant domain knowledge, dependencies, tools
+
+## Output Fields
+
+- skill_content: Complete SKILL.md body (frontmatter excluded, added separately)
+- word_count: Estimated word count
+- size_category: "minimal" (<500 words), "optimal" (500-2000), "comprehensive" (2000-3000)
+
+## Structure Requirements
+
+### Required Sections
+
+1. **## When to Use This Skill** (or "## When to Use")
+   - Clear trigger conditions (3-5 bullet points)
+   - Specific scenarios, not abstract capabilities
+   - Include negative triggers ("Don't use when...")
+
+2. **## Quick Start** (for minimal/optimal skills) OR **## Overview** (comprehensive)
+   - Immediate, actionable entry point
+   - 1-3 paragraphs max
+   - Link to detailed guides/ for complex workflows
+
+3. **Core Content** (varies by size)
+   - Minimal: Inline examples, no deep theory
+   - Optimal: Balance of concepts + examples
+   - Comprehensive: May use references/ for deep dives
+
+### Recommended Sections
+
+- **## Key Principles** - Core ideas (3-5 items)
+- **## Common Patterns** - Reusable solutions with code
+- **## Pitfalls to Avoid** - Anti-patterns with explanations
+- **## Related Skills** - Links to complementary skills
+
+### Optional (Comprehensive Skills Only)
+
+- **## Integration** - How to combine with other skills/tools
+- **## Testing** - Validation approaches
+- **## Further Reading** - External resources (keep minimal)
+
+## Subdirectory Usage
+
+Skills MAY use subdirectories for progressive disclosure:
+
+- `references/` - Deep technical docs (API specs, RFC summaries)
+- `guides/` - Step-by-step workflows (setup, migration)
+- `templates/` - Boilerplate code files
+- `scripts/` - Runnable utility scripts
+- `examples/` - Working demo projects
+
+**Default**: Put everything in SKILL.md unless depth > 2000 words.
+
+## Size Optimization
+
+### Minimal (<500 words)
+- Single page, inline examples
+- No subdirectories
+- 2-3 core sections + Quick Start
+
+### Optimal (500-2000 words)
+- Main content in SKILL.md
+- 1-2 guides/ for complex workflows
+- Brief references/ if needed
+- 3-5 core sections
+
+### Comprehensive (2000-3000 words)
+- SKILL.md as navigation hub
+- Extensive guides/ and references/
+- examples/ with runnable projects
+- 5-8 sections with cross-links
+
+## Code Examples
+
+- Always include runnable code blocks
+- Use proper syntax highlighting (```python, ```typescript, etc.)
+- Provide context (what problem it solves)
+- Keep examples concise (5-20 lines typical)
+- Link to examples/ for full projects
+
+## Anti-Patterns to Avoid
+
+❌ **Generic descriptions** - "Use when working with X" → ❌ Too vague
+✅ **Specific triggers** - "Use when implementing JWT auth in FastAPI endpoints"
+
+❌ **Abstract capability lists** - "Provides validation" → ❌ What kind?
+✅ **Concrete outcomes** - "Validates SKILL.md structure, frontmatter, dependencies"
+
+❌ **Excessive theory** - Long API docs without examples → ❌ Use references/
+✅ **Practice-first** - Quick example → explain → link to references/concept.md
+
+❌ **Redundant sections** - "Prerequisites" + "Dependencies" + "Requirements" → ❌ Pick one
+✅ **Consolidated setup** - Single "Quick Start" section
+
+❌ **External link overload** - 10+ links to docs → ❌ Summarize key points
+✅ **Selective references** - 2-3 essential links + summary
+
+## Tone and Style
+
+- Direct, imperative voice ("Use X when...", "Avoid Y because...")
+- Present tense, active voice
+- Technical but accessible
+- Assume intermediate-level user unless specified otherwise
+- No marketing fluff, no filler words
+
+## Validation
+
+Generated content MUST:
+- Start directly with content (no YAML frontmatter in output)
+- Include "## When to Use" section
+- Include at least one code example
+- Stay within target word count (plan.max_words)
+- Avoid security issues (no XML tags, no reserved names in examples)
+- Use kebab-case for all skill references
+
+## Examples
+
+### Minimal Skill (200 words)
+```
+## When to Use This Skill
+
+- Adding rate limiting to API endpoints
+- Preventing abuse of public endpoints
+- Implementing request throttling
+
+## Quick Start
+
+[Concise code example with explanation]
+[2-3 lines of usage context]
+```
+
+### Optimal Skill (1000 words)
+```
+## When to Use This Skill
+
+[Specific triggers with context]
+
+## Quick Start
+
+[Immediate, actionable example]
+
+## Key Principles
+
+[3-5 core concepts]
+
+## Common Patterns
+
+[2-3 patterns with code]
+[Each: problem → solution → code example]
+
+## Pitfalls to Avoid
+
+[2-3 anti-patterns with fixes]
+
+## Related Skills
+
+- [skill-one] - For complementary capability
+- [skill-two] - Alternative approach
+```
+
+### Comprehensive Skill (2500 words)
+```
+## When to Use This Skill
+
+[Detailed triggers + negative triggers]
+
+## Overview
+
+[Navigation paragraph linking to guides/]
+[What this skill covers, limitations]
+
+## Architecture Principles
+
+[Deep conceptual material]
+[May link to references/concepts.md]
+
+## Implementation Patterns
+
+[5-7 patterns, each brief]
+[Links to guides/pattern-name.md for details]
+
+## Integration
+
+[How to combine with other skills]
+[System design considerations]
+
+## Testing
+
+[Validation approaches]
+[Link to guides/testing-workflow.md]
+
+## Quick Reference
+
+[Cheat sheet of key APIs/commands]
+
+## Related Skills
+
+[4-6 related skills with relationship descriptions]
+```
+
+## Final Checklist
+
+Before returning skill_content:
+- [ ] "When to Use" section present
+- [ ] At least one code example
+- [ ] Word count within target range
+- [ ] No XML tags or reserved names
+- [ ] No YAML frontmatter (will be added separately)
+- [ ] Subdirectory files referenced if used
+- [ ] Links to other skills use kebab-case
+- [ ] Examples are runnable and contextual

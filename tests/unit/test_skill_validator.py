@@ -402,3 +402,41 @@ Never use this.
     # Assert
     assert results["passed"] is False
     assert any("SKILL.md must not be a symlink" in e for e in results["errors"])
+
+
+def test_validate_frontmatter_optional_fields(temp_skills_root: Path) -> None:
+    """Validate optional Claude/open-standard frontmatter fields are accepted."""
+    skill_dir = temp_skills_root / "general/optional_frontmatter"
+    skill_dir.mkdir(parents=True)
+
+    skill_md = """---
+name: optional-frontmatter
+description: A skill with optional frontmatter fields.
+model: claude-3-5
+allowed-tools:
+  - Read
+  - Write
+context: fork
+agent: code-reviewer
+hooks:
+  - name: pre
+    command: echo hi
+disable-model-invocation: true
+user-invocable: false
+argument-hint: "path=/tmp/logs.txt"
+license: MIT
+---
+
+# Optional Frontmatter Skill
+
+## When to Use This Skill
+Use this skill for testing optional frontmatter fields.
+"""
+    (skill_dir / "SKILL.md").write_text(skill_md, encoding="utf-8")
+
+    validator = SkillValidator(temp_skills_root)
+    results = validator.validate_complete(skill_dir)
+
+    assert results["passed"] is True
+    assert results["errors"] == []
+    assert any("allowed-tools should be a space-delimited string" in w for w in results["warnings"])

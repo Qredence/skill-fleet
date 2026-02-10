@@ -24,7 +24,7 @@ from ..common.security import (
     sanitize_relative_file_path,
     sanitize_taxonomy_path,
 )
-from .metadata import SkillMetadata
+from .metadata import InfrastructureSkillMetadata
 from .naming import skill_id_to_name
 
 if TYPE_CHECKING:
@@ -41,7 +41,7 @@ def register_skill(
     evolution: dict[str, Any],
     extra_files: dict[str, Any] | None = None,
     overwrite: bool = False,
-) -> SkillMetadata:
+) -> InfrastructureSkillMetadata:
     """
     Register a new skill in the taxonomy.
 
@@ -58,7 +58,7 @@ def register_skill(
         overwrite: Whether to overwrite existing skill
 
     Returns:
-        SkillMetadata object for the registered skill
+        InfrastructureSkillMetadata object for the registered skill
 
     Raises:
         ValueError: If path is invalid or skill exists and overwrite=False
@@ -130,8 +130,8 @@ def register_skill(
     if extra_files:
         write_extra_files(skill_dir, extra_files)
 
-    # Create SkillMetadata object
-    skill_metadata = SkillMetadata(
+    # Create InfrastructureSkillMetadata object
+    skill_metadata = InfrastructureSkillMetadata(
         skill_id=skill_id,
         version=metadata.get("version", "1.0.0"),
         type=metadata.get("type", "technical"),
@@ -167,21 +167,49 @@ def generate_skill_md_with_frontmatter(
         Complete SKILL.md content with proper frontmatter
 
     """
-    # Strip existing frontmatter from content if present
-    body_content = content
-    if content.startswith("---"):
-        end_marker = content.find("---", 3)
-        if end_marker != -1:
-            body_content = content[end_marker + 3 :].lstrip("\n")
 
-    # Build frontmatter
-    frontmatter = {
-        "name": name,
-        "description": description[:1024],  # Enforce max length
-    }
+    def _split_frontmatter(raw_content: str) -> tuple[dict[str, Any], str]:
+        """Return (frontmatter_dict, body) for SKILL.md content."""
+        if not raw_content.startswith("---"):
+            return {}, raw_content
+        end_marker = raw_content.find("---", 3)
+        if end_marker == -1:
+            return {}, raw_content
+        yaml_content = raw_content[3:end_marker].strip()
+        try:
+            parsed = yaml.safe_load(yaml_content) or {}
+        except yaml.YAMLError:
+            parsed = {}
+        if not isinstance(parsed, dict):
+            parsed = {}
+        body = raw_content[end_marker + 3 :].lstrip("\n")
+        return parsed, body
 
-    # Add optional extended metadata
-    extended_meta = {}
+    def _normalize_allowed_tools(value: Any) -> str | None:
+        """Normalize allowed-tools into a single space-delimited string."""
+        if value is None:
+            return None
+        if isinstance(value, str):
+            normalized = " ".join(value.split())
+            return normalized or None
+        if isinstance(value, list) and all(isinstance(item, str) for item in value):
+            normalized = " ".join(item.strip() for item in value if item.strip())
+            return normalized or None
+        return None
+
+    existing_frontmatter, body_content = _split_frontmatter(content)
+
+    # Build frontmatter, preserving existing optional fields.
+    frontmatter: dict[str, Any] = {}
+    frontmatter["name"] = name
+    frontmatter["description"] = description[:1024]  # Enforce max length
+    for key, value in existing_frontmatter.items():
+        if key in {"name", "description"}:
+            continue
+        frontmatter[key] = value
+
+    # Add optional extended metadata (only when metadata is mapping-like)
+    extended_meta: dict[str, Any] = {}
     if metadata.get("skill_id"):
         extended_meta["skill_id"] = metadata["skill_id"]
     if metadata.get("version"):
@@ -192,10 +220,29 @@ def generate_skill_md_with_frontmatter(
         extended_meta["weight"] = metadata["weight"]
 
     if extended_meta:
-        frontmatter["metadata"] = extended_meta
+        existing_meta = frontmatter.get("metadata")
+        if isinstance(existing_meta, dict):
+            merged_meta = dict(existing_meta)
+            merged_meta.update(extended_meta)
+            frontmatter["metadata"] = merged_meta
+        elif "metadata" not in frontmatter:
+            frontmatter["metadata"] = extended_meta
+
+    # Canonicalize allowed-tools if present (metadata overrides frontmatter)
+    allowed_tools_raw = None
+    if "allowed_tools" in metadata:
+        allowed_tools_raw = metadata.get("allowed_tools")
+    elif "allowed-tools" in metadata:
+        allowed_tools_raw = metadata.get("allowed-tools")
+    else:
+        allowed_tools_raw = frontmatter.get("allowed-tools")
+
+    allowed_tools = _normalize_allowed_tools(allowed_tools_raw)
+    if allowed_tools:
+        frontmatter["allowed-tools"] = allowed_tools
 
     # Generate YAML frontmatter
-    yaml_content = yaml.dump(
+    yaml_content = yaml.safe_dump(
         frontmatter, default_flow_style=False, allow_unicode=True, sort_keys=False
     )
 
@@ -381,18 +428,16 @@ def create_skill_subdirectories(skill_dir: Path, skill_name: str) -> None:
     - tests/README.md
     - assets/README.md
 
-    Legacy directories (capabilities/, resources/) are created for backward compatibility
-    but new skills should use references/ and guides/ instead.
+    Legacy directories (capabilities/, resources/) are no longer created for new skills.
+    Use references/ and guides/ instead.
 
     Args:
         skill_dir: Path to the skill directory
         skill_name: Name of the skill (for README content)
 
     """
-    # Define subdirectories and their README content
+    # Define subdirectories and their README content (v2 Golden Standard)
     subdirs = {
-        "capabilities": f"# Capabilities (Legacy)\n\n**Note:** This directory is deprecated. Use `references/` instead for new skills.\n\nCapability implementations for `{skill_name}`.\n\nEach file in this directory documents a specific capability provided by this skill.\n",
-        "resources": f"# Resources (Legacy)\n\n**Note:** This directory is deprecated. Use `guides/` instead for new skills.\n\nResource files for `{skill_name}`.\n\nIncludes configuration files, data files, and other resources needed by the skill.\n",
         "examples": f"# Examples\n\nUsage examples for `{skill_name}`.\n\nEach file demonstrates a specific use case or pattern.\n",
         "tests": f"# Tests\n\nIntegration tests for `{skill_name}`.\n\nThese tests verify the skill's capabilities work as expected.\n",
         "guides": f"# Guides\n\nHow-to guides and tutorials for `{skill_name}`.\n\nStep-by-step instructions for common tasks and workflows.\n",

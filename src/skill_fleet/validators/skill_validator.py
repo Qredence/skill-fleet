@@ -1,6 +1,9 @@
 """
 Skill validation utilities for taxonomy and agentskills.io compliance.
 
+Rule-based validation for skill structure, metadata, and agentskills.io compliance.
+For comprehensive DSPy-based validation, use ValidationWorkflow from core.
+
 v2 Golden Standard (Jan 2026):
 - Only SKILL.md is required (no metadata.json)
 - Supports 3 skill styles: navigation_hub, comprehensive, minimal
@@ -13,7 +16,6 @@ from __future__ import annotations
 import json
 import os
 import re
-from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -22,13 +24,22 @@ import yaml
 from ..common.security import resolve_path_within_root, sanitize_relative_file_path
 
 
-@dataclass(frozen=True, slots=True)
+# Simple validation result for backward compatibility
 class ValidationResult:
-    """Result of a validation step."""
+    """Simple validation result container."""
 
-    passed: bool
-    errors: list[str]
-    warnings: list[str]
+    def __init__(self, passed: bool, errors: list[str], warnings: list[str]):
+        self.passed = passed
+        self.errors = errors
+        self.warnings = warnings
+
+    def to_dict(self) -> dict:
+        """Convert to dict for backward compatibility."""
+        return {
+            "passed": self.passed,
+            "errors": self.errors,
+            "warnings": self.warnings,
+        }
 
 
 # v2 Golden Standard: Valid subdirectory names
@@ -80,7 +91,19 @@ class SkillValidator:
     _SKILL_NAME_PATTERN = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
     _SAFE_PATH_PATTERN = re.compile(r"^[a-zA-Z0-9._-]+$")
 
-    def __init__(self, skills_root: Path, taxonomy_manager: Any | None = None) -> None:
+    def __init__(
+        self,
+        skills_root: Path,
+        taxonomy_manager: Any | None = None,
+    ) -> None:
+        """
+        Initialize the SkillValidator.
+
+        Args:
+            skills_root: Root directory for skills
+            taxonomy_manager: Optional TaxonomyManager for alias resolution
+
+        """
         # Normalize and validate the skills_root to defend against misuse of an
         # untrusted base directory. We require an existing, non-symlink directory
         # and store only its resolved form.
@@ -544,6 +567,51 @@ class SkillValidator:
 
         if "metadata" in frontmatter and not isinstance(frontmatter["metadata"], dict):
             warnings.append("metadata field should be a key-value mapping")
+
+        if "license" in frontmatter and not isinstance(frontmatter["license"], str):
+            warnings.append("license field should be a string")
+
+        if "model" in frontmatter and not isinstance(frontmatter["model"], str):
+            warnings.append("model field should be a string")
+
+        if "context" in frontmatter and not isinstance(frontmatter["context"], str):
+            warnings.append("context field should be a string")
+
+        if "agent" in frontmatter and not isinstance(frontmatter["agent"], str):
+            warnings.append("agent field should be a string")
+
+        if "argument-hint" in frontmatter and not isinstance(frontmatter["argument-hint"], str):
+            warnings.append("argument-hint field should be a string")
+
+        if "disable-model-invocation" in frontmatter and not isinstance(
+            frontmatter["disable-model-invocation"], bool
+        ):
+            warnings.append("disable-model-invocation field should be a boolean")
+
+        if "user-invocable" in frontmatter and not isinstance(frontmatter["user-invocable"], bool):
+            warnings.append("user-invocable field should be a boolean")
+
+        if "hooks" in frontmatter:
+            hooks = frontmatter["hooks"]
+            if not isinstance(hooks, list) or not all(isinstance(item, dict) for item in hooks):
+                warnings.append("hooks field should be a list of mappings")
+
+        if "allowed-tools" in frontmatter:
+            allowed_tools = frontmatter["allowed-tools"]
+            if isinstance(allowed_tools, list):
+                if all(isinstance(tool, str) for tool in allowed_tools):
+                    warnings.append(
+                        "allowed-tools should be a space-delimited string; list form is accepted"
+                    )
+                else:
+                    errors.append("allowed-tools list must contain only strings")
+            elif not isinstance(allowed_tools, str):
+                errors.append("allowed-tools must be a space-delimited string or list of strings")
+
+        # Warn about non-kebab-case frontmatter keys to improve compatibility
+        for key in frontmatter:
+            if not re.match(r"^[a-z0-9-]+$", str(key)):
+                warnings.append(f"Frontmatter key '{key}' should be kebab-case")
 
         return ValidationResult(len(errors) == 0, errors, warnings)
 

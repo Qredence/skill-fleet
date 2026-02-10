@@ -207,8 +207,13 @@ class ReActAgentService:
             prompt = await get_prompt(job_id=job_id, x_user_id=header_user, manager=manager)
             data = prompt.model_dump() if hasattr(prompt, "model_dump") else dict(prompt)
             return {"found": True, "prompt": data}
-        except Exception as exc:
-            return {"found": False, "error": str(exc), "job_id": job_id}
+        except Exception:  # pragma: no cover
+            logger.exception("Failed to retrieve HITL prompt for job_id %s", job_id)
+            return {
+                "found": False,
+                "error": "Failed to retrieve HITL prompt.",
+                "job_id": job_id,
+            }
 
     async def submit_hitl_response(
         self,

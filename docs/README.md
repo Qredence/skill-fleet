@@ -139,7 +139,8 @@ from skill_fleet.dspy import dspy_context
 with dspy_context(lm=custom_lm):
     result = await module.aforward(...)
 ```
-```
+
+````
 
 ### Evolution Tracking
 
@@ -197,7 +198,7 @@ flowchart TB
   Root --> Specialization[specializations]
   Root --> TaskFocus[task_focus_areas]
   Root --> Memory[memory_blocks]
-```
+````
 
 ### Path Semantics (Skill IDs)
 

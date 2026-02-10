@@ -59,6 +59,7 @@ class JobState(BaseModel):
 
     current_phase: str | None = None
     progress_message: str | None = None
+    progress_percent: float | None = None
 
     intended_taxonomy_path: str | None = None
     draft_path: str | None = None

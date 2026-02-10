@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from pathlib import Path
 
 from skill_fleet.api.schemas.models import JobState
@@ -35,7 +36,7 @@ def test_promote_draft_delete_draft_deletes_session_and_draft_dir(
     sessions_dir.mkdir(parents=True, exist_ok=True)
     monkeypatch.setattr(jobs, "SESSION_DIR", sessions_dir)
 
-    job_id = "test-job-123"
+    job_id = str(uuid.uuid4())
 
     draft_job_root = drafts_root_resolved / job_id
     draft_skill_dir = draft_job_root / "testing" / "test-skill"
@@ -84,7 +85,7 @@ def test_promote_draft_without_delete_draft_keeps_session_and_draft_dir(
     sessions_dir.mkdir(parents=True, exist_ok=True)
     monkeypatch.setattr(jobs, "SESSION_DIR", sessions_dir)
 
-    job_id = "test-job-456"
+    job_id = str(uuid.uuid4())
 
     try:
         draft_job_root = drafts_root_resolved / job_id

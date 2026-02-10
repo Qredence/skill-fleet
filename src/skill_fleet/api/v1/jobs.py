@@ -13,8 +13,8 @@ from __future__ import annotations
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
+from ..dependencies import JobManagerDep
 from ..exceptions import NotFoundException
-from ..services.job_manager import get_job_manager
 
 router = APIRouter()
 
@@ -50,12 +50,13 @@ class JobDetailResponse(BaseModel):
         500: {"description": "Internal server error"},
     },
 )
-async def get_job_status(job_id: str) -> JobDetailResponse:
+async def get_job_status(job_id: str, manager: JobManagerDep) -> JobDetailResponse:
     """
     Get job status and details.
 
     Args:
         job_id: The job ID to retrieve
+        manager: Job manager instance (injected)
 
     Returns:
         JobDetailResponse with job status and details
@@ -64,7 +65,6 @@ async def get_job_status(job_id: str) -> JobDetailResponse:
         NotFoundException: If job not found (404)
 
     """
-    manager = get_job_manager()
     job = await manager.get_job(job_id)
     if not job:
         raise NotFoundException("Job", job_id)

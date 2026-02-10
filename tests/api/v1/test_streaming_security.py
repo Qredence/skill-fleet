@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from unittest.mock import patch
+
+from skill_fleet.api.dependencies import get_job_manager
+from skill_fleet.api.services.event_registry import get_event_registry
 
 
 class _FailingJobManager:
@@ -24,15 +26,17 @@ def test_job_stream_redacts_internal_exception_details(client) -> None:
     manager = _FailingJobManager()
     registry = _EmptyEventRegistry()
 
-    with (
-        patch("skill_fleet.api.v1.streaming.get_job_manager", return_value=manager),
-        patch("skill_fleet.api.v1.streaming.get_event_registry", return_value=registry),
-    ):
+    client.app.dependency_overrides[get_job_manager] = lambda: manager
+    client.app.dependency_overrides[get_event_registry] = lambda: registry
+
+    try:
         with client.stream("GET", "/api/v1/skills/job-123/stream") as response:
             body = "".join(response.iter_text())
 
-    assert response.status_code == 200
-    assert "sensitive runtime details should never leak" not in body
-    assert '"error_code": "stream_internal_error"' in body
-    assert '"message": "An internal error occurred while streaming job updates."' in body
-    assert '"sequence": -1' in body
+        assert response.status_code == 200
+        assert "sensitive runtime details should never leak" not in body
+        assert '"error_code": "stream_internal_error"' in body
+        assert '"message": "An internal error occurred while streaming job updates."' in body
+        assert '"sequence": -1' in body
+    finally:
+        client.app.dependency_overrides.clear()

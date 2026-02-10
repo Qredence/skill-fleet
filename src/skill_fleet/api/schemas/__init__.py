@@ -16,6 +16,7 @@ Schema modules:
 
 from __future__ import annotations
 
+from .agent import AgentMessageRequest, AgentMessageResponse
 from .conversational import (
     SendMessageRequest,
     SendMessageResponse,
@@ -84,6 +85,8 @@ __all__ = [
     "RefineSkillRequest",
     "RefineSkillResponse",
     # Conversational schemas
+    "AgentMessageRequest",
+    "AgentMessageResponse",
     "SendMessageRequest",
     "SendMessageResponse",
     "SessionHistoryResponse",

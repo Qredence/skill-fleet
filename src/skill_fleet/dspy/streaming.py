@@ -92,10 +92,14 @@ async def stream_prediction(
 
         async for value in output:
             if isinstance(value, dspy.Prediction):
+                try:
+                    fields = dict(value)
+                except Exception:
+                    fields = {k: getattr(value, k) for k in value.__dict__}
                 yield {
                     "type": "prediction",
                     "data": {
-                        "fields": {k: getattr(value, k) for k in value.__dict__},
+                        "fields": fields,
                     },
                 }
             elif hasattr(value, "field_name") and hasattr(value, "content"):

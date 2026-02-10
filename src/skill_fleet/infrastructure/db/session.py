@@ -11,7 +11,7 @@ from contextlib import contextmanager
 
 from sqlalchemy.orm import Session
 
-from .database import SessionLocal
+from .database import get_database_state
 
 
 @contextmanager
@@ -28,7 +28,8 @@ def transactional_session() -> Generator[Session, None, None]:
             job = JobRepository(db).get_by_id(job_id)
             job.status = "processing"
     """
-    db = SessionLocal()
+    state = get_database_state()
+    db = state.session_factory()
     try:
         yield db
         db.commit()

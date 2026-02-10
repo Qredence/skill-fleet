@@ -50,6 +50,16 @@ def test_session_operations_reject_non_ascii_job_id(monkeypatch, tmp_path) -> No
     assert list(tmp_path.iterdir()) == []
 
 
+def test_session_operations_reject_non_uuid_job_id(monkeypatch, tmp_path) -> None:
+    monkeypatch.setattr(jobs, "SESSION_DIR", tmp_path)
+
+    non_uuid_job_id = "job-123"
+    assert jobs.save_job_session(non_uuid_job_id) is False
+    assert jobs.load_job_session(non_uuid_job_id) is None
+    assert jobs.delete_job_session(non_uuid_job_id) is False
+    assert list(tmp_path.iterdir()) == []
+
+
 @pytest.mark.asyncio
 async def test_save_job_session_async_canonicalizes_persisted_job_id(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(jobs, "SESSION_DIR", tmp_path)

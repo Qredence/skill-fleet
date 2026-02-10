@@ -7,6 +7,7 @@ using modern DSPy modules with streaming support.
 
 from __future__ import annotations
 
+import json
 import logging
 from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING, Annotated, Any
@@ -29,6 +30,31 @@ router = APIRouter()
 
 # Type alias for database dependency
 DbSessionDep = Annotated["DbSession", Depends(get_db)]
+
+
+def _json_safe(value: Any) -> Any:
+    """Convert nested values to JSON-safe primitives for SSE payloads."""
+    if value is None or isinstance(value, str | int | float | bool):
+        return value
+    if isinstance(value, dict):
+        return {str(k): _json_safe(v) for k, v in value.items()}
+    if isinstance(value, list | tuple | set):
+        return [_json_safe(v) for v in value]
+    if hasattr(value, "model_dump"):
+        try:
+            return _json_safe(value.model_dump())
+        except Exception:
+            return str(value)
+    if hasattr(value, "__dict__"):
+        try:
+            return _json_safe(vars(value))
+        except Exception:
+            return str(value)
+    try:
+        json.dumps(value)
+        return value
+    except TypeError:
+        return str(value)
 
 
 class ChatRequest(BaseModel):
@@ -223,9 +249,7 @@ async def stream_chat(
                 message=request.message,
                 context=request.context or {},
             ):
-                import json
-
-                yield f"data: {json.dumps(event)}\n\n"
+                yield f"data: {json.dumps(_json_safe(event))}\n\n"
 
         yield "data: [DONE]\n\n"
 

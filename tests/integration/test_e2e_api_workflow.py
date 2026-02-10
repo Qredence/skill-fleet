@@ -9,10 +9,12 @@ from types import SimpleNamespace
 
 from skill_fleet.api.dependencies import (
     clear_taxonomy_manager_cache,
+    get_job_manager,
     get_skill_service,
     get_skills_root,
     get_taxonomy_manager,
 )
+from skill_fleet.api.services.job_manager import JobManager
 from skill_fleet.api.services.jobs import update_job
 from skill_fleet.common.paths import ensure_skills_root_initialized
 from skill_fleet.taxonomy.manager import TaxonomyManager
@@ -86,10 +88,18 @@ def test_full_api_workflow_create_validate_xml_promote(client, tmp_path):
     skills_root = ensure_skills_root_initialized(tmp_path / "skills")
     taxonomy_manager = TaxonomyManager(skills_root)
     fake_service = _FakeSkillService(skills_root=skills_root, taxonomy_manager=taxonomy_manager)
+    job_manager = JobManager()
+
+    # Set the global job manager instance used by update_job and other utility functions
+    import skill_fleet.api.services.job_manager as jm_module
+
+    old_manager = jm_module._job_manager
+    jm_module._job_manager = job_manager
 
     client.app.dependency_overrides[get_skills_root] = lambda: skills_root
     client.app.dependency_overrides[get_taxonomy_manager] = lambda: taxonomy_manager
     client.app.dependency_overrides[get_skill_service] = lambda: fake_service
+    client.app.dependency_overrides[get_job_manager] = lambda: job_manager
 
     try:
         create_response = client.post(
@@ -149,3 +159,4 @@ def test_full_api_workflow_create_validate_xml_promote(client, tmp_path):
         assert str(final_path / "SKILL.md") in xml_after_response.text
     finally:
         client.app.dependency_overrides.clear()
+        jm_module._job_manager = old_manager

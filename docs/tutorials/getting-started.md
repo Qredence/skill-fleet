@@ -15,7 +15,6 @@ Skill Fleet is a system for creating, managing, and validating AI agent skills. 
 ## Prerequisites
 
 - Python 3.12 or higher
-- Python 3.12 or higher
 - [uv](https://github.com/astral-sh/uv) for Python package management
 - An LLM API key (Google Gemini or LiteLLM proxy)
 

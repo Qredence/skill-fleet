@@ -14,9 +14,10 @@ Skill Fleet is a system for creating, managing, and validating AI agent skills. 
 
 ## Prerequisites
 
-- Python 3.11 or higher
+- Python 3.12 or higher
+- Python 3.12 or higher
 - [uv](https://github.com/astral-sh/uv) for Python package management
-- An LLM API key (OpenAI, Anthropic, or Gemini)
+- An LLM API key (Google Gemini or LiteLLM proxy)
 
 ## Installation
 
@@ -31,7 +32,7 @@ cd skill-fleet
 
 ```bash
 # Sync dependencies with uv
-uv sync
+uv sync --group dev
 ```
 
 ### 3. Configure Environment
@@ -40,14 +41,14 @@ Create a `.env` file in the project root:
 
 ```bash
 # Required: API key for your LLM provider
-OPENAI_API_KEY=sk-...
-# or
-ANTHROPIC_API_KEY=sk-ant-...
-# or
-GOOGLE_API_KEY=...
+# Preferred path: LiteLLM proxy
+LITELLM_API_KEY=your_litellm_key
+LITELLM_BASE_URL=http://localhost:4000
+# Fallback direct Gemini key
+GOOGLE_API_KEY=your_google_key
 
 # Optional: Database URL (defaults to SQLite)
-SKILL_FLEET_DB_URL=sqlite:///skill_fleet.db
+DATABASE_URL=sqlite:///skill_fleet.db
 
 # Optional: Default user ID
 SKILL_FLEET_USER_ID=default
@@ -111,7 +112,7 @@ After completion, you'll see:
 
 ```
 ✨ Skill Creation Completed!
-📁 Skill saved to: .skills/python-async-await
+📁 Skill saved to: skills/_drafts/<job_id>/<skill-name>
 ```
 
 The skill includes:
@@ -143,7 +144,7 @@ uv run skill-fleet create "Create a React hooks skill" --auto-approve
 ### Validate a Skill
 
 ```bash
-uv run skill-fleet validate .skills/python-async-await
+uv run skill-fleet validate skills/_drafts/<job_id>/<skill-name>
 ```
 
 ### List All Skills
@@ -250,9 +251,12 @@ uv run skill-fleet db init --force
 Edit `src/skill_fleet/config/config.yaml`:
 
 ```yaml
-llm:
-  default_model: openai/gpt-4o-mini
-  fallback_model: anthropic/claude-3-haiku-20240307
+models:
+  default: gemini/gemini-3-flash-preview
+  registry:
+    gemini/gemini-3-flash-preview:
+      env: LITELLM_API_KEY
+      env_fallback: GOOGLE_API_KEY
 ```
 
 ### Skills Root

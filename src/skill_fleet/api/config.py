@@ -80,9 +80,11 @@ class APISettings(BaseSettings):
     )
 
     # MLflow configuration
-    mlflow_tracking_uri: str | None = Field(
-        default=None,
-        description="MLflow tracking server URI (e.g., sqlite:///mlflow.db, http://localhost:5000)",
+    mlflow_tracking_uri: str = Field(
+        default="sqlite:///mlflow.db",
+        description=(
+            "MLflow tracking server URI (default: sqlite:///mlflow.db, e.g., http://localhost:5000)"
+        ),
     )
     mlflow_experiment_name: str = Field(
         default="skill-fleet",

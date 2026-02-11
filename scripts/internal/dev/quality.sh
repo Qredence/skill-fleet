@@ -28,6 +28,6 @@ section "Python tests"
 
 section "TUI type-check"
 (
-  cd "$ROOT_DIR/cli/tui"
+  cd "$ROOT_DIR/../../cli/tui"
   bun run type-check
 )

@@ -15,16 +15,16 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import os as python_os
 
 from dotenv import load_dotenv
-
-# Import models and repositories
-from skill_fleet.db.models import (
-    job_status_enum,
-    skill_status_enum,
-    skill_type_enum,
-)
-from skill_fleet.db.repositories import JobRepository, SkillRepository, TaxonomyRepository
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
+
+# Import models and repositories
+from skill_fleet.infrastructure.db.models import JobStatusEnum, SkillStatusEnum, SkillTypeEnum
+from skill_fleet.infrastructure.db.repositories import (
+    JobRepository,
+    SkillRepository,
+    TaxonomyRepository,
+)
 
 load_dotenv()
 DATABASE_URL = python_os.getenv("DATABASE_URL", "")
@@ -45,7 +45,7 @@ def test_taxonomy():
 
         # List all categories
         print("\n📋 Listing all categories:")
-        categories = repo.list(limit=20)
+        categories = repo.get_multi(limit=20)
         for cat in categories:
             indent = "  " * cat.level
             print(f"{indent}→ {cat.name} ({cat.path})")
@@ -54,12 +54,6 @@ def test_taxonomy():
         print("\n🌲 Getting category tree for 'development':")
         dev_tree = repo.get_tree("development")
         print_tree(dev_tree, indent="  ")
-
-        # Get descendants
-        print("\n📂 Getting descendants of 'development':")
-        descendants = repo.get_descendants("development")
-        for d in descendants:
-            print(f"  → {d['path']} (depth: {d['distance']})")
 
 
 def print_tree(items, indent=""):
@@ -82,7 +76,7 @@ def test_skills():
 
         # List all skills (should be empty initially)
         print("\n📋 Listing all skills:")
-        skills = repo.list(limit=10)
+        skills = repo.get_multi(limit=10)
         if skills:
             for skill in skills:
                 print(f"  → {skill.name} ({skill.status})")
@@ -97,8 +91,8 @@ def test_skills():
                 "name": "test-skill",
                 "description": "A test skill for repository validation",
                 "version": "1.0.0",
-                "type": skill_type_enum.technical,
-                "status": skill_status_enum.draft,
+                "type": SkillTypeEnum.TECHNICAL,
+                "status": SkillStatusEnum.DRAFT,
                 "skill_content": "# Test Skill\n\nThis is a test skill.",
             }
 
@@ -122,13 +116,13 @@ def test_skills():
 
             # Search for skills
             print("\n🔎 Searching for 'test'...")
-            results = repo.search("test", limit=5)
+            results = repo.search(query="test", status=None, limit=5)
             for r in results:
                 print(f"  → {r.name} (status: {r.status})")
 
             # Clean up
             print("\n🗑️  Cleaning up test skill...")
-            repo.delete(retrieved.skill_id)
+            repo.delete(id=retrieved.skill_id)
             print("  ✓ Test skill deleted")
 
         except Exception as e:
@@ -153,30 +147,28 @@ def test_jobs():
         job_data = {
             "user_id": "test_user",
             "task_description": "Create a test skill for validation",
-            "status": job_status_enum.pending,
+            "status": JobStatusEnum.PENDING,
         }
 
-        job = repo.create(job_data)
+        job = repo.create(obj_in=job_data)
         print(f"  ✓ Created job: {job.job_id}")
         print(f"     Status: {job.status}")
         print(f"     Description: {job.task_description}")
 
         # Update job status
         print("\n📝 Updating job status...")
-        updated = repo.update_status(
-            job.job_id, job_status_enum.completed, result={"success": True}
-        )
+        updated = repo.update_status(job.job_id, JobStatusEnum.COMPLETED, result={"success": True})
         print(f"  ✓ Job status: {updated.status}")
 
         # Get pending jobs
         print("\n📋 Getting pending jobs...")
-        pending = repo.get_pending_jobs(limit=5)
+        pending = repo.get_by_status(JobStatusEnum.PENDING, limit=5)
         for p in pending:
             print(f"  → {p.job_id} (created: {p.created_at})")
 
         # Clean up
         print("\n🗑️  Cleaning up test job...")
-        repo.delete(job.job_id)
+        repo.delete(id=job.job_id)
         print("  ✓ Test job deleted")
 
 

@@ -50,12 +50,12 @@ def create_command(
             error_text = ""
             try:
                 error_text = e.response.text
-            except Exception:
+            except AttributeError:
                 error_text = "(unable to read response)"
             console.print(Text(f"HTTP Error: {e.response.status_code} - {error_text}", style="red"))
         except ValueError as e:
             console.print(Text(f"Error: {e}", style="red"))
-        except Exception as e:
+        except (RuntimeError, OSError) as e:
             console.print(Text(f"Unexpected error: {type(e).__name__}: {e}", style="red"))
         finally:
             await config.client.close()

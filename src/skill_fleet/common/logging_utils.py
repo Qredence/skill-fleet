@@ -33,7 +33,8 @@ def sanitize_for_log(value: Any, max_length: int = 500) -> str:
     if not isinstance(value, str):
         try:
             value = str(value)
-        except Exception:
+        except (TypeError, ValueError, RecursionError):
+            # Handle objects that can't be converted to string
             return "<unloggable-value>"
 
     # Remove ANSI escape sequences (e.g., color codes)

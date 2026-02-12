@@ -622,11 +622,11 @@ class ValidationWorkflow:
         if hasattr(value, "model_dump"):
             try:
                 return self._to_plain_python(value.model_dump(mode="json"))
-            except Exception:
+            except (TypeError, ValueError, AttributeError):
                 return self._to_plain_python(value.model_dump())
         if hasattr(value, "toDict"):
             try:
                 return self._to_plain_python(value.toDict())
-            except Exception:
+            except (TypeError, ValueError, AttributeError):
                 return value
         return value

@@ -135,7 +135,8 @@ def parse_skill_frontmatter(skill_md_path: Path) -> dict[str, Any]:
 
         return frontmatter
 
-    except Exception:
+    except (OSError, yaml.YAMLError) as e:
+        logger.warning(f"Failed to parse frontmatter from {skill_md_path}: {e}")
         return {}
 
 

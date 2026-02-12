@@ -133,7 +133,7 @@ class TaxonomyManager:
         self.load_index()
         self._load_always_loaded_skills()
 
-    def track_usage(
+    async def track_usage(
         self,
         skill_id: str,
         user_id: str,
@@ -151,7 +151,10 @@ class TaxonomyManager:
         if success:
             skill_stats["successes"] += 1
 
-        self.meta_path.write_text(json.dumps(self.meta, indent=2) + "\n", encoding="utf-8")
+        # Async-safe file write
+        await asyncio.to_thread(
+            self.meta_path.write_text, json.dumps(self.meta, indent=2) + "\n", encoding="utf-8"
+        )
 
     def load_taxonomy_meta(self) -> dict[str, Any]:
         """Load taxonomy metadata from disk."""
@@ -390,7 +393,7 @@ class TaxonomyManager:
             async with self._cache_lock:
                 self.metadata_cache[skill_metadata.skill_id] = skill_metadata
             # Update taxonomy stats
-            self._update_taxonomy_stats(metadata)
+            await self._update_taxonomy_stats(metadata)
             return True
         except ValueError:
             return False
@@ -447,7 +450,7 @@ class TaxonomyManager:
             return None
         return get_skill_for_prompt(skill_id, self.metadata_cache)
 
-    def _update_taxonomy_stats(self, metadata: dict[str, Any]) -> None:
+    async def _update_taxonomy_stats(self, metadata: dict[str, Any]) -> None:
         """Update taxonomy statistics and persist taxonomy_meta.json."""
         stats = self.meta.setdefault("statistics", {})
         by_type = stats.setdefault("by_type", {})
@@ -467,7 +470,10 @@ class TaxonomyManager:
         skill_priority = str(metadata.get("load_priority", "unknown"))
         by_priority[skill_priority] = int(by_priority.get(skill_priority, 0)) + 1
 
-        self.meta_path.write_text(json.dumps(self.meta, indent=2) + "\n", encoding="utf-8")
+        # Async-safe file write
+        await asyncio.to_thread(
+            self.meta_path.write_text, json.dumps(self.meta, indent=2) + "\n", encoding="utf-8"
+        )
 
     def validate_dependencies(self, dependencies: list[str]) -> tuple[bool, list[str]]:
         """Validate that all dependencies can be resolved."""

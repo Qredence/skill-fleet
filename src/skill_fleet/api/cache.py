@@ -35,6 +35,7 @@ import hashlib
 import json
 import logging
 import time
+from collections import OrderedDict
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from pydantic import BaseModel
@@ -68,18 +69,20 @@ class CacheEntry:
 
 
 class InMemoryCache:
-    """Thread-safe in-memory cache with TTL support."""
+    """Thread-safe in-memory cache with TTL support and LRU eviction."""
 
-    def __init__(self, default_ttl: int = 300):
+    def __init__(self, default_ttl: int = 300, max_size: int = 1000):
         """
         Initialize the in-memory cache.
 
         Args:
             default_ttl: Default time-to-live in seconds (default: 5 minutes)
+            max_size: Maximum number of entries in cache (default: 1000)
 
         """
         self.default_ttl = default_ttl
-        self._cache: dict[str, CacheEntry] = {}
+        self.max_size = max_size
+        self._cache: OrderedDict[str, CacheEntry] = OrderedDict()
         self._lock = asyncio.Lock()
         self._stats = {
             "hits": 0,
@@ -110,12 +113,14 @@ class InMemoryCache:
                 self._stats["evictions"] += 1
                 return None
 
+            # Move to end to mark as recently used (LRU)
+            self._cache.move_to_end(key)
             self._stats["hits"] += 1
             return entry.value
 
     async def set(self, key: str, value: Any, ttl: int | None = None) -> None:
         """
-        Set a value in the cache.
+        Set a value in the cache with LRU eviction.
 
         Args:
             key: Cache key
@@ -127,7 +132,16 @@ class InMemoryCache:
             ttl = self.default_ttl
 
         async with self._lock:
+            # Evict oldest entries if at capacity and key is new
+            if key not in self._cache and len(self._cache) >= self.max_size:
+                # Remove oldest item (FIFO from OrderedDict)
+                oldest_key, _ = self._cache.popitem(last=False)
+                self._stats["evictions"] += 1
+                logger.debug(f"LRU evicted key: {oldest_key}")
+
             self._cache[key] = CacheEntry(value, ttl)
+            # Move to end to mark as recently used
+            self._cache.move_to_end(key)
 
     async def invalidate(self, key: str) -> bool:
         """

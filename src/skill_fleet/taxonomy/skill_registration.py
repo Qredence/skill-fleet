@@ -266,8 +266,8 @@ def write_extra_files(skill_dir: Path, extra_files: dict[str, Any]) -> None:
         if isinstance(caps, str) and caps.strip().startswith(("{", "[")):
             try:
                 caps = json.loads(caps)
-            except json.JSONDecodeError:
-                pass
+            except json.JSONDecodeError as e:
+                logger.warning(f"Failed to parse capability_implementations as JSON: {e}")
 
         if isinstance(caps, dict):
             caps_dir = skill_dir / "references" / "capability-implementations"
@@ -287,8 +287,8 @@ def write_extra_files(skill_dir: Path, extra_files: dict[str, Any]) -> None:
         if isinstance(examples, str) and examples.strip().startswith(("{", "[")):
             try:
                 examples = json.loads(examples)
-            except json.JSONDecodeError:
-                pass
+            except json.JSONDecodeError as e:
+                logger.warning(f"Failed to parse usage_examples as JSON: {e}")
 
         if isinstance(examples, list):
             examples_dir = skill_dir / "examples"
@@ -329,8 +329,8 @@ def write_extra_files(skill_dir: Path, extra_files: dict[str, Any]) -> None:
         if isinstance(tests, str) and tests.strip().startswith(("{", "[")):
             try:
                 tests = json.loads(tests)
-            except json.JSONDecodeError:
-                pass
+            except json.JSONDecodeError as e:
+                logger.warning(f"Failed to parse integration_tests as JSON: {e}")
 
         if isinstance(tests, list):
             tests_dir = skill_dir / "tests"

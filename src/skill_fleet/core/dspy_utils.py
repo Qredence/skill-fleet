@@ -143,8 +143,9 @@ def save_compiled_module(
                 if demos:
                     is_compiled = True
                     break
-        except Exception:
-            continue  # nosec B112
+        except (AttributeError, TypeError):
+            # Skip attributes that can't be accessed or aren't the expected type
+            continue
 
     if not is_compiled:
         logger.warning(

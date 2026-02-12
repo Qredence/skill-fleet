@@ -1,4 +1,4 @@
-from skill_fleet.taxonomy import discovery, InfrastructureSkillMetadata
+from skill_fleet.taxonomy import InfrastructureSkillMetadata, discovery
 
 
 def test_ensure_all_skills_loaded_throttles_recent_scan(tmp_path, monkeypatch):

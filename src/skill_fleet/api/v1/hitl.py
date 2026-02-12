@@ -86,7 +86,8 @@ def _fingerprint_payload(payload: dict) -> str:
     """Create a stable fingerprint for HITL payloads to detect duplicates."""
     try:
         return json.dumps(payload, sort_keys=True, separators=(",", ":"))
-    except Exception:
+    except (TypeError, ValueError):
+        # Handle non-serializable objects by falling back to repr
         return repr(payload)
 
 
@@ -445,7 +446,9 @@ async def post_response(
         success = await save_job_session_async(job_id)
         if not success:
             logger.warning("Failed to save session for job %s", sanitize_for_log(job_id))
-    except Exception:
-        logger.exception("Unexpected error saving session for job %s", sanitize_for_log(job_id))
+    except (RuntimeError, OSError, ConnectionError) as e:
+        logger.exception(
+            "Unexpected error saving session for job %s: %s", sanitize_for_log(job_id), e
+        )
 
     return HITLResponseResult(status="accepted")

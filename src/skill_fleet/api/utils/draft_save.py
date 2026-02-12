@@ -422,10 +422,11 @@ async def save_skill_to_draft(
                 if skill_md_path.exists():
                     skill_md = skill_md_path.read_text(encoding="utf-8")
                     _write_asset_and_example_files(full_path, skill_md)
-            except Exception:
+            except (OSError, ValueError) as e:
                 logger.warning(
-                    "Failed to extract skill artifacts (assets/examples) for %s",
+                    "Failed to extract skill artifacts (assets/examples) for %s: %s",
                     full_path,
+                    e,
                     exc_info=True,
                 )
 
@@ -433,7 +434,7 @@ async def save_skill_to_draft(
             # Subdirectory files come from the DSPy generation phase
             try:
                 _write_subdirectory_files(full_path, result.edit_result)
-            except Exception as e:
+            except (OSError, TypeError, KeyError) as e:
                 logger.warning(
                     "Failed to write subdirectory files for %s: %s",
                     full_path,

@@ -762,7 +762,7 @@ class WebhookFeedbackHandler(FeedbackHandler):
         """Post to webhook and wait for approval response."""
         import time
 
-        import requests
+        import httpx
 
         # Post review request
         review_data = {
@@ -772,18 +772,22 @@ class WebhookFeedbackHandler(FeedbackHandler):
         }
 
         try:
-            response = requests.post(self.webhook_url, json=review_data, timeout=10)
-            review_id = response.json().get("review_id")
+            with httpx.Client() as client:
+                response = client.post(self.webhook_url, json=review_data, timeout=10)
+                response.raise_for_status()
+                review_id = response.json().get("review_id")
 
-            # Poll for decision
-            start_time = time.time()
-            while time.time() - start_time < self.timeout:
-                status_response = requests.get(f"{self.webhook_url}/{review_id}", timeout=5)
+                # Poll for decision
+                start_time = time.time()
+                while time.time() - start_time < self.timeout:
+                    status_response = client.get(f"{self.webhook_url}/{review_id}", timeout=5)
+                    status_response.raise_for_status()
+                    status_data = status_response.json()
 
-                if status_response.json().get("status") != "pending":
-                    return json.dumps(status_response.json())
+                    if status_data.get("status") != "pending":
+                        return json.dumps(status_data)
 
-                time.sleep(30)  # Poll every 30 seconds
+                    time.sleep(30)  # Poll every 30 seconds
 
             # Timeout
             return json.dumps(
@@ -795,6 +799,16 @@ class WebhookFeedbackHandler(FeedbackHandler):
                 }
             )
 
+        except httpx.HTTPError as e:
+            logger.error(f"Webhook feedback HTTP error: {e}")
+            return json.dumps(
+                {
+                    "status": "needs_revision",
+                    "comments": f"Feedback system error: HTTP {e}",
+                    "reviewer": "system",
+                    "timestamp": datetime.now(UTC).isoformat(),
+                }
+            )
         except Exception as e:
             logger.error(f"Webhook feedback error: {e}")
             return json.dumps(

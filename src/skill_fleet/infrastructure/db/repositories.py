@@ -226,11 +226,14 @@ class SkillRepository(BaseRepository[Skill]):
         return query.order_by(Skill.name).offset(skip).limit(limit).all()
 
     def get_dependent_skills(self, skill_id: int) -> list[Skill]:
-        """Get all skills that depend on this skill."""
+        """Get all skills that depend on this skill with eager loading."""
         return (
             self.db.query(Skill)
             .join(SkillDependency, Skill.skill_id == SkillDependency.dependent_id)
             .filter(SkillDependency.dependency_skill_id == skill_id)
+            .options(joinedload(Skill.capabilities))
+            .options(joinedload(Skill.keywords))
+            .options(joinedload(Skill.tags))
             .all()
         )
 
@@ -477,60 +480,60 @@ class TaxonomyRepository(BaseRepository[TaxonomyCategory]):
         """
         Get the taxonomy tree structure.
 
+        Uses closure table for efficient tree loading, avoiding N+1 queries.
+
         Args:
             root_path: Optional path to start from (defaults to root level)
 
         """
+        # Determine the root category ID
+        root_id = None
         if root_path:
             root = self.get_by_path(root_path)
             if not root:
                 return []
-            query = self.db.query(TaxonomyCategory).filter(
-                TaxonomyCategory.parent_id == root.category_id
-            )
-        else:
-            query = self.db.query(TaxonomyCategory).filter(TaxonomyCategory.parent_id.is_(None))
+            root_id = root.category_id
 
-        categories = query.order_by(TaxonomyCategory.sort_order).all()
-
-        result = []
-        for cat in categories:
-            result.append(
-                {
-                    "category_id": cat.category_id,
-                    "path": cat.path,
-                    "name": cat.name,
-                    "description": cat.description,
-                    "level": cat.level,
-                    "children": self._get_children(cat.category_id),
-                }
-            )
-
-        return result
-
-    def _get_children(self, parent_id: int) -> list[dict]:
-        """Recursively get child categories."""
-        children = (
-            self.db.query(TaxonomyCategory)
-            .filter(TaxonomyCategory.parent_id == parent_id)
-            .order_by(TaxonomyCategory.sort_order)
-            .all()
+        # Build query to get all descendants in a single query
+        query = self.db.query(TaxonomyCategory, TaxonomyClosure.depth).join(
+            TaxonomyClosure, TaxonomyCategory.category_id == TaxonomyClosure.descendant_id
         )
 
-        result = []
-        for cat in children:
-            result.append(
-                {
-                    "category_id": cat.category_id,
-                    "path": cat.path,
-                    "name": cat.name,
-                    "description": cat.description,
-                    "level": cat.level,
-                    "children": self._get_children(cat.category_id),
-                }
-            )
+        if root_id:
+            query = query.filter(TaxonomyClosure.ancestor_id == root_id)
+        else:
+            query = query.filter(TaxonomyClosure.ancestor_id.is_(None))
 
-        return result
+        # Get all categories with their depth info
+        results = query.order_by(TaxonomyCategory.sort_order).all()
+
+        # Build lookup maps
+        category_map: dict[int, dict] = {}
+        children_map: dict[int | None, list[int]] = {None: []}
+
+        for cat, _depth in results:
+            category_map[cat.category_id] = {
+                "category_id": cat.category_id,
+                "path": cat.path,
+                "name": cat.name,
+                "description": cat.description,
+                "level": cat.level,
+                "children": [],
+            }
+            if cat.parent_id not in children_map:
+                children_map[cat.parent_id] = []
+            children_map[cat.parent_id].append(cat.category_id)
+
+        # Build tree recursively from flat structure
+        def build_tree(parent_id: int | None) -> list[dict]:
+            result = []
+            for child_id in children_map.get(parent_id, []):
+                node = category_map[child_id].copy()
+                node["children"] = build_tree(child_id)
+                result.append(node)
+            return result
+
+        return build_tree(root_id)
 
     def get_skills_in_category(self, category_id: int) -> list[Skill]:
         """Get all skills in a category (including subcategories)."""

@@ -8,6 +8,8 @@ capabilities following the agentskills.io integration standard.
 from __future__ import annotations
 
 import logging
+import threading
+import time
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -21,6 +23,27 @@ if TYPE_CHECKING:
     from .metadata import InfrastructureSkillMetadata
 
 logger = logging.getLogger(__name__)
+
+_DISCOVERY_SCAN_INTERVAL_SECONDS = 30.0
+_last_discovery_scan: dict[str, float] = {}
+_discovery_scan_lock = threading.Lock()
+
+
+def _should_scan(skills_root: Path) -> bool:
+    """
+    Determine whether discovery scan should run based on last scan time.
+
+    Throttles repeated filesystem walks to reduce overhead on hot paths like
+    list endpoints that call this helper frequently.
+    """
+    now = time.monotonic()
+    root_key = str(skills_root.resolve())
+    with _discovery_scan_lock:
+        last_scan = _last_discovery_scan.get(root_key)
+        if last_scan is not None and now - last_scan < _DISCOVERY_SCAN_INTERVAL_SECONDS:
+            return False
+        _last_discovery_scan[root_key] = now
+        return True
 
 
 def generate_available_skills_xml(
@@ -82,6 +105,9 @@ def ensure_all_skills_loaded(
         load_dir_func: Function to load skill directory metadata
 
     """
+    if not _should_scan(skills_root):
+        return
+
     candidate_dirs = {metadata_file.parent for metadata_file in skills_root.rglob("metadata.json")}
     candidate_dirs.update(skill_md_file.parent for skill_md_file in skills_root.rglob("SKILL.md"))
 

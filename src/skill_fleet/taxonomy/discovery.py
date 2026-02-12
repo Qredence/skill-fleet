@@ -108,8 +108,11 @@ def ensure_all_skills_loaded(
     if not _should_scan(skills_root):
         return
 
-    candidate_dirs = {metadata_file.parent for metadata_file in skills_root.rglob("metadata.json")}
-    candidate_dirs.update(skill_md_file.parent for skill_md_file in skills_root.rglob("SKILL.md"))
+    # Single directory traversal to find both metadata.json and SKILL.md files
+    candidate_dirs: set[Path] = set()
+    for file_path in skills_root.rglob("*"):
+        if file_path.is_file() and file_path.name in ("metadata.json", "SKILL.md"):
+            candidate_dirs.add(file_path.parent)
 
     for skill_dir in sorted(candidate_dirs):
         skill_id = skill_dir.relative_to(skills_root).as_posix()
@@ -119,7 +122,7 @@ def ensure_all_skills_loaded(
         if skill_id not in metadata_cache:
             try:
                 load_dir_func(skill_dir)
-            except Exception as exc:
+            except (OSError, ValueError, KeyError) as exc:
                 # Skip invalid skills - they may have malformed metadata
                 logger.debug("Skipping invalid skill %s: %s", skill_dir, exc)
 

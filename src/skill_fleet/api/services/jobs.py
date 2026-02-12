@@ -7,6 +7,7 @@ import json
 import logging
 import time
 import uuid
+from collections import OrderedDict
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -48,7 +49,7 @@ def _resolve_session_file_path(canonical_job_id: str) -> Path:
 # In-memory job store with TTL eviction (use Redis in production)
 class JobStore:
     """
-    Job store with automatic TTL eviction.
+    Job store with automatic TTL eviction and O(1) LRU using OrderedDict.
 
     Prevents memory leaks by evicting old jobs after MAX_AGE_HOURS.
     Designed for asyncio context (single-threaded event loop).
@@ -58,7 +59,9 @@ class JobStore:
     MAX_AGE_HOURS = 24  # Evict jobs older than this
 
     def __init__(self):
-        self._jobs: dict[str, JobState] = {}
+        # OrderedDict maintains insertion order - we use it for LRU
+        # Most recently accessed items are moved to the end
+        self._jobs: OrderedDict[str, JobState] = OrderedDict()
         self._access_times: dict[str, float] = {}
 
     def _evict_if_needed(self):
@@ -76,9 +79,9 @@ class JobStore:
             self._evict_job(job_id)
 
         # Evict by count (LRU - evict least recently accessed)
-        while len(self._jobs) > self.MAX_JOBS and self._access_times:
-            # Find oldest access
-            oldest_job = min(self._access_times, key=lambda job_id: self._access_times[job_id])
+        # OrderedDict keeps items in access order, so oldest is at the beginning
+        while len(self._jobs) > self.MAX_JOBS and self._jobs:
+            oldest_job = next(iter(self._jobs))
             self._evict_job(oldest_job)
 
     def _evict_job(self, job_id: str):
@@ -87,9 +90,16 @@ class JobStore:
         self._access_times.pop(job_id, None)
         logger.debug(f"Evicted job {job_id} from memory")
 
+    def _touch(self, job_id: str):
+        """Update access time and mark as recently used."""
+        self._access_times[job_id] = time.time()
+        # Move to end to mark as recently used (LRU)
+        if job_id in self._jobs:
+            self._jobs.move_to_end(job_id)
+
     def __getitem__(self, job_id: str) -> JobState:
         """Get job and update access time."""
-        self._access_times[job_id] = time.time()
+        self._touch(job_id)
         return self._jobs[job_id]
 
     def __setitem__(self, job_id: str, job: JobState):
@@ -97,6 +107,7 @@ class JobStore:
         self._evict_if_needed()
         self._jobs[job_id] = job
         self._access_times[job_id] = time.time()
+        self._jobs.move_to_end(job_id)
 
     def __contains__(self, job_id: str) -> bool:
         """Check if job exists."""
@@ -105,7 +116,7 @@ class JobStore:
     def get(self, job_id: str, default=None):
         """Get job with default."""
         if job_id in self._jobs:
-            self._access_times[job_id] = time.time()
+            self._touch(job_id)
             return self._jobs[job_id]
         return default
 

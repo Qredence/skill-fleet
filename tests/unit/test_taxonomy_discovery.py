@@ -1,4 +1,5 @@
 from skill_fleet.taxonomy import discovery
+from skill_fleet.taxonomy import InfrastructureSkillMetadata
 
 
 def test_ensure_all_skills_loaded_throttles_recent_scan(tmp_path, monkeypatch):
@@ -7,7 +8,7 @@ def test_ensure_all_skills_loaded_throttles_recent_scan(tmp_path, monkeypatch):
     skill_dir.mkdir(parents=True)
     (skill_dir / "SKILL.md").write_text("content", encoding="utf-8")
 
-    metadata_cache: dict[str, object] = {}
+    metadata_cache: dict[str, InfrastructureSkillMetadata] = {}
     load_calls: list = []
 
     def fake_loader(skill_path):
